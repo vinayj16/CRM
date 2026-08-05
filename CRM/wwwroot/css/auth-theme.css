@@ -526,7 +526,7 @@ body.account-page {
     border-radius: 12px;
     display: grid;
     place-items: center;
-    background: linear-gradient(145deg, #0F4C75 0%, #1A6FA8 100%);
+    background: linear-gradient(145deg, #125082 0%, #1F75CB 100%);
     color: #FFFFFF;
     overflow: hidden;
     box-shadow: 0 8px 18px var(--auth-glow);
@@ -616,7 +616,7 @@ body.account-page {
     text-transform: none !important;
     letter-spacing: 0.01em !important;
     font-size: 0.93rem !important;
-    background: linear-gradient(120deg, #0F4C75 0%, #1A6FA8 100%) !important;
+    background: linear-gradient(120deg, #125082 0%, #1F75CB 100%) !important;
 }
 
 .btn-primary:hover {

@@ -3256,15 +3256,15 @@ catch { role = ""; username = ""; email = ""; }
 					bootstrap.Modal.getInstance(document.getElementById('interestModal')).hide();
 					form.reset();
 					form.querySelectorAll('.lp-field').forEach(function (f) { f.classList.remove('is-valid', 'has-error'); });
-					Swal.fire({ icon: 'success', title: 'Thank You!', text: data.message || 'Our team will contact you soon.', confirmButtonColor: '#1A6FA8' });
+					Swal.fire({ icon: 'success', title: 'Thank You!', text: data.message || 'Our team will contact you soon.', confirmButtonColor: '#1F75CB' });
 				} else {
-					Swal.fire({ icon: 'error', title: 'Oops!', text: data.message || 'Something went wrong.', confirmButtonColor: '#1A6FA8' });
+					Swal.fire({ icon: 'error', title: 'Oops!', text: data.message || 'Something went wrong.', confirmButtonColor: '#1F75CB' });
 				}
 			})
 			.catch(function () {
 				btn.disabled = false;
 				btn.innerHTML = '<i class="fa fa-paper-plane"></i> Submit Interest';
-				Swal.fire({ icon: 'error', title: 'Error', text: 'Please try again.', confirmButtonColor: '#1A6FA8' });
+				Swal.fire({ icon: 'error', title: 'Error', text: 'Please try again.', confirmButtonColor: '#1F75CB' });
 			});
 		});
 	}());
@@ -3302,7 +3302,7 @@ catch { role = ""; username = ""; email = ""; }
 				form.reset();
 				var modal = bootstrap.Modal.getInstance(document.getElementById('inquiryModal'));
 				if (modal) modal.hide();
-				Swal.fire({ icon: 'success', title: 'Thank You!', text: res.message, confirmButtonColor: '#1A6FA8' });
+				Swal.fire({ icon: 'success', title: 'Thank You!', text: res.message, confirmButtonColor: '#1F75CB' });
 			} else {
 				Swal.fire({ icon: 'error', title: 'Error', text: res.message });
 			}
