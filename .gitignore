@@ -1,4 +1,7 @@
 # ===== Build artifacts =====
+bin/
+obj/
+publish/
 **/bin/
 **/obj/
 **/publish/
@@ -9,28 +12,52 @@
 .idea/
 *.user
 *.suo
+*.userosscache
+*.sln.docstates
 
-# ===== Environment & secrets =====
+# ===== Logs =====
+*.log
+
+# ===== Node =====
+node_modules/
+
+# ===== Secrets & credentials =====
+# appsettings.json is intentionally committed so deployments have a working baseline.
+# Override secrets in production with Railway Variables (e.g. MongoDb__ConnectionString).
+# Do NOT commit firebase-credentials.json or any service-account keys.
+firebase-credentials.json
+*firebase-adminsdk*.json
+credentials.json
+secrets/
+secrets.json
 .env
 .env.*
+.env.local
 *.key
 *.pem
 *.p12
 *.pfx
+*.jks
+*.p8
 
-# ===== Local scratch (audit scripts) =====
-.audit*.sh
+# ===== Azure / publish =====
+PublishProfiles/
+*.Publish.xml
+*.publishsettings
 
 # ===== Data exports, runtime uploads & debug artifacts =====
-# (also covered by CRM/.gitignore — kept here for the repo root)
 All_MongoDB_Data.json
 PayoutDebug.txt
-CRM/wwwroot/uploads/
+wwwroot/uploads/
+*.vsix
 _v3.html
+
+# ===== Mobile app — separate project, kept local only (not deployed) =====
+CRM-Mobile/
 
 # ===== OS files =====
 Thumbs.db
 .DS_Store
 
-# ===== Node (mobile submodule is separate, but harmless to ignore) =====
-node_modules/
+# ===== Local scratch =====
+.audit*.sh

@@ -9,7 +9,7 @@
 **/publish
 **/*.user
 
-# Mobile app — separate git submodule, not part of this web deployment
+# Mobile app — separate project, not part of this web deployment
 CRM-Mobile
 
 # Local tooling / scratch
@@ -17,7 +17,7 @@ CRM-Mobile
 PayoutDebug.txt
 
 # Large MongoDB export backup — not needed at runtime
-CRM/All_MongoDB_Data.json
+All_MongoDB_Data.json
 
 # Environment / local config
 .env

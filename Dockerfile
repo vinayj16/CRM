@@ -1,6 +1,6 @@
 # ============================================================
 # CRM — ASP.NET Core 10 web app (deployed to Railway)
-# The web project lives in CRM/; the build context is the repo root.
+# The web project lives at the repo root.
 # Railway is pinned to the Dockerfile builder via railway.json.
 # ============================================================
 
@@ -9,17 +9,16 @@ FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 
 # Restore only the project file first for better layer caching
-COPY ["CRM/CRM.csproj", "CRM/"]
-RUN dotnet restore "CRM/CRM.csproj"
+COPY ["CRM.csproj", "./"]
+RUN dotnet restore "CRM.csproj"
 
 # Copy the rest of the repo and publish
 COPY . .
-WORKDIR "/src/CRM"
 RUN dotnet publish "CRM.csproj" -c Release --no-restore -o /app/publish
 
 # firebase-credentials.json is gitignored; include it when present.
 # FcmService degrades gracefully without it, so never fail the build over it.
-RUN cp /src/CRM/firebase-credentials.json /app/publish/ 2>/dev/null || echo "firebase-credentials.json not found - push notifications disabled"
+RUN cp /src/firebase-credentials.json /app/publish/ 2>/dev/null || echo "firebase-credentials.json not found - push notifications disabled"
 
 # ---------- Runtime stage ----------
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
