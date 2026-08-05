@@ -1,0 +1,24 @@
+# Version control
+.git
+.gitignore
+.gitmodules
+
+# .NET build artifacts
+**/bin
+**/obj
+**/publish
+**/*.user
+
+# Mobile app — separate git submodule, not part of this web deployment
+CRM-Mobile
+
+# Local tooling / scratch
+.firecrawl
+PayoutDebug.txt
+
+# Large MongoDB export backup — not needed at runtime
+CRM/All_MongoDB_Data.json
+
+# Environment / local config
+.env
+.env.*

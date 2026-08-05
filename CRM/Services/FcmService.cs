@@ -7,13 +7,15 @@ namespace CRM.Services
     public class FcmService
     {
         private readonly AppDbContext _context;
+        private readonly IConfiguration _config;
         private static bool _firebaseInitialized = false;
         private static bool _firebaseInitializationAttempted = false;
         private static readonly object _lock = new object();
 
-        public FcmService(AppDbContext context)
+        public FcmService(AppDbContext context, IConfiguration config)
         {
             _context = context;
+            _config = config;
             EnsureFirebaseInitialized();
         }
 
@@ -114,7 +116,9 @@ namespace CRM.Services
 
         private string ValidateAndFixUrl(string? link)
         {
-            var baseUrl = "https://localhost:5139";
+            // Use the deployed BaseUrl (set via appsettings/env var on Railway) so
+            // push notification links point at the public domain instead of localhost.
+            var baseUrl = _config["BaseUrl"] ?? "https://localhost:5139";
 
             // Ensure base URL ends with no trailing slash for consistency
             baseUrl = baseUrl.TrimEnd('/');

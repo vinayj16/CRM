@@ -4,11 +4,13 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Bind to port 5139 on all network interfaces (required for mobile/WebToApp access)
+// Bind to the $PORT env var when set (Railway / hosted platforms) so the platform
+// proxy can reach the app; fall back to 5139 for local development and mobile/WebToApp access.
+var listenPort = int.TryParse(Environment.GetEnvironmentVariable("PORT"), out var port) ? port : 5139;
 builder.WebHost.ConfigureKestrel(options =>
 {
     options.Limits.MaxRequestBodySize = 200 * 1024 * 1024; // 200MB
-    options.ListenAnyIP(5139); // http on 0.0.0.0 - allows mobile device connections
+    options.ListenAnyIP(listenPort); // http on 0.0.0.0 - allows mobile device connections
 });
 builder.Services.Configure<Microsoft.AspNetCore.Http.Features.FormOptions>(options =>
 {
