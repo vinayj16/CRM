@@ -1,6 +1,6 @@
 
 @{
-    ViewData["Title"] = "Ultrakey PropTech";
+    ViewData["Title"] = "Home";
     Layout = "_LandingLayout";
 
     var copyrightText = Context.RequestServices.GetService<CRM.MasterDb.MasterDbContext>()?.SaasSetting.FirstOrDefault(s => s.SettingKey == "CopyrightText")?.SettingValue ?? "";

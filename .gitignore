@@ -1,0 +1,36 @@
+# ===== Build artifacts =====
+**/bin/
+**/obj/
+**/publish/
+
+# ===== IDE / editor =====
+.vs/
+.vscode/
+.idea/
+*.user
+*.suo
+
+# ===== Environment & secrets =====
+.env
+.env.*
+*.key
+*.pem
+*.p12
+*.pfx
+
+# ===== Local scratch (audit scripts) =====
+.audit*.sh
+
+# ===== Data exports, runtime uploads & debug artifacts =====
+# (also covered by CRM/.gitignore — kept here for the repo root)
+All_MongoDB_Data.json
+PayoutDebug.txt
+CRM/wwwroot/uploads/
+_v3.html
+
+# ===== OS files =====
+Thumbs.db
+.DS_Store
+
+# ===== Node (mobile submodule is separate, but harmless to ignore) =====
+node_modules/
