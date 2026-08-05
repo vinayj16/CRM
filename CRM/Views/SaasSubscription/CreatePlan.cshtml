@@ -1,0 +1,200 @@
+﻿@model CRM.MasterDb.Models.SaasSubscriptionPlanModel
+@{
+    ViewData["Title"] = "Create Subscription Plan";
+}
+
+<div class="content">
+    <div class="page-hd"><i class="fa-solid fa-square-plus"></i><h4>Create Plan</h4></div>
+    <nav class="mb-3" aria-label="breadcrumb">
+        <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item"><a href="/Home/Index">Home</a></li>
+            <li class="breadcrumb-item"><a href="/saassubscription/Plans">Subscription Plans</a></li>
+            <li class="breadcrumb-item active">Create Plan</li>
+        </ol>
+    </nav>
+
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">Create Subscription Plan</h5>
+        </div>
+        <div class="card-body">
+            <form id="CreatePlanForm" method="post" action="/saassubscription/CreatePlan" novalidate>
+                @Html.AntiForgeryToken()
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Plan Name <span class="text-danger">*</span></label>
+                        <input name="PlanName" class="form-control" required />
+                        <div class="invalid-feedback">Please enter plan name</div>
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Plan Type</label>
+                        <select name="PlanType" class="form-select">
+                            <option value="Basic">Basic</option>
+                            <option value="Standard">Standard</option>
+                            <option value="Enterprise">Enterprise</option>
+                            <option value="Premium">Premium</option>
+                            <option value="Ultimate">Ultimate</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Description</label>
+                    <textarea name="Description" class="form-control" rows="2"></textarea>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Monthly Price (₹) <span class="text-danger">*</span></label>
+                        <input name="MonthlyPrice" type="number" step="0.01" class="form-control" required />
+                        <div class="invalid-feedback">Please enter monthly price</div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Yearly Price (₹) <span class="text-danger">*</span></label>
+                        <input name="YearlyPrice" type="number" step="0.01" class="form-control" required />
+                        <div class="invalid-feedback">Please enter yearly price</div>
+                    </div>
+                </div>
+
+                <h6 class="mb-3">Limits</h6>
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Max Agents (-1 for unlimited)</label>
+                        <input name="MaxAgents" type="number" class="form-control" value="2" />
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Max Leads/Month (-1 for unlimited)</label>
+                        <input name="MaxLeadsPerMonth" type="number" class="form-control" value="500" />
+                    </div>
+                </div>
+                <input type="hidden" name="MaxStorageGB" value="1000" />
+
+                <h6 class="mb-3">Features</h6>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-check mb-2">
+                            <input name="HasWhatsAppIntegration" type="checkbox" class="form-check-input" value="true" checked />
+                            <input name="HasWhatsAppIntegration" type="hidden" value="false" />
+                            <label class="form-check-label">WhatsApp Integration</label>
+                        </div>
+                        <div class="form-check mb-2">
+                            <input name="HasFacebookIntegration" type="checkbox" class="form-check-input" value="true" />
+                            <input name="HasFacebookIntegration" type="hidden" value="false" />
+                            <label class="form-check-label">Facebook Integration</label>
+                        </div>
+                        <div class="form-check mb-2">
+                            <input name="HasEmailIntegration" type="checkbox" class="form-check-input" value="true" />
+                            <input name="HasEmailIntegration" type="hidden" value="false" />
+                            <label class="form-check-label">Email Integration</label>
+                        </div>
+                        <div class="form-check mb-2">
+                            <input name="HasCustomAPIAccess" type="checkbox" class="form-check-input" value="true" />
+                            <input name="HasCustomAPIAccess" type="hidden" value="false" />
+                            <label class="form-check-label">Custom API Access</label>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-check mb-2">
+                            <input name="HasAdvancedReports" type="checkbox" class="form-check-input" value="true" />
+                            <input name="HasAdvancedReports" type="hidden" value="false" />
+                            <label class="form-check-label">Advanced Reports</label>
+                        </div>
+                        <div class="form-check mb-2">
+                            <input name="HasCustomReports" type="checkbox" class="form-check-input" value="true" />
+                            <input name="HasCustomReports" type="hidden" value="false" />
+                            <label class="form-check-label">Custom Reports</label>
+                        </div>
+                        <div class="form-check mb-2">
+                            <input name="HasDataExport" type="checkbox" class="form-check-input" value="true" />
+                            <input name="HasDataExport" type="hidden" value="false" />
+                            <label class="form-check-label">Data Export</label>
+                        </div>
+                        <div class="form-check mb-2">
+                            <input name="HasPrioritySupport" type="checkbox" class="form-check-input" value="true" />
+                            <input name="HasPrioritySupport" type="hidden" value="false" />
+                            <label class="form-check-label">Priority Support</label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row mt-3">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Support Level</label>
+                        <select name="SupportLevel" class="form-select">
+                            <option value="Email">Email</option>
+                            <option value="Chat">Chat</option>
+                            <option value="Phone">Phone</option>
+                            <option value="Dedicated">Dedicated</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Sort Order</label>
+                        <input name="SortOrder" type="number" class="form-control" value="0" />
+                    </div>
+                </div>
+
+                <div class="d-flex gap-2 mt-4">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fa-solid fa-save me-2"></i>Create Plan
+                    </button>
+                    <a href="/saassubscription/Plans" class="btn btn-secondary">
+                        <i class="fa-solid fa-times me-2"></i>Cancel
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('CreatePlanForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+
+                if (!this.checkValidity()) {
+                    e.stopPropagation();
+                    this.classList.add('was-validated');
+                    return;
+                }
+
+                const formData = new FormData(this);
+
+                fetch('/saassubscription/CreatePlan', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Success!',
+                            text: data.message || 'Plan created successfully!',
+                            confirmButtonText: 'OK'
+                        }).then(() => {
+                            window.location.href = '/saassubscription/Plans';
+                        });
+                    } else {
+                        const errors = data.errors || ['An error occurred'];
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: errors.join(', ')
+                        });
+                    }
+                })
+                .catch(error => {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: 'An error occurred while creating plan'
+                    });
+                });
+            });
+        });
+    </script>
+}

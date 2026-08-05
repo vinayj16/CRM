@@ -1,0 +1,316 @@
+@model CRM.Models.LoginModel
+@{
+    ViewData["Title"] = "Login";
+    Layout = "_LayoutLogin";
+}
+
+<script>
+    // Preserve dark mode preference - don't force light mode
+    var dm = localStorage.getItem('darkMode');
+    if (dm === 'enabled') { document.documentElement.classList.add('dark-mode'); }
+    sessionStorage.removeItem('navbarReady');
+</script>
+
+<div class="login-container auth-v5 auth-login-page">
+    <aside class="login-left auth-showcase">
+        <div class="auth-showcase-header">
+            <div class="brand-logo">
+                @if (!string.IsNullOrEmpty(ViewBag.CompanyLogo))
+                {
+                    <img src="@ViewBag.CompanyLogo" alt="@(ViewBag.CompanyName ?? "Company Logo")" />
+                }
+                else
+                {
+                    <i class="fas fa-city"></i>
+                }
+            </div>
+            <h1>@(ViewBag.CompanyName ?? "PropTech CRM")</h1>
+            <p>Run sales, leads, and customer journeys from one workspace.</p>
+        </div>
+
+        <ul class="auth-points list-unstyled">
+            <li><i class="fas fa-bolt"></i> Real-time lead updates</li>
+            <li><i class="fas fa-shield-alt"></i> Secure role-based access</li>
+            <li><i class="fas fa-chart-line"></i> Daily performance insights</li>
+        </ul>
+    </aside>
+
+    <section class="login-form-section">
+        <div class="form-brand">
+            <div class="form-brand-logo">
+                @if (!string.IsNullOrEmpty(ViewBag.CompanyLogo))
+                {
+                    <img src="@ViewBag.CompanyLogo" alt="@(ViewBag.CompanyName ?? "Company Logo")" />
+                }
+                else
+                {
+                    <i class="fas fa-city"></i>
+                }
+            </div>
+            <div class="form-brand-meta">
+                <h2>@(ViewBag.CompanyName ?? "PropTech CRM")</h2>
+                <p>Sign in to continue</p>
+            </div>
+        </div>
+
+        <div class="login-header">
+            <h1>Welcome Back</h1>
+            <p>Enter your credentials to access your dashboard.</p>
+        </div>
+
+        @if (ViewBag.Message != null)
+        {
+            <div class="alert alert-danger" id="serverAlert" role="alert">
+                <i class="fas fa-circle-exclamation"></i>
+                <span>@ViewBag.Message</span>
+            </div>
+        }
+
+        @if (TempData["PasswordResetSuccess"] != null)
+        {
+            <div class="alert alert-success" role="alert">
+                <i class="fas fa-check-circle"></i>
+                <span>@TempData["PasswordResetSuccess"]</span>
+            </div>
+        }
+
+        <form id="loginForm" asp-action="Login" method="post" novalidate>
+            @Html.AntiForgeryToken()
+
+            <div class="input-wrapper">
+                <label asp-for="Username" class="form-label">Username</label>
+                <i class="fas fa-user"></i>
+                <input asp-for="Username" class="form-control" placeholder="Enter username" required autofocus autocomplete="username" />
+                <span asp-validation-for="Username" class="text-danger"></span>
+            </div>
+
+            <div class="input-wrapper">
+                <label asp-for="Password" class="form-label">Password</label>
+                <i class="fas fa-lock"></i>
+                <input asp-for="Password" class="form-control" type="password" placeholder="Enter password" required autocomplete="current-password" />
+                <button type="button" class="password-toggle" id="togglePassword">
+                    <i class="fas fa-eye" id="toggleIcon"></i>
+                </button>
+                <span asp-validation-for="Password" class="text-danger"></span>
+            </div>
+
+            <div class="form-options">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="rememberMe" />
+                    <label class="form-check-label" for="rememberMe">Remember me</label>
+                </div>
+                <a href="/Account/ForgotPassword" class="forgot-link">Forgot Password?</a>
+            </div>
+
+            <button type="submit" class="btn-primary">
+                <i class="fas fa-arrow-right-to-bracket"></i> Sign In
+            </button>
+            @if (Context.Items[key: "Subdomain"] != null) {
+                <p class="signup-text">
+                    New here? <a href="/Account/Register">Create Account</a>
+                </p>
+            }
+        </form>
+    </section>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            @if (TempData["PendingApproval"] != null)
+            {
+                <text>
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Account Pending Approval',
+                    html: 'Your account is awaiting admin approval.<br>You will be notified once approved.',
+                    confirmButtonText: 'OK',
+                    confirmButtonColor: '#DC2626'
+                });
+                </text>
+            }
+
+            @if (TempData["RegistrationMessage"] != null)
+            {
+                <text>
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Registration Complete!',
+                    html: 'Your account has been created successfully.<br>It is pending admin approval. You will be notified once approved.',
+                    confirmButtonText: 'Got it',
+                    confirmButtonColor: '#DC2626'
+                });
+                </text>
+            }
+
+            var form = document.getElementById('loginForm');
+            var submitBtn = form.querySelector('button[type="submit"]');
+            var originalHtml = submitBtn.innerHTML;
+
+            function showError(msg) {
+                var el = document.getElementById('loginAlert');
+                if (!el) {
+                    el = document.createElement('div');
+                    el.id = 'loginAlert';
+                    el.className = 'alert alert-danger';
+                    el.setAttribute('role', 'alert');
+                    form.parentNode.insertBefore(el, form);
+                }
+                el.innerHTML = '<i class="fas fa-circle-exclamation"></i> <span>' + msg + '</span>';
+                el.style.display = 'flex';
+            }
+
+            function resetBtn() {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalHtml;
+            }
+
+            form.addEventListener('submit', function(e) {
+                e.preventDefault();
+
+                // Hide previous alerts
+                var sa = document.getElementById('serverAlert');
+                if (sa) sa.style.display = 'none';
+                var la = document.getElementById('loginAlert');
+                if (la) la.style.display = 'none';
+
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Signing in...';
+
+                fetch(form.action, {
+                    method: 'POST',
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                    body: new FormData(form)
+                })
+                .then(function(r) {
+                    if ((r.headers.get('content-type') || '').indexOf('json') === -1) throw new Error('not-json');
+                    return r.json();
+                })
+                .then(function(data) {
+                        if (data.pickWorkspace) {
+
+                            // Show workspace picker
+                            resetBtn();
+
+                            var workspaceHtml = '<div style="text-align:left;">';
+
+                            data.workspaces.forEach(function (w) {
+                                workspaceHtml += `
+                                    <div class="workspace-option"
+                                         data-tenant-id="${w.tenantId}"
+                                         style="padding:12px 16px; margin:8px; border:1px solid #E2E8F0; border-radius:8px; cursor:pointer; transition:all 0.2s;">
+
+                                        <strong>${w.companyName}</strong><br>
+                                        <small style="color:#6B7B8D;">Role: ${w.role}</small>
+
+                                    </div>
+                                `;
+                            });
+
+                            workspaceHtml += '</div>';
+
+                            Swal.fire({
+                                title: 'Select Workspace',
+                                html: workspaceHtml,
+                                showConfirmButton: false,
+                                showCloseButton: true,
+
+                                didOpen: function () {
+
+                                    document.querySelectorAll('.workspace-option').forEach(function (el) {
+
+                                        el.addEventListener('mouseenter', function () {
+                                            this.style.borderColor = '#1A6FA8';
+                                            this.style.background = '#F0F4F8';
+                                        });
+
+                                        el.addEventListener('mouseleave', function () {
+                                            this.style.borderColor = '#E2E8F0';
+                                            this.style.background = '';
+                                        });
+
+                                        el.addEventListener('click', function () {
+
+                                            var tenantId = this.getAttribute('data-tenant-id');
+
+                                            Swal.close();
+
+                                            submitBtn.disabled = true;
+                                            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Connecting...';
+
+                                            var formData = new FormData();
+                                            formData.append('tenantId', tenantId);
+                                            formData.append('username', document.querySelector('[name=Username]').value);
+                                            formData.append('password', document.querySelector('[name=Password]').value);
+
+                                            fetch('/Account/SelectWorkspace', {
+                                                method: 'POST',
+                                                headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                                                body: formData
+                                            })
+                                            .then(function (r) {
+                                                return r.json();
+                                            })
+                                            .then(function (res) {
+
+                                                if (res.success) {
+                                                    window.location.href = res.redirect;
+                                                } else {
+                                                    resetBtn();
+                                                    showError(res.message || 'Failed to connect to workspace.');
+                                                }
+
+                                            })
+                                            .catch(function () {
+                                                resetBtn();
+                                                showError('Connection failed.');
+                                            });
+
+                                        });
+
+                                    });
+
+                                }
+
+                            });
+
+                        }
+                        else if (data.success) {
+                        submitBtn.innerHTML = '<i class="fas fa-check"></i> Success!';
+                        var welcomename = data.username || 'Super Admin'
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Login Successful!',
+                            html: 'Welcome back, <strong>' + welcomename + '</strong>!<br>Redirecting to your dashboard...',
+                            confirmButtonColor: '#DC2626',
+                            timer: 1800,
+                            timerProgressBar: true,
+                            showConfirmButton: false,
+                            allowOutsideClick: false
+                        }).then(function() {
+                            window.location.href = data.redirect || '/profile';
+                        });
+                    } else if (data.pendingApproval) {
+                        resetBtn();
+                        Swal.fire({
+                            icon: 'warning',
+                            title: 'Account Pending Approval',
+                            html: 'Your account is awaiting admin approval.<br>You will be notified once approved.',
+                            confirmButtonText: 'OK',
+                            confirmButtonColor: '#DC2626'
+                        });
+                    } else {
+                        resetBtn();
+                        showError(data.message || 'Login failed.');
+                    }
+                })
+                .catch(function() {
+                    resetBtn();
+                    showError('Something went wrong. Please try again.');
+                });
+            });
+        });
+    </script>
+}

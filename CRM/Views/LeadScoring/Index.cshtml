@@ -1,0 +1,48 @@
+@{
+    ViewData["Title"] = "Lead Scoring";
+}
+<div class="content">
+    <div class="d-flex align-items-center justify-content-between mb-3">
+        <div>
+            <h2 class="mb-0">AI Lead Scoring</h2>
+            <p class="text-muted mb-0">Hot, Warm and Cold leads ranked by engagement, stage and recency.</p>
+        </div>
+        <button class="btn btn-success" onclick="recompute()"><i class="fa-solid fa-rotate me-1"></i> Recompute Scores</button>
+    </div>
+
+    <div class="card">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0" id="scoreTable">
+                    <thead><tr><th>Lead</th><th>Stage</th><th>Score</th><th>Grade</th><th>Reasons</th></tr></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    const $ = (id) => document.getElementById(id);
+    function load(){ fetch('/LeadScoring/GetAll').then(r=>r.json()).then(d=>render(d)); }
+    function render(data){
+        const tb=document.querySelector('#scoreTable tbody');
+        if(!data.length){tb.innerHTML='<tr><td colspan="5" class="text-center text-muted py-3">No scores. Click Recompute.</td></tr>';return;}
+        tb.innerHTML=data.map(s=>`<tr>
+            <td>${s.LeadName}</td><td>${s.Stage||'-'}</td>
+            <td>
+                <div class="progress" style="height:18px;min-width:120px">
+                    <div class="progress-bar bg-${s.Grade==='Hot'?'danger':s.Grade==='Warm'?'warning':'secondary'}" style="width:${s.Score}%">${s.Score}</div>
+                </div>
+            </td>
+            <td><span class="badge bg-${s.Grade==='Hot'?'danger':s.Grade==='Warm'?'warning':'secondary'}">${s.Grade}</span></td>
+            <td class="small text-muted">${s.Reasons||''}</td>
+        </tr>`).join('');
+    }
+    function recompute(){
+        fetch('/LeadScoring/Recompute',{method:'POST'}).then(r=>r.json()).then(d=>{ if(d.success) load(); else alert(d.message); });
+    }
+    load();
+</script>
+}

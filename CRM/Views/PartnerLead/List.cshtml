@@ -1,0 +1,924 @@
+@model IEnumerable<CRM.Models.PartnerLeadModel>
+@{
+    ViewData["Title"] = "Partner Leads Management";
+}
+
+<style>
+    .modern-header {
+        background: linear-gradient(135deg, #F59E0B 0%, #F59E0B 100%);
+        position: relative;
+        overflow: hidden;
+        border-radius: 16px;
+        margin-bottom: 2rem;
+        box-shadow: 0 8px 32px rgba(245,158,11, 0.15);
+    }
+
+    .modern-header::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="50" cy="50" r="1" fill="%23ffffff" opacity="0.1"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>') repeat;
+        opacity: 0.3;
+    }
+
+    .header-content {
+        position: relative;
+        z-index: 2;
+        padding: 1.1rem 1.5rem;
+        color: white;
+    }
+
+    .header-title {
+        font-size: 1.5rem;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .header-subtitle {
+        font-size: 1.1rem;
+        opacity: 0.9;
+        margin-bottom: 2rem;
+        font-weight: 400;
+    }
+
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1.5rem;
+        margin-top: 2rem;
+    }
+
+    .stats-card {
+        background: rgba(255, 255, 255, 0.15);
+        backdrop-filter: blur(20px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 12px;
+        padding: 1.5rem;
+        text-align: center;
+        transition: all 0.3s ease;
+    }
+
+    .stats-card:hover {
+        background: rgba(255, 255, 255, 0.25);
+        transform: translateY(-2px);
+    }
+
+    .stats-number {
+        font-size: 2.2rem;
+        font-weight: 800;
+        margin-bottom: 0.5rem;
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .stats-label {
+        font-size: 0.9rem;
+        opacity: 0.9;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .action-btn {
+        background: rgba(255, 255, 255, 0.2);
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        color: white;
+        padding: 0.875rem 2rem;
+        border-radius: 50px;
+        font-weight: 600;
+        font-size: 1rem;
+        backdrop-filter: blur(10px);
+        transition: all 0.3s ease;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin: 0.25rem;
+    }
+
+    .action-btn:hover {
+        background: rgba(255, 255, 255, 0.3);
+        border-color: rgba(255, 255, 255, 0.5);
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+        color: white;
+    }
+
+    .filter-section {
+        background: white;
+        border-radius: 16px;
+        padding: 2rem;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        margin-bottom: 2rem;
+        border: 1px solid rgba(0, 0, 0, 0.05);
+    }
+
+    .filter-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: #2A3A4A;
+        margin-bottom: 1.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .lead-card {
+        background: white;
+        border-radius: 16px;
+        padding: 1.5rem;
+        margin-bottom: 1rem;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        border: 1px solid rgba(0, 0, 0, 0.05);
+        transition: all 0.3s ease;
+    }
+
+    .lead-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+        border-color: rgba(245,158,11, 0.2);
+    }
+
+    .lead-name {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: #F59E0B;
+        margin-bottom: 0.5rem;
+        display: block;
+    }
+
+    .lead-info {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-bottom: 0.5rem;
+        color: #6B7B8D;
+        font-size: 0.9rem;
+    }
+
+    .status-badge {
+        padding: 0.5rem 1rem;
+        border-radius: 25px;
+        font-weight: 600;
+        font-size: 0.875rem;
+        border: 2px solid transparent;
+        transition: all 0.2s ease;
+    }
+
+    .status-active { background-color: #DCFCE7; color: #15803D; border-color: #16A34A; }
+    .status-hot { background-color: #FEE2E2; color: #991B1B; border-color: #DC2626; }
+    .status-warm { background-color: #FEF3C7; color: #B45309; border-color: #F59E0B; }
+    .status-cold { background-color: #E2E8F0; color: #2A3A4A; border-color: #6B7B8D; }
+    .status-inactive { background-color: #F0F4F8; color: #1E2A3A; border-color: #8FA3B8; }
+
+    .stage-badge {
+        padding: 0.35rem 0.75rem;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        background-color: #FEF3C7;
+        color: #B45309;
+        border: 1px solid #F59E0B;
+    }
+
+    .action-buttons {
+        display: flex;
+        gap: 0.5rem;
+        justify-content: flex-end;
+    }
+
+    .btn-action {
+        padding: 0.5rem 1rem;
+        border-radius: 8px;
+        font-size: 0.875rem;
+        font-weight: 500;
+        border: none;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+    }
+
+    .btn-convert {
+        background-color: #16A34A;
+        color: white;
+    }
+
+    .btn-convert:hover {
+        background-color: #16A34A;
+        transform: translateY(-1px);
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 4rem 2rem;
+        background: white;
+        border-radius: 16px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        border: 1px solid rgba(0, 0, 0, 0.05);
+    }
+
+    .empty-state i {
+        font-size: 5rem;
+        color: #E2E8F0;
+        margin-bottom: 1.5rem;
+    }
+
+    .pagination-wrapper {
+        background: white;
+        border-radius: 16px;
+        padding: 1.5rem;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        border: 1px solid rgba(0, 0, 0, 0.05);
+        margin-top: 2rem;
+    }
+
+    @@media (max-width: 768px) {
+        .header-content {
+            padding: 2rem 1.5rem;
+        }
+        
+        .header-title {
+            font-size: 2rem;
+        }
+        
+        .stats-grid {
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+        }
+        
+        .stats-number {
+            font-size: 1.8rem;
+        }
+        
+        .filter-section {
+            padding: 1.5rem;
+        }
+
+        .lead-card {
+            padding: 1rem;
+        }
+
+        .action-buttons {
+            justify-content: center;
+            margin-top: 1rem;
+        }
+    }
+    
+    @@media (max-width: 576px) {
+        .stats-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .action-btn {
+            width: 100%;
+            justify-content: center;
+            margin: 0.25rem 0;
+        }
+    }
+
+    .dark-mode .filter-section {
+        background: #1E2A3A !important;
+        border-color: #2A3A4A !important;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3) !important;
+    }
+    
+    .dark-mode .filter-title {
+        color: #E2E8F0 !important;
+    }
+    
+    .dark-mode .lead-card {
+        background: #1E2A3A !important;
+        border-color: #2A3A4A !important;
+        color: #E2E8F0 !important;
+    }
+    
+    .dark-mode .lead-name {
+        color: #F59E0B !important;
+    }
+    
+    .dark-mode .lead-info {
+        color: #8FA3B8 !important;
+    }
+    
+    .dark-mode .empty-state {
+        background: #1E2A3A !important;
+        border-color: #2A3A4A !important;
+        color: #E2E8F0 !important;
+    }
+    
+    .dark-mode .pagination-wrapper {
+        background: #1E2A3A !important;
+        border-color: #2A3A4A !important;
+    }
+</style>
+
+<div class="content">
+    <!-- Breadcrumb -->
+    <nav class="mb-3" aria-label="breadcrumb">
+        <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item"><a href="/Home">Home</a></li>
+            <li class="breadcrumb-item active">Partner Leads</li>
+        </ol>
+    </nav>
+
+    <!-- Modern Header with Stats -->
+    <div class="modern-header">
+        <div class="header-content">
+            <div class="row align-items-center mb-4">
+                <div class="col-lg-8">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="me-3">
+                            <i class="fa-solid fa-user-friends" style="font-size: 2.5rem; opacity: 0.9;"></i>
+                        </div>
+                        <div>
+                            <h1 class="header-title mb-0">Partner Leads</h1>
+                            <p class="header-subtitle mb-0">Manage leads submitted by channel partners</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-4 text-lg-end">
+                    <button type="button" class="action-btn" data-bs-toggle="modal" data-bs-target="#addPartnerLeadModal">
+                        <i class="fa-solid fa-plus"></i>
+                        <span>Add Lead</span>
+                    </button>
+                    <button type="button" class="action-btn" data-bs-toggle="modal" data-bs-target="#bulkUploadModal">
+                        <i class="fa-solid fa-upload"></i>
+                        <span>Bulk Upload</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="stats-grid">
+                <div class="stats-card">
+                    <div class="stats-number" id="totalLeads">@Model.Count()</div>
+                    <div class="stats-label">Total Leads</div>
+                </div>
+                <div class="stats-card">
+                    <div class="stats-number" id="activeLeads">@Model.Count(l => l.Status == "Active")</div>
+                    <div class="stats-label">Active</div>
+                </div>
+                <div class="stats-card">
+                    <div class="stats-number" id="hotLeads">@Model.Count(l => l.Status == "Hot")</div>
+                    <div class="stats-label">Hot Leads</div>
+                </div>
+                <div class="stats-card">
+                    <div class="stats-number" id="closedLeads">@Model.Count(l => l.Stage == "Closed")</div>
+                    <div class="stats-label">Closed</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filter Section -->
+    <div class="filter-section">
+        <div class="filter-title">
+            <i class="fa-solid fa-filter"></i>
+            <span>Filter & Search</span>
+        </div>
+        <div class="row g-3">
+            <div class="col-md-4">
+                <label for="searchBox" class="form-label fw-semibold">Search Leads</label>
+                <div class="input-group">
+                    <span class="input-group-text bg-light border-end-0">
+                        <i class="fa-solid fa-search text-muted"></i>
+                    </span>
+                    <input type="text" class="form-control border-start-0 ps-0" id="searchBox" 
+                           placeholder="Search by name, contact, email...">
+                </div>
+            </div>
+            <div class="col-md-2">
+                <label for="filterStage" class="form-label fw-semibold">Stage</label>
+                <select id="filterStage" class="form-select">
+                    <option value="">All Stages</option>
+                    <option value="New"><i class="fa-solid fa-plus"></i> New</option>
+                    <option value="Contacted"><i class="fa-solid fa-phone"></i> Contacted</option>
+                    <option value="Qualified"><i class="fa-solid fa-check"></i> Qualified</option>
+                    <option value="Site Visit Requested"><i class="fa-solid fa-house"></i> Site Visit Requested</option>
+                    <option value="Site Visit Done"><i class="fa-solid fa-check-double"></i> Site Visit Done</option>
+                    <option value="Negotiation"><i class="fa-solid fa-comments"></i> Negotiation</option>
+                    <option value="Closed"><i class="fa-solid fa-star"></i> Closed</option>
+                    <option value="Lost"><i class="fa-solid fa-xmark"></i> Lost</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label for="filterStatus" class="form-label fw-semibold">Status</label>
+                <select id="filterStatus" class="form-select">
+                    <option value="">All Status</option>
+                    <option value="Active">Active</option>
+                    <option value="Hot">Hot</option>
+                    <option value="Warm">Warm</option>
+                    <option value="Cold">Cold</option>
+                    <option value="Inactive">Inactive</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label for="filterFromDate" class="form-label fw-semibold">From Date</label>
+                <input type="date" id="filterFromDate" class="form-control">
+            </div>
+            <div class="col-md-2">
+                <label for="filterToDate" class="form-label fw-semibold">To Date</label>
+                <input type="date" id="filterToDate" class="form-control">
+            </div>
+        </div>
+        <div class="row mt-3">
+            <div class="col-md-6">
+                <button type="button" class="btn btn-outline-primary" id="clearFilters">
+                    <i class="fa-solid fa-refresh me-1"></i>Clear Filters
+                </button>
+            </div>
+            <div class="col-md-6 text-end">
+                <button type="button" class="btn btn-success me-2" id="exportExcel">
+                    <i class="fa-solid fa-file-excel me-1"></i>Export Excel
+                </button>
+                <button type="button" class="btn btn-info me-2" id="exportCSV">
+                    <i class="fa-solid fa-file-csv me-1"></i>Export CSV
+                </button>
+                <a href="/samples/partner_leads_sample.xlsx" class="btn btn-primary" target="_blank">
+                    <i class="fa-solid fa-download me-1"></i>Sample Template
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Leads List -->
+    <div id="leadsContainer">
+        <!-- Leads will be populated by JavaScript -->
+    </div>
+
+    <!-- Pagination -->
+    <div class="pagination-wrapper" id="paginationWrapper" style="display: none;">
+        <div class="row align-items-center">
+            <div class="col-md-6">
+                <p class="text-muted mb-0">Showing <span id="showingStart">0</span> to <span id="showingEnd">0</span> of <span id="totalRecords">0</span> entries</p>
+            </div>
+            <div class="col-md-6">
+                <nav>
+                    <ul class="pagination justify-content-end mb-0" id="pagination">
+                        <!-- Pagination will be generated by JavaScript -->
+                    </ul>
+                </nav>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Partner Lead Modal -->
+<div class="modal fade" id="addPartnerLeadModal" tabindex="-1" aria-labelledby="addPartnerLeadModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" style="max-width: 700px !important; width: 700px;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addPartnerLeadModalLabel">Add Lead</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="addPartnerLeadForm" method="post" action="/PartnerLead/Submit">
+                <div class="modal-body">
+                    @if (ViewBag.PartnerId == null || string.IsNullOrEmpty(ViewBag.PartnerId.ToString()))
+                    {
+                        <div class="alert alert-warning">PartnerId is missing. Please contact admin.</div>
+                    }
+                    <input type="hidden" name="PartnerId" value="@ViewBag.PartnerId ?? 0" />
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Lead Name <span class="text-danger">*</span></label>
+                            <input name="LeadName" class="form-control" required />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Contact <span class="text-danger">*</span></label>
+                            <input name="Contact" class="form-control" required />
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Email</label>
+                            <input name="Email" class="form-control" type="email" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Location</label>
+                            <input name="Location" class="form-control" />
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Stage</label>
+                            <select name="Stage" class="form-select">
+                                <option value="New">New</option>
+                                <option value="Contacted">Contacted</option>
+                                <option value="Qualified">Qualified</option>
+                                <option value="Site Visit Requested">Site Visit Requested</option>
+                                <option value="Site Visit Done">Site Visit Done</option>
+                                <option value="Negotiation">Negotiation</option>
+                                <option value="Closed">Closed</option>
+                                <option value="Lost">Lost</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Status</label>
+                            <select name="Status" class="form-select">
+                                <option value="Active">Active</option>
+                                <option value="Inactive">Inactive</option>
+                                <option value="Hot">Hot</option>
+                                <option value="Warm">Warm</option>
+                                <option value="Cold">Cold</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Source</label>
+                            <input name="Source" class="form-control" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Type</label>
+                            <input name="Type" class="form-control" />
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Property Interest</label>
+                        <select name="PropertyInterest" class="form-select">
+                            <option value="">Select Property</option>
+                            @foreach (var property in ViewBag.Properties as List<CRM.Models.PropertyModel> ?? new List<CRM.Models.PropertyModel>())
+                            {
+                                <option value="@property.PropertyName">@property.PropertyName</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Commission</label>
+                            <input name="CommissionAmount" class="form-control" type="number" step="0.01" min="0" />
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary" name="submit" id="addLeadSubmit">Add Lead</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Bulk Upload Modal -->
+<div class="modal fade" id="bulkUploadModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Bulk Upload Leads</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="bulkUploadForm" method="post" enctype="multipart/form-data" action="/PartnerLead/BulkUpload">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Upload Excel/CSV File <span class="text-danger">*</span></label>
+                        <input type="file" name="uploadFile" class="form-control" required accept=".csv,.xlsx,.xls" />
+                    </div>
+                    <div class="mb-3">
+                        <a href="/samples/partner_leads_sample.xlsx" class="btn btn-link" target="_blank">Download Sample Bulk Upload Document</a>
+                        <div class="form-text">Uploading will automatically add leads to the system.</div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Upload</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script>
+        // Global variables
+        let allLeads = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model));
+        let filteredLeads = [...allLeads];
+        let currentPage = 1;
+        let pageSize = 10;
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function () {
+            renderTable();
+            attachEventListeners();
+        });
+
+        function attachEventListeners() {
+            // Search and filters
+            document.getElementById('searchBox').addEventListener('input', applyFilters);
+            document.getElementById('filterStage').addEventListener('change', applyFilters);
+            document.getElementById('filterStatus').addEventListener('change', applyFilters);
+            document.getElementById('filterFromDate').addEventListener('change', applyFilters);
+            document.getElementById('filterToDate').addEventListener('change', applyFilters);
+
+            // Clear filters
+            document.getElementById('clearFilters').addEventListener('click', clearFilters);
+
+            // Export buttons
+            document.getElementById('exportExcel').addEventListener('click', exportToExcel);
+            document.getElementById('exportCSV').addEventListener('click', exportToCSV);
+        }
+
+        function applyFilters() {
+            const searchText = document.getElementById('searchBox').value.toLowerCase();
+            const stage = document.getElementById('filterStage').value;
+            const status = document.getElementById('filterStatus').value;
+            const fromDate = document.getElementById('filterFromDate').value;
+            const toDate = document.getElementById('filterToDate').value;
+
+            filteredLeads = allLeads.filter(lead => {
+                const matchesSearch = !searchText ||
+                    (lead.LeadName && lead.LeadName.toLowerCase().includes(searchText)) ||
+                    (lead.Contact && lead.Contact.includes(searchText)) ||
+                    (lead.Email && lead.Email.toLowerCase().includes(searchText));
+
+                const matchesStage = !stage || lead.Stage === stage;
+                const matchesStatus = !status || lead.Status === status;
+
+                let matchesDate = true;
+                if (fromDate || toDate) {
+                    const leadDate = new Date(lead.CreatedOn);
+                    if (fromDate) {
+                        matchesDate = matchesDate && leadDate >= new Date(fromDate);
+                    }
+                    if (toDate) {
+                        matchesDate = matchesDate && leadDate <= new Date(toDate + 'T23:59:59');
+                    }
+                }
+
+                return matchesSearch && matchesStage && matchesStatus && matchesDate;
+            });
+
+            currentPage = 1;
+            renderTable();
+        }
+
+        function clearFilters() {
+            document.getElementById('searchBox').value = '';
+            document.getElementById('filterStage').value = '';
+            document.getElementById('filterStatus').value = '';
+            document.getElementById('filterFromDate').value = '';
+            document.getElementById('filterToDate').value = '';
+            filteredLeads = [...allLeads];
+            currentPage = 1;
+            renderTable();
+        }
+
+        function renderTable() {
+            const container = document.getElementById('leadsContainer');
+            const start = (currentPage - 1) * pageSize;
+            const end = start + pageSize;
+            const paginatedLeads = filteredLeads.slice(start, end);
+
+            container.innerHTML = '';
+
+            if (paginatedLeads.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fa-solid fa-user-friends"></i>
+                        <h3>No Partner Leads Found</h3>
+                        <p class="text-muted">Start by adding your first partner lead or adjust your filters</p>
+                        <button type="button" class="btn btn-primary mt-3" data-bs-toggle="modal" data-bs-target="#addPartnerLeadModal">
+                            <i class="fa-solid fa-plus me-2"></i>Add Lead
+                        </button>
+                    </div>
+                `;
+                document.getElementById('paginationWrapper').style.display = 'none';
+            } else {
+                paginatedLeads.forEach(lead => {
+                    const leadCard = document.createElement('div');
+                    leadCard.className = 'lead-card';
+                    leadCard.innerHTML = `
+                        <div class="row align-items-center">
+                            <div class="col-md-4">
+                                <div class="lead-name">${lead.LeadName || 'Unnamed Lead'}</div>
+                                <div class="lead-info">
+                                    <i class="fa-solid fa-phone"></i>
+                                    <span>${lead.Contact || 'No contact'}</span>
+                                </div>
+                                <div class="lead-info">
+                                    <i class="fa-solid fa-envelope"></i>
+                                    <span>${lead.Email || 'No email'}</span>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="lead-info">
+                                    <i class="fa-solid fa-map-marker-alt"></i>
+                                    <span>${lead.Location || 'No location'}</span>
+                                </div>
+                                <div class="lead-info">
+                                    <i class="fa-solid fa-tag"></i>
+                                    <span>${lead.Source || 'Unknown source'}</span>
+                                </div>
+                                <div class="lead-info">
+                                    <i class="fa-solid fa-home"></i>
+                                    <span>${lead.PropertyInterest || 'No property interest'}</span>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="mb-2">
+                                    <span class="stage-badge">${lead.Stage || 'No stage'}</span>
+                                </div>
+                                <div class="mb-2">
+                                    <span class="status-badge status-${(lead.Status || 'inactive').toLowerCase()}">
+                                        ${lead.Status || 'Inactive'}
+                                    </span>
+                                </div>
+                                <div class="lead-info">
+                                    <i class="fa-solid fa-indian-rupee-sign"></i>
+                                    <span>${lead.CommissionAmount ? '₹' + lead.CommissionAmount.toLocaleString('en-IN') : 'No commission'}</span>
+                                </div>
+                            </div>
+                            <div class="col-md-2">
+                                <div class="action-buttons">
+                                    ${lead.Status === 'New' ? `
+                                        <button class="btn-action btn-convert" onclick="convertToSale(${lead.LeadId})" title="Convert to Sale">
+                                            <i class="fa-solid fa-check"></i>
+                                            <span>Convert</span>
+                                        </button>
+                                    ` : '<span class="text-muted">-</span>'}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    container.appendChild(leadCard);
+                });
+                document.getElementById('paginationWrapper').style.display = 'block';
+            }
+
+            updatePaginationInfo();
+            renderPagination();
+            updateStats();
+        }
+
+        function updateStats() {
+            document.getElementById('totalLeads').textContent = filteredLeads.length;
+            document.getElementById('activeLeads').textContent = filteredLeads.filter(l => l.Status === 'Active').length;
+            document.getElementById('hotLeads').textContent = filteredLeads.filter(l => l.Status === 'Hot').length;
+            document.getElementById('closedLeads').textContent = filteredLeads.filter(l => l.Stage === 'Closed').length;
+        }
+
+        function updatePaginationInfo() {
+            const total = filteredLeads.length;
+            const start = total === 0 ? 0 : (currentPage - 1) * pageSize + 1;
+            const end = Math.min(currentPage * pageSize, total);
+
+            document.getElementById('showingStart').textContent = start;
+            document.getElementById('showingEnd').textContent = end;
+            document.getElementById('totalRecords').textContent = total;
+        }
+
+        function renderPagination() {
+            const pagination = document.getElementById('pagination');
+            const totalPages = Math.ceil(filteredLeads.length / pageSize);
+
+            pagination.innerHTML = '';
+
+            if (totalPages <= 1) {
+                const singleLi = document.createElement('li');
+                singleLi.className = 'page-item active';
+                singleLi.innerHTML = `<span class="page-link">1</span>`;
+                pagination.appendChild(singleLi);
+                return;
+            }
+
+            // Previous button
+            const prevLi = document.createElement('li');
+            prevLi.className = `page-item ${currentPage === 1 ? 'disabled' : ''}`;
+            prevLi.innerHTML = `<a class="page-link" href="#" onclick="changePage(${currentPage - 1}); return false;">Previous</a>`;
+            pagination.appendChild(prevLi);
+
+            // Page numbers
+            const startPage = Math.max(1, currentPage - 2);
+            const endPage = Math.min(totalPages, currentPage + 2);
+
+            for (let i = startPage; i <= endPage; i++) {
+                const li = document.createElement('li');
+                li.className = `page-item ${i === currentPage ? 'active' : ''}`;
+                li.innerHTML = `<a class="page-link" href="#" onclick="changePage(${i}); return false;">${i}</a>`;
+                pagination.appendChild(li);
+            }
+
+            // Next button
+            const nextLi = document.createElement('li');
+            nextLi.className = `page-item ${currentPage === totalPages ? 'disabled' : ''}`;
+            nextLi.innerHTML = `<a class="page-link" href="#" onclick="changePage(${currentPage + 1}); return false;">Next</a>`;
+            pagination.appendChild(nextLi);
+        }
+
+        function changePage(page) {
+            const totalPages = Math.ceil(filteredLeads.length / pageSize);
+            if (page < 1 || page > totalPages) return;
+            currentPage = page;
+            renderTable();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function convertToSale(leadId) {
+            const commission = prompt('Enter commission amount:');
+            if (!commission || isNaN(commission)) {
+                Swal.fire('Invalid Input', 'Please enter a valid commission amount', 'warning');
+                return;
+            }
+
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '/PartnerLead/ConvertToSale';
+            
+            const leadInput = document.createElement('input');
+            leadInput.type = 'hidden';
+            leadInput.name = 'leadId';
+            leadInput.value = leadId;
+            
+            const commissionInput = document.createElement('input');
+            commissionInput.type = 'hidden';
+            commissionInput.name = 'commissionAmount';
+            commissionInput.value = commission;
+            
+            form.appendChild(leadInput);
+            form.appendChild(commissionInput);
+            document.body.appendChild(form);
+            form.submit();
+        }
+
+        function exportToExcel() {
+            const ws_data = [
+                ['Lead Name', 'Contact', 'Email', 'Location', 'Stage', 'Status', 'Source', 'Type', 'Property Interest', 'Commission', 'Created On']
+            ];
+
+            filteredLeads.forEach(lead => {
+                ws_data.push([
+                    lead.LeadName || '',
+                    lead.Contact || '',
+                    lead.Email || '',
+                    lead.Location || '',
+                    lead.Stage || '',
+                    lead.Status || '',
+                    lead.Source || '',
+                    lead.Type || '',
+                    lead.PropertyInterest || '',
+                    lead.CommissionAmount || '',
+                    formatDate(lead.CreatedOn)
+                ]);
+            });
+
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.aoa_to_sheet(ws_data);
+            ws['!cols'] = [{ wch: 20 }, { wch: 15 }, { wch: 25 }, { wch: 15 }, { wch: 15 }, { wch: 12 }, { wch: 15 }, { wch: 15 }, { wch: 20 }, { wch: 12 }, { wch: 15 }];
+            XLSX.utils.book_append_sheet(wb, ws, "Partner Leads");
+            XLSX.writeFile(wb, `Partner_Leads_Export_${new Date().toISOString().split('T')[0]}.xlsx`);
+            showToast('Excel exported successfully!', 'success');
+        }
+
+        function exportToCSV() {
+            let csv = 'Lead Name,Contact,Email,Location,Stage,Status,Source,Type,Property Interest,Commission,Created On\n';
+
+            filteredLeads.forEach(lead => {
+                csv += [
+                    escapeCSV(lead.LeadName),
+                    escapeCSV(lead.Contact),
+                    escapeCSV(lead.Email),
+                    escapeCSV(lead.Location),
+                    escapeCSV(lead.Stage),
+                    escapeCSV(lead.Status),
+                    escapeCSV(lead.Source),
+                    escapeCSV(lead.Type),
+                    escapeCSV(lead.PropertyInterest),
+                    lead.CommissionAmount || '',
+                    formatDate(lead.CreatedOn)
+                ].join(',') + '\n';
+            });
+
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `Partner_Leads_Export_${new Date().toISOString().split('T')[0]}.csv`;
+            a.click();
+            window.URL.revokeObjectURL(url);
+            showToast('CSV exported successfully!', 'success');
+        }
+
+        function escapeCSV(value) {
+            if (!value) return '';
+            value = value.toString();
+            if (value.includes(',') || value.includes('"') || value.includes('\n')) {
+                return '"' + value.replace(/"/g, '""') + '"';
+            }
+            return value;
+        }
+
+        function formatDate(dateString) {
+            if (!dateString) return '-';
+            const date = new Date(dateString);
+            return date.toLocaleDateString('en-GB');
+        }
+
+        // showToast is global from _Layout.cshtml
+    </script>
+}
+
+

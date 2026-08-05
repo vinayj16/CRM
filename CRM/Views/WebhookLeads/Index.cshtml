@@ -1,0 +1,812 @@
+@model List<CRM.Models.LeadModel>
+@{
+    ViewData["Title"] = "Unassigned Leads";
+    var executives     = ViewBag.Executives as IEnumerable<dynamic> ?? Enumerable.Empty<dynamic>();
+    var executivesList = executives.ToList();
+    var facebookLeads  = Model.Where(l => l.Source == "Facebook Webhook" || l.Source == "Facebook API").Count();
+    var currentRole    = User?.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value;
+}
+
+<style>
+/*━━ CSS VARIABLES ━━*/
+:root{
+  --P:#1A6FA8;--PD:#125082;--PX:#0F4C75;--PL:#E8EDF2;--PLL:#F0F4F8;
+  --G:#D4A45A;--GD:#B8883E;--GL:#F0F4F8;
+  --bg:#F0F4F8;--card:#FFFFFF;--card2:#FFFFFF;
+  --bd:rgba(0,0,0,0.08);
+  --t1:#1A2332;--t2:#2A3A4A;--t3:#8FA3B8;
+  --ok:#16A34A;--okl:#F0F4F8;
+  --er:#DC2626;--erl:#F0F4F8;
+  --wa:#F59E0B;
+  --fb:#1A6FA8;--fbl:#F0F4F8;
+  --r:6px;--rs:4px;
+  --sh:0 1px 3px rgba(0,0,0,0.08);
+  --sh2:0 4px 14px rgba(0,0,0,0.13);
+  --fn:'Segoe UI',system-ui,sans-serif;
+}
+h1, .h1 {
+    font-size: 0.8rem !important;
+    font-weight: 700 !important;
+    margin-bottom: 0.1rem !important;
+}
+
+p {
+    font-size: 0.95rem !important;
+    line-height: 1.6 !important;
+    margin-bottom: 0px !important;
+}
+/*━━ BREADCRUMB ━━*/
+.bc{font-size:10.5px;margin-bottom:6px;display:flex;align-items:center;gap:3px}
+.bc a{color:var(--t3);display:flex;align-items:center;gap:3px;text-decoration:none}
+.bc a:hover{color:var(--P)}
+.bc-sep{color:var(--t3);font-size:8px}
+.bc-cur{color:var(--t2);font-weight:600}
+
+/*━━ PAGE HEADER ━━*/
+.ph{background:linear-gradient(105deg,var(--PX) 0%,var(--P) 50%,#2589C9 100%);border-radius:var(--r);padding:.55rem .9rem;margin-bottom:7px;position:relative;overflow:hidden}
+.ph::after{content:'';position:absolute;right:-15px;top:-15px;width:90px;height:90px;border-radius:50%;background:rgba(212,164,90,.18);pointer-events:none}
+.ph::before{content:'';position:absolute;right:40px;bottom:-20px;width:60px;height:60px;border-radius:50%;background:rgba(212,164,90,.1);pointer-events:none}
+.ph-in{position:relative;z-index:1;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.ph-l{display:flex;align-items:center;gap:7px}
+.ph-ic{width:28px;height:28px;border-radius:5px;background:rgba(212,164,90,.25);display:flex;align-items:center;justify-content:center;color:var(--G);font-size:11px;flex-shrink:0}
+.ph h1{font-size:.88rem;font-weight:700;color:#FFFFFF;margin:0;font-family:var(--fn)}
+.ph p{font-size:.65rem;color:rgba(255,255,255,.7);margin:0}
+.ph-btns{display:flex;gap:4px;flex-wrap:wrap;align-items:center}
+.phb{display:inline-flex;align-items:center;gap:3px;padding:.25rem .65rem;border-radius:12px;font-size:.7rem;font-weight:600;border:1.5px solid rgba(255,255,255,.3);background:rgba(255,255,255,.12);color:#FFFFFF;cursor:pointer;transition:all .15s;white-space:nowrap;font-family:var(--fn)}
+.phb:hover{background:rgba(255,255,255,.22);transform:translateY(-1px)}
+.phb-fb{background:var(--fb);border-color:var(--fb)}
+.phb-fb:hover{background:#1A6FA8;border-color:#1A6FA8}
+.fb-cbdg{display:inline-flex;align-items:center;justify-content:center;min-width:16px;height:16px;padding:0 4px;background:rgba(255,255,255,.25);border-radius:8px;font-size:8px;font-weight:700;margin-left:2px}
+
+/*━━ STATS ━━*/
+.ul-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin-bottom:7px}
+.ul-stat{background:var(--card);border:1px solid var(--bd);border-radius:var(--r);padding:6px 9px;box-shadow:var(--sh);display:flex;align-items:center;gap:7px;transition:all .15s}
+.ul-stat:hover{box-shadow:var(--sh2);transform:translateY(-1px)}
+.ul-stat-ic{width:26px;height:26px;border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:10.5px;flex-shrink:0}
+.s-bl{background:var(--PL);color:var(--P)}
+.s-fb{background:var(--fbl);color:var(--fb)}
+.s-ok{background:var(--okl);color:var(--ok)}
+.s-gd{background:var(--GL);color:var(--G)}
+.ul-stat-n{font-size:.88rem;font-weight:700;color:var(--t1);line-height:1;font-family:var(--fn)}
+.ul-stat-l{font-size:.6rem;color:var(--t3);margin-top:1px}
+
+/*━━ FILTER + ASSIGN PANEL ━━*/
+.ul-fc{background:var(--card);border:1px solid var(--bd);border-radius:var(--r);box-shadow:var(--sh);margin-bottom:7px;overflow:visible;position:relative;z-index:500}
+.ul-fc-h{display:flex;align-items:center;justify-content:space-between;padding:5px 9px;background:var(--card2);border-bottom:1px solid var(--bd);cursor:pointer;user-select:none}
+.ul-fc-hl{display:flex;align-items:center;gap:5px;font-size:.72rem;font-weight:600;color:var(--P);font-family:var(--fn)}
+.ul-fc-chv{font-size:.62rem;color:var(--t3);transition:transform .2s}
+.ul-fc-chv.op{transform:rotate(180deg)}
+.ul-fc-b{padding:7px 9px;overflow:visible}
+.ul-fc-row{display:flex;gap:6px;flex-wrap:wrap;align-items:flex-end}
+.ul-ff{flex:1;min-width:120px}
+.ul-ff label{display:block;font-size:.65rem;font-weight:600;color:var(--t2);margin-bottom:2px;font-family:var(--fn)}
+.ul-ff input,.ul-ff select{width:100%;padding:.25rem .5rem;font-size:.72rem;border:1.5px solid var(--bd);border-radius:var(--rs);background:var(--card);color:var(--t1);outline:none;height:26px;transition:border-color .15s,box-shadow .15s;font-family:var(--fn)}
+.ul-ff input:focus,.ul-ff select:focus{border-color:var(--P);box-shadow:0 0 0 2px rgba(26,111,168,.1)}
+.ul-fc-acts{display:flex;gap:4px;align-items:flex-end;padding-bottom:1px;flex-shrink:0}
+.ul-xb{display:inline-flex;align-items:center;gap:3px;padding:.23rem .55rem;border-radius:var(--rs);font-size:.68rem;font-weight:600;cursor:pointer;border:1.5px solid;transition:all .15s;height:26px;white-space:nowrap;font-family:var(--fn)}
+.ul-xb-o{border-color:var(--bd);background:var(--card);color:var(--t2)}
+.ul-xb-o:hover{border-color:var(--P);color:var(--P)}
+.ul-xb-p{border-color:var(--P);background:var(--P);color:#FFFFFF}
+.ul-xb-p:hover{background:var(--PD)}
+.ul-xb-ok{border-color:var(--ok);background:var(--ok);color:#FFFFFF}
+.ul-xb-ok:hover{background:#15803D}
+.ul-xb-p:disabled,.ul-xb-ok:disabled{background:#B8C8D8;border-color:#B8C8D8;cursor:not-allowed}
+
+/* Executive searchable dropdown */
+.ul-assign-row{display:flex;gap:6px;flex-wrap:wrap;align-items:flex-end;margin-top:7px;padding-top:7px;border-top:1px solid var(--bd)}
+.ul-exec-wrap{flex:1;min-width:180px;position:relative}
+.ul-exec-wrap label{display:block;font-size:.65rem;font-weight:600;color:var(--t2);margin-bottom:2px;font-family:var(--fn)}
+.ul-exec-wrap input{width:100%;padding:.25rem .5rem;font-size:.72rem;border:1.5px solid var(--bd);border-radius:var(--rs);background:var(--card);color:var(--t1);outline:none;height:26px;transition:border-color .15s;font-family:var(--fn)}
+.ul-exec-wrap input:focus{border-color:var(--P);box-shadow:0 0 0 2px rgba(26,111,168,.1)}
+.ul-exec-drop{position:absolute;top:100%;left:0;width:100%;background:var(--card);border:1.5px solid var(--P);border-radius:var(--rs);box-shadow:var(--sh2);z-index:9999;display:none;max-height:160px;overflow-y:auto;margin-top:1px}
+.ul-exec-drop.show{display:block}
+.ul-exec-opt{padding:5px 9px;font-size:.72rem;cursor:pointer;border-bottom:1px solid var(--bd);color:var(--t2);transition:background .12s;font-family:var(--fn)}
+.ul-exec-opt:hover{background:var(--PL);color:var(--P)}
+.ul-exec-opt:last-child{border-bottom:none}
+.ul-exec-opt.selected-opt{background:var(--PL);color:var(--P);font-weight:600}
+.ul-assign-info{font-size:.6rem;color:var(--t3);margin-top:5px;display:flex;align-items:center;gap:3px}
+
+/*━━ SELECTION BAR ━━*/
+.ul-sel-bar{background:var(--PL);border:1.5px solid rgba(26,111,168,.25);border-radius:var(--rs);padding:5px 9px;margin-bottom:5px;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:5px;font-size:.68rem;color:var(--P);font-weight:600;display:none;font-family:var(--fn)}
+.ul-sel-bar.show{display:flex}
+
+/*━━ LEAD LIST — 2 COLUMN GRID ━━*/
+.ul-llist{
+  display:grid;
+  grid-template-columns:repeat(2,1fr);
+  gap:4px;
+}
+.ul-lcard{background:var(--card);border:1px solid var(--bd);border-radius:var(--r);padding:6px 9px;box-shadow:var(--sh);display:flex;align-items:center;gap:7px;position:relative;transition:all .18s;min-width:0}
+.ul-lcard:hover{border-color:rgba(26,111,168,.25);box-shadow:var(--sh2);transform:translateY(-1px)}
+.ul-lcard.selected{border-color:var(--P);background:var(--PLL)}
+.ul-lbar{position:absolute;left:0;top:5px;bottom:5px;width:3px;background:linear-gradient(to bottom,var(--P),var(--G));border-radius:0 2px 2px 0}
+.ul-lbar.fb{background:linear-gradient(to bottom,var(--fb),#8FA3B8)}
+.ul-lchk{width:14px;height:14px;cursor:pointer;flex-shrink:0;accent-color:var(--P)}
+.ul-lbody{flex:1;min-width:0}
+.ul-lname{font-size:.77rem;font-weight:700;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.3;font-family:var(--fn)}
+.ul-lmeta{display:flex;flex-wrap:wrap;gap:.12rem .55rem;margin-top:2px}
+.ul-lm{display:flex;align-items:center;gap:2px;font-size:.63rem;color:var(--t2);font-family:var(--fn)}
+.ul-lm i{font-size:.55rem;color:var(--G)}
+.ul-badge-fb{display:inline-flex;align-items:center;gap:2px;font-size:.58rem;font-weight:600;padding:.1rem .38rem;border-radius:8px;white-space:nowrap;background:var(--fbl);color:var(--fb);border:1px solid rgba(26,111,168,.2)}
+.ul-badge-sec{display:inline-flex;align-items:center;gap:2px;font-size:.58rem;font-weight:600;padding:.1rem .38rem;border-radius:8px;white-space:nowrap;background:#F0F4F8;color:var(--t3);border:1px solid var(--bd)}
+.ul-lmid{display:flex;gap:16px;align-items:center;flex-shrink:0}
+.ul-lmid-col{text-align:center}
+.ul-lmid-lbl{font-size:.58rem;color:var(--t3);margin-bottom:1px;font-family:var(--fn)}
+.ul-lmid-val{font-size:.68rem;font-weight:600;color:var(--t1);font-family:var(--fn)}
+.ul-lmid-loc{font-size:.63rem;color:var(--t2);display:flex;align-items:center;gap:2px;font-family:var(--fn)}
+.ul-lmid-loc i{font-size:.55rem;color:var(--er)}
+.ul-lr{display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0}
+.ul-ldate{font-size:.65rem;font-weight:600;color:var(--t2);white-space:nowrap;font-family:var(--fn)}
+.ul-ltime{font-size:.58rem;color:var(--t3);font-family:var(--fn)}
+.ul-lab{width:22px;height:22px;border-radius:4px;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:.58rem;transition:all .15s;background:rgba(220,38,38,.1);color:var(--er)}
+.ul-lab:hover{background:var(--er);color:#FFFFFF}
+.ul-lcomment{font-size:.62rem;color:var(--t3);font-style:italic;display:flex;align-items:center;gap:3px;margin-top:3px;padding-top:3px;border-top:1px dashed var(--bd);font-family:var(--fn)}
+.ul-lcomment i{font-size:.55rem;color:var(--G);flex-shrink:0}
+
+/*━━ EMPTY ━━*/
+.ul-empty{text-align:center;padding:2.2rem 1rem;background:var(--card);border:1px solid var(--bd);border-radius:var(--r);box-shadow:var(--sh);grid-column:1/-1}
+.ul-empty i{font-size:2.2rem;color:var(--bd);margin-bottom:.45rem;display:block}
+.ul-empty h4{font-size:.82rem;font-weight:600;color:var(--t1);margin-bottom:.2rem;font-family:var(--fn)}
+.ul-empty p{font-size:.68rem;color:var(--t3);margin-bottom:.75rem}
+.ul-empty .webhook-info{display:inline-block;background:var(--PL);border:1px solid rgba(26,111,168,.2);border-radius:var(--rs);padding:6px 12px;font-size:.68rem;color:var(--P);text-align:left;font-family:var(--fn)}
+
+/*━━ PAGINATION ━━*/
+.ul-pagi{background:var(--card);border:1px solid var(--bd);border-radius:var(--r);padding:5px 9px;margin-top:5px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:4px;box-shadow:var(--sh)}
+.ul-pagi-i{font-size:.65rem;color:var(--t3);font-family:var(--fn)}
+.ul-pagi-i b{color:var(--P)}
+.ul-pgul{display:flex;gap:2px;list-style:none;margin:0;padding:0}
+.ul-pgli a,.ul-pgli span{padding:.2rem .45rem;font-size:.65rem;border-radius:var(--rs);border:1px solid var(--bd);background:var(--card);color:var(--t2);text-decoration:none;cursor:pointer;display:flex;align-items:center;transition:all .12s;font-family:var(--fn)}
+.ul-pgli.act a{background:var(--P);border-color:var(--P);color:#FFFFFF}
+.ul-pgli:not(.dis) a:hover{background:var(--PL);border-color:var(--P);color:var(--P)}
+.ul-pgli.dis span{opacity:.4;cursor:default}
+
+/*━━ MODALS ━━*/
+.ul-ov{position:fixed;inset:0;background:rgba(15,28,46,.5);z-index:2000;display:none;align-items:center;justify-content:center;padding:10px;backdrop-filter:blur(2px)}
+.ul-ov.sh{display:flex}
+.ul-mbox{background:var(--card);border-radius:var(--r);width:100%;max-width:400px;max-height:92vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.28)}
+.ul-mh{background:linear-gradient(105deg,var(--PX),var(--P));padding:.55rem .9rem;display:flex;align-items:center;justify-content:space-between;border-radius:var(--r) var(--r) 0 0;position:sticky;top:0;z-index:10}
+.ul-mh.er-h{background:linear-gradient(105deg,#991B1B,#DC2626)}
+.ul-mh h5{font-size:.82rem;font-weight:700;color:#FFFFFF;margin:0;display:flex;align-items:center;gap:5px;font-family:var(--fn)}
+.ul-mh h5 i{color:var(--G)}
+.ul-mh.er-h h5 i{color:#E8C27E}
+.ul-mcls{width:22px;height:22px;border:none;background:rgba(255,255,255,.15);border-radius:3px;color:#FFFFFF;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:.65rem;transition:background .15s}
+.ul-mcls:hover{background:rgba(255,255,255,.28)}
+.ul-mb{padding:.75rem .9rem}
+.ul-mb p{font-size:.75rem;color:var(--t2);margin-bottom:6px;font-family:var(--fn)}
+.ul-mb small{font-size:.68rem;color:var(--t3);font-family:var(--fn)}
+.ul-mf{padding:.45rem .9rem;background:var(--card2);border-top:1px solid var(--bd);border-radius:0 0 var(--r) var(--r);display:flex;gap:5px;justify-content:flex-end;position:sticky;bottom:0}
+
+/*━━ TOAST ━━*/
+.ul-tbox{position:fixed;top:48px;right:10px;z-index:4000;display:flex;flex-direction:column;gap:3px;pointer-events:none}
+.ul-tm{padding:.38rem .75rem;border-radius:var(--rs);font-size:.72rem;font-weight:600;display:flex;align-items:center;gap:5px;box-shadow:var(--sh2);animation:ul-tsl .2s ease;max-width:260px;pointer-events:all;font-family:var(--fn)}
+.ul-tm.ok{background:var(--ok);color:#FFFFFF}
+.ul-tm.er{background:var(--er);color:#FFFFFF}
+.ul-tm.wa{background:var(--wa);color:#FFFFFF}
+@@keyframes ul-tsl{from{transform:translateX(110%);opacity:0}to{transform:none;opacity:1}}
+
+/*━━ RESPONSIVE ━━*/
+@@media(max-width:900px){.ul-stats{grid-template-columns:repeat(2,1fr)}}
+@@media(max-width:768px){
+  .ul-llist{grid-template-columns:1fr}
+}
+@@media(max-width:640px){
+  .ul-stats{grid-template-columns:repeat(2,1fr)}
+  .ul-fc-row{flex-direction:column}
+  .ul-ff{min-width:100%}
+  .ul-fc-acts{width:100%;flex-wrap:wrap}
+  .ul-assign-row{flex-direction:column}
+  .ul-exec-wrap{min-width:100%}
+  .ul-lcard{flex-wrap:wrap}
+  .ul-lmid{display:none}
+  .ul-lr{flex-direction:row;width:100%;justify-content:space-between;border-top:1px solid var(--bd);margin-top:5px;padding-top:5px}
+  .ph-btns .phb span{display:none}
+}
+
+/*━━ DARK MODE SUPPORT ━━*/
+.dark-mode .ul-lcard{background:#1E2A3A !important;border-color:#2A3A4A !important;color:#E2E8F0 !important}
+.dark-mode .ul-lcard.selected{border-color:var(--fb) !important;background:#2A3A4A !important}
+.dark-mode .ul-lname{color:#E2E8F0 !important}
+.dark-mode .ul-lm{color:#8FA3B8 !important}
+.dark-mode .ul-fc{background:#1E2A3A !important;border-color:#2A3A4A !important}
+.dark-mode .ul-fc-h{background:#1A2332 !important;border-color:#2A3A4A !important}
+.dark-mode .ul-ff input,.dark-mode .ul-ff select,.dark-mode .ul-exec-wrap input{background:#2A3A4A !important;border-color:#2A3A4A !important;color:#E2E8F0 !important}
+.dark-mode .ul-ff label,.dark-mode .ul-exec-wrap label{color:#8FA3B8 !important}
+.dark-mode .ul-stat{background:#1E2A3A !important;border-color:#2A3A4A !important}
+.dark-mode .ul-stat-n{color:#E2E8F0 !important}
+.dark-mode .ul-pagi{background:#1E2A3A !important;border-color:#2A3A4A !important}
+.dark-mode .ul-pgli a,.dark-mode .ul-pgli span{background:#2A3A4A !important;border-color:#2A3A4A !important;color:#E2E8F0 !important}
+.dark-mode .ul-pgli.act a{background:var(--P) !important;color:#FFFFFF !important}
+.dark-mode .ul-exec-drop{background:#2A3A4A !important;border-color:var(--P) !important}
+.dark-mode .ul-exec-opt{color:#E2E8F0 !important;border-color:#2A3A4A !important}
+.dark-mode .ul-exec-opt:hover,.dark-mode .ul-exec-opt.selected-opt{background:#2A3A4A !important}
+.dark-mode .ul-mbox{background:#1E2A3A !important}
+.dark-mode .ul-mb p{color:#8FA3B8 !important}
+.dark-mode .ul-mb small{color:#6B7B8D !important}
+.dark-mode .ul-mf{background:#1A2332 !important;border-color:#2A3A4A !important}
+.dark-mode .ul-sel-bar{background:rgba(26,111,168,.15) !important}
+.dark-mode .ul-xb-o{background:#2A3A4A !important;border-color:#2A3A4A !important;color:#E2E8F0 !important}
+.dark-mode .ul-xb-o:hover{border-color:var(--P) !important;color:var(--P) !important}
+.dark-mode .ul-lmid-val{color:#E2E8F0 !important}
+.dark-mode .ul-lmid-lbl{color:#6B7B8D !important}
+.dark-mode .ul-empty{background:#1E2A3A !important;border-color:#2A3A4A !important}
+.dark-mode .ul-empty h4{color:#E2E8F0 !important}
+</style>
+
+<!-- TOAST -->
+<div class="ul-tbox" id="ulTbox"></div>
+
+<!-- ASSIGN CONFIRM MODAL -->
+<div class="ul-ov" id="ulAssignOv" onclick="ulOvClose(event,'ulAssignOv')">
+  <div class="ul-mbox">
+    <div class="ul-mh">
+      <h5><i class="fa-solid fa-user-check"></i> Confirm Assignment</h5>
+      <button class="ul-mcls" onclick="ulCloseOv('ulAssignOv')"><i class="fa-solid fa-times"></i></button>
+    </div>
+    <div class="ul-mb">
+      <p>You are about to assign <b id="ulAssignCount" style="color:var(--P)">0</b> lead(s) to <b id="ulAssignExec" style="color:var(--P)"></b>.</p>
+      <small>Once assigned, these leads will be moved to the executive's pipeline and removed from the unassigned queue.</small>
+    </div>
+    <div class="ul-mf">
+      <button class="ul-xb ul-xb-o" onclick="ulCloseOv('ulAssignOv')">Cancel</button>
+      <button class="ul-xb ul-xb-ok" onclick="ulConfirmAssign()"><i class="fa-solid fa-user-check"></i> Yes, Assign</button>
+    </div>
+  </div>
+</div>
+
+<!-- DELETE CONFIRM MODAL -->
+<div class="ul-ov" id="ulDelOv" onclick="ulOvClose(event,'ulDelOv')">
+  <div class="ul-mbox" style="max-width:360px">
+    <div class="ul-mh er-h">
+      <h5><i class="fa-solid fa-triangle-exclamation"></i> Confirm Delete</h5>
+      <button class="ul-mcls" onclick="ulCloseOv('ulDelOv')"><i class="fa-solid fa-times"></i></button>
+    </div>
+    <div class="ul-mb">
+      <p>Are you sure you want to delete <b id="ulDelName" style="color:var(--er)"></b>?</p>
+      <small>This action cannot be undone. The lead will be permanently removed.</small>
+    </div>
+    <div class="ul-mf">
+      <button class="ul-xb ul-xb-o" onclick="ulCloseOv('ulDelOv')">Cancel</button>
+      <button class="ul-xb" style="border-color:var(--er);background:var(--er);color:#FFFFFF" onclick="ulConfirmDelete()">
+        <i class="fa-solid fa-trash"></i> Delete
+      </button>
+    </div>
+  </div>
+</div>
+
+@Html.AntiForgeryToken()
+
+<!-- ━━━━━ BREADCRUMB ━━━━━ -->
+<div class="bc">
+    <a href="/Home"><i class="fa-solid fa-home" style="font-size:9px"></i> Home</a>
+    <span class="bc-sep"><i class="fa-solid fa-angle-right"></i></span>
+    <a href="#">Leads</a>
+    <span class="bc-sep"><i class="fa-solid fa-angle-right"></i></span>
+    <span class="bc-cur">Unassigned Leads</span>
+</div>
+
+<!-- ━━━━━ PAGE HEADER ━━━━━ -->
+<div class="ph">
+    <div class="ph-in">
+        <div class="ph-l">
+            <div class="ph-ic"><i class="fa-solid fa-user-plus"></i></div>
+            <div>
+                <h1>Unassigned Leads</h1>
+                <p>Manage and assign leads from all sources to executives</p>
+            </div>
+        </div>
+        <div class="ph-btns">
+            @if (currentRole == "Admin" || currentRole == "Partner")
+            {
+                <button class="phb" id="syncAllIntegrationsBtn">
+                    <i class="fa-solid fa-sync"></i><span> Refresh Integrations</span>
+                </button>
+            }
+            @if (facebookLeads > 0)
+            {
+                <button class="phb phb-fb">
+                    <i class="fa-brands fa-facebook"></i>
+                    <span> Facebook</span>
+                    <span class="fb-cbdg">@facebookLeads</span>
+                </button>
+            }
+        </div>
+    </div>
+</div>
+
+<!-- ━━━━━ STATS ━━━━━ -->
+<div class="ul-stats">
+    <div class="ul-stat">
+        <div class="ul-stat-ic s-bl"><i class="fa-solid fa-user-plus"></i></div>
+        <div><div class="ul-stat-n">@Model.Count</div><div class="ul-stat-l">Total Unassigned</div></div>
+    </div>
+    <div class="ul-stat">
+        <div class="ul-stat-ic s-fb"><i class="fa-brands fa-facebook"></i></div>
+        <div><div class="ul-stat-n">@facebookLeads</div><div class="ul-stat-l">Facebook Webhook</div></div>
+    </div>
+    <div class="ul-stat">
+        <div class="ul-stat-ic s-ok"><i class="fa-solid fa-check-double"></i></div>
+        <div><div class="ul-stat-n" id="ulSelCount">0</div><div class="ul-stat-l">Selected</div></div>
+    </div>
+    <div class="ul-stat">
+        <div class="ul-stat-ic s-gd"><i class="fa-solid fa-user-tie"></i></div>
+        <div><div class="ul-stat-n">@executivesList.Count</div><div class="ul-stat-l">Available Executives</div></div>
+    </div>
+</div>
+
+<!-- ━━━━━ FILTER + ASSIGN PANEL ━━━━━ -->
+@if (Model.Any())
+{
+    <div class="ul-fc">
+        <div class="ul-fc-h" onclick="ulToggleFC()">
+            <div class="ul-fc-hl">
+                <i class="fa-solid fa-sliders" style="font-size:.65rem"></i>
+                Search, Filter &amp; Assign
+                <span id="ulAfBdg" style="display:none;background:var(--G);color:#FFFFFF;min-width:15px;height:15px;padding:0 4px;border-radius:8px;font-size:8px;font-weight:700;align-items:center;justify-content:center">0</span>
+            </div>
+            <i class="fa-solid fa-chevron-down ul-fc-chv op" id="ulFcChv"></i>
+        </div>
+        <div class="ul-fc-b" id="ulFcB">
+            <!-- Search + Filter row -->
+            <div class="ul-fc-row">
+                <div class="ul-ff">
+                    <label><i class="fa-solid fa-search" style="font-size:.58rem;color:var(--P)"></i> Search Leads</label>
+                    <input type="text" id="ulSearchInput" placeholder="Name, phone, email…" oninput="ulFilterLeads()">
+                </div>
+                <div class="ul-ff">
+                    <label><i class="fa-solid fa-filter" style="font-size:.58rem;color:var(--G)"></i> Filter by Source</label>
+                    <select id="ulSourceFilter" onchange="ulFilterLeads()">
+                        <option value="">All Sources</option>
+                        <option value="Facebook">Facebook</option>
+                        <option value="Website">Website</option>
+                        <option value="Manual">Manual</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+                <div class="ul-fc-acts">
+                    <button class="ul-xb ul-xb-o" onclick="ulClearFilters()"><i class="fa-solid fa-rotate-left"></i> Clear</button>
+                    <button class="ul-xb ul-xb-ok" onclick="ulSelectAll()"><i class="fa-solid fa-check-double"></i> Select All</button>
+                </div>
+            </div>
+            <!-- Executive + Assign row -->
+            <div class="ul-assign-row">
+                <div class="ul-exec-wrap" id="ulExecWrap">
+                    <label><i class="fa-solid fa-user-tie" style="font-size:.58rem;color:var(--P)"></i> Select Executive</label>
+                    <input type="text" id="ulExecSearch" placeholder="Search executives…" autocomplete="off"
+                           oninput="ulFilterExecs()" onfocus="ulShowExecDrop()">
+                    <input type="hidden" id="executiveSelect" value="">
+                    <div class="ul-exec-drop" id="ulExecDrop">
+                        <div class="ul-exec-opt" data-value="" onclick="ulSelectExec(this)">— Choose Executive —</div>
+                        @foreach (var exec in executivesList)
+                        {
+                            <div class="ul-exec-opt"
+                                 data-value="@exec.UserId"
+                                 data-name="@exec.Username (@exec.Role)"
+                                 onclick="ulSelectExec(this)">@exec.Username (@exec.Role)</div>
+                        }
+                    </div>
+                </div>
+                <div class="ul-fc-acts" style="padding-bottom:1px">
+                    <button class="ul-xb ul-xb-p" id="assignBtn" onclick="ulAssignLeads()" disabled>
+                        <i class="fa-solid fa-user-check"></i> Assign Selected
+                    </button>
+                </div>
+            </div>
+            <div class="ul-assign-info">
+                <i class="fa-solid fa-info-circle"></i>
+                Search leads, select via checkboxes, pick an executive, then click Assign.
+            </div>
+        </div>
+    </div>
+}
+
+<!-- Selection bar -->
+<div class="ul-sel-bar" id="ulSelBar">
+    <span><i class="fa-solid fa-check-square" style="margin-right:4px"></i><span id="ulSelBarCount">0</span> lead(s) selected</span>
+    <button class="ul-xb ul-xb-o" style="height:22px;font-size:.62rem" onclick="ulClearSelection()">
+        <i class="fa-solid fa-times"></i> Clear
+    </button>
+</div>
+
+<!-- ━━━━━ LEAD LIST ━━━━━ -->
+<div class="ul-llist" id="ulLList">
+    @if (Model.Any())
+    {
+        foreach (var lead in Model)
+        {
+            bool isFb = lead.Source == "Facebook Webhook" || lead.Source == "Facebook API";
+            <div class="ul-lcard" data-lead-id="@lead.LeadId"
+                 data-name="@lead.Name.ToLower()"
+                 data-contact="@(lead.Contact ?? "")"
+                 data-email="@(lead.Email ?? "")"
+                 data-source="@(lead.Source ?? "")">
+                <div class="ul-lbar @(isFb ? "fb" : "")"></div>
+                <input type="checkbox" class="ul-lchk lead-checkbox"
+                       value="@lead.LeadId"
+                       onchange="ulUpdateAssignBtn()">
+                <div class="ul-lbody">
+                    <div class="ul-lname">
+                        <i class="fa-solid fa-user" style="font-size:.6rem;color:var(--P);margin-right:3px"></i>@lead.Name
+                    </div>
+                    <div class="ul-lmeta">
+                        <span class="ul-lm"><i class="fa-solid fa-phone"></i>@(lead.Contact ?? "N/A")</span>
+                        @if (!string.IsNullOrEmpty(lead.Email))
+                        {
+                            <span class="ul-lm"><i class="fa-solid fa-envelope"></i>@lead.Email</span>
+                        }
+                        @if (!string.IsNullOrEmpty(lead.Source))
+                        {
+                            if (isFb)
+                            {
+                                <span class="ul-badge-fb"><i class="fa-brands fa-facebook"></i> @lead.Source</span>
+                            }
+                            else
+                            {
+                                <span class="ul-badge-sec"><i class="fa-solid fa-tag"></i> @lead.Source</span>
+                            }
+                        }
+                    </div>
+                    @if (!string.IsNullOrEmpty(lead.Comments))
+                    {
+                        <div class="ul-lcomment">
+                            <i class="fa-solid fa-comment"></i>@lead.Comments
+                        </div>
+                    }
+                </div>
+                <!-- Mid columns -->
+                <div class="ul-lmid">
+                    <div class="ul-lmid-col">
+                        <div class="ul-lmid-lbl">BHK</div>
+                        <div class="ul-lmid-val">@(lead.BHK ?? "N/A")</div>
+                    </div>
+                    <div>
+                        <div class="ul-lmid-lbl">Location</div>
+                        <div class="ul-lmid-loc">
+                            <i class="fa-solid fa-location-dot"></i>@(lead.PreferredLocation ?? "N/A")
+                        </div>
+                    </div>
+                </div>
+                <!-- Right: date + delete -->
+                <div class="ul-lr">
+                    <div>
+                        <div class="ul-ldate">@lead.CreatedOn.ToString("MMM dd")</div>
+                        <div class="ul-ltime">@lead.CreatedOn.ToString("HH:mm")</div>
+                    </div>
+                    <div>
+                        <button class="ul-lab" onclick="ulDeleteLead(@lead.LeadId, '@Html.Raw(lead.Name.Replace("'","\'"))')" title="Delete">
+                            <i class="fa-solid fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        }
+    }
+    else
+    {
+        <div class="ul-empty">
+            <i class="fa-solid fa-user-check"></i>
+            <h4>No Unassigned Leads</h4>
+            <p>All leads have been assigned to sales executives.</p>
+            <div class="webhook-info">
+                <i class="fa-brands fa-facebook" style="margin-right:4px"></i>
+                <strong>Webhook URL:</strong> https://yourdomain.com/api/meta/webhook<br>
+                <strong>Verify Token:</strong> MY_SECRET_TOKEN_123
+            </div>
+        </div>
+    }
+</div>
+
+<!-- ━━━━━ PAGINATION ━━━━━ -->
+<div class="ul-pagi" id="ulPagi" style="display:none">
+    <div class="ul-pagi-i">Showing <b id="ulPgS">0</b>–<b id="ulPgE">0</b> of <b id="ulPgTot">0</b> leads</div>
+    <nav><ul class="ul-pgul" id="ulPgul"></ul></nav>
+</div>
+
+@section Scripts {
+<script>
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   UNASSIGNED LEADS – COMPACT UI SCRIPTS
+   Backend calls fully preserved.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+(function(){
+
+  /* ── State ── */
+  let allCards    = [];
+  let filtered    = [];
+  let curPg       = 1;
+  const perPg     = 10;
+  let pendingDel  = null;
+  let pendingAssign = null;
+
+  /* ── Init ── */
+  document.addEventListener('DOMContentLoaded', function(){
+    allCards = Array.from(document.querySelectorAll('.ul-lcard'));
+    filtered = [...allCards];
+    ulRender();
+
+    /* close exec dropdown on outside click */
+    document.addEventListener('click', function(e){
+      if (!e.target.closest('#ulExecWrap'))
+        document.getElementById('ulExecDrop').classList.remove('show');
+    });
+
+    /* Escape closes modals */
+    document.addEventListener('keydown', function(e){
+      if (e.key === 'Escape')
+        document.querySelectorAll('.ul-ov.sh').forEach(o => o.classList.remove('sh'));
+    });
+  });
+
+  /* ━━ FILTER PANEL TOGGLE ━━ */
+  window.ulToggleFC = function(){
+    const b = document.getElementById('ulFcB');
+    const c = document.getElementById('ulFcChv');
+    const open = b.style.display !== 'none';
+    b.style.display = open ? 'none' : 'block';
+    c.classList.toggle('op', !open);
+  };
+
+  /* ━━ SEARCH + FILTER ━━ */
+  window.ulFilterLeads = function(){
+    const s   = (document.getElementById('ulSearchInput').value || '').toLowerCase().trim();
+    const src = (document.getElementById('ulSourceFilter').value || '').toLowerCase();
+
+    let cnt = 0; if (s) cnt++; if (src) cnt++;
+    const bdg = document.getElementById('ulAfBdg');
+    bdg.style.display = cnt ? 'inline-flex' : 'none';
+    bdg.textContent = cnt;
+
+    filtered = allCards.filter(card => {
+      const name    = (card.dataset.name    || '');
+      const contact = (card.dataset.contact || '').toLowerCase();
+      const email   = (card.dataset.email   || '').toLowerCase();
+      const source  = (card.dataset.source  || '').toLowerCase();
+
+      const ms = !s || name.includes(s) || contact.includes(s) || email.includes(s);
+      const msrc = !src ||
+        (src === 'facebook' && source.includes('facebook')) ||
+        (src === 'website'  && source === 'website') ||
+        (src === 'manual'   && source === 'manual') ||
+        (src === 'other'    && !['facebook webhook','facebook api','website','manual'].includes(source));
+
+      if (!ms || !msrc) {
+        const cb = card.querySelector('.ul-lchk');
+        if (cb) cb.checked = false;
+      }
+      return ms && msrc;
+    });
+
+    curPg = 1;
+    ulRender();
+  };
+
+  window.ulClearFilters = function(){
+    document.getElementById('ulSearchInput').value  = '';
+    document.getElementById('ulSourceFilter').value = '';
+    document.getElementById('ulAfBdg').style.display = 'none';
+    filtered = [...allCards];
+    curPg = 1;
+    ulRender();
+  };
+
+  /* ━━ EXECUTIVE SEARCHABLE DROPDOWN ━━ */
+  window.ulShowExecDrop = function(){
+    document.getElementById('ulExecDrop').classList.add('show');
+    ulFilterExecs();
+  };
+
+  window.ulFilterExecs = function(){
+    const q = (document.getElementById('ulExecSearch').value || '').toLowerCase();
+    document.querySelectorAll('.ul-exec-opt').forEach(o => {
+      o.style.display = !q || o.textContent.toLowerCase().includes(q) ? '' : 'none';
+    });
+  };
+
+  window.ulSelectExec = function(el){
+    const val  = el.getAttribute('data-value') || '';
+    const name = el.getAttribute('data-name')  || el.textContent;
+    document.getElementById('executiveSelect').value = val;
+    document.getElementById('ulExecSearch').value    = val ? name : '';
+    document.getElementById('ulExecDrop').classList.remove('show');
+    document.querySelectorAll('.ul-exec-opt').forEach(o => o.classList.remove('selected-opt'));
+    if (val) el.classList.add('selected-opt');
+    ulUpdateAssignBtn();
+  };
+
+  /* ━━ SELECTION ━━ */
+  window.ulUpdateAssignBtn = function(){
+    const checked  = document.querySelectorAll('.ul-lchk:checked').length;
+    const execId   = document.getElementById('executiveSelect').value;
+    document.getElementById('ulSelCount').textContent    = checked;
+    document.getElementById('ulSelBarCount').textContent = checked;
+    document.getElementById('assignBtn').disabled        = checked === 0 || !execId;
+    document.getElementById('ulSelBar').classList.toggle('show', checked > 0);
+
+    document.querySelectorAll('.ul-lcard').forEach(card => {
+      const cb = card.querySelector('.ul-lchk');
+      card.classList.toggle('selected', cb && cb.checked);
+    });
+  };
+
+  window.ulSelectAll = function(){
+    const vis = filtered.slice((curPg-1)*perPg, curPg*perPg);
+    const allChecked = vis.every(c => { const cb = c.querySelector('.ul-lchk'); return cb && cb.checked; });
+    vis.forEach(c => { const cb = c.querySelector('.ul-lchk'); if (cb) cb.checked = !allChecked; });
+    ulUpdateAssignBtn();
+  };
+
+  window.ulClearSelection = function(){
+    document.querySelectorAll('.ul-lchk').forEach(cb => cb.checked = false);
+    ulUpdateAssignBtn();
+  };
+
+  /* ━━ ASSIGN ━━ */
+  window.ulAssignLeads = function(){
+    const leadIds  = Array.from(document.querySelectorAll('.ul-lchk:checked')).map(cb => parseInt(cb.value));
+    const execId   = document.getElementById('executiveSelect').value;
+    const execName = document.getElementById('ulExecSearch').value;
+    if (!execId || leadIds.length === 0){ ulToast('Select an executive and at least one lead','er'); return; }
+    pendingAssign  = { leadIds, execId: parseInt(execId), execName };
+    document.getElementById('ulAssignCount').textContent = leadIds.length;
+    document.getElementById('ulAssignExec').textContent  = execName;
+    ulOpenOv('ulAssignOv');
+  };
+
+  window.ulConfirmAssign = function(){
+    if (!pendingAssign) return;
+    const token = document.querySelector('input[name="__RequestVerificationToken"]');
+    fetch('/WebhookLeads/AssignExecutive', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'RequestVerificationToken': token ? token.value : ''
+      },
+      body: JSON.stringify({ leadIds: pendingAssign.leadIds, executiveId: pendingAssign.execId })
+    })
+    .then(r => r.json())
+    .then(data => {
+      if (data.success) {
+        ulToast(data.message, 'ok');
+        setTimeout(() => location.reload(), 1500);
+      } else {
+        ulToast(data.message, 'er');
+      }
+    })
+    .catch(() => ulToast('Failed to assign leads', 'er'));
+    ulCloseOv('ulAssignOv');
+    pendingAssign = null;
+  };
+
+  /* ━━ DELETE ━━ */
+  window.ulDeleteLead = function(leadId, name){
+    pendingDel = leadId;
+    document.getElementById('ulDelName').textContent = name;
+    ulOpenOv('ulDelOv');
+  };
+
+  window.ulConfirmDelete = function(){
+    if (!pendingDel) return;
+    const token = document.querySelector('input[name="__RequestVerificationToken"]');
+    fetch('/WebhookLeads/DeleteLead', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'RequestVerificationToken': token ? token.value : ''
+      },
+      body: JSON.stringify({ leadId: pendingDel })
+    })
+    .then(r => r.json())
+    .then(data => {
+      if (data.success) {
+        ulToast(data.message, 'ok');
+        setTimeout(() => location.reload(), 1500);
+      } else {
+        ulToast(data.message, 'er');
+      }
+    })
+    .catch(() => ulToast('Failed to delete lead', 'er'));
+    ulCloseOv('ulDelOv');
+    pendingDel = null;
+  };
+
+  /* ━━ SYNC INTEGRATIONS ━━ */
+  const syncBtn = document.getElementById('syncAllIntegrationsBtn');
+  if (syncBtn) {
+    syncBtn.addEventListener('click', async function(){
+      const orig = this.innerHTML;
+      this.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i><span> Syncing…</span>';
+      this.disabled  = true;
+      try {
+        const response = await fetch('/Integrations/SyncAllActive', { method: 'POST' });
+        const result   = await response.json();
+        if (result.success) {
+          ulToast(result.message, 'ok');
+          if (result.totalLeads > 0) setTimeout(() => location.reload(), 2000);
+        } else {
+          ulToast(result.message, 'wa');
+        }
+      } catch {
+        ulToast('Failed to sync integrations', 'er');
+      } finally {
+        this.innerHTML = orig;
+        this.disabled  = false;
+      }
+    });
+  }
+
+  /* ━━ RENDER / PAGINATION ━━ */
+  function ulRender(){
+    const start = (curPg - 1) * perPg;
+    const slice = filtered.slice(start, start + perPg);
+
+    allCards.forEach(c => c.style.display = 'none');
+    slice.forEach(c => c.style.display = '');
+
+    const pagi = document.getElementById('ulPagi');
+    if (filtered.length > 0) {
+      pagi.style.display = 'flex';
+      document.getElementById('ulPgS').textContent   = start + 1;
+      document.getElementById('ulPgE').textContent   = Math.min(start + perPg, filtered.length);
+      document.getElementById('ulPgTot').textContent = filtered.length;
+      ulRenderPagi();
+    } else {
+      pagi.style.display = 'none';
+    }
+    ulUpdateAssignBtn();
+  }
+
+  function ulRenderPagi(){
+    const ul  = document.getElementById('ulPgul');
+    const tot = Math.ceil(filtered.length / perPg);
+    ul.innerHTML = '';
+    if (tot <= 1) return;
+
+    const mk = (lbl, pg, act, dis) => {
+      const li = document.createElement('li');
+      li.className = 'ul-pgli' + (act ? ' act' : '') + (dis ? ' dis' : '');
+      li.innerHTML = dis
+        ? `<span>${lbl}</span>`
+        : `<a href="#" onclick="ulGoPg(${pg});return false">${lbl}</a>`;
+      return li;
+    };
+
+    ul.appendChild(mk('‹', curPg - 1, false, curPg === 1));
+    let s = Math.max(1, curPg - 2), e = Math.min(tot, curPg + 2);
+    if (s > 1) { ul.appendChild(mk(1, 1, false, false)); if (s > 2) ul.appendChild(mk('…', -1, false, true)); }
+    for (let i = s; i <= e; i++) ul.appendChild(mk(i, i, i === curPg, false));
+    if (e < tot) { if (e < tot - 1) ul.appendChild(mk('…', -1, false, true)); ul.appendChild(mk(tot, tot, false, false)); }
+    ul.appendChild(mk('›', curPg + 1, false, curPg === tot));
+  }
+
+  window.ulGoPg = function(p){
+    const tot = Math.ceil(filtered.length / perPg);
+    if (p < 1 || p > tot) return;
+    curPg = p;
+    ulRender();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  /* ━━ MODAL HELPERS ━━ */
+  window.ulOpenOv  = function(id){ document.getElementById(id).classList.add('sh'); document.body.style.overflow = 'hidden'; };
+  window.ulCloseOv = function(id){ document.getElementById(id).classList.remove('sh'); document.body.style.overflow = ''; };
+  window.ulOvClose = function(e, id){ if (e.target === document.getElementById(id)) ulCloseOv(id); };
+
+  /* ━━ TOAST ━━ */
+  window.ulToast = function(msg, type){
+    type = type || 'ok';
+    const box = document.getElementById('ulTbox');
+    const t   = document.createElement('div');
+    t.className = 'ul-tm ' + type;
+    const ico = type === 'ok' ? 'fa-check-circle' : type === 'er' ? 'fa-circle-exclamation' : 'fa-triangle-exclamation';
+    t.innerHTML = `<i class="fa-solid ${ico}" style="font-size:.75rem"></i>${msg}`;
+    box.appendChild(t);
+    setTimeout(() => {
+      t.style.transition = '.25s';
+      t.style.opacity = '0';
+      t.style.transform = 'translateX(110%)';
+      setTimeout(() => t.remove(), 260);
+    }, 3000);
+  };
+
+})();
+</script>
+}

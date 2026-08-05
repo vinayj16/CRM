@@ -1,0 +1,185 @@
+@model CRM.Models.AgentModel
+@{
+    ViewData["Title"] = "Agent Onboarding";
+}
+<div class="container mt-4">
+    <h2>Agent Onboarding</h2>
+    @if (ViewBag.Message != null)
+    {
+        <div class="alert alert-success">@ViewBag.Message</div>
+    }
+    <form id="agentOnboardForm" asp-action="Onboard" method="post">
+        @Html.AntiForgeryToken()
+        <div class="row mb-3">
+            <div class="col-md-6">
+                <label>Full Name *</label>
+                <input asp-for="FullName" class="form-control" required />
+            </div>
+            <div class="col-md-6">
+                <label>Email *</label>
+                <input asp-for="Email" type="email" class="form-control" id="emailInput" required />
+                <div id="emailError" class="text-danger" style="display: none;"></div>
+            </div>
+        </div>
+        <div class="row mb-3">
+            <div class="col-md-6">
+                <label>Phone *</label>
+                <input asp-for="Phone" class="form-control" required maxlength="10" pattern="[0-9]{10}" title="Please enter exactly 10 digits" />
+            </div>
+            <div class="col-md-6">
+                <label>Address</label>
+                <input asp-for="Address" class="form-control" />
+            </div>
+        </div>
+        <div class="row mb-3">
+            <div class="col-md-6">
+                <label>Agent Type *</label>
+                <select asp-for="AgentType" class="form-control" required>
+                    <option value="">Select Type</option>
+                    <option value="Salary">Salary</option>
+                    <option value="Hybrid">Hybrid</option>
+                    <option value="Commission">Commission</option>
+                </select>
+            </div>
+            <div class="col-md-6">
+                <label>Salary (if applicable)</label>
+                <input asp-for="Salary" class="form-control" type="number" step="0.01" />
+            </div>
+        </div>
+        <div class="row mb-3">
+            <div class="col-md-12">
+                <label>Commission Rules *</label>
+                <select asp-for="CommissionRules" class="form-control" required>
+                    <option value="">Select Commission Percentage</option>
+                    <option value="5%">5%</option>
+                    <option value="10%">10%</option>
+                    <option value="15%">15%</option>
+                    <option value="20%">20%</option>
+                    <option value="25%">25%</option>
+                </select>
+            </div>
+        </div>
+        <div class="row mb-3">
+            <div class="col-md-12">
+                <label>Upload Documents</label>
+                <input type="file" class="form-control" multiple accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" />
+            </div>
+        </div>
+        <button type="submit" class="btn btn-primary" id="submitBtn">Submit</button>
+    </form>
+</div>
+
+<script>
+$(document).ready(function() {
+    let emailValid = false;
+    
+    // Phone number validation - only digits, max 10
+    $('input[name="Phone"]').on('input', function() {
+        this.value = this.value.replace(/[^0-9]/g, '').slice(0, 10);
+    });
+    
+    // Email uniqueness validation
+    $('#emailInput').on('blur', function() {
+        const email = $(this).val().trim();
+        const errorDiv = $('#emailError');
+        
+        if (!email) {
+            errorDiv.hide();
+            emailValid = false;
+            return;
+        }
+        
+        // Check if email already exists
+        $.ajax({
+            url: '/Agent/CheckEmailExists',
+            type: 'GET',
+            data: { email: email },
+            success: function(response) {
+                if (response.exists) {
+                    errorDiv.text('This email is already registered').show();
+                    emailValid = false;
+                } else {
+                    errorDiv.hide();
+                    emailValid = true;
+                }
+            },
+            error: function() {
+                errorDiv.text('Error checking email availability').show();
+                emailValid = false;
+            }
+        });
+    });
+    
+    $('#agentOnboardForm').on('submit', function(e) {
+        e.preventDefault();
+        
+        // Validate phone number
+        const phone = $('input[name="Phone"]').val();
+        if (phone && (!/^[0-9]{10}$/.test(phone))) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Invalid Phone',
+                text: 'Please enter exactly 10 digits for phone number'
+            });
+            return;
+        }
+        
+        // Validate email before submission
+        if (!emailValid && $('#emailInput').val().trim()) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Invalid Email',
+                text: 'Please use a unique email address'
+            });
+            return;
+        }
+        
+        var $form = $(this);
+        var $submitBtn = $('#submitBtn');
+        
+        // Disable submit button
+        $submitBtn.prop('disabled', true).text('Submitting...');
+        
+        $.ajax({
+            url: $form.attr('action'),
+            type: 'POST',
+            data: $form.serialize(),
+            success: function(response) {
+                if (response.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Success!',
+                        text: response.message
+                    }).then(() => {
+                        window.location.href = '/Agent/List';
+                    });
+                } else {
+                    // Check if this is a subscription limit issue
+                    if (!window.handleSubscriptionUpgrade(response)) {
+                        // Show regular error if not subscription related
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: response.message || 'An error occurred'
+                        });
+                    }
+                }
+            },
+            error: function() {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'An error occurred while submitting the form'
+                });
+            },
+            complete: function() {
+                // Re-enable submit button
+                $submitBtn.prop('disabled', false).text('Submit');
+            }
+        });
+    });
+});
+</script>
+
+
+

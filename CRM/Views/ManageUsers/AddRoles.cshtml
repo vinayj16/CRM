@@ -1,0 +1,37 @@
+@model CRM.Models.RolePermission
+@{
+    ViewData["Title"] = "Add Role";
+}
+
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+
+<div class="container mt-5" style="max-width: 600px;">
+    <div class="card shadow-sm border-0">
+        <div class="card-header bg-danger text-white">
+            <h5 class="mb-0">@(Model.Id == 0 ? "Add Role" : "Edit Role")</h5>
+        </div>
+        <div class="card-body">
+            <form asp-action="AddRoles" method="post">
+                <input type="hidden" asp-for="Id" />
+
+                <div class="mb-3">
+                    <label asp-for="RoleName" class="form-label">Role Name</label>
+                    <input asp-for="RoleName" class="form-control" placeholder="Enter role name" required />
+                    <span asp-validation-for="RoleName" class="text-danger"></span>
+                </div>
+
+                <div class="d-flex justify-content-end">
+                    <a asp-action="Roles" class="btn btn-secondary me-2">Cancel</a>
+                    <button type="submit" class="btn btn-danger">@(Model.Id == 0 ? "Create" : "Update")</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}
+
+
+

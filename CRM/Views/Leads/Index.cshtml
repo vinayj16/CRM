@@ -1,0 +1,2155 @@
+@model List<CRM.Models.LeadModel>
+@inject CRM.AppDbContext _context
+@{
+    ViewData["Title"] = "Leads Management";
+}
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<style>
+    /* =============================================
+       LEADS — U
+       ============================================= */
+    :root {
+        --c-blue: #1A6FA8;
+        --c-blue-d: #125082;
+        --c-blue-dim: rgba(26,111,168,.10);
+        --c-gold: #D4A45A;
+        --c-gold-l: #E8C27E;
+        --c-green: #16A34A;
+        --c-green-dim: rgba(22,163,74,.12);
+        --c-red: #DC2626;
+        --c-red-dim: rgba(220,38,38,.10);
+        --c-amber: #F59E0B;
+        --c-border: rgba(26,111,168,.13);
+        --c-text: #1E2A3A;
+        --c-muted: #6B7B8D;
+        --c-bg: #F0F4F8;
+        --c-card: #FFFFFF;
+        --r: 7px;
+        --rsm: 5px;
+        --sh: 0 1px 3px rgba(26,111,168,.08);
+        --sh-h: 0 3px 10px rgba(26,111,168,.14);
+    }
+
+    /* ── Reset & base ── */
+    *, *::before, *::after {
+        box-sizing: border-box;
+    }
+
+    .content {
+        padding: 0;
+    }
+
+    .breadcrumb {
+        padding: 1px !important;
+        margin-bottom: 1px !important;
+        font-size: 0.9rem !important;
+        background-color: transparent !important;
+    }
+
+    breadcrumb-item, .breadcrumb-item a {
+        color: #FFFFFF !important
+    }
+
+    /* ── Page header — slimmer ── */
+    .ld-header {
+        background: linear-gradient(135deg, var(--c-blue) 0%, var(--c-blue-d) 100%);
+        border-radius: var(--r);
+        padding: 7px 12px;
+        margin-bottom: 6px;
+        box-shadow: 0 2px 8px rgba(26,111,168,.22);
+        position: relative;
+        overflow: hidden;
+    }
+
+        .ld-header::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at 85% 50%, rgba(212,164,90,.14) 0%, transparent 55%);
+            pointer-events: none;
+        }
+
+    .ld-header-icon {
+        width: 28px;
+        height: 28px;
+        flex-shrink: 0;
+        background: rgba(212,164,90,.20);
+        border-radius: 6px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--c-gold-l);
+        font-size: .78rem;
+    }
+
+    .ld-page-title {
+        font-size: .78rem;
+        font-weight: 700;
+        color: #FFFFFF;
+        line-height: 1.2;
+    }
+
+    .ld-page-sub {
+        font-size: .6rem;
+        color: rgba(255,255,255,.55);
+        line-height: 1.3;
+    }
+
+    .ld-breadcrumb {
+        font-size: .6rem;
+        margin-bottom: 1px;
+    }
+
+        .ld-breadcrumb .breadcrumb {
+            background: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .ld-breadcrumb .breadcrumb-item a {
+            color: rgba(255,255,255,.52);
+            text-decoration: none;
+        }
+
+        .ld-breadcrumb .breadcrumb-item.active {
+            color: rgba(255,255,255,.78);
+        }
+
+        .ld-breadcrumb .breadcrumb-item + .breadcrumb-item::before {
+            color: rgba(255,255,255,.32);
+        }
+
+    .ld-action-btn {
+        background: rgba(255,255,255,.13);
+        border: 1.5px solid rgba(255,255,255,.20);
+        color: #FFFFFF;
+        padding: 3px 9px;
+        border-radius: 14px;
+        font-size: .65rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all .15s;
+        display: inline-flex;
+        align-items: center;
+        gap: 3px;
+        white-space: nowrap;
+        text-decoration: none;
+    }
+
+    .breadcrumb-item.active {
+        color: #FFFFFF !important
+    }
+
+    .ld-action-btn:hover {
+        background: rgba(255,255,255,.24);
+        border-color: rgba(255,255,255,.42);
+        color: #FFFFFF;
+        transform: translateY(-1px);
+    }
+
+    /* ── Filter bar ── */
+    .ld-filter {
+        background: var(--c-card);
+        border: 1px solid var(--c-border);
+        border-radius: var(--r);
+        padding: 7px 11px 6px;
+        margin-bottom: 6px;
+        box-shadow: var(--sh);
+    }
+
+    .ld-filter-title {
+        font-size: .69rem;
+        font-weight: 700;
+        color: var(--c-blue);
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        cursor: pointer;
+        margin-bottom: 6px;
+        user-select: none;
+    }
+
+    @@media (max-width: 767px) {
+        .ld-filter-body {
+            display: none !important;
+        }
+
+            .ld-filter-body.show {
+                display: block !important;
+            }
+
+        .ld-filter-title::after {
+            content: '\f078';
+            font-family: 'Font Awesome 6 Free';
+            font-weight: 900;
+            margin-left: auto;
+            transition: transform .2s;
+            font-size: .55rem;
+        }
+
+        .ld-filter-title.expanded::after {
+            transform: rotate(180deg);
+        }
+    }
+
+    .ld-label {
+        font-size: .62rem;
+        font-weight: 700;
+        color: var(--c-text);
+        display: block;
+        margin-bottom: 2px;
+    }
+
+    .ld-input, .ld-select {
+        display: block;
+        width: 100%;
+        padding: 4px 7px;
+        font-size: .7rem;
+        color: var(--c-text);
+        background: #FFFFFF;
+        border: 1.5px solid var(--c-border);
+        border-radius: var(--rsm);
+        outline: none;
+        transition: border-color .13s, box-shadow .13s;
+        line-height: 1.35;
+        height: 28px;
+    }
+
+        .ld-input:focus, .ld-select:focus {
+            border-color: var(--c-blue);
+            box-shadow: 0 0 0 2px var(--c-blue-dim);
+        }
+
+    .ld-filter-actions {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 6px;
+        margin-top: 5px;
+        flex-wrap: wrap;
+    }
+
+    .ld-clear-btn {
+        background: var(--c-blue-dim);
+        color: var(--c-blue);
+        border: 1px solid rgba(26,111,168,.16);
+        border-radius: var(--rsm);
+        padding: 3px 9px;
+        font-size: .65rem;
+        font-weight: 600;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 3px;
+        transition: all .13s;
+        height: 26px;
+    }
+
+        .ld-clear-btn:hover {
+            background: var(--c-blue);
+            color: #FFFFFF;
+        }
+
+    .ld-export-btns {
+        display: flex;
+        gap: 4px;
+    }
+
+    .ld-export-btn {
+        border: none;
+        border-radius: var(--rsm);
+        padding: 3px 9px;
+        font-size: .65rem;
+        font-weight: 600;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 3px;
+        transition: all .13s;
+        height: 26px;
+    }
+
+    .ld-exp-excel {
+        background: rgba(22,163,74,.10);
+        color: #16A34A;
+        border: 1px solid rgba(22,163,74,.20);
+    }
+
+        .ld-exp-excel:hover {
+            background: #16A34A;
+            color: #FFFFFF;
+        }
+
+    .ld-exp-csv {
+        background: rgba(26,111,168,.08);
+        color: var(--c-blue);
+        border: 1px solid rgba(26,111,168,.18);
+    }
+
+        .ld-exp-csv:hover {
+            background: var(--c-blue);
+            color: #FFFFFF;
+        }
+
+    /* ── Lead card ── */
+    .lead-card {
+        background: var(--c-card);
+        border: 1px solid var(--c-border);
+        border-radius: var(--r);
+        margin-bottom: 4px;
+        box-shadow: var(--sh);
+        transition: transform .13s, box-shadow .13s, border-color .13s;
+        overflow: hidden;
+    }
+
+        .lead-card:hover {
+            transform: translateY(-1px);
+            box-shadow: var(--sh-h);
+            border-color: rgba(26,111,168,.20);
+        }
+
+    /* ── Desktop card inner ── */
+    .lc-inner {
+        display: grid;
+        grid-template-columns: minmax(160px,1.8fr) minmax(130px,1.4fr) minmax(160px,1.6fr) 90px;
+        align-items: center;
+        padding: 6px 10px;
+        gap: 0;
+        min-height: 44px;
+    }
+    /* col dividers */
+    .lc-col {
+        padding: 0 8px;
+    }
+
+        .lc-col:first-child {
+            padding-left: 0;
+        }
+
+        .lc-col:last-child {
+            padding-right: 0;
+        }
+
+        .lc-col + .lc-col {
+            border-left: 1px solid rgba(26,111,168,.07);
+        }
+
+    /* col 1 — name + contact */
+    .lc-name {
+        font-size: .76rem;
+        font-weight: 700;
+        color: var(--c-blue);
+        text-decoration: none;
+        display: block;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        line-height: 1.25;
+        margin-bottom: 2px;
+    }
+
+        .lc-name:hover {
+            color: var(--c-blue-d);
+        }
+
+    .lc-row {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        color: var(--c-muted);
+        font-size: .64rem;
+        line-height: 1.3;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+        .lc-row i {
+            font-size: .55rem;
+            width: 10px;
+            text-align: center;
+            flex-shrink: 0;
+            opacity: .75;
+        }
+
+    /* col 2 — location/group/assigned */
+    .lc-kv {
+        font-size: .65rem;
+        color: var(--c-muted);
+        line-height: 1.45;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+        .lc-kv strong {
+            color: var(--c-text);
+            font-weight: 600;
+        }
+
+    /* col 3 — badges aligned in a row */
+    .lc-badges {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 3px;
+    }
+
+    .badge-stage {
+        padding: 2px 7px;
+        border-radius: 9px;
+        font-size: .58rem;
+        font-weight: 700;
+        background: var(--c-blue-dim);
+        color: var(--c-blue);
+        border: 1px solid rgba(26,111,168,.16);
+        white-space: nowrap;
+    }
+
+    .badge-status {
+        padding: 2px 7px;
+        border-radius: 9px;
+        font-size: .58rem;
+        font-weight: 700;
+        border: 1px solid transparent;
+        white-space: nowrap;
+    }
+
+    .s-active {
+        background: rgba(22,163,74,.12);
+        color: #16A34A;
+        border-color: rgba(22,163,74,.22);
+    }
+
+    .s-hot {
+        background: rgba(220,38,38,.12);
+        color: #DC2626;
+        border-color: rgba(220,38,38,.22);
+    }
+
+    .s-warm {
+        background: rgba(245,158,11,.12);
+        color: #B45309;
+        border-color: rgba(245,158,11,.22);
+    }
+
+    .s-cold {
+        background: rgba(107,123,141,.12);
+        color: #2A3A4A;
+        border-color: rgba(107,123,141,.18);
+    }
+
+    .s-inactive {
+        background: rgba(107,123,141,.10);
+        color: #6B7B8D;
+        border-color: rgba(107,123,141,.15);
+    }
+
+    .badge-type {
+        font-size: .6rem;
+        color: var(--c-muted);
+        white-space: nowrap;
+    }
+
+    /* col 4 — actions */
+    .lc-actions {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 3px;
+        flex-shrink: 0;
+    }
+
+    .btn-act {
+        padding: 0;
+        width: 24px;
+        height: 24px;
+        border-radius: 5px;
+        border: 1px solid transparent;
+        font-size: .6rem;
+        font-weight: 600;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        transition: all .13s;
+        flex-shrink: 0;
+    }
+
+    .btn-edit {
+        background: var(--c-blue-dim);
+        color: var(--c-blue);
+        border-color: rgba(26,111,168,.16);
+    }
+
+        .btn-edit:hover {
+            background: var(--c-blue);
+            color: #FFFFFF;
+        }
+
+    .btn-delete {
+        background: var(--c-red-dim);
+        color: var(--c-red);
+        border-color: rgba(220,38,38,.15);
+    }
+
+        .btn-delete:hover {
+            background: var(--c-red);
+            color: #FFFFFF;
+        }
+
+    .btn-handover {
+        background: rgba(22,163,74,.10);
+        color: #16A34A;
+        border-color: rgba(22,163,74,.18);
+    }
+
+        .btn-handover:hover {
+            background: #16A34A;
+            color: #FFFFFF;
+        }
+
+    .badge-pill {
+        padding: 2px 7px;
+        border-radius: 9px;
+        font-size: .57rem;
+        font-weight: 700;
+        background: rgba(26,111,168,.10);
+        color: var(--c-blue);
+        border: 1px solid rgba(26,111,168,.16);
+        white-space: nowrap;
+    }
+
+    /* ── Pagination ── */
+    .ld-pager {
+        background: var(--c-card);
+        border: 1px solid var(--c-border);
+        border-radius: var(--r);
+        padding: 5px 11px;
+        box-shadow: var(--sh);
+        margin-top: 5px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 5px;
+    }
+
+        .ld-pager .text-muted {
+            font-size: .65rem;
+        }
+
+        .ld-pager .pagination {
+            margin: 0;
+        }
+
+        .ld-pager .page-link {
+            font-size: .65rem;
+            padding: 2px 7px;
+            line-height: 1.4;
+        }
+
+    /* ── Empty state ── */
+    .empty-state {
+        text-align: center;
+        padding: 24px 16px;
+        background: var(--c-card);
+        border-radius: var(--r);
+        border: 1px dashed var(--c-border);
+    }
+
+        .empty-state i {
+            font-size: 2rem;
+            color: #E2E8F0;
+            margin-bottom: 8px;
+            display: block;
+        }
+
+        .empty-state h3 {
+            font-size: .82rem;
+            font-weight: 700;
+            color: var(--c-text);
+            margin-bottom: 3px;
+        }
+
+        .empty-state p {
+            font-size: .68rem;
+            color: var(--c-muted);
+            margin-bottom: 8px;
+        }
+
+    /* ── Alerts ── */
+    .alert {
+        font-size: .73rem;
+        padding: 5px 11px;
+        border-radius: var(--r);
+    }
+
+    /* =============================================
+       MODAL — ultra compact
+       ============================================= */
+    @@media (min-width: 992px) {
+        #addLeadModal .modal-dialog {
+            max-width: min(800px, 94vw) !important;
+            width: min(800px, 94vw) !important;
+        }
+
+        #bulkUploadModal .modal-dialog {
+            max-width: 420px !important;
+        }
+    }
+
+    @@media (max-width: 991px) {
+        #addLeadModal .modal-dialog,
+        #bulkUploadModal .modal-dialog {
+            margin: .4rem;
+            max-width: calc(100% - .8rem);
+        }
+    }
+
+    .ld-modal-content {
+        border: 1px solid var(--c-border);
+        border-radius: var(--r);
+        overflow: hidden;
+        box-shadow: 0 6px 24px rgba(26,111,168,.18);
+    }
+
+    .ld-modal-header {
+        background: linear-gradient(135deg, var(--c-blue) 0%, var(--c-blue-d) 100%);
+        padding: 7px 12px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        color: #FFFFFF;
+    }
+
+        .ld-modal-header .modal-title {
+            font-size: .78rem;
+            font-weight: 700;
+            color: #FFFFFF;
+        }
+
+    .ld-modal-icon {
+        width: 22px;
+        height: 22px;
+        background: rgba(212,164,90,.22);
+        border-radius: 5px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--c-gold-l);
+        font-size: .66rem;
+    }
+
+    .ld-modal-close {
+        background: rgba(255,255,255,.1);
+        border: none;
+        color: #FFFFFF;
+        width: 20px;
+        height: 20px;
+        border-radius: 4px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        font-size: .6rem;
+        transition: background .13s;
+    }
+
+        .ld-modal-close:hover {
+            background: rgba(255,255,255,.22);
+        }
+
+    .ld-modal-body {
+        padding: 8px 11px;
+        background: var(--c-bg);
+    }
+
+    .ld-modal-footer {
+        padding: 5px 11px;
+        background: #FFFFFF;
+        border-top: 1px solid var(--c-border);
+        display: flex;
+        justify-content: flex-end;
+        gap: 6px;
+    }
+
+    .ld-section-lbl {
+        font-size: .58rem;
+        font-weight: 700;
+        color: var(--c-blue);
+        text-transform: uppercase;
+        letter-spacing: .08em;
+        margin: 5px 0 3px;
+        padding-bottom: 2px;
+        border-bottom: 1px solid var(--c-border);
+    }
+
+    .ld-m-label {
+        font-size: .62rem;
+        font-weight: 700;
+        color: var(--c-text);
+        display: block;
+        margin-bottom: 1px;
+    }
+
+    .ld-req {
+        color: var(--c-red);
+    }
+
+    .ld-m-input, .ld-m-select, .ld-m-textarea {
+        display: block;
+        width: 100%;
+        padding: 3px 24px 3px 6px;
+        font-size: .7rem;
+        color: var(--c-text);
+        background: #FFFFFF;
+        border: 1.5px solid var(--c-border);
+        border-radius: var(--rsm);
+        outline: none;
+        transition: border-color .13s, box-shadow .13s;
+        line-height: 1.3;
+        height: 27px;
+    }
+
+    .ld-m-textarea {
+        padding: 4px 6px;
+        resize: none;
+        height: auto;
+    }
+
+        .ld-m-input:focus, .ld-m-select:focus, .ld-m-textarea:focus {
+            border-color: var(--c-blue);
+            box-shadow: 0 0 0 2px var(--c-blue-dim);
+        }
+
+    .flatpickr-input {
+        background: #FFFFFF !important;
+    }
+
+    .ld-m-wrap {
+        position: relative;
+    }
+
+    .ld-vi {
+        position: absolute;
+        right: 6px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: .65rem;
+        display: none;
+        align-items: center;
+        pointer-events: none;
+    }
+
+    .ld-ok {
+        color: var(--c-green);
+    }
+
+    .ld-er {
+        color: var(--c-red);
+    }
+
+    .ld-m-input.ld-state-ok, .ld-m-select.ld-state-ok {
+        border-color: var(--c-green);
+    }
+
+        .ld-m-input.ld-state-ok:focus, .ld-m-select.ld-state-ok:focus {
+            box-shadow: 0 0 0 2px var(--c-green-dim);
+        }
+
+    .ld-m-input.ld-state-err, .ld-m-select.ld-state-err, .ld-m-textarea.ld-state-err {
+        border-color: var(--c-red);
+        background: var(--c-red-dim);
+    }
+
+    .ld-err-msg {
+        font-size: .58rem;
+        color: var(--c-red);
+        font-weight: 600;
+        margin-top: 1px;
+        display: none;
+    }
+
+    .ld-m-input[readonly]:not([disabled]) {
+        background: #FFFFFF !important;
+        cursor: pointer;
+    }
+
+    .ld-m-input[disabled] {
+        background: #F0F4F8 !important;
+        cursor: not-allowed;
+        opacity: .7;
+    }
+
+    .ld-btn-cancel {
+        background: #F0F4F8;
+        color: var(--c-muted);
+        border: 1px solid #E2E8F0;
+        border-radius: var(--rsm);
+        padding: 4px 12px;
+        font-size: .71rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all .13s;
+    }
+
+        .ld-btn-cancel:hover {
+            background: #E2E8F0;
+        }
+
+    .ld-btn-save {
+        background: linear-gradient(135deg, var(--c-blue) 0%, var(--c-blue-d) 100%);
+        color: #FFFFFF;
+        border: none;
+        border-radius: var(--rsm);
+        padding: 4px 14px;
+        font-size: .71rem;
+        font-weight: 700;
+        cursor: pointer;
+        box-shadow: 0 2px 6px rgba(26,111,168,.22);
+        transition: all .13s;
+    }
+
+        .ld-btn-save:hover {
+            box-shadow: 0 3px 10px rgba(26,111,168,.36);
+        }
+
+    .ld-modal-body .row.g-2 {
+        --bs-gutter-x: .4rem;
+        --bs-gutter-y: .28rem;
+    }
+
+    .ld-upload-hint {
+        background: rgba(26,111,168,.07);
+        border: 1px solid rgba(26,111,168,.16);
+        border-radius: var(--rsm);
+        padding: 6px 9px;
+        font-size: .66rem;
+        color: var(--c-blue);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 6px;
+    }
+
+    .ld-dl-btn {
+        background: var(--c-blue);
+        color: #FFFFFF;
+        border: none;
+        border-radius: var(--rsm);
+        padding: 3px 9px;
+        font-size: .63rem;
+        font-weight: 600;
+        cursor: pointer;
+        white-space: nowrap;
+    }
+
+    .ld-file-input {
+        display: block;
+        width: 100%;
+        padding: 4px 6px;
+        font-size: .7rem;
+        color: var(--c-text);
+        background: #FFFFFF;
+        border: 1.5px solid var(--c-border);
+        border-radius: var(--rsm);
+        outline: none;
+        transition: border-color .13s;
+        line-height: 1.3;
+        cursor: pointer;
+    }
+
+        .ld-file-input.ld-state-err {
+            border-color: var(--c-red);
+            background: var(--c-red-dim);
+        }
+
+        .ld-file-input.ld-state-ok {
+            border-color: var(--c-green);
+        }
+
+    #emailUniqueFeedback {
+        font-size: .58rem;
+    }
+
+    /* ── MOBILE card ── */
+    @@media (max-width: 768px) {
+        .lc-inner {
+            display: none !important;
+        }
+
+        .lc-mobile {
+            display: flex !important;
+            flex-direction: column;
+            padding: 6px 9px;
+            gap: 3px;
+        }
+
+        .lc-mob-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 4px;
+        }
+
+            .lc-mob-top .lc-name {
+                flex: 1;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                font-size: .74rem;
+                max-width: calc(100% - 80px);
+            }
+
+            .lc-mob-top .lc-actions {
+                flex-shrink: 0;
+            }
+
+        .lc-mob-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1px 8px;
+        }
+
+            .lc-mob-grid .lc-row {
+                font-size: .62rem;
+            }
+
+        .lc-mob-badges {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 3px;
+            margin-top: 2px;
+        }
+    }
+
+    @@media (min-width: 769px) {
+        .lc-mobile {
+            display: none !important;
+        }
+    }
+
+    /* ── Responsive header ── */
+    @@media (max-width: 575px) {
+        .ld-header {
+            padding: 7px 9px;
+        }
+
+        .ld-page-title {
+            font-size: .72rem;
+        }
+
+        .ld-header .d-flex.gap-1 {
+            gap: 3px !important;
+        }
+
+        .ld-action-btn {
+            font-size: .6rem;
+            padding: 3px 7px;
+        }
+    }
+
+    /* =============================================
+       DARK MODE
+       ============================================= */
+    html.dark-mode {
+        --c-text: #E2E8F0;
+        --c-muted: #8FA3B8;
+        --c-bg: #121F2E;
+        --c-card: #1E2A3A;
+        --c-border: rgba(26,111,168,.22);
+        --sh: 0 1px 3px rgba(0,0,0,.28);
+        --sh-h: 0 3px 10px rgba(0,0,0,.42);
+    }
+
+        html.dark-mode .lead-card,
+        html.dark-mode .ld-filter,
+        html.dark-mode .ld-pager,
+        html.dark-mode .empty-state {
+            background: #1E2A3A;
+            border-color: rgba(26,111,168,.22);
+        }
+
+        html.dark-mode .lc-col + .lc-col {
+            border-left-color: rgba(26,111,168,.10);
+        }
+
+        html.dark-mode .ld-input, html.dark-mode .ld-select {
+            background: #1E2A3A;
+            color: var(--c-text);
+            border-color: rgba(26,111,168,.24);
+        }
+
+        html.dark-mode .ld-modal-content {
+            background: #1E2A3A;
+        }
+
+        html.dark-mode .ld-modal-body {
+            background: #121F2E;
+        }
+
+        html.dark-mode .ld-modal-footer {
+            background: #1E2A3A;
+            border-color: rgba(26,111,168,.22);
+        }
+
+        html.dark-mode .ld-m-input, html.dark-mode .ld-m-select, html.dark-mode .ld-m-textarea, html.dark-mode .ld-file-input {
+            background: #1E2A3A;
+            color: var(--c-text);
+            border-color: rgba(26,111,168,.24);
+        }
+
+            html.dark-mode .ld-m-input.ld-state-err, html.dark-mode .ld-m-select.ld-state-err, html.dark-mode .ld-m-textarea.ld-state-err, html.dark-mode .ld-file-input.ld-state-err {
+                background: rgba(220,38,38,.08);
+            }
+
+        html.dark-mode .ld-m-label, html.dark-mode .lc-kv strong {
+            color: var(--c-text);
+        }
+
+        html.dark-mode .ld-m-input[readonly]:not([disabled]) {
+            background: #1E2A3A !important;
+        }
+
+        html.dark-mode .ld-m-input[disabled] {
+            background: #0F1C2E !important;
+        }
+
+        html.dark-mode .ld-btn-cancel {
+            background: #2A3A4A;
+            color: var(--c-muted);
+            border-color: rgba(26,111,168,.22);
+        }
+
+            html.dark-mode .ld-btn-cancel:hover {
+                background: #2A3A4A;
+            }
+
+        html.dark-mode .ld-upload-hint {
+            background: rgba(26,111,168,.14);
+        }
+
+        html.dark-mode .s-active {
+            background: rgba(22,163,74,.18);
+        }
+
+        html.dark-mode .s-hot {
+            background: rgba(220,38,38,.18);
+        }
+
+        html.dark-mode .s-warm {
+            background: rgba(245,158,11,.18);
+        }
+
+        html.dark-mode .s-cold, html.dark-mode .s-inactive {
+            background: rgba(107,123,141,.18);
+        }
+
+        html.dark-mode .badge-stage {
+            background: rgba(26,111,168,.20);
+        }
+
+        html.dark-mode .position-relative .dropdown-menu {
+            background: #1E2A3A !important;
+            border-color: rgba(26,111,168,.24) !important;
+        }
+
+        html.dark-mode .position-relative .dropdown-item {
+            color: var(--c-text) !important;
+            border-bottom-color: rgba(26,111,168,.14) !important;
+        }
+
+            html.dark-mode .position-relative .dropdown-item:hover {
+                background: #2A3A4A !important;
+            }
+
+        html.dark-mode .pagination .page-link {
+            background: #1E2A3A !important;
+            border-color: rgba(26,111,168,.22) !important;
+            color: var(--c-text) !important;
+        }
+
+        html.dark-mode .pagination .page-item.active .page-link {
+            background: var(--c-blue) !important;
+            border-color: var(--c-blue) !important;
+            color: #FFFFFF !important;
+        }
+
+        html.dark-mode .pagination .page-item.disabled .page-link {
+            background: #0F1C2E !important;
+            color: var(--c-muted) !important;
+        }
+
+        html.dark-mode .flatpickr-calendar {
+            background: #1E2A3A !important;
+            border-color: rgba(26,111,168,.3) !important;
+        }
+
+        html.dark-mode .flatpickr-day {
+            color: var(--c-text) !important;
+        }
+
+            html.dark-mode .flatpickr-day:hover {
+                background: rgba(26,111,168,.2) !important;
+            }
+
+            html.dark-mode .flatpickr-day.selected {
+                background: var(--c-blue) !important;
+            }
+</style>
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="fas fa-check-circle me-2"></i>@TempData["Success"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="fas fa-exclamation-circle me-2"></i>@TempData["Error"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<div class="content">
+
+    <!-- Header -->
+    <div class="ld-header">
+        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+            <div class="d-flex align-items-center gap-2">
+                <div class="ld-header-icon"><i class="fa-solid fa-users"></i></div>
+                <div>
+                    <nav class="ld-breadcrumb" aria-label="breadcrumb">
+                        <ol class="breadcrumb mb-0">
+                            <li class="breadcrumb-item"><a href="/Home">Home</a></li>
+                            <li class="breadcrumb-item active">Leads</li>
+                        </ol>
+                    </nav>
+                    <h5 class="ld-page-title mb-0">Leads Management</h5>
+                    <span class="ld-page-sub">Track and manage all your potential customers efficiently</span>
+                </div>
+            </div>
+            <div class="d-flex flex-wrap gap-1 align-items-center">
+                @{
+                    var permissionService = ViewContext.HttpContext.RequestServices.GetService<CRM.Services.ViewPermissionService>();
+                    bool canCreate = permissionService.HasPermission("Leads", "Index", "Create");
+                    bool canBulkUpload = permissionService.HasPermission("Leads", "Index", "BulkUpload");
+                    bool hasActiveSubscription = ViewBag.HasActiveSubscription ?? true;
+                    var currentRole = User?.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value;
+                }
+                @if (canCreate)
+                {
+                    <button type="button" class="ld-action-btn" data-bs-toggle="modal" data-bs-target="#addLeadModal">
+                        <i class="fa-solid fa-plus"></i><span>Add Lead</span>
+                    </button>
+                }
+                @if (canBulkUpload && hasActiveSubscription)
+                {
+                    <button type="button" class="ld-action-btn" data-bs-toggle="modal" data-bs-target="#bulkUploadModal">
+                        <i class="fa-solid fa-upload"></i><span>Bulk Upload</span>
+                    </button>
+                }
+                @if (currentRole == "Admin" || currentRole == "Partner")
+                {
+                    <button type="button" class="ld-action-btn" id="syncAllIntegrationsBtn2">
+                        <i class="fa-solid fa-sync"></i><span>Refresh</span>
+                    </button>
+                }
+            </div>
+        </div>
+    </div>
+
+    <!-- Filter -->
+    <div class="ld-filter">
+        <div class="ld-filter-title" id="filterToggle">
+            <i class="fa-solid fa-filter"></i><span>Filter &amp; Search</span>
+        </div>
+        <div class="filter-content ld-filter-body">
+            <div class="row g-2">
+                <div class="col-sm-4 col-md-4">
+                    <label class="ld-label"><i class="fa-solid fa-search me-1 text-muted" style="font-size:.58rem;"></i>Search</label>
+                    <input type="text" class="ld-input" id="searchBox" placeholder="Name, email, contact...">
+                </div>
+                <div class="col-6 col-sm-4 col-md-2">
+                    <label class="ld-label">Stage</label>
+                    <select id="filterStage" class="ld-select">
+                        <option value="">All Stages</option>
+                        <option value="New">New</option>
+                        <option value="Office Meeting">Office Meeting</option>
+                        <option value="Site Visit Requested">Site Visit Requested</option>
+                        <option value="Site Visit Done">Site Visit Done</option>
+                        <option value="Quotation">Quotation</option>
+                        <option value="Quotation Sent">Quotation Sent</option>
+                        <option value="Negotiation">Negotiation</option>
+                        <option value="Booked">Booked</option>
+                    </select>
+                </div>
+                <div class="col-6 col-sm-4 col-md-2">
+                    <label class="ld-label">Status</label>
+                    <select id="filterStatus" class="ld-select">
+                        <option value="">All Status</option>
+                        <option value="Active">Active</option>
+                        <option value="Hot">Hot</option>
+                        <option value="Warm">Warm</option>
+                        <option value="Cold">Cold</option>
+                        <option value="Inactive">Inactive</option>
+                    </select>
+                </div>
+                <div class="col-6 col-sm-4 col-md-2">
+                    <label class="ld-label">From Date</label>
+                    <input type="text" id="filterFromDate" class="ld-input flatpickr-filter" placeholder="Select date" readonly>
+                </div>
+                <div class="col-6 col-sm-4 col-md-2">
+                    <label class="ld-label">To Date</label>
+                    <input type="text" id="filterToDate" class="ld-input flatpickr-filter" placeholder="Select date" readonly>
+                </div>
+            </div>
+            <div class="ld-filter-actions">
+                <button type="button" class="ld-clear-btn" id="clearFilters">
+                    <i class="fa-solid fa-rotate-left"></i>Clear
+                </button>
+                <div class="ld-export-btns">
+                    @{
+                        bool canExport = User.IsInRole("Admin");
+                        if (!canExport && !string.IsNullOrEmpty(User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value))
+                        {
+                            var userRole2 = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value;
+                            var leadPageId = _context.Pages
+                                .Where(p => p.Controller == "Leads" && p.Action == "Index")
+                                .Select(p => (int?)p.PageId)
+                                .FirstOrDefault();
+                            var exportPermId = _context.Permissions
+                                .Where(p => p.PermissionName == "Export")
+                                .Select(p => (int?)p.PermissionId)
+                                .FirstOrDefault();
+                            if (leadPageId.HasValue && exportPermId.HasValue)
+                            {
+                                canExport = _context.RolePagePermissions
+                                    .Any(rpp => rpp.RoleName == userRole2 &&
+                                                rpp.PageId == leadPageId.Value &&
+                                                rpp.PermissionId == exportPermId.Value &&
+                                                rpp.IsGranted);
+                            }
+                        }
+                    }
+                    @if (canExport)
+                    {
+                        <button type="button" class="ld-export-btn ld-exp-excel" id="exportExcel">
+                            <i class="fa-solid fa-file-excel"></i>Excel
+                        </button>
+                        <button type="button" class="ld-export-btn ld-exp-csv" id="exportCSV">
+                            <i class="fa-solid fa-file-csv"></i>CSV
+                        </button>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Leads List -->
+    <div id="leadsContainer"></div>
+
+    <!-- Pagination -->
+    <div class="ld-pager" id="paginationWrapper" style="display:none;">
+        <p class="text-muted mb-0">Showing <span id="showingStart">0</span>–<span id="showingEnd">0</span> of <span id="totalRecords">0</span></p>
+        <nav><ul class="pagination justify-content-end mb-0 pagination-sm" id="pagination"></ul></nav>
+    </div>
+</div>
+
+<!-- =============================================
+     Add/Edit Lead Modal
+     ============================================= -->
+<div class="modal fade" id="addLeadModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content ld-modal-content">
+            <div class="ld-modal-header">
+                <div class="d-flex align-items-center gap-2">
+                    <div class="ld-modal-icon"><i class="fa-solid fa-user-plus"></i></div>
+                    <h5 class="modal-title mb-0" id="modalTitle">Add New Lead</h5>
+                </div>
+                <button type="button" class="ld-modal-close" data-bs-dismiss="modal"><i class="fas fa-times"></i></button>
+            </div>
+            <form id="leadForm" novalidate>
+                @Html.AntiForgeryToken()
+                <div class="ld-modal-body">
+                    <input type="hidden" id="leadId" value="0">
+
+                    <div class="ld-section-lbl">Personal Info</div>
+                    <div class="row g-2">
+                        <div class="col-sm-4">
+                            <label class="ld-m-label">Name <span class="ld-req">*</span></label>
+                            <div class="ld-m-wrap">
+                                <input type="text" class="ld-m-input" id="leadName" required
+                                       oninput="this.value=this.value.replace(/[^A-Za-z ]/g,''); ldValidate(this);"
+                                       onblur="ldValidate(this)" placeholder="Full name">
+                                <span class="ld-vi ld-ok"><i class="fas fa-check-circle"></i></span>
+                                <span class="ld-vi ld-er"><i class="fas fa-times-circle"></i></span>
+                            </div>
+                            <div class="ld-err-msg" id="err_leadName">Name is required</div>
+                        </div>
+                        <div class="col-sm-4">
+                            <label class="ld-m-label">Contact <span class="ld-req">*</span></label>
+                            <div class="ld-m-wrap">
+                                <input type="tel" class="ld-m-input" id="leadContact" pattern="[0-9]{10}" required maxlength="10"
+                                       oninput="this.value=this.value.replace(/[^0-9]/g,'').slice(0,10); ldValidate(this);"
+                                       onblur="ldValidate(this)" placeholder="10-digit number">
+                                <span class="ld-vi ld-ok"><i class="fas fa-check-circle"></i></span>
+                                <span class="ld-vi ld-er"><i class="fas fa-times-circle"></i></span>
+                            </div>
+                            <div class="ld-err-msg" id="err_leadContact">Valid 10-digit contact required</div>
+                        </div>
+                        <div class="col-sm-4">
+                            <label class="ld-m-label">Email <span class="ld-req">*</span></label>
+                            <div class="ld-m-wrap">
+                                <input type="email" class="ld-m-input" id="leadEmail" name="leadEmail" required
+                                       placeholder="email@example.com" onblur="ldValidate(this)">
+                                <span class="ld-vi ld-ok"><i class="fas fa-check-circle"></i></span>
+                                <span class="ld-vi ld-er"><i class="fas fa-times-circle"></i></span>
+                            </div>
+                            <div class="ld-err-msg" id="err_leadEmail">Email is required</div>
+                            <div id="emailUniqueFeedback" class="ld-err-msg"></div>
+                        </div>
+                    </div>
+
+                    <div class="ld-section-lbl">Lead Details</div>
+                    <div class="row g-2">
+                        <div class="col-6 col-sm-4">
+                            <label class="ld-m-label">Stage <span class="ld-req">*</span></label>
+                            <div class="ld-m-wrap">
+                                <select class="ld-m-select" id="leadStage" required onchange="ldValidate(this)">
+                                    <option value="">Select Stage</option>
+                                    <option value="New">New</option>
+                                    <option value="Office Meeting">Office Meeting</option>
+                                    <option value="Site Visit Requested">Site Visit Requested</option>
+                                    <option value="Site Visit Done">Site Visit Done</option>
+                                    <option value="Quotation">Quotation</option>
+                                    <option value="Quotation Sent">Quotation Sent</option>
+                                    <option value="Negotiation">Negotiation</option>
+                                    <option value="Booked">Booked</option>
+                                </select>
+                                <span class="ld-vi ld-ok"><i class="fas fa-check-circle"></i></span>
+                                <span class="ld-vi ld-er"><i class="fas fa-times-circle"></i></span>
+                            </div>
+                            <div class="ld-err-msg" id="err_leadStage">Select stage</div>
+                        </div>
+                        <div class="col-6 col-sm-4">
+                            <label class="ld-m-label">Status <span class="ld-req">*</span></label>
+                            <div class="ld-m-wrap">
+                                <select class="ld-m-select" id="leadStatus" required onchange="ldValidate(this)">
+                                    <option value="">Select Status</option>
+                                    <option value="Active">Active</option>
+                                    <option value="Inactive">Inactive</option>
+                                    <option value="Hot">Hot</option>
+                                    <option value="Warm">Warm</option>
+                                    <option value="Cold">Cold</option>
+                                </select>
+                                <span class="ld-vi ld-ok"><i class="fas fa-check-circle"></i></span>
+                                <span class="ld-vi ld-er"><i class="fas fa-times-circle"></i></span>
+                            </div>
+                            <div class="ld-err-msg" id="err_leadStatus">Select status</div>
+                        </div>
+                        <div class="col-6 col-sm-4">
+                            <label class="ld-m-label">Source <span class="ld-req">*</span></label>
+                            <div class="ld-m-wrap">
+                                <select class="ld-m-select" id="leadSource" name="leadSource" required onchange="ldValidate(this)">
+                                    <option value="">Select Source</option>
+                                    <option value="Website">Website</option>
+                                    <option value="Referral">Referral</option>
+                                    <option value="Walk-in">Walk-in</option>
+                                    <option value="Social Media">Social Media</option>
+                                    <option value="Advertisement">Advertisement</option>
+                                    <option value="Other">Other</option>
+                                </select>
+                                <span class="ld-vi ld-ok"><i class="fas fa-check-circle"></i></span>
+                                <span class="ld-vi ld-er"><i class="fas fa-times-circle"></i></span>
+                            </div>
+                            <div class="ld-err-msg" id="err_leadSource">Select source</div>
+                        </div>
+                        <div class="col-6 col-sm-4">
+                            <label class="ld-m-label">Group Name</label>
+                            <input type="text" class="ld-m-input" id="leadGroupName" placeholder="Group (optional)">
+                        </div>
+                        <div class="col-6 col-sm-4">
+                            <label class="ld-m-label">Follow Up Date</label>
+                            <input type="text" class="ld-m-input flatpickr-modal" id="leadFollowUpDate" placeholder="Select date" readonly>
+                        </div>
+                        <div class="col-6 col-sm-4">
+                            <label class="ld-m-label">Rating</label>
+                            <select class="ld-m-select" id="leadRating">
+                                <option value="">Select Rating</option>
+                                <option value="1">1 Star</option>
+                                <option value="2">2 Stars</option>
+                                <option value="3">3 Stars</option>
+                                <option value="4">4 Stars</option>
+                                <option value="5">5 Stars</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="ld-section-lbl">Property Details</div>
+                    <div class="row g-2">
+                        <div class="col-6 col-sm-4">
+                            <label class="ld-m-label">Preferred Location <span class="ld-req">*</span></label>
+                            <div class="ld-m-wrap">
+                                <input type="text" class="ld-m-input" id="leadPreferredLocation" name="leadPreferredLocation"
+                                       required pattern="[A-Za-z0-9\s\-]{3,}"
+                                       onblur="ldValidate(this)" placeholder="e.g. Hyderabad">
+                                <span class="ld-vi ld-ok"><i class="fas fa-check-circle"></i></span>
+                                <span class="ld-vi ld-er"><i class="fas fa-times-circle"></i></span>
+                            </div>
+                            <div class="ld-err-msg" id="err_leadPreferredLocation">Location required (min 3 chars)</div>
+                        </div>
+                        <div class="col-6 col-sm-4">
+                            <label class="ld-m-label">Sqft <span class="ld-req">*</span></label>
+                            <div class="ld-m-wrap">
+                                <input type="number" class="ld-m-input" id="leadSqft" name="leadSqft"
+                                       min="100" max="100000" required onblur="ldValidate(this)" placeholder="e.g. 1200">
+                                <span class="ld-vi ld-ok"><i class="fas fa-check-circle"></i></span>
+                                <span class="ld-vi ld-er"><i class="fas fa-times-circle"></i></span>
+                            </div>
+                            <div class="ld-err-msg" id="err_leadSqft">Sqft is required</div>
+                        </div>
+                        <div class="col-6 col-sm-4">
+                            <label class="ld-m-label">Facing <span class="ld-req">*</span></label>
+                            <div class="ld-m-wrap">
+                                <select class="ld-m-select" id="leadFacing" name="leadFacing" required onchange="ldValidate(this)">
+                                    <option value="">Select Facing</option>
+                                    <option value="North">North</option>
+                                    <option value="South">South</option>
+                                    <option value="East">East</option>
+                                    <option value="West">West</option>
+                                    <option value="North-East">North-East</option>
+                                    <option value="North-West">North-West</option>
+                                    <option value="South-East">South-East</option>
+                                    <option value="South-West">South-West</option>
+                                </select>
+                                <span class="ld-vi ld-ok"><i class="fas fa-check-circle"></i></span>
+                                <span class="ld-vi ld-er"><i class="fas fa-times-circle"></i></span>
+                            </div>
+                            <div class="ld-err-msg" id="err_leadFacing">Select facing</div>
+                        </div>
+                        <div class="col-6 col-sm-4">
+                            <label class="ld-m-label">Type</label>
+                            <select class="ld-m-select" id="leadType">
+                                <option value="">Select Type</option>
+                                <option value="Residential">Residential</option>
+                                <option value="Commercial">Commercial</option>
+                            </select>
+                        </div>
+                        <div class="col-6 col-sm-4">
+                            <label class="ld-m-label">Property Type</label>
+                            <select class="ld-m-select" id="leadPropertyType">
+                                <option value="">Select Property Type</option>
+                                <option value="Apartment">Apartment</option>
+                                <option value="Villa">Villa</option>
+                                <option value="Plot">Plot</option>
+                                <option value="Office">Office</option>
+                                <option value="Shop">Shop</option>
+                            </select>
+                        </div>
+                        <div class="col-6 col-sm-4">
+                            <label class="ld-m-label">BHK</label>
+                            <select class="ld-m-select" id="leadBHK">
+                                <option value="">Select BHK</option>
+                                <option value="1BHK">1BHK</option>
+                                <option value="2BHK">2BHK</option>
+                                <option value="3BHK">3BHK</option>
+                                <option value="4BHK">4BHK</option>
+                                <option value="5BHK">5BHK</option>
+                            </select>
+                        </div>
+                        <div class="col-6 col-sm-4">
+                            <label class="ld-m-label">Location Distance</label>
+                            <input type="text" class="ld-m-input" id="leadLocationDistance" placeholder="e.g. 5km">
+                        </div>
+                        <div class="col-6 col-sm-4">
+                            <label class="ld-m-label">Requirement</label>
+                            <input type="text" class="ld-m-input" id="leadRequirement" placeholder="Requirement">
+                        </div>
+                        <div class="col-sm-4">
+                            <label class="ld-m-label">Executive <span class="ld-req">*</span></label>
+                            <div class="position-relative">
+                                @{
+                                    var currentRole2 = User?.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value;
+                                    var currentUserId = User?.FindFirst("UserId")?.Value;
+                                    var isAgentRole = currentRole2 == "Sales" || currentRole2 == "Agent";
+                                    var executivesList = ViewBag.Executives as IEnumerable<dynamic>;
+                                    dynamic singleExecutive = null;
+                                    string executiveName = "";
+                                    string executiveId = "";
+                                    if (executivesList != null)
+                                    {
+                                        var execList = executivesList.ToList();
+                                        if (execList.Count == 1)
+                                        {
+                                            singleExecutive = execList.First();
+                                            executiveName = singleExecutive.Username?.ToString() ?? "";
+                                            executiveId = singleExecutive.UserId?.ToString() ?? "";
+                                        }
+                                    }
+                                }
+                                <input type="text" class="ld-m-input" id="executiveSearch"
+                                       placeholder="@(isAgentRole ? "" : "Search executives...")"
+                                       autocomplete="off"
+                                @(isAgentRole && !string.IsNullOrEmpty(executiveName) ? "readonly disabled" : "readonly")
+                                       value="@executiveName"
+                                       onclick="if(!this.disabled) document.getElementById('executiveDropdown').style.display='block'">
+                                <input type="hidden" id="leadExecutiveId" value="@executiveId" required>
+                                <div class="invalid-feedback" style="display:none;" id="executiveError">Executive is required.</div>
+                                <div class="dropdown-menu w-100" id="executiveDropdown" style="max-height:150px;overflow-y:auto;display:none;font-size:.7rem;">
+                                    @if (ViewBag.Executives != null)
+                                    {
+                                        foreach (var exec in ViewBag.Executives)
+                                        {
+                                            <div class="dropdown-item py-1" data-value="@exec.UserId" data-name="@exec.Username">@exec.Username</div>
+                                        }
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="ld-section-lbl">Comments</div>
+                    <textarea class="ld-m-textarea" id="leadComments" rows="2" placeholder="Add any notes or comments..."></textarea>
+                </div>
+
+                <div class="ld-modal-footer">
+                    <button type="button" class="ld-btn-cancel" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="ld-btn-save"><i class="fa-solid fa-save me-1"></i>Save Lead</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Bulk Upload Modal -->
+<div class="modal fade" id="bulkUploadModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content ld-modal-content">
+            <div class="ld-modal-header">
+                <div class="d-flex align-items-center gap-2">
+                    <div class="ld-modal-icon"><i class="fa-solid fa-upload"></i></div>
+                    <h5 class="modal-title mb-0">Bulk Upload Leads</h5>
+                </div>
+                <button type="button" class="ld-modal-close" data-bs-dismiss="modal"><i class="fas fa-times"></i></button>
+            </div>
+            <form id="bulkUploadForm" novalidate>
+                <div class="ld-modal-body">
+                    <div style="margin-bottom:8px;">
+                        <label class="ld-m-label">Upload Excel File <span class="ld-req">*</span></label>
+                        <div class="ld-file-wrap">
+                            <input type="file" class="ld-file-input" id="bulkUploadFile" accept=".xlsx,.xls" required
+                                   onchange="validateBulkFile(this)">
+                        </div>
+                        <div class="ld-err-msg" id="err_bulkFile" style="margin-top:2px;">Please select a valid Excel file (.xlsx or .xls)</div>
+                        <div class="ld-err-msg" id="err_bulkFileSize" style="margin-top:2px;">File size must be less than 5MB</div>
+                    </div>
+                    <div class="ld-upload-hint">
+                        <span><i class="fa-solid fa-info-circle me-1"></i>Download sample template to see required format</span>
+                        <button type="button" class="ld-dl-btn" id="downloadSample">
+                            <i class="fa-solid fa-download me-1"></i>Download
+                        </button>
+                    </div>
+                </div>
+                <div class="ld-modal-footer">
+                    <button type="button" class="ld-btn-cancel" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="ld-btn-save" id="bulkUploadSubmit" style="background:linear-gradient(135deg,#16A34A,#15803D);">
+                        <i class="fa-solid fa-upload me-1"></i>Upload Leads
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="~/js/subscription-alerts.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+
+    <script>
+        @{
+            var currentUserIdClaim = User?.FindFirst("UserId")?.Value ?? User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            int.TryParse(currentUserIdClaim, out int currentUserId);
+            var currentUser = _context.Users.FirstOrDefault(u => u.UserId == currentUserId);
+            var isPartnerTeamUser = User.IsInRole("Partner") || (currentUser?.ChannelPartnerId != null);
+        }
+
+        /* ── Flatpickr init ── */
+        document.addEventListener('DOMContentLoaded', function () {
+        flatpickr('.flatpickr-filter', {
+        dateFormat: 'Y-m-d', allowInput: false, disableMobile: true,
+        onChange: function() { applyFilters(); }
+        });
+        flatpickr('#leadFollowUpDate', {
+        dateFormat: 'Y-m-d', allowInput: false, disableMobile: true, minDate: 'today'
+        });
+
+        initializeFeatherIcons();
+        renderTable();
+        attachEventListeners();
+        initializeExecutiveSearch();
+
+        const executiveSearch = document.getElementById('executiveSearch');
+        const executiveIdField = document.getElementById('leadExecutiveId');
+        if (executiveSearch.disabled && executiveIdField.value) executiveSearch.classList.add('is-valid');
+
+        setTimeout(() => {
+        document.querySelectorAll('.alert').forEach(alert => {
+        bootstrap.Alert.getOrCreateInstance(alert).close();
+        });
+        }, 5000);
+
+        /* email uniqueness */
+        let emailCheckTimer = null;
+        const leadEmailInput = document.getElementById('leadEmail');
+        const emailFeedback = document.getElementById('emailUniqueFeedback');
+        leadEmailInput.addEventListener('input', function () {
+        emailFeedback.style.display = 'none'; emailFeedback.textContent = '';
+        leadEmailInput.classList.remove('is-invalid'); emailIsUnique = true;
+        if (emailCheckTimer) clearTimeout(emailCheckTimer);
+        const email = this.value.trim(); if (!email) return;
+        emailCheckTimer = setTimeout(() => {
+        const leadId = document.getElementById('leadId').value || 0;
+        fetch(`/Leads/CheckEmailUnique?email=${encodeURIComponent(email)}&leadId=${leadId}`)
+        .then(r => r.json())
+        .then(data => {
+        if (!data.isUnique) {
+        emailIsUnique = false;
+        emailFeedback.textContent = 'A lead with this email already exists.';
+        emailFeedback.style.display = 'block';
+        ldSetState(leadEmailInput, 'error');
+        }
+        }).catch(() => {});
+        }, 500);
+        });
+
+        document.getElementById('bulkUploadModal').addEventListener('hidden.bs.modal', function() {
+        document.getElementById('bulkUploadForm').reset();
+        const fi = document.getElementById('bulkUploadFile');
+        fi.classList.remove('ld-state-err','ld-state-ok');
+        document.getElementById('err_bulkFile').style.display = 'none';
+        document.getElementById('err_bulkFileSize').style.display = 'none';
+        });
+        });
+
+        window.addEventListener('resize', function() { renderTable(); });
+
+        /* ── Bulk file validation ── */
+        function validateBulkFile(input) {
+        const errFile = document.getElementById('err_bulkFile');
+        const errSize = document.getElementById('err_bulkFileSize');
+        errFile.style.display = 'none'; errSize.style.display = 'none';
+        input.classList.remove('ld-state-err','ld-state-ok');
+        if (!input.files || input.files.length === 0) { input.classList.add('ld-state-err'); errFile.style.display = 'block'; return false; }
+        const file = input.files[0]; const ext = file.name.split('.').pop().toLowerCase();
+        if (ext !== 'xlsx' && ext !== 'xls') { input.classList.add('ld-state-err'); errFile.style.display = 'block'; return false; }
+        if (file.size > 5 * 1024 * 1024) { input.classList.add('ld-state-err'); errSize.style.display = 'block'; return false; }
+        input.classList.add('ld-state-ok'); return true;
+        }
+
+        /* ── Validation helpers ── */
+        function ldSetState(inputEl, state) {
+        const wrap = inputEl.closest('.ld-m-wrap'); if (!wrap) return;
+        inputEl.classList.remove('ld-state-ok','ld-state-err');
+        wrap.querySelectorAll('.ld-vi').forEach(v => v.style.display = 'none');
+        if (state === 'ok') {
+        inputEl.classList.add('ld-state-ok');
+        const ok = wrap.querySelector('.ld-ok'); if (ok) ok.style.display = 'flex';
+        const errEl = document.getElementById('err_' + inputEl.id); if (errEl) errEl.style.display = 'none';
+        } else if (state === 'error') {
+        inputEl.classList.add('ld-state-err');
+        const er = wrap.querySelector('.ld-er'); if (er) er.style.display = 'flex';
+        const errEl = document.getElementById('err_' + inputEl.id); if (errEl) errEl.style.display = 'block';
+        }
+        }
+        function ldValidate(el) {
+        const empty = el.value.trim() === '';
+        const invalid = el.validity && !el.validity.valid;
+        ldSetState(el, (empty || invalid) ? 'error' : 'ok');
+        return !(empty || invalid);
+        }
+        function ldResetAllStates() {
+        ['leadName','leadContact','leadEmail','leadStage','leadStatus','leadSource',
+        'leadPreferredLocation','leadSqft','leadFacing'].forEach(id => {
+        const el = document.getElementById(id); if (!el) return;
+        el.classList.remove('ld-state-ok','ld-state-err');
+        const wrap = el.closest('.ld-m-wrap');
+        if (wrap) wrap.querySelectorAll('.ld-vi').forEach(v => v.style.display = 'none');
+        const errEl = document.getElementById('err_' + id); if (errEl) errEl.style.display = 'none';
+        });
+        }
+
+        /* ── Data & State ── */
+        // let emailIsUnique = true;
+        // let allLeads = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model));
+        let emailIsUnique = true;
+        let allLeads = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model));
+        const _enc = {@foreach(var l in Model){
+        @Html.Raw($"'{l.LeadId}': '{IdObfuscator.Encode(l.LeadId)}',")
+    }
+    };
+    allLeads.forEach(l => l.EncodedId = _enc[l.LeadId]);
+
+
+        let filteredLeads = [...allLeads];
+        let currentPage = 1;
+        let pageSize = 10;
+        let isEditMode = false;
+        userRole = '@User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value';
+        let isPartnerTeamUser = @Html.Raw(isPartnerTeamUser.ToString().ToLower());
+        let executives = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(ViewBag.Executives));
+
+        function canEdit() {
+        return userRole === 'Admin' || @Html.Raw(ViewContext.HttpContext.RequestServices.GetService<CRM.Services.ViewPermissionService>().HasPermission("Leads", "Index", "Edit").ToString().ToLower());
+        }
+        function canDelete() {
+        return userRole === 'Admin' || @Html.Raw(ViewContext.HttpContext.RequestServices.GetService<CRM.Services.ViewPermissionService>().HasPermission("Leads", "Index", "Delete").ToString().ToLower());
+        }
+        function isPartnerHandoverLocked(lead) {
+        const h = lead?.HandoverStatus || 'Partner';
+        return isPartnerTeamUser && (h === 'ReadyToBook' || h === 'HandedOver');
+        }
+        function getEditButton(lead) {
+        if (isPartnerHandoverLocked(lead)) return '';
+        if (canEdit()) return `<button class="btn-act btn-edit" onclick="editLead(${lead.LeadId})" title="Edit"><i class="fa-solid fa-edit"></i></button>`;
+        return '';
+        }
+    function getDeleteButton(lead) {
+    if (isPartnerHandoverLocked(lead)) return '';
+    if (canDelete()) {
+    return `<button class="btn-action btn-delete" onclick="deleteLead(${lead.LeadId})" title="Delete Lead">
+    <i class="fa-solid fa-trash"></i>
+    </button>`;
+    }
+    return '';
+    }
+        function getExecutiveName(executiveId) {
+        if (!executiveId) return '-';
+        const exec = executives.find(e => e.UserId === executiveId);
+        return exec ? exec.Username : '-';
+        }
+        function getLeadAssignedExecutiveId(lead) {
+        if (!lead) return null;
+        if (isPartnerTeamUser && lead.PartnerAssignedAgentUserId) return lead.PartnerAssignedAgentUserId;
+        return lead.ExecutiveId;
+        }
+        function getLeadAssignedExecutiveName(lead) { return getExecutiveName(getLeadAssignedExecutiveId(lead)); }
+        function initializeFeatherIcons() { if (typeof feather !== 'undefined') feather.replace(); }
+
+        function initializeExecutiveSearch() {
+        const searchInput = document.getElementById('executiveSearch');
+        const hiddenInput = document.getElementById('leadExecutiveId');
+        const dropdown = document.getElementById('executiveDropdown');
+        const errorDiv = document.getElementById('executiveError');
+        searchInput.addEventListener('click', function() { dropdown.style.display = 'block'; });
+        document.addEventListener('click', function(e) {
+        if (!searchInput.contains(e.target) && !dropdown.contains(e.target)) dropdown.style.display = 'none';
+        });
+        dropdown.querySelectorAll('.dropdown-item').forEach(item => {
+        item.addEventListener('click', function(e) {
+        e.stopPropagation();
+        const value = this.getAttribute('data-value');
+        const name = this.getAttribute('data-name');
+        if (value && name) {
+        hiddenInput.value = value; searchInput.value = name;
+        searchInput.classList.remove('is-invalid'); searchInput.classList.add('is-valid');
+        errorDiv.style.display = 'none';
+        }
+        dropdown.style.display = 'none';
+        });
+        });
+        }
+
+        function attachEventListeners() {
+        document.getElementById('filterToggle').addEventListener('click', function() {
+        if (window.innerWidth <= 767) {
+        document.querySelector('.ld-filter-body').classList.toggle('show');
+        this.classList.toggle('expanded');
+        }
+        });
+        document.getElementById('searchBox').addEventListener('input', applyFilters);
+        document.getElementById('filterStage').addEventListener('change', applyFilters);
+        document.getElementById('filterStatus').addEventListener('change', applyFilters);
+        document.getElementById('clearFilters').addEventListener('click', clearFilters);
+        const exportExcelBtn = document.getElementById('exportExcel');
+        if (exportExcelBtn) exportExcelBtn.addEventListener('click', exportToExcel);
+        const exportCSVBtn = document.getElementById('exportCSV');
+        if (exportCSVBtn) exportCSVBtn.addEventListener('click', exportToCSV);
+        const downloadSampleBtn = document.getElementById('downloadSample');
+        if (downloadSampleBtn) downloadSampleBtn.addEventListener('click', downloadSampleTemplate);
+        document.getElementById('leadForm').addEventListener('submit', saveLead);
+        document.getElementById('bulkUploadForm').addEventListener('submit', handleBulkUpload);
+        const syncBtn = document.getElementById('syncAllIntegrationsBtn2');
+        if (syncBtn) syncBtn.addEventListener('click', syncAllIntegrations);
+        document.getElementById('addLeadModal').addEventListener('hidden.bs.modal', resetForm);
+        }
+
+        function applyFilters() {
+        const searchText = document.getElementById('searchBox').value.toLowerCase();
+        const stage = document.getElementById('filterStage').value;
+        const status = document.getElementById('filterStatus').value;
+        const fromDateVal = document.getElementById('filterFromDate').value;
+        const toDateVal = document.getElementById('filterToDate').value;
+        filteredLeads = allLeads.filter(lead => {
+        const matchesSearch = !searchText ||
+        (lead.Name && lead.Name.toLowerCase().includes(searchText)) ||
+        (lead.Contact && lead.Contact.includes(searchText)) ||
+        (lead.Email && lead.Email.toLowerCase().includes(searchText));
+        const matchesStage = !stage || lead.Stage === stage;
+        const matchesStatus = !status || lead.Status === status;
+        let matchesDate = true;
+        if (fromDateVal || toDateVal) {
+        const leadDate = new Date(lead.CreatedOn);
+        if (fromDateVal) matchesDate = matchesDate && leadDate >= new Date(fromDateVal);
+        if (toDateVal) matchesDate = matchesDate && leadDate <= new Date(toDateVal + 'T23:59:59');
+        }
+        return matchesSearch && matchesStage && matchesStatus && matchesDate;
+        });
+        currentPage = 1; renderTable();
+        }
+
+        function clearFilters() {
+        document.getElementById('searchBox').value = '';
+        document.getElementById('filterStage').value = '';
+        document.getElementById('filterStatus').value = '';
+        const fpFrom = document.getElementById('filterFromDate')._flatpickr;
+        const fpTo   = document.getElementById('filterToDate')._flatpickr;
+        if (fpFrom) fpFrom.clear(); if (fpTo) fpTo.clear();
+        filteredLeads = [...allLeads]; currentPage = 1; renderTable();
+        }
+
+        /* ── Render ── */
+        function getHandoverButton(lead) {
+        const h = lead.HandoverStatus || 'Partner';
+        if (isPartnerTeamUser && h === 'Partner')
+        return `<button class="btn-act btn-handover" onclick="markReadyToBook(${lead.LeadId})" title="Mark Ready to Book"><i class="fa-solid fa-handshake"></i></button>`;
+        else if (isPartnerTeamUser && h === 'ReadyToBook')
+        return `<span class="badge-pill">To Admin</span>`;
+        else if (isPartnerTeamUser && h === 'HandedOver')
+        return `<span class="badge-status s-cold">Handed</span>`;
+        else if (userRole === 'Admin' && h === 'ReadyToBook')
+        return `<button class="btn-act btn-edit" onclick="assignToAgent(${lead.LeadId})" title="Assign to Agent"><i class="fa-solid fa-user-plus"></i></button>`;
+        else if (!isPartnerTeamUser && (userRole === 'Agent' || userRole === 'Sales') && h === 'HandedOver')
+        return `<span class="badge-pill">From Partner</span>`;
+        else if (h === 'HandedOver')
+        return `<span class="badge-status s-cold">Handed</span>`;
+        return '';
+        }
+
+        function renderTable() {
+        const container = document.getElementById('leadsContainer');
+        const start = (currentPage - 1) * pageSize;
+        const paginatedLeads = filteredLeads.slice(start, start + pageSize);
+        container.innerHTML = '';
+
+        if (paginatedLeads.length === 0) {
+        container.innerHTML = `<div class="empty-state"><i class="fa-solid fa-users"></i><h3>No Leads Found</h3><p>Start by adding your first lead or adjust your filters</p><button type="button" class="ld-btn-save" data-bs-toggle="modal" data-bs-target="#addLeadModal"><i class="fa-solid fa-plus me-1"></i>Add Lead</button></div>`;
+        document.getElementById('paginationWrapper').style.display = 'none';
+        return;
+        }
+
+        const isMobile = window.innerWidth <= 768;
+        paginatedLeads.forEach(lead => {
+        const card = document.createElement('div');
+        card.className = 'lead-card';
+        const statusClass = 's-' + (lead.Status || 'inactive').toLowerCase();
+        const typeBhk = [lead.Type, lead.BHK].filter(Boolean).join(' – ');
+        const actBtns = getHandoverButton(lead) + getEditButton(lead) + getDeleteButton(lead);
+
+        if (isMobile) {
+        card.innerHTML = `
+        <div class="lc-mobile">
+        <div class="lc-mob-top">
+        <a href="/leaddetails/${lead.EncodedId || lead.LeadId}" class="lc-name">${lead.Name || 'Unnamed Lead'}</a>
+        <div class="lc-actions">${actBtns}</div>
+        </div>
+        <div class="lc-mob-grid">
+        <div class="lc-row"><i class="fa-solid fa-phone"></i><span>${lead.Contact || '-'}</span></div>
+        <div class="lc-row"><i class="fa-solid fa-envelope"></i><span>${lead.Email || '-'}</span></div>
+        <div class="lc-row"><i class="fa-solid fa-map-marker-alt"></i><span>${lead.PreferredLocation || '-'}</span></div>
+        <div class="lc-row"><i class="fa-solid fa-user-tie"></i><span>${getLeadAssignedExecutiveName(lead)}</span></div>
+        </div>
+        <div class="lc-mob-badges">
+        <span class="badge-stage">${lead.Stage || '-'}</span>
+        <span class="badge-status ${statusClass}">${lead.Status || '-'}</span>
+        ${typeBhk ? `<span class="badge-type">${typeBhk}</span>` : ''}
+        </div>
+        </div>`;
+        } else {
+        card.innerHTML = `
+        <div class="lc-inner">
+        <div class="lc-col">
+        <a href="/leaddetails/${lead.EncodedId || lead.LeadId}" class="lc-name">${lead.Name || 'Unnamed Lead'}</a>
+        <div class="lc-row"><i class="fa-solid fa-phone"></i><span>${lead.Contact || '-'}</span></div>
+        <div class="lc-row"><i class="fa-solid fa-envelope"></i><span>${lead.Email || '-'}</span></div>
+        </div>
+        <div class="lc-col">
+        <div class="lc-kv"><strong>Location:</strong> ${lead.PreferredLocation || '-'}</div>
+        <div class="lc-kv"><strong>Group:</strong> ${lead.GroupName || '-'}</div>
+        <div class="lc-kv"><strong>Assigned:</strong> ${getLeadAssignedExecutiveName(lead)}</div>
+        </div>
+        <div class="lc-col">
+        <div class="lc-badges">
+        <span class="badge-stage">${lead.Stage || '-'}</span>
+        <span class="badge-status ${statusClass}">${lead.Status || '-'}</span>
+        ${typeBhk ? `<span class="badge-type">${typeBhk}</span>` : ''}
+        </div>
+        </div>
+        <div class="lc-col">
+        <div class="lc-actions">${actBtns}</div>
+        </div>
+        </div>`;
+        }
+        container.appendChild(card);
+        });
+
+        document.getElementById('paginationWrapper').style.display = 'flex';
+        updatePaginationInfo();
+        renderPagination();
+        }
+
+        function formatDate(d) { if (!d) return '-'; return new Date(d).toLocaleDateString('en-GB'); }
+        function updatePaginationInfo() {
+        const total = filteredLeads.length;
+        const s = total === 0 ? 0 : (currentPage - 1) * pageSize + 1;
+        const e = Math.min(currentPage * pageSize, total);
+        document.getElementById('showingStart').textContent = s;
+        document.getElementById('showingEnd').textContent = e;
+        document.getElementById('totalRecords').textContent = total;
+        }
+        function renderPagination() {
+        const pagination = document.getElementById('pagination');
+        const totalPages = Math.ceil(filteredLeads.length / pageSize);
+        pagination.innerHTML = '';
+        if (totalPages <= 1) { const li = document.createElement('li'); li.className = 'page-item active'; li.innerHTML = `<span class="page-link">1</span>`; pagination.appendChild(li); return; }
+        const prevLi = document.createElement('li'); prevLi.className = `page-item ${currentPage === 1 ? 'disabled' : ''}`; prevLi.innerHTML = `<a class="page-link" href="#" onclick="changePage(${currentPage - 1}); return false;">&laquo;</a>`; pagination.appendChild(prevLi);
+        const sp = Math.max(1, currentPage - 2); const ep = Math.min(totalPages, currentPage + 2);
+        if (sp > 1) { const li = document.createElement('li'); li.className = 'page-item'; li.innerHTML = `<a class="page-link" href="#" onclick="changePage(1); return false;">1</a>`; pagination.appendChild(li); if (sp > 2) { const d = document.createElement('li'); d.className = 'page-item disabled'; d.innerHTML = `<span class="page-link">…</span>`; pagination.appendChild(d); } }
+        for (let i = sp; i <= ep; i++) { const li = document.createElement('li'); li.className = `page-item ${i === currentPage ? 'active' : ''}`; li.innerHTML = `<a class="page-link" href="#" onclick="changePage(${i}); return false;">${i}</a>`; pagination.appendChild(li); }
+        if (ep < totalPages) { if (ep < totalPages - 1) { const d = document.createElement('li'); d.className = 'page-item disabled'; d.innerHTML = `<span class="page-link">…</span>`; pagination.appendChild(d); } const li = document.createElement('li'); li.className = 'page-item'; li.innerHTML = `<a class="page-link" href="#" onclick="changePage(${totalPages}); return false;">${totalPages}</a>`; pagination.appendChild(li); }
+        const nextLi = document.createElement('li'); nextLi.className = `page-item ${currentPage === totalPages ? 'disabled' : ''}`; nextLi.innerHTML = `<a class="page-link" href="#" onclick="changePage(${currentPage + 1}); return false;">&raquo;</a>`; pagination.appendChild(nextLi);
+        }
+        function changePage(page) {
+        const totalPages = Math.ceil(filteredLeads.length / pageSize);
+        if (page < 1 || page > totalPages) return;
+        currentPage = page; renderTable(); window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function saveLead(e) {
+        e.preventDefault();
+        const form = e.target;
+        const executiveId = document.getElementById('leadExecutiveId').value;
+        const executiveSearch = document.getElementById('executiveSearch');
+        const executiveError = document.getElementById('executiveError');
+        const requiredFields = ['leadName','leadContact','leadEmail','leadStage','leadStatus','leadSource','leadPreferredLocation','leadSqft','leadFacing'];
+        let valid = true;
+        requiredFields.forEach(id => { if (!ldValidate(document.getElementById(id))) valid = false; });
+        if (!executiveId || executiveId.trim() === '') {
+        executiveSearch.classList.add('is-invalid'); executiveSearch.classList.remove('is-valid');
+        executiveError.style.display = 'block'; valid = false;
+        } else {
+        executiveSearch.classList.remove('is-invalid'); executiveSearch.classList.add('is-valid');
+        executiveError.style.display = 'none';
+        }
+        if (!valid) { form.classList.add('was-validated'); return; }
+        if (!emailIsUnique) { showToast('A lead with this email already exists.', 'error'); return; }
+        const leadId = parseInt(document.getElementById('leadId').value);
+        const leadData = {
+        leadId, name: document.getElementById('leadName').value, contact: document.getElementById('leadContact').value,
+        email: document.getElementById('leadEmail').value, stage: document.getElementById('leadStage').value,
+        status: document.getElementById('leadStatus').value, groupName: document.getElementById('leadGroupName').value,
+        source: document.getElementById('leadSource').value, preferredLocation: document.getElementById('leadPreferredLocation').value,
+        sqft: document.getElementById('leadSqft').value, facing: document.getElementById('leadFacing').value,
+        type: document.getElementById('leadType').value, propertyType: document.getElementById('leadPropertyType').value,
+        bhk: document.getElementById('leadBHK').value, locationDistance: document.getElementById('leadLocationDistance').value,
+        requirement: document.getElementById('leadRequirement').value,
+        executiveId: document.getElementById('leadExecutiveId').value ? parseInt(document.getElementById('leadExecutiveId').value) : null,
+        followUpDate: document.getElementById('leadFollowUpDate').value || null,
+        rating: document.getElementById('leadRating').value, comments: document.getElementById('leadComments').value,
+        createdOn: new Date().toISOString(), modifiedOn: new Date().toISOString()
+        };
+        const formData = new FormData();
+        Object.keys(leadData).forEach(key => { if (leadData[key] !== null && leadData[key] !== '') formData.append(key, leadData[key]); });
+        fetch('/Leads/SaveLead', { method: 'POST', body: formData, headers: { 'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value, 'X-Requested-With': 'XMLHttpRequest' } })
+        .then(response => response.json())
+        .then(data => {
+        if (data.success) {
+        if (leadId === 0) {
+        leadData.LeadId = allLeads.length > 0 ? Math.max(...allLeads.map(l => l.LeadId)) + 1 : 1;
+        const newLead = { LeadId: leadData.leadId, Name: leadData.name, Contact: leadData.contact, Email: leadData.email, Stage: leadData.stage, Status: leadData.status, GroupName: leadData.groupName, Source: leadData.source, PreferredLocation: leadData.preferredLocation, Sqft: leadData.sqft, Facing: leadData.facing, Type: leadData.type, PropertyType: leadData.propertyType, BHK: leadData.bhk, LocationDistance: leadData.locationDistance, Requirement: leadData.requirement, ExecutiveId: leadData.executiveId, FollowUpDate: leadData.followUpDate, Rating: leadData.rating, Comments: leadData.comments, CreatedOn: leadData.createdOn, ModifiedOn: leadData.modifiedOn, EncodedId: lead.LeadId };
+        allLeads.unshift(newLead);
+        } else {
+        const index = allLeads.findIndex(l => l.LeadId === leadId);
+        if (index !== -1) { allLeads[index].Name = leadData.name; allLeads[index].Contact = leadData.contact; allLeads[index].Email = leadData.email; allLeads[index].Stage = leadData.stage; allLeads[index].Status = leadData.status; allLeads[index].GroupName = leadData.groupName; allLeads[index].Source = leadData.source; allLeads[index].PreferredLocation = leadData.preferredLocation; allLeads[index].Sqft = leadData.sqft; allLeads[index].Facing = leadData.facing; allLeads[index].Type = leadData.type; allLeads[index].PropertyType = leadData.propertyType; allLeads[index].BHK = leadData.bhk; allLeads[index].LocationDistance = leadData.locationDistance; allLeads[index].Requirement = leadData.requirement; allLeads[index].ExecutiveId = leadData.executiveId; allLeads[index].FollowUpDate = leadData.followUpDate; allLeads[index].Rating = leadData.rating; allLeads[index].Comments = leadData.comments; allLeads[index].ModifiedOn = leadData.modifiedOn; }
+        }
+        filteredLeads = [...allLeads]; renderTable();
+        bootstrap.Modal.getInstance(document.getElementById('addLeadModal')).hide(); resetForm();
+        setTimeout(() => { showToast(leadId === 0 ? 'Lead added successfully!' : 'Lead updated successfully!', 'success'); }, 600);
+        setTimeout(() => location.reload(), 3000);
+        } else if (data.planExpired) { SubscriptionAlerts.showPlanExpiredAlert(data.message, data.availablePlans);
+        } else { showToast(data.message || 'Error saving lead', 'error'); }
+        }).catch(error => { console.error('Error:', error); showToast('Error saving lead', 'error'); });
+        }
+
+        function editLead(id) {
+        const lead = allLeads.find(l => l.LeadId === id); if (!lead) return;
+        isEditMode = true;
+        document.getElementById('modalTitle').textContent = 'Edit Lead';
+        document.getElementById('leadId').value = lead.LeadId;
+        document.getElementById('leadName').value = lead.Name || '';
+        document.getElementById('leadContact').value = lead.Contact || '';
+        document.getElementById('leadEmail').value = lead.Email || '';
+        document.getElementById('leadStage').value = lead.Stage || '';
+        document.getElementById('leadStatus').value = lead.Status || '';
+        document.getElementById('leadGroupName').value = lead.GroupName || '';
+        document.getElementById('leadSource').value = lead.Source || '';
+        document.getElementById('leadPreferredLocation').value = lead.PreferredLocation || '';
+        document.getElementById('leadSqft').value = lead.Sqft || '';
+        document.getElementById('leadFacing').value = lead.Facing || '';
+        document.getElementById('leadType').value = lead.Type || '';
+        document.getElementById('leadPropertyType').value = lead.PropertyType || '';
+        document.getElementById('leadBHK').value = lead.BHK || '';
+        document.getElementById('leadLocationDistance').value = lead.LocationDistance || '';
+        document.getElementById('leadRequirement').value = lead.Requirement || '';
+        document.getElementById('leadExecutiveId').value = lead.ExecutiveId || '';
+        document.getElementById('executiveSearch').value = lead.ExecutiveId ? getExecutiveName(lead.ExecutiveId) : '';
+        const fp = document.getElementById('leadFollowUpDate')._flatpickr;
+        if (fp) fp.setDate(lead.FollowUpDate ? lead.FollowUpDate.split('T')[0] : null);
+        document.getElementById('leadRating').value = lead.Rating || '';
+        document.getElementById('leadComments').value = lead.Comments || '';
+        new bootstrap.Modal(document.getElementById('addLeadModal')).show();
+        }
+
+        // function deleteLead(id) {
+        // if (!confirm('Are you sure you want to delete this lead?')) return;
+        // fetch(`/Leads/Delete?id=${id}`, { method: 'POST', headers: { 'Content-Type': 'application/json' } })
+        // .then(response => response.json())
+        // .then(data => {
+        // if (data.success) { allLeads = allLeads.filter(l => l.LeadId !== id); filteredLeads = filteredLeads.filter(l => l.LeadId !== id); renderTable(); showToast('Lead deleted successfully!', 'success'); }
+        // else showToast(data.message || 'Error deleting lead', 'error');
+        // }).catch(error => { console.error('Error:', error); showToast('Error deleting lead', 'error'); });
+        // }
+    function deleteLead(id) {
+    if (!confirm('Are you sure you want to delete this lead?')) return;
+
+    fetch(`/Leads/Delete?id=${id}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' }
+    })
+    .then(response => response.json())
+    .then(data => {
+    if (data.success) {
+    // Successfully removed from database
+    allLeads = allLeads.filter(l => l.LeadId !== id);
+    filteredLeads = filteredLeads.filter(l => l.LeadId !== id);
+    renderTable();
+    showToast('Lead deleted successfully!', 'success');
+    }
+    else {
+    // Check if the server's error message points to a foreign key/reference constraint
+    var errMsg = data.message || '';
+    if (errMsg.includes('REFERENCE constraint') || errMsg.includes('FK_Quotations_Lead') || errMsg.includes('Quotations')) {
+    // Display a clear explanation instead of the raw SQL string
+    Swal.fire({
+    icon: 'warning',
+    title: 'Cannot Delete Lead',
+    text: 'This lead has associated Quotations, Bookings, or Invoices. Please delete or reassign those documents first before removing this lead.',
+    confirmButtonColor: '#1A6FA8'
+    });
+    } else {
+    // Fallback for any other type of error
+    showToast(errMsg || 'Error deleting lead', 'error');
+    }
+    }
+    })
+    .catch(error => {
+    console.error('Error:', error);
+    showToast('Error deleting lead', 'error');
+    });
+    }
+
+        function resetForm() {
+        isEditMode = false;
+        document.getElementById('modalTitle').textContent = 'Add New Lead';
+        document.getElementById('leadForm').reset();
+        document.getElementById('leadForm').classList.remove('was-validated');
+        document.getElementById('leadId').value = '0';
+        const executiveSearch = document.getElementById('executiveSearch');
+        const executiveError = document.getElementById('executiveError');
+        const executiveIdField = document.getElementById('leadExecutiveId');
+        if (!executiveSearch.disabled) { executiveSearch.value = ''; executiveIdField.value = ''; }
+        executiveSearch.classList.remove('is-valid', 'is-invalid');
+        executiveError.style.display = 'none';
+        emailIsUnique = true;
+        document.getElementById('emailUniqueFeedback').style.display = 'none';
+        document.getElementById('emailUniqueFeedback').textContent = '';
+        document.getElementById('leadEmail').classList.remove('is-invalid');
+        const fp = document.getElementById('leadFollowUpDate')._flatpickr;
+        if (fp) fp.clear();
+        ldResetAllStates();
+        }
+
+        function exportToExcel() {
+        const ws_data = [['Name','Contact','Email','Stage','Status','Group','Source','Preferred Location','Sqft','Facing','Type','Property Type','BHK','Location Distance','Requirement','Executive','Follow Up Date','Rating','Comments']];
+        filteredLeads.forEach(lead => { ws_data.push([lead.Name||'',lead.Contact||'',lead.Email||'',lead.Stage||'',lead.Status||'',lead.GroupName||'',lead.Source||'',lead.PreferredLocation||'',lead.Sqft||'',lead.Facing||'',lead.Type||'',lead.PropertyType||'',lead.BHK||'',lead.LocationDistance||'',lead.Requirement||'',getLeadAssignedExecutiveName(lead),lead.FollowUpDate?formatDate(lead.FollowUpDate):'',lead.Rating||'',lead.Comments||'']); });
+        const wb = XLSX.utils.book_new(); const ws = XLSX.utils.aoa_to_sheet(ws_data);
+        ws['!cols'] = [{wch:20},{wch:15},{wch:25},{wch:15},{wch:12},{wch:15},{wch:15},{wch:20},{wch:10},{wch:12},{wch:15},{wch:15},{wch:10},{wch:18},{wch:20},{wch:12},{wch:15},{wch:10},{wch:30}];
+        XLSX.utils.book_append_sheet(wb, ws, "Leads"); XLSX.writeFile(wb, `Leads_Export_${new Date().toISOString().split('T')[0]}.xlsx`);
+        showToast('Excel exported successfully!', 'success');
+        }
+        function exportToCSV() {
+        let csv = 'Name,Contact,Email,Stage,Status,Group,Source,Preferred Location,Sqft,Facing,Type,Property Type,BHK,Location Distance,Requirement,Executive,Follow Up Date,Rating,Comments\n';
+        filteredLeads.forEach(lead => { csv += [escapeCSV(lead.Name),escapeCSV(lead.Contact),escapeCSV(lead.Email),escapeCSV(lead.Stage),escapeCSV(lead.Status),escapeCSV(lead.GroupName),escapeCSV(lead.Source),escapeCSV(lead.PreferredLocation),escapeCSV(lead.Sqft),escapeCSV(lead.Facing),escapeCSV(lead.Type),escapeCSV(lead.PropertyType),escapeCSV(lead.BHK),escapeCSV(lead.LocationDistance),escapeCSV(lead.Requirement),escapeCSV(getLeadAssignedExecutiveName(lead)),lead.FollowUpDate?formatDate(lead.FollowUpDate):'',escapeCSV(lead.Rating),escapeCSV(lead.Comments)].join(',') + '\n'; });
+        const blob = new Blob([csv], { type: 'text/csv' }); const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a'); a.href = url; a.download = `Leads_Export_${new Date().toISOString().split('T')[0]}.csv`; a.click();
+        window.URL.revokeObjectURL(url); showToast('CSV exported successfully!', 'success');
+        }
+        function escapeCSV(value) { if (!value) return ''; value = value.toString(); if (value.includes(',') || value.includes('"') || value.includes('\n')) return '"' + value.replace(/"/g, '""') + '"'; return value; }
+        function downloadSampleTemplate() {
+        const ws_data = [['Name','Contact','Email','Stage','Status','Group','Source','Preferred Location','Sqft','Facing','Type','Property Type','BHK','Location Distance','Requirement','Executive ID (Enter User ID)','Follow Up Date (YYYY-MM-DD)'],['John Doe','9999999999','john@example.com','New','Active','Group A','Website','Hyderabad','1200','North','Residential','Apartment','3BHK','5km','Immediate','1','2025-12-01']];
+        const wb = XLSX.utils.book_new(); const ws = XLSX.utils.aoa_to_sheet(ws_data);
+        ws['!cols'] = [{wch:20},{wch:15},{wch:25},{wch:15},{wch:12},{wch:15},{wch:15},{wch:20},{wch:10},{wch:12},{wch:15},{wch:15},{wch:10},{wch:18},{wch:20},{wch:12},{wch:15}];
+        XLSX.utils.book_append_sheet(wb, ws, "Lead Template"); XLSX.writeFile(wb, "Lead_Upload_Sample.xlsx");
+        showToast('Sample template downloaded!', 'success');
+        }
+
+        function handleBulkUpload(e) {
+        e.preventDefault();
+        const fileInput = document.getElementById('bulkUploadFile');
+        if (!validateBulkFile(fileInput)) return;
+        const file = fileInput.files[0];
+        const submitBtn = document.getElementById('bulkUploadSubmit');
+        const originalText = submitBtn.innerHTML;
+        submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-1"></i>Uploading...'; submitBtn.disabled = true;
+        const formData = new FormData(); formData.append('file', file); formData.append('a', '1');
+        const token = document.querySelector('input[name="__RequestVerificationToken"]'); if (token) formData.append('__RequestVerificationToken', token.value);
+        fetch('/Leads/UploadLeadFile', { method: 'POST', body: formData, headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+        .then(response => { if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`); const contentType = response.headers.get('content-type'); if (contentType && contentType.includes('application/json')) return response.json(); throw new Error('Server returned non-JSON response. Please check your subscription status.'); })
+        .then(data => { if (data.success) { showToast('Bulk upload successful!', 'success'); bootstrap.Modal.getInstance(document.getElementById('bulkUploadModal')).hide(); setTimeout(() => location.reload(), 1500); } else if (data.planExpired) { SubscriptionAlerts.showPlanExpiredAlert(data.message, data.availablePlans); } else { showToast(data.message || 'Error uploading file', 'error'); } })
+        .catch(error => { if (error.message.includes('Server returned non-JSON response')) showToast('Please check your subscription status.', 'error'); else showToast(`Upload failed: ${error.message}`, 'error'); })
+        .finally(() => { submitBtn.innerHTML = originalText; submitBtn.disabled = false; });
+        }
+
+        function markReadyToBook(leadId) {
+        if (!confirm('Mark this lead as ready to book? You will no longer be able to edit it.')) return;
+        const formData = new FormData(); formData.append('leadId', leadId);
+        const token = document.querySelector('input[name="__RequestVerificationToken"]'); if (token) formData.append('__RequestVerificationToken', token.value);
+        fetch('/Leads/MarkReadyToBook', { method: 'POST', body: formData }).then(response => response.json()).then(data => { if (data.success) { showToast(data.message, 'success'); const lead = allLeads.find(l => l.LeadId === leadId); if (lead) { lead.HandoverStatus = 'ReadyToBook'; lead.IsReadyToBook = true; lead.Source = 'Partner'; } renderTable(); } else showToast(data.message || 'Error', 'error'); }).catch(error => { console.error('Error:', error); showToast('Error marking lead', 'error'); });
+        }
+        function assignToAgent(leadId) {
+        const agentId = prompt('Enter Agent ID to assign this lead:'); if (!agentId) return;
+        fetch('/Leads/AssignToAgent', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ leadId, agentId: parseInt(agentId) }) }).then(response => response.json()).then(data => { if (data.success) { showToast(data.message, 'success'); const lead = allLeads.find(l => l.LeadId === leadId); if (lead) { lead.HandoverStatus = 'HandedOver'; lead.AdminAssignedTo = parseInt(agentId); lead.ExecutiveId = parseInt(agentId); } renderTable(); } else showToast(data.message || 'Error', 'error'); }).catch(error => { console.error('Error:', error); showToast('Error assigning lead', 'error'); });
+        }
+        async function syncAllIntegrations() {
+        const btn = document.getElementById('syncAllIntegrationsBtn2');
+        const originalText = btn.innerHTML; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> <span>Syncing...</span>'; btn.disabled = true;
+        try { const response = await fetch('/Integrations/SyncAllActive', { method: 'POST' }); const result = await response.json(); if (result.success && result.totalLeads > 0) { Swal.fire({ icon: 'success', title: 'Sync Complete!', text: result.message, timer: 3000 }); setTimeout(() => location.reload(), 3000); } else Swal.fire({ icon: 'info', title: 'Sync Result', text: result.message }); } catch (error) { Swal.fire({ icon: 'error', title: 'Sync Failed', text: 'Failed to sync integrations' }); } finally { btn.innerHTML = originalText; btn.disabled = false; }
+        }
+    </script>
+}

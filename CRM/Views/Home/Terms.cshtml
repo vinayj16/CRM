@@ -1,0 +1,860 @@
+@model List<CRM.Models.LeadIntegrationConfigModel>
+@{
+    ViewData["Title"] = "Lead Integrations";
+    var baseUrl = ViewBag.BaseUrl as string ?? "";
+
+    var platforms = new[] {
+        new { Name = "Facebook", Display = "Facebook Lead Ads", Icon = "fab fa-facebook", Color = "#2589C9", Desc = "Import leads from Facebook Lead Ad forms via Meta Business Suite", Fields = new[] { "AccessToken:Access Token (from Meta Business Suite)", "ApiKey:Ad ID (Facebook Ad ID)", "AccountId:Page ID (optional)", "ApiSecret:App Secret (optional)", "CampaignId:Lead Form ID (optional)" } },
+        new { Name = "GoogleAds", Display = "Google Ads", Icon = "fab fa-google", Color = "#2589C9", Desc = "Import leads from Google Ads Lead Form Extensions", Fields = new[] { "AccountId:Customer ID (google.ads.customer-id)", "ApiSecret:Developer Token (google.ads.developer-token)", "ApiKey:Client ID (google.ads.client-id)", "AccessToken:Client Secret (google.ads.client-secret)", "RefreshToken:Refresh Token (google.ads.refresh-token)", "CampaignId:Campaign/Form ID (optional)" } },
+        new { Name = "99Acres", Display = "99acres", Icon = "fas fa-building", Color = "#F59E0B", Desc = "Sync property inquiry leads from 99acres", Fields = new[] { "ApiKey:API Key (from 99acres Partner Dashboard)", "ApiSecret:API Secret", "AccountId:Advertiser/Account ID", "ProjectId:Listing/Project ID (optional)" } },
+        new { Name = "HousingCom", Display = "Housing.com", Icon = "fas fa-home", Color = "#DC2626", Desc = "Import leads from Housing.com listings", Fields = new[] { "ApiKey:API Key (from Housing Partner Portal)", "AccessToken:Access Token", "AccountId:Seller/Builder ID", "ProjectId:Project ID (optional)" } },
+        new { Name = "MagicBricks", Display = "MagicBricks", Icon = "fas fa-th-large", Color = "#DC2626", Desc = "Sync leads from MagicBricks property portal", Fields = new[] { "ApiKey:API Key (from MagicBricks CRM)", "ApiSecret:Secret Key", "AccountId:Advertiser ID", "ProjectId:Listing ID (optional)" } },
+        new { Name = "JustDial", Display = "JustDial", Icon = "fas fa-phone-alt", Color = "#1A6FA8", Desc = "Receive leads from JustDial business listing", Fields = new[] { "ApiKey:API Key (from JustDial Partner)", "AccountId:Business/Listing ID" } },
+        new { Name = "IndiaMART", Display = "IndiaMART", Icon = "fas fa-industry", Color = "#15803D", Desc = "Import buyer leads from IndiaMART CRM", Fields = new[] { "ApiKey:CRM Key (glusr_crm_key from IndiaMART)", "AccountId:Registered Mobile Number" } },
+        new { Name = "Sulekha", Display = "Sulekha", Icon = "fas fa-handshake", Color = "#F59E0B", Desc = "Sync service inquiry leads from Sulekha", Fields = new[] { "ApiKey:API Key (from Sulekha Business)", "AccessToken:Access Token", "AccountId:Business ID" } },
+        new { Name = "CommonFloor", Display = "CommonFloor", Icon = "fas fa-city", Color = "#6B7B8D", Desc = "Import leads from CommonFloor listings", Fields = new[] { "ApiKey:API Key", "AccessToken:Access Token", "ProjectId:Project/Listing ID" } },
+        new { Name = "NoBroker", Display = "NoBroker", Icon = "fas fa-key", Color = "#2589C9", Desc = "Sync leads from NoBroker platform", Fields = new[] { "ApiKey:API Key (from NoBroker Owner Dashboard)", "AccessToken:Access Token", "AccountId:Owner/Agent ID" } },
+        new { Name = "OLX", Display = "OLX", Icon = "fas fa-tags", Color = "#162436", Desc = "Import property inquiry leads from OLX", Fields = new[] { "ApiKey:Client ID (from OLX Developer)", "ApiSecret:Client Secret", "AccessToken:Access Token" } },
+        new { Name = "TradeIndia", Display = "TradeIndia", Icon = "fas fa-globe-asia", Color = "#DC2626", Desc = "Sync buyer inquiries from TradeIndia", Fields = new[] { "ApiKey:API Key (from TradeIndia Dashboard)", "AccountId:User/Profile ID" } }
+    };
+}
+<style>
+/* =============================================
+   LEAD INTEGRATIONS — COMPACT DESIGN
+   Colors: #D4A45A (gold) · #1A6FA8 (blue)
+   ============================================= */
+
+:root {
+    --li-gold: #D4A45A;
+    --li-gold-light: #E8C27E;
+    --li-gold-dim: rgba(212,164,90, 0.12);
+    --li-blue: #1A6FA8;
+    --li-blue-light: #2589C9;
+    --li-blue-dim: rgba(26,111,168, 0.12);
+    --li-border: rgba(26,111,168, 0.15);
+    --li-text: #1E2A3A;
+    --li-text-muted: #6B7B8D;
+    --li-bg: #F0F4F8;
+    --li-card-bg: #FFFFFF;
+    --li-shadow: 0 1px 6px rgba(26,111,168,0.08);
+    --li-shadow-hover: 0 4px 16px rgba(26,111,168,0.16);
+    --li-radius: 10px;
+    --li-radius-sm: 6px;
+}
+.breadcrumb-item.active {
+    color: #FFFFFF !important;
+}
+.breadcrumb-item, .breadcrumb-item a {
+    color: #FFFFFF !important;
+}
+.breadcrumb {
+    padding: 0.5rem 0 !important;
+    margin-bottom: 0rem !important; 
+    font-size: 0.9rem !important;
+    background-color: transparent !important;
+}
+.modal {
+    position: fixed;
+    top: 0;
+    left: 22% !important;
+    z-index: 1055;
+    display: none;
+    width: 50%;
+    height: 100%;
+    overflow-x: hidden;
+    overflow-y: auto;
+    outline: 0;
+}
+/* ---- Page Header ---- */
+.li-page-header {
+    background: linear-gradient(135deg, var(--li-blue) 0%, #125082 100%);
+    border-radius: var(--li-radius);
+    padding: 14px 18px;
+    color: #FFFFFF;
+    box-shadow: 0 2px 12px rgba(26,111,168,0.25);
+}
+
+.li-header-icon {
+    width: 36px; height: 36px;
+    background: rgba(212,164,90,0.25);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--li-gold-light);
+    font-size: 1rem;
+    flex-shrink: 0;
+}
+
+.li-page-title {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: #FFFFFF;
+    letter-spacing: 0.01em;
+}
+
+.li-subtitle {
+    font-size: 0.75rem;
+    color: rgba(255,255,255,0.65);
+    padding-left: 52px;
+}
+
+.li-breadcrumb .breadcrumb {
+    background: none;
+    padding: 0;
+    font-size: 0.68rem;
+}
+.li-breadcrumb .breadcrumb-item a { color: rgba(255,255,255,0.6); text-decoration: none; }
+.li-breadcrumb .breadcrumb-item.active { color: rgba(255,255,255,0.85); }
+.li-breadcrumb .breadcrumb-item + .breadcrumb-item::before { color: rgba(255,255,255,0.4); }
+
+.li-active-badge {
+    background: rgba(212,164,90,0.22);
+    color: var(--li-gold-light);
+    border: 1px solid rgba(212,164,90,0.35);
+    border-radius: 20px;
+    padding: 3px 10px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    display: flex; align-items: center; gap: 4px;
+    white-space: nowrap;
+}
+.li-active-badge .fas { font-size: 0.5rem; }
+
+.li-clear-btn {
+    background: rgba(255,255,255,0.1);
+    color: rgba(255,255,255,0.85);
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: var(--li-radius-sm);
+    padding: 4px 10px;
+    font-size: 0.72rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+}
+.li-clear-btn:hover {
+    background: rgba(220,38,38,0.25);
+    border-color: rgba(220,38,38,0.4);
+    color: #FFFFFF;
+}
+
+/* ---- Integration Cards ---- */
+.li-card {
+    background: var(--li-card-bg);
+    border: 1px solid var(--li-border);
+    border-radius: var(--li-radius);
+    box-shadow: var(--li-shadow);
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+.li-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--li-shadow-hover);
+}
+.li-card-accent {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: var(--accent, var(--li-blue));
+    border-radius: var(--li-radius) var(--li-radius) 0 0;
+}
+.li-card-body {
+    padding: 10px 10px 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.li-platform-icon {
+    width: 34px; height: 34px;
+    border-radius: 7px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1rem;
+    flex-shrink: 0;
+}
+
+.li-platform-name {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--li-text);
+    line-height: 1.2;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* ---- Badges ---- */
+.li-badges { display: flex; flex-wrap: wrap; gap: 3px; }
+
+.li-badge {
+    font-size: 0.62rem;
+    font-weight: 600;
+    padding: 2px 6px;
+    border-radius: 4px;
+    display: inline-flex;
+    align-items: center;
+    letter-spacing: 0.02em;
+}
+.li-badge .fas { font-size: 0.5rem; }
+.li-badge-active   { background: rgba(21,128,61,0.12); color: #15803D; }
+.li-badge-configured { background: rgba(107,123,141,0.12); color: #6B7B8D; }
+.li-badge-pending  { background: rgba(212,164,90,0.15); color: #B8883E; }
+.li-badge-leads    { background: var(--li-blue-dim); color: var(--li-blue); }
+
+.li-last-sync {
+    font-size: 0.62rem;
+    color: var(--li-text-muted);
+}
+
+/* ---- Card Action Buttons ---- */
+.li-actions {
+    display: flex;
+    gap: 4px;
+    margin-top: 4px;
+}
+
+.li-btn {
+    border: none;
+    border-radius: var(--li-radius-sm);
+    font-size: 0.68rem;
+    font-weight: 600;
+    padding: 4px 7px;
+    cursor: pointer;
+    transition: all 0.18s;
+    display: inline-flex;
+    align-items: center;
+    white-space: nowrap;
+}
+
+.li-btn-config {
+    flex: 1;
+    background: var(--li-blue-dim);
+    color: var(--li-blue);
+    border: 1px solid rgba(26,111,168,0.2);
+}
+.li-btn-config:hover {
+    background: var(--li-blue);
+    color: #FFFFFF;
+}
+
+.li-btn-test {
+    background: rgba(212,164,90,0.12);
+    color: #B8883E;
+    border: 1px solid rgba(212,164,90,0.25);
+    padding: 4px 7px;
+}
+.li-btn-test:hover {
+    background: var(--li-gold);
+    color: #FFFFFF;
+}
+
+.li-btn-sync {
+    background: rgba(21,128,61,0.1);
+    color: #15803D;
+    border: 1px solid rgba(21,128,61,0.2);
+    padding: 4px 7px;
+}
+.li-btn-sync:hover {
+    background: #15803D;
+    color: #FFFFFF;
+}
+
+/* ---- Toggle Switch ---- */
+.li-toggle {
+    width: 36px !important;
+    height: 20px !important;
+    cursor: pointer !important;
+    margin: 0 !important;
+}
+.form-check-input.li-toggle:focus { box-shadow: none !important; }
+.form-check-input.li-toggle:checked {
+    background-color: var(--li-blue) !important;
+    border-color: var(--li-blue) !important;
+}
+
+/* ---- Modal ---- */
+.li-modal-dialog {
+    max-width: min(860px, 95vw);
+}
+.li-modal-content {
+    border: 1px solid var(--li-border);
+    border-radius: var(--li-radius);
+    box-shadow: 0 8px 32px rgba(26,111,168,0.18);
+    overflow: hidden;
+}
+.li-modal-header {
+    background: linear-gradient(135deg, var(--li-blue) 0%, #125082 100%);
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    color: #FFFFFF;
+}
+.li-modal-header .modal-title {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: #FFFFFF;
+}
+.li-modal-icon {
+    width: 30px; height: 30px;
+    background: rgba(212,164,90,0.25);
+    border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--li-gold-light);
+    font-size: 0.85rem;
+}
+.li-modal-close {
+    background: rgba(255,255,255,0.12);
+    border: none;
+    color: #FFFFFF;
+    width: 26px; height: 26px;
+    border-radius: 5px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    font-size: 0.75rem;
+    transition: background 0.15s;
+}
+.li-modal-close:hover { background: rgba(255,255,255,0.22); }
+
+.li-modal-body {
+    padding: 14px 16px;
+    background: var(--li-bg);
+}
+.li-modal-footer {
+    padding: 10px 16px;
+    background: #FFFFFF;
+    border-top: 1px solid var(--li-border);
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
+.li-section-label {
+    font-size: 0.68rem;
+    font-weight: 700;
+    color: var(--li-blue);
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    margin-bottom: 6px;
+}
+
+.li-field-label {
+    display: block;
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--li-text);
+    margin-bottom: 3px;
+}
+
+.li-input {
+    display: block;
+    width: 100%;
+    padding: 5px 9px;
+    font-size: 0.78rem;
+    color: var(--li-text);
+    background: #FFFFFF;
+    border: 1px solid var(--li-border);
+    border-radius: var(--li-radius-sm);
+    outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+    line-height: 1.4;
+}
+.li-input:focus {
+    border-color: var(--li-blue);
+    box-shadow: 0 0 0 3px var(--li-blue-dim);
+}
+.li-input[readonly] {
+    background: #F0F4F8;
+    color: var(--li-text-muted);
+}
+
+/* Enable toggle in modal */
+.li-enable-toggle { display: flex; align-items: center; }
+.li-toggle-check { display: none; }
+.li-enable-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--li-text);
+    cursor: pointer;
+    user-select: none;
+}
+.li-toggle-track {
+    width: 36px; height: 20px;
+    background: #B8C8D8;
+    border-radius: 10px;
+    display: inline-flex;
+    align-items: center;
+    padding: 2px;
+    transition: background 0.2s;
+    flex-shrink: 0;
+}
+.li-toggle-thumb {
+    width: 16px; height: 16px;
+    background: #FFFFFF;
+    border-radius: 50%;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    transition: transform 0.2s;
+}
+.li-toggle-check:checked + .li-enable-label .li-toggle-track { background: var(--li-blue); }
+.li-toggle-check:checked + .li-enable-label .li-toggle-thumb { transform: translateX(16px); }
+
+/* Webhook card */
+.li-webhook-card {
+    background: #FFFFFF;
+    border: 1px solid var(--li-border);
+    border-radius: var(--li-radius-sm);
+    padding: 10px 12px;
+    border-left: 3px solid var(--li-gold);
+}
+.li-webhook-row {
+    display: flex;
+    gap: 0;
+}
+.li-webhook-input {
+    border-radius: var(--li-radius-sm) 0 0 var(--li-radius-sm);
+    border-right: none;
+    flex: 1;
+}
+.li-copy-btn {
+    background: var(--li-gold-dim);
+    color: var(--li-gold);
+    border: 1px solid rgba(212,164,90,0.3);
+    border-left: none;
+    border-radius: 0 var(--li-radius-sm) var(--li-radius-sm) 0;
+    padding: 5px 10px;
+    cursor: pointer;
+    font-size: 0.78rem;
+    transition: all 0.15s;
+}
+.li-copy-btn:hover {
+    background: var(--li-gold);
+    color: #FFFFFF;
+}
+
+/* Modal action buttons */
+.li-btn-secondary {
+    background: #F0F4F8;
+    color: var(--li-text-muted);
+    border: 1px solid #E2E8F0;
+    border-radius: var(--li-radius-sm);
+    padding: 6px 16px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+.li-btn-secondary:hover { background: #E2E8F0; }
+
+.li-btn-primary {
+    background: linear-gradient(135deg, var(--li-blue) 0%, #125082 100%);
+    color: #FFFFFF;
+    border: none;
+    border-radius: var(--li-radius-sm);
+    padding: 6px 18px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.15s;
+    box-shadow: 0 2px 8px rgba(26,111,168,0.25);
+}
+.li-btn-primary:hover {
+    background: linear-gradient(135deg, #1A6FA8 0%, #0F4C75 100%);
+    box-shadow: 0 3px 12px rgba(26,111,168,0.35);
+}
+
+/* =============================================
+   DARK MODE
+   ============================================= */
+html.dark-mode {
+    --li-text: #E2E8F0;
+    --li-text-muted: #8FA3B8;
+    --li-bg: #121F2E;
+    --li-card-bg: #1E2A3A;
+    --li-border: rgba(26,111,168,0.22);
+    --li-shadow: 0 1px 6px rgba(0,0,0,0.25);
+    --li-shadow-hover: 0 4px 16px rgba(0,0,0,0.4);
+}
+html.dark-mode .li-card { background: var(--li-card-bg); border-color: var(--li-border); }
+html.dark-mode .li-platform-name { color: var(--li-text); }
+html.dark-mode .li-input { background: #1E2A3A; color: var(--li-text); border-color: var(--li-border); }
+html.dark-mode .li-input[readonly] { background: #0F1C2E; }
+html.dark-mode .li-modal-content { background: #1E2A3A; }
+html.dark-mode .li-modal-body { background: #121F2E; }
+html.dark-mode .li-modal-footer { background: #1E2A3A; border-color: var(--li-border); }
+html.dark-mode .li-field-label { color: var(--li-text); }
+html.dark-mode .li-webhook-card { background: #1E2A3A; border-color: var(--li-border); }
+html.dark-mode .li-btn-secondary { background: #2A3A4A; color: var(--li-text-muted); border-color: var(--li-border); }
+html.dark-mode .li-btn-secondary:hover { background: #2A3A4A; }
+html.dark-mode .li-btn-config { background: rgba(26,111,168,0.18); }
+html.dark-mode .li-toggle { background-color: #2A3A4A !important; border-color: #2A3A4A !important; }
+html.dark-mode .li-toggle:checked { background-color: var(--li-blue) !important; border-color: var(--li-blue) !important; }
+html.dark-mode .li-badge-configured { background: rgba(107,123,141,0.2); }
+html.dark-mode .li-badge-pending { background: rgba(212,164,90,0.18); }
+
+/* =============================================
+   RESPONSIVE
+   ============================================= */
+@@media (max-width: 575px) {
+    .li-card-body { padding: 8px 8px 6px; }
+    .li-platform-icon { width: 28px; height: 28px; font-size: 0.85rem; }
+    .li-platform-name { font-size: 0.72rem; }
+    .li-btn { font-size: 0.63rem; padding: 3px 5px; }
+    .li-subtitle { padding-left: 0; margin-top: 4px; }
+    .li-modal-dialog { max-width: 100%; margin: 8px; }
+}
+
+@@media (max-width: 400px) {
+    .li-page-header { padding: 10px 12px; }
+    .li-active-badge, .li-clear-btn { font-size: 0.67rem; padding: 3px 7px; }
+}
+@@media (min-width: 1400px) {
+    .container-fluid {
+      max-width: 1690px !important; 
+        margin-left: auto !important;
+        margin-right: auto !important;
+    }
+}
+
+.dashboard{
+    color;#FFFFFFff !important;
+}
+</style>
+
+<div class="container-fluid px-3 py-2">
+
+    <!-- Page Header -->
+    <div class="li-page-header mb-3">
+        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+            <div class="d-flex align-items-center gap-2">
+                <div class="li-header-icon">
+                    <i class="fas fa-plug"></i>
+                </div>
+                <div>
+                    <nav aria-label="breadcrumb" class="li-breadcrumb">
+                        <ol class="breadcrumb mb-0">
+                            <li class="breadcrumb-item"><a href="/" >Dashboard</a></li>
+                            <li class="breadcrumb-item active"><span >Lead Integrations</span> </li>
+                        </ol>
+                    </nav>
+                    <h5 class="li-page-title mb-0">Lead Integration Platforms</h5>
+                </div>
+            </div>
+            <div class="d-flex align-items-center gap-2">
+                <div class="li-active-badge">
+                    <i class="fas fa-circle me-1"></i>
+                    <span>@Model.Count(c => c.IsEnabled) Active</span>
+                </div>
+                <button class="li-clear-btn" onclick="clearTestLeads()">
+                    <i class="fas fa-trash-alt me-1"></i>Clear Test Data
+                </button>
+            </div>
+        </div>
+        <p class="li-subtitle mt-1 mb-0">Connect lead sources to auto-import leads into your CRM</p>
+    </div>
+
+    <!-- Platform Cards Grid -->
+    <div class="row g-2">
+        @foreach (var p in platforms)
+        {
+            var config = Model.FirstOrDefault(c => c.PlatformName == p.Name);
+            var isEnabled = config?.IsEnabled == true;
+            var lastSync = config?.LastSyncedAt;
+            var leadCount = config?.LeadsSynced ?? 0;
+
+            <div class="col-6 col-sm-6 col-md-4 col-lg-3 col-xl-2">
+                <div class="li-card h-100" style="--accent: @p.Color;">
+                    <div class="li-card-accent"></div>
+                    <div class="li-card-body">
+
+                        <!-- Top Row: Icon + Toggle -->
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <div class="li-platform-icon" style="background: @(p.Color)18; color: @p.Color;">
+                                <i class="@p.Icon"></i>
+                            </div>
+                            <div class="form-check form-switch mb-0 ps-0">
+                                <input class="form-check-input integration-toggle li-toggle" type="checkbox"
+                                       data-platform="@p.Name" @(isEnabled ? "checked" : "")
+                                       id="toggle_@p.Name" title="@(isEnabled ? "Disable" : "Enable")" role="switch">
+                            </div>
+                        </div>
+
+                        <!-- Platform Name -->
+                        <div class="li-platform-name">@p.Display</div>
+
+                        <!-- Status badges -->
+                        <div class="li-badges mb-1">
+                            @if (isEnabled)
+                            {
+                                <span class="li-badge li-badge-active"><i class="fas fa-circle me-1"></i>Active</span>
+                            }
+                            else if (config != null)
+                            {
+                                <span class="li-badge li-badge-configured">Configured</span>
+                            }
+                            else
+                            {
+                                <span class="li-badge li-badge-pending">Not Set</span>
+                            }
+                            @if (leadCount > 0)
+                            {
+                                <span class="li-badge li-badge-leads">@leadCount</span>
+                            }
+                        </div>
+
+                        <!-- Last sync -->
+                        @if (lastSync.HasValue)
+                        {
+                            <div class="li-last-sync"><i class="fas fa-sync-alt me-1"></i>@lastSync.Value.ToString("dd MMM HH:mm")</div>
+                        }
+
+                        <!-- Action Buttons -->
+                        <div class="li-actions">
+                            <button class="li-btn li-btn-config" onclick="openConfigModal('@p.Name')" title="Configure">
+                                <i class="fas fa-cog me-1"></i>Config
+                            </button>
+                            <button class="li-btn li-btn-test" onclick="testSync('@p.Name')" title="Test with sample leads">
+                                <i class="fas fa-flask"></i>
+                            </button>
+                            @if (isEnabled)
+                            {
+                                <button class="li-btn li-btn-sync" onclick="syncNow('@p.Name')" title="Sync real leads">
+                                    <i class="fas fa-sync-alt"></i>
+                                </button>
+                            }
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+<!-- Config Modal -->
+<div class="modal fade" id="configModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered li-modal-dialog">
+        <div class="modal-content li-modal-content">
+            <div class="li-modal-header">
+                <div class="d-flex align-items-center gap-2">
+                    <div class="li-modal-icon"><i class="fas fa-cog"></i></div>
+                    <h5 class="modal-title mb-0"><span id="modalPlatformTitle"></span> Configuration</h5>
+                </div>
+                <button type="button" class="li-modal-close" data-bs-dismiss="modal"><i class="fas fa-times"></i></button>
+            </div>
+            <form id="configForm">
+                <div class="li-modal-body">
+                    <input type="hidden" id="cfgPlatformName" name="PlatformName">
+
+                    <!-- Dynamic API Fields -->
+                    <div class="li-section-label">API Credentials</div>
+                    <div class="row g-2" id="dynamicFields"></div>
+
+                    <!-- Settings Row -->
+                    <div class="li-section-label mt-3">Settings</div>
+                    <div class="row g-2">
+                        <div class="col-sm-4">
+                            <label class="li-field-label">Poll Interval (min)</label>
+                            <input type="number" class="li-input" name="PollIntervalMinutes" id="cfgPollInterval" value="5" min="1" max="1440">
+                        </div>
+                        <div class="col-sm-4">
+                            <label class="li-field-label">Extra Config (JSON)</label>
+                            <input type="text" class="li-input" name="ExtraConfig" id="cfgExtraConfig" placeholder='{"key":"value"}'>
+                        </div>
+                        <div class="col-sm-4 d-flex align-items-end pb-1">
+                            <div class="li-enable-toggle">
+                                <input type="hidden" name="IsEnabled" value="false">
+                                <input class="li-toggle-check" type="checkbox" name="IsEnabled" id="cfgIsEnabled" value="true">
+                                <label class="li-enable-label" for="cfgIsEnabled">
+                                    <span class="li-toggle-track"><span class="li-toggle-thumb"></span></span>
+                                    Enable integration
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Webhook URL -->
+                    <div class="li-webhook-card mt-3">
+                        <div class="li-section-label mb-1"><i class="fas fa-link me-1"></i>Webhook URL</div>
+                        <div class="li-webhook-row">
+                            <input type="text" class="li-input li-webhook-input" id="cfgWebhookUrl" readonly>
+                            <button class="li-copy-btn" type="button" onclick="copyWebhook()"><i class="fas fa-copy"></i></button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="li-modal-footer">
+                    <button type="button" class="li-btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="li-btn-primary"><i class="fas fa-save me-1"></i>Save Configuration</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+const platformMeta = @Html.Raw(Json.Serialize(platforms.Select(p => new { p.Name, p.Display, p.Fields })));
+const configs = @Html.Raw(Json.Serialize(Model));
+const baseUrl = '@baseUrl';
+
+function openConfigModal(platform) {
+    const meta = platformMeta.find(p => p.name === platform);
+    if (!meta) return;
+
+    document.getElementById('modalPlatformTitle').textContent = meta.display;
+    document.getElementById('cfgPlatformName').value = platform;
+
+    let html = '';
+    (meta.fields || []).forEach(f => {
+        const parts = f.split(':');
+        const fieldName = parts[0];
+        const label = parts[1] || fieldName;
+        const isSecret = fieldName.toLowerCase().includes('secret') || fieldName.toLowerCase().includes('token');
+        const isOptional = label.toLowerCase().includes('optional');
+        html += `<div class="col-sm-4">
+            <label class="li-field-label">${label}${isOptional ? '' : ' <span class="text-danger">*</span>'}</label>
+            <input type="${isSecret ? 'password' : 'text'}" class="li-input" name="${fieldName}" id="cfg_${fieldName}" ${isOptional ? '' : 'required'}>
+        </div>`;
+    });
+    document.getElementById('dynamicFields').innerHTML = html;
+
+    const config = configs.find(c => c.platformName === platform);
+    if (config) {
+        (meta.fields || []).forEach(f => {
+            const fieldName = f.split(':')[0];
+            const el = document.getElementById('cfg_' + fieldName);
+            if (el && config[fieldName.charAt(0).toLowerCase() + fieldName.slice(1)])
+                el.value = config[fieldName.charAt(0).toLowerCase() + fieldName.slice(1)];
+        });
+        document.getElementById('cfgExtraConfig').value = config.extraConfig || '';
+        document.getElementById('cfgPollInterval').value = config.pollIntervalMinutes || 5;
+        document.getElementById('cfgIsEnabled').checked = config.isEnabled;
+        document.getElementById('cfgWebhookUrl').value = config.webhookUrl || `${baseUrl}/api/integrations/webhook/${platform.toLowerCase()}?key=YOUR_API_KEY`;
+    } else {
+        document.getElementById('cfgExtraConfig').value = '';
+        document.getElementById('cfgPollInterval').value = 5;
+        document.getElementById('cfgIsEnabled').checked = false;
+        document.getElementById('cfgWebhookUrl').value = `${baseUrl}/api/integrations/webhook/${platform.toLowerCase()}?key=YOUR_API_KEY`;
+    }
+
+    new bootstrap.Modal(document.getElementById('configModal')).show();
+}
+
+document.getElementById('configForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const formData = new FormData(this);
+    formData.set('IsEnabled', document.getElementById('cfgIsEnabled').checked ? 'true' : 'false');
+
+    fetch('/Integrations/SaveConfig', { method: 'POST', body: formData })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            Swal.fire({ icon: 'success', title: 'Saved!', text: data.message, timer: 1500, showConfirmButton: false });
+            setTimeout(() => location.reload(), 1500);
+        } else {
+            Swal.fire('Error', data.message, 'error');
+        }
+    }).catch(() => Swal.fire('Error', 'Failed to save configuration', 'error'));
+});
+
+document.querySelectorAll('.integration-toggle').forEach(toggle => {
+    toggle.addEventListener('change', function() {
+        const platform = this.dataset.platform;
+        const enable = this.checked;
+        const config = configs.find(c => c.platformName === platform);
+
+        if (enable && !config) {
+            this.checked = false;
+            openConfigModal(platform);
+            return;
+        }
+
+        fetch('/Integrations/ToggleIntegration', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: `platform=${platform}&enable=${enable}`
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                Swal.fire({ icon: 'success', title: data.message, timer: 1200, showConfirmButton: false });
+                setTimeout(() => location.reload(), 1200);
+            } else {
+                toggle.checked = !enable;
+                Swal.fire('Error', data.message, 'error');
+            }
+        }).catch(() => { toggle.checked = !enable; });
+    });
+});
+
+function syncNow(platform) {
+    Swal.fire({ title: 'Syncing...', text: `Fetching real leads from ${platform}`, allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+    fetch('/Integrations/SyncNow', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: `platform=${platform}`
+    })
+    .then(r => r.json())
+    .then(data => {
+        Swal.fire({ icon: data.success ? 'success' : 'error', title: data.success ? 'Sync Complete' : 'Sync Failed', text: data.message, showConfirmButton: true });
+        if (data.success && data.count > 0) setTimeout(() => location.reload(), 2000);
+    }).catch(() => Swal.fire('Error', 'Sync failed', 'error'));
+}
+
+function testSync(platform) {
+    Swal.fire({
+        title: `Test ${platform}?`,
+        text: 'This will generate sample leads marked as [TEST]. You can clear them anytime using the Clear Test Leads button.',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#D4A45A',
+        confirmButtonText: 'Generate Test Leads',
+        cancelButtonText: 'Cancel'
+    }).then((result) => {
+        if (!result.isConfirmed) return;
+        Swal.fire({ title: 'Generating...', text: 'Creating sample test leads', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+        fetch('/Integrations/TestSync', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: `platform=${platform}`
+        })
+        .then(r => r.json())
+        .then(data => {
+            Swal.fire({ icon: data.success ? 'success' : 'error', title: data.success ? 'Test Complete' : 'Error', text: data.message, showConfirmButton: true });
+            if (data.success) setTimeout(() => location.reload(), 2000);
+        }).catch(() => Swal.fire('Error', 'Test sync failed', 'error'));
+    });
+}
+
+function copyWebhook() {
+    const url = document.getElementById('cfgWebhookUrl');
+    navigator.clipboard.writeText(url.value).then(() => {
+        Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Webhook URL copied!', showConfirmButton: false, timer: 1500 });
+    });
+}
+
+function clearTestLeads() {
+    Swal.fire({
+        title: 'Clear All Test Leads?',
+        text: 'This will permanently delete all test/sample leads from the Leads table. Real leads will NOT be affected.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#DC2626',
+        confirmButtonText: 'Yes, Delete Test Leads',
+        cancelButtonText: 'Cancel'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            fetch('/Integrations/ClearTestLeads', { method: 'POST' })
+            .then(r => r.json())
+            .then(data => {
+                Swal.fire({ icon: data.success ? 'success' : 'error', title: data.message, timer: 2000, showConfirmButton: false });
+                if (data.success) setTimeout(() => location.reload(), 2000);
+            }).catch(() => Swal.fire('Error', 'Failed to clear test leads', 'error'));
+        }
+    });
+}
+</script>
+}
+

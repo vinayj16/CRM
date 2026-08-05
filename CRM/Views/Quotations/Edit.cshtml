@@ -1,0 +1,417 @@
+@model CRM.Models.QuotationModel
+@{
+    ViewData["Title"] = "Edit Quotation";
+    var leads = ViewBag.Leads as List<CRM.Models.LeadModel> ?? new List<CRM.Models.LeadModel>();
+    var properties = ViewBag.Properties as List<CRM.Models.PropertyModel> ?? new List<CRM.Models.PropertyModel>();
+    var gstRate = (decimal)(ViewBag.GSTRate ?? 5);
+    var items = ViewBag.Items as List<CRM.Models.QuotationItemModel> ?? new List<CRM.Models.QuotationItemModel>();
+}
+
+<!-- Use the same style as Create -->
+<style>
+    .create-quotation-container { max-width: 1200px; margin: 0 auto; }
+    .section-card { background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); margin-bottom: 2rem; overflow: hidden; }
+    .section-header { background: linear-gradient(135deg, #1A6FA8 0%, #125082 100%); color: white; padding: 1rem 1.5rem; font-weight: 600; font-size: 1.1rem; }
+    .section-body { padding: 2rem; }
+    .items-table { width: 100%; margin-top: 1rem; }
+    .items-table th { background-color: #F0F4F8; padding: 0.75rem; font-weight: 600; font-size: 0.875rem; border-bottom: 2px solid #E2E8F0; }
+    .items-table td { padding: 0.75rem; vertical-align: middle; }
+    .item-row { border-bottom: 1px solid #E8EDF2; }
+    .add-item-btn { background: linear-gradient(135deg, #16A34A 0%, #2589C9 100%); border: none; color: white; padding: 0.5rem 1.5rem; border-radius: 6px; font-weight: 600; transition: all 0.3s ease; }
+    .add-item-btn:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(22,163,74,0.3); }
+    .remove-item-btn { background-color: #DC2626; border: none; color: white; padding: 0.4rem 0.8rem; border-radius: 4px; cursor: pointer; }
+    .totals-section { background-color: #F0F4F8; border-radius: 8px; padding: 1.5rem; margin-top: 2rem; }
+    .total-row { display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid #E2E8F0; }
+    .total-row:last-child { border-bottom: none; font-size: 1.25rem; font-weight: 700; color: #1A6FA8; }
+    .submit-btn { background: linear-gradient(135deg, #1A6FA8 0%, #125082 100%); border: none; padding: 1rem 3rem; border-radius: 8px; font-weight: 600; font-size: 1.1rem; box-shadow: 0 4px 12px rgba(18,80,130, 0.3); }
+    .submit-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(18,80,130, 0.4); }
+    @@media (max-width: 768px) { .section-body { padding: 1rem; } .items-table { font-size: 0.85rem; } .items-table th, .items-table td { padding: 0.5rem 0.25rem; } .submit-btn { width: 100%; padding: 0.875rem; } }
+</style>
+
+<div class="content create-quotation-container">
+    <nav class="mb-3" aria-label="breadcrumb">
+        <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item"><a href="/Home/Index">Home</a></li>
+            <li class="breadcrumb-item"><a href="/Quotations/Index">Quotations</a></li>
+            <li class="breadcrumb-item active">Edit</li>
+        </ol>
+    </nav>
+    <div class="mb-4">
+        <h2><i class="fa-solid fa-file-invoice me-2 text-primary"></i>Edit Quotation</h2>
+        <p class="text-muted">Update your quotation details and items</p>
+    </div>
+    <form id="quotationForm" method="post" asp-action="Edit">
+        <input type="hidden" asp-for="QuotationId" />
+        <div class="section-card">
+            <div class="section-header">
+                <i class="fa-solid fa-info-circle me-2"></i>Basic Information
+            </div>
+            <div class="section-body">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label for="LeadId" class="form-label">Select Lead *</label>
+                        <select class="form-select" id="LeadId" name="LeadId" required>
+                            <option value="">Choose a lead...</option>
+                            @foreach (var lead in leads)
+                            {
+                                <option value="@lead.LeadId" selected="@(Model.LeadId == lead.LeadId ? "selected" : null)">@lead.Name - @lead.Contact</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="PropertyId" class="form-label">Select Property *</label>
+                        <select class="form-select" id="PropertyId" name="PropertyId" required>
+                            <option value="">Choose a property...</option>
+                            @foreach (var property in properties)
+                            {
+                                <option value="@property.PropertyId" selected="@(Model.PropertyId == property.PropertyId ? "selected" : null)">@property.PropertyName</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="FloorId" class="form-label">Select Floor</label>
+                        <select class="form-select" id="FloorId" name="FloorId">
+                            <option value="">Choose a floor...</option>
+                        </select>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label for="FlatId" class="form-label">Select Flat (Optional)</label>
+                        <select class="form-select" id="FlatId" name="FlatId">
+                            <option value="">Choose a flat...</option>
+                            @if (ViewBag.Flats != null)
+                            {
+                                foreach (var flat in ViewBag.Flats)
+                                {
+                                    <option value="@flat.FlatId" selected="@(Model.FlatId == flat.FlatId ? "selected" : null)">@flat.FlatName</option>
+                                }
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="ValidUntil" class="form-label">Valid Until</label>
+                        <input type="date" class="form-control" id="ValidUntil" name="ValidUntil" value="@Model.ValidUntil?.ToString("yyyy-MM-dd")">
+                    </div>
+                    <div class="col-12">
+                        <label for="Notes" class="form-label">Notes</label>
+                        <textarea class="form-control" id="Notes" name="Notes" rows="2">@Model.Notes</textarea>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="section-card">
+            <div class="section-header">
+                <i class="fa-solid fa-list me-2"></i>Quotation Items
+            </div>
+            <div class="section-body">
+                <div class="table-responsive">
+                    <table class="items-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 20%;">Item Type</th>
+                                <th style="width: 35%;">Description</th>
+                                <th style="width: 10%;">Qty</th>
+                                <th style="width: 15%;">Amount (₹)</th>
+                                <th style="width: 15%;">Total (₹)</th>
+                                <th style="width: 5%;"></th>
+                            </tr>
+                        </thead>
+                        <tbody id="itemsTableBody">
+                            @if (items.Count == 0)
+                            {
+                                <tr class="item-row">
+                                    <td>
+                                        <select class="form-select form-select-sm item-type" required>
+                                            <option value="Base">Base Price</option>
+                                            <option value="Parking">Parking</option>
+                                            <option value="Club">Club Membership</option>
+                                            <option value="Legal">Legal & Registration</option>
+                                            <option value="Other">Other</option>
+                                        </select>
+                                    </td>
+                                    <td>
+                                        <input type="text" class="form-control form-control-sm item-description" placeholder="Description" required>
+                                    </td>
+                                    <td>
+                                        <input type="number" class="form-control form-control-sm item-quantity" value="1" min="1" required>
+                                    </td>
+                                    <td>
+                                        <input type="number" class="form-control form-control-sm item-amount" placeholder="0" step="0.01" min="0" required>
+                                    </td>
+                                    <td>
+                                        <input type="text" class="form-control form-control-sm item-total" readonly value="0">
+                                    </td>
+                                    <td>
+                                        <button type="button" class="remove-item-btn" onclick="removeItem(this)" disabled>
+                                            <i class="fa-solid fa-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
+                            else
+                            {
+                                @for (int i = 0; i < items.Count; i++)
+                                {
+                                    <tr class="item-row">
+                                        <td>
+                                            <select class="form-select form-select-sm item-type" required>
+                                                <option value="Base" selected="@(items[i].ItemType == "Base" ? "selected" : null)">Base Price</option>
+                                                <option value="Parking" selected="@(items[i].ItemType == "Parking" ? "selected" : null)">Parking</option>
+                                                <option value="Club" selected="@(items[i].ItemType == "Club" ? "selected" : null)">Club Membership</option>
+                                                <option value="Legal" selected="@(items[i].ItemType == "Legal" ? "selected" : null)">Legal & Registration</option>
+                                                <option value="Other" selected="@(items[i].ItemType == "Other" ? "selected" : null)">Other</option>
+                                            </select>
+                                        </td>
+                                        <td>
+                                            <input type="text" class="form-control form-control-sm item-description" value="@items[i].Description" placeholder="Description" required>
+                                        </td>
+                                        <td>
+                                            <input type="number" class="form-control form-control-sm item-quantity" value="@items[i].Quantity" min="1" required>
+                                        </td>
+                                        <td>
+                                            <input type="number" class="form-control form-control-sm item-amount" value="@items[i].Amount" placeholder="0" step="0.01" min="0" required>
+                                        </td>
+                                        <td>
+                                            <input type="text" class="form-control form-control-sm item-total" readonly value="@items[i].Total">
+                                        </td>
+                                        <td>
+                                            <button type="button" class="remove-item-btn" onclick="removeItem(this)">
+                                                <i class="fa-solid fa-trash"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                }
+                            }
+                        </tbody>
+                    </table>
+                </div>
+                <button type="button" class="btn add-item-btn mt-3" onclick="addItem()">
+                    <i class="fa-solid fa-plus me-2"></i>Add Item
+                </button>
+                <div class="totals-section">
+                    <div class="total-row">
+                        <span>Subtotal:</span>
+                        <strong id="subtotalDisplay">₹@Model.TotalAmount.ToString("N2")</strong>
+                    </div>
+                    <div class="total-row">
+                        <span>
+                            <strong>Discount %:</strong>
+                            <input type="number" id="DiscountPercent" name="DiscountPercent" value="@((Model.DiscountAmount / (Model.TotalAmount == 0 ? 1 : Model.TotalAmount)) * 100)" step="0.01" min="0" max="100" style="width: 100px; display: inline-block; margin-left: 10px;" class="form-control form-control-sm">
+                        </span>
+                        <strong>Discount Amount: <span id="discountDisplay">₹@Model.DiscountAmount.ToString("N2")</span></strong>
+                    </div>
+                    <div class="total-row">
+                        <span>GST (@gstRate%):</span>
+                        <strong id="taxDisplay">₹@Model.TaxAmount.ToString("N2")</strong>
+                    </div>
+                    <div class="total-row">
+                        <span>Grand Total:</span>
+                        <strong id="grandTotalDisplay">₹@Model.GrandTotal.ToString("N2")</strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="text-center mb-5">
+            <button type="submit" class="btn btn-primary submit-btn">
+                <i class="fa-solid fa-save me-2"></i>Update Quotation
+            </button>
+        </div>
+    </form>
+</div>
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            var propertyId = $('#PropertyId').val();
+            var selectedFlatId = @(ViewBag.SelectedFlatId ?? 0);
+            var selectedFloorNumber = '@((ViewBag.SelectedFloorNumber ?? string.Empty).ToString())';
+
+            if (propertyId) {
+                // Load floors first
+                $.get('/Quotations/GetFloorsByProperty', { propertyId: propertyId }, function (data) {
+                    if (data.success) {
+                        $.each(data.floors, function (i, floor) {
+                            var floorValue = floor.floorNumber || floor.floorName;
+                            var floorLabel = floor.floorName || ('Floor ' + floor.floorNumber);
+                            $('#FloorId').append('<option value="' + floorValue + '">' + floorLabel + '</option>');
+                        });
+
+                        if (selectedFloorNumber) {
+                            if ($('#FloorId option[value="' + selectedFloorNumber + '"]').length === 0) {
+                                $('#FloorId').append('<option value="' + selectedFloorNumber + '">Floor ' + selectedFloorNumber + '</option>');
+                            }
+                            $('#FloorId').val(selectedFloorNumber);
+                            $('#FloorId').trigger('change');
+                        }
+                    }
+                });
+            }
+
+            calculateTotals();
+        });
+
+        // Property change handler
+        $('#PropertyId').change(function () {
+            var propertyId = $(this).val();
+            $('#FloorId').empty().append('<option value="">Choose a floor...</option>');
+            $('#FlatId').empty().append('<option value="">Choose a flat...</option>');
+
+            if (propertyId) {
+                $.get('/Quotations/GetFloorsByProperty', { propertyId: propertyId }, function (data) {
+                    if (data.success) {
+                        $.each(data.floors, function (i, floor) {
+                            var floorValue = floor.floorNumber || floor.floorName;
+                            var floorLabel = floor.floorName || ('Floor ' + floor.floorNumber);
+                            $('#FloorId').append('<option value="' + floorValue + '">' + floorLabel + '</option>');
+                        });
+                    }
+                });
+            }
+        });
+
+        // Floor change handler
+        $('#FloorId').change(function () {
+            var propertyId = $('#PropertyId').val();
+            var floorNumber = $(this).val();
+            $('#FlatId').empty().append('<option value="">Choose a flat...</option>');
+
+            if (propertyId && floorNumber) {
+                var selectedFlatId = @(ViewBag.SelectedFlatId ?? 0);
+                $.get('/Quotations/GetFlatsByProperty', { propertyId: propertyId, floorNumber: floorNumber, selectedFlatId: selectedFlatId }, function (data) {
+                    if (data.success) {
+                        $.each(data.flats, function (i, flat) {
+                            $('#FlatId').append('<option value="' + flat.flatId + '">' + flat.flatName + '</option>');
+                        });
+
+                        // Pre-select flat if editing
+                        if (selectedFlatId > 0) {
+                            $('#FlatId').val(selectedFlatId);
+                        }
+                    }
+                });
+            }
+        });
+
+        // Item calculation functions
+        function calculateItemTotal(row) {
+            const quantity = parseFloat($(row).find('.item-quantity').val()) || 0;
+            const amount = parseFloat($(row).find('.item-amount').val()) || 0;
+            const total = quantity * amount;
+            $(row).find('.item-total').val(total.toFixed(2));
+            calculateTotals();
+        }
+
+        function calculateTotals() {
+            let subtotal = 0;
+            $('.item-total').each(function () {
+                subtotal += parseFloat($(this).val()) || 0;
+            });
+
+            const discountPercent = parseFloat($('#DiscountPercent').val()) || 0;
+            const discountAmount = (subtotal * discountPercent) / 100;
+            const gstRate = @gstRate;
+            const taxAmount = ((subtotal - discountAmount) * gstRate) / 100;
+            const grandTotal = subtotal - discountAmount + taxAmount;
+
+            $('#subtotalDisplay').text('₹' + subtotal.toFixed(2));
+            $('#discountDisplay').text('₹' + discountAmount.toFixed(2));
+            $('#taxDisplay').text('₹' + taxAmount.toFixed(2));
+            $('#grandTotalDisplay').text('₹' + grandTotal.toFixed(2));
+        }
+
+        // Event handlers for item calculations
+        $(document).on('input', '.item-quantity, .item-amount', function () {
+            calculateItemTotal($(this).closest('tr'));
+        });
+
+        $(document).on('input', '#DiscountPercent', function () {
+            calculateTotals();
+        });
+
+        function addItem() {
+            const newRow = `
+                    <tr class="item-row">
+                        <td>
+                            <select class="form-select form-select-sm item-type" required>
+                                <option value="Base">Base Price</option>
+                                <option value="Parking">Parking</option>
+                                <option value="Club">Club Membership</option>
+                                <option value="Legal">Legal & Registration</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </td>
+                        <td>
+                            <input type="text" class="form-control form-control-sm item-description" placeholder="Description" required>
+                        </td>
+                        <td>
+                            <input type="number" class="form-control form-control-sm item-quantity" value="1" min="1" required>
+                        </td>
+                        <td>
+                            <input type="number" class="form-control form-control-sm item-amount" placeholder="0" step="0.01" min="0" required>
+                        </td>
+                        <td>
+                            <input type="text" class="form-control form-control-sm item-total" readonly value="0">
+                        </td>
+                        <td>
+                            <button type="button" class="remove-item-btn" onclick="removeItem(this)">
+                                <i class="fa-solid fa-trash"></i>
+                            </button>
+                        </td>
+                    </tr>`;
+            $('#itemsTableBody').append(newRow);
+            updateRemoveButtons();
+        }
+
+        function removeItem(button) {
+            $(button).closest('tr').remove();
+            calculateTotals();
+            updateRemoveButtons();
+        }
+
+        function updateRemoveButtons() {
+            const rowCount = $('#itemsTableBody tr').length;
+            $('.remove-item-btn').prop('disabled', rowCount <= 1);
+        }
+
+        // Form submission
+        $('#quotationForm').submit(function (e) {
+            e.preventDefault();
+
+            // Serialize form data
+            var formData = $(this).serialize();
+
+            // Add items data
+            var itemsData = '';
+            $('#itemsTableBody tr').each(function (index) {
+                const row = $(this);
+                itemsData += `&Items[${index}].ItemType=${encodeURIComponent(row.find('.item-type').val())}`;
+                itemsData += `&Items[${index}].Description=${encodeURIComponent(row.find('.item-description').val())}`;
+                itemsData += `&Items[${index}].Quantity=${row.find('.item-quantity').val()}`;
+                itemsData += `&Items[${index}].Amount=${row.find('.item-amount').val()}`;
+                itemsData += `&Items[${index}].Total=${row.find('.item-total').val()}`;
+            });
+
+            $.ajax({
+                url: '/Quotations/Edit',
+                type: 'POST',
+                data: formData + itemsData,
+                success: function (response) {
+                    if (response.success) {
+                        Swal.fire('Success!', response.message, 'success')
+                            .then(() => window.location.href = '/Quotations/Index');
+                    } else {
+                        Swal.fire('Error!', response.message, 'error');
+                    }
+                },
+                error: function () {
+                    Swal.fire('Error!', 'Something went wrong!', 'error');
+                }
+            });
+        });
+
+    </script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+}
+
+
+

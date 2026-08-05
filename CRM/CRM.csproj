@@ -1,0 +1,34 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+
+	<PropertyGroup>
+		<TargetFramework>net10.0</TargetFramework>
+		<Nullable>enable</Nullable>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<RootNamespace>CRM</RootNamespace>
+		<NoWarn>$(NoWarn);NU1902;NU1903;NU1701;NU1901;NU1904;NU1510;CS0168;CS0219;CS8600;CS8601;CS8602;CS8603;CS8604;CS8618;CS8619;CS8620;CS8625;CS8629;CA2024;MVC1000</NoWarn>
+	</PropertyGroup>
+
+	<ItemGroup>
+	  <None Include="Views\Account\Dashboard.cshtml" />
+	  <None Include="Views\Account\ForgotPassword.cshtml" />
+	  <None Include="Views\Account\Login.cshtml" />
+	  <None Include="Views\Account\Register.cshtml" />
+	  <None Include="Views\Account\ResetPassword.cshtml" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<PackageReference Include="ClosedXML" Version="0.105.0" />
+		<PackageReference Include="EPPlus" Version="8.6.1" />
+		<PackageReference Include="FirebaseAdmin" Version="3.1.0" />
+		<PackageReference Include="itext7" Version="9.4.0" />
+		<PackageReference Include="iTextSharp" Version="5.5.13.4" />
+		<PackageReference Include="itextsharp.xmlworker" Version="5.5.13.4" />
+		<PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.0" />
+		<PackageReference Include="Microsoft.AspNetCore.SignalR" Version="1.2.0" />
+		<PackageReference Include="Microsoft.AspNetCore.SignalR.Core" Version="1.2.0" />
+
+		<PackageReference Include="MongoDB.Driver" Version="3.1.0" />
+		<PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.9" />
+		<PackageReference Include="Microsoft.AspNetCore.Identity" Version="2.3.1" />
+	</ItemGroup>
+</Project>

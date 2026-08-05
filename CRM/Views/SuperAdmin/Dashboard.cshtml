@@ -1,0 +1,686 @@
+ @{
+    ViewData["Title"] = "Super Admin Dashboard";
+    // Layout = "_LayoutLogin";
+}
+
+<style>
+    .sa-root * {
+        box-sizing: border-box;
+    }
+
+    .sa-root h3, .sa-root .h3 {
+        font-size: 1.5rem !important;
+        font-weight: 600 !important;
+        margin-bottom: 0px !important;
+    }
+
+    .sa-root {
+        font-family: 'Segoe UI', sans-serif;
+        padding: 0;
+        max-width: 100%;
+    }
+
+    .sa-root h1, .sa-root h2, .sa-root .h1 {
+        font-size: 1.5rem !important;
+        font-weight: 700 !important;
+        margin-bottom: 0px !important;
+    }
+
+    .sa-root p {
+        margin-bottom: 0px !important;
+    }
+
+    .sa-root .nav-icon, .sa-root .nav-link {
+        color: #FFFFFFff !important;
+    }
+
+    .sa-header {
+        background: var(--blue);
+        color: #FFFFFF;
+        padding: 4px 10px;
+        border-radius: 12px;
+        margin-bottom: 16px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .sa-header-icon {
+        width: 42px;
+        height: 42px;
+        background: rgba(255, 255, 255, 0.18);
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 20px;
+        flex-shrink: 0;
+    }
+
+    .sa-header-text h1 {
+        font-size: 18px;
+        font-weight: 700;
+        margin: 0;
+        color: #FFFFFF;
+    }
+
+    .sa-header-text p {
+        font-size: 12px;
+        opacity: 0.85;
+    }
+
+    .sa-section-title { display: flex; align-items: center; gap: 8px; font-size: 0.95rem; font-weight: 700; color: var(--text-primary); margin: 2px 0 10px 0; }
+    .sa-section-title i { color: var(--blue); font-size: 0.95rem; }
+    .sa-section-title span { font-size: 0.75rem; font-weight: 500; color: var(--text-muted); }
+
+    .sa-stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(100px, 150px));
+        gap: 8px;
+        margin-bottom: 10px;
+        max-width: 100%;
+        justify-content: center;
+    }
+
+    .sa-stat {
+        border-radius: 8px;
+        padding: 3px 6px;
+        text-align: center;
+        border: 1px solid transparent;
+        transition: transform 0.15s;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 1px;
+        min-height: 0;
+        height: auto;
+        box-sizing: border-box;
+    }
+
+        .sa-stat:hover {
+            transform: translateY(-2px);
+        }
+
+    .sa-stat-icon {
+        font-size: 11px;
+        width: 18px;
+        height: 18px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 5px;
+        flex-shrink: 0;
+        margin-bottom: 0;
+    }
+
+    .sa-stat-info {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .sa-stat-number {
+        font-size: 0.9rem !important;
+        font-weight: 700;
+        line-height: 1;
+        margin-bottom: 0;
+    }
+
+    .sa-stat-label {
+        font-size: 0.55rem !important;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+        font-weight: 600;
+        opacity: 0.85;
+    }
+
+    .sa-stat-blue .sa-stat-icon { background: rgba(26,111,168,0.12); }
+    .sa-stat-teal .sa-stat-icon { background: rgba(42,58,74,0.12); }
+    .sa-stat-red .sa-stat-icon { background: rgba(153,27,27,0.12); }
+    .sa-stat-gold .sa-stat-icon { background: rgba(212,164,90,0.15); }
+    .sa-stat-green .sa-stat-icon { background: rgba(26,35,50,0.12); }
+
+    .sa-stat-blue {
+        background: #E8EDF2;
+        border-color: #B8C8D8;
+    }
+
+        .sa-stat-blue .sa-stat-icon,
+        .sa-stat-blue .sa-stat-number {
+            color: #0F4C75;
+        }
+
+        .sa-stat-blue .sa-stat-label {
+            color: #1A6FA8;
+        }
+
+    .sa-stat-teal {
+        background: #DCFCE7;
+        border-color: #B8C8D8;
+    }
+
+        .sa-stat-teal .sa-stat-icon,
+        .sa-stat-teal .sa-stat-number {
+            color: #2A3A4A;
+        }
+
+        .sa-stat-teal .sa-stat-label {
+            color: #15803D;
+        }
+
+    .sa-stat-red {
+        background: #FEE2E2;
+        border-color: #FEE2E2;
+    }
+
+        .sa-stat-red .sa-stat-icon,
+        .sa-stat-red .sa-stat-number {
+            color: #991B1B;
+        }
+
+        .sa-stat-red .sa-stat-label {
+            color: #991B1B;
+        }
+
+    .sa-stat-gold {
+        background: #FEE2E2;
+        border-color: #E8C27E;
+    }
+
+        .sa-stat-gold .sa-stat-icon,
+        .sa-stat-gold .sa-stat-number {
+            color: #991B1B;
+        }
+
+        .sa-stat-gold .sa-stat-label {
+            color: #B45309;
+        }
+
+    .sa-stat-green {
+        background: #DCFCE7;
+        border-color: #E8C27E;
+    }
+
+        .sa-stat-green .sa-stat-icon,
+        .sa-stat-green .sa-stat-number {
+            color: #1A2332;
+        }
+
+        .sa-stat-green .sa-stat-label {
+            color: #15803D;
+        }
+
+    .sa-tables-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 14px;
+    }
+
+    @@media (max-width: 768px) {
+        .sa-tables-row {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    .sa-card {
+        background: var(--card-bg);
+        border-radius: 12px;
+        border: 1px solid var(--border-color);
+        padding: 14px;
+        overflow: hidden;
+    }
+
+    .sa-card-header {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 12px;
+        padding-bottom: 10px;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .sa-card-icon {
+        width: 30px;
+        height: 30px;
+        border-radius: 6px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 15px;
+        flex-shrink: 0;
+    }
+
+    .sa-card-icon-blue {
+        background: #E8EDF2;
+        color: #1A6FA8;
+    }
+
+    .sa-card-icon-gold {
+        background: #FEE2E2;
+        color: #B45309;
+    }
+
+    .sa-card-header h3 {
+        font-size: 13px;
+        font-weight: 700;
+        margin: 0;
+        color: var(--text-primary);
+    }
+
+    .sa-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 12px;
+    }
+
+        .sa-table thead tr {
+            background: var(--blue);
+        }
+
+        .sa-table th {
+            padding: 8px 10px;
+            text-align: left;
+            font-size: 11px;
+            font-weight: 600;
+            color: #FFFFFF;
+            letter-spacing: 0.3px;
+            border: none;
+            white-space: nowrap;
+        }
+
+            .sa-table th:first-child {
+                border-radius: 6px 0 0 0;
+            }
+
+            .sa-table th:last-child {
+                border-radius: 0 6px 0 0;
+            }
+
+        .sa-table td {
+            padding: 7px 10px;
+            color: var(--text-primary);
+            border-bottom: 1px solid var(--border-color);
+            border-top: none;
+            border-left: none;
+            border-right: none;
+            vertical-align: middle;
+        }
+
+        .sa-table tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        .sa-table tbody tr:hover td {
+            background: var(--body-bg);
+        }
+
+    .sa-company {
+        font-weight: 600;
+        font-size: 12px;
+        color: var(--text-primary);
+    }
+
+    .sa-subdomain {
+        font-size: 10px;
+        color: var(--text-muted);
+        margin-top: 1px;
+    }
+
+    .sa-badge {
+        padding: 2px 8px;
+        border-radius: 4px;
+        font-size: 10px;
+        font-weight: 600;
+        display: inline-block;
+        white-space: nowrap;
+    }
+
+    .sa-badge-active {
+        background: rgba(22,163,74,0.15);
+        color: #15803D;
+    }
+
+    .sa-badge-suspended {
+        background: rgba(220,38,38,0.12);
+        color: #991B1B;
+    }
+
+    .sa-badge-new {
+        background: rgba(26,111,168,0.72);
+        color: #FFFFFF;
+    }
+
+    .sa-badge-plan {
+        background: rgba(212,164,90,0.25);
+        color: #B45309;
+    }
+
+    /* Dark mode overrides for icon backgrounds */
+    html.dark-mode .sa-card-icon-blue {
+        background: rgba(232,237,242,0.12);
+        color: #8FA3B8;
+    }
+
+    html.dark-mode .sa-card-icon-gold {
+        background: rgba(254,226,226,0.12);
+        color: #E8C27E;
+    }
+
+    /* Dark mode stat card adjustments */
+    html.dark-mode .sa-stat-blue {
+        background: rgba(232,237,242,0.08);
+        border-color: rgba(184,200,216,0.18);
+    }
+
+        html.dark-mode .sa-stat-blue .sa-stat-icon,
+        html.dark-mode .sa-stat-blue .sa-stat-number {
+            color: #8FA3B8;
+        }
+
+        html.dark-mode .sa-stat-blue .sa-stat-label {
+            color: #B8C8D8;
+        }
+
+    html.dark-mode .sa-stat-teal {
+        background: rgba(220,252,231,0.08);
+        border-color: rgba(184,200,216,0.18);
+    }
+
+        html.dark-mode .sa-stat-teal .sa-stat-icon,
+        html.dark-mode .sa-stat-teal .sa-stat-number {
+            color: #8FA3B8;
+        }
+
+        html.dark-mode .sa-stat-teal .sa-stat-label {
+            color: #B8C8D8;
+        }
+
+    html.dark-mode .sa-stat-red {
+        background: rgba(254,226,226,0.08);
+        border-color: rgba(254,226,226,0.18);
+    }
+
+        html.dark-mode .sa-stat-red .sa-stat-icon,
+        html.dark-mode .sa-stat-red .sa-stat-number {
+            color: #E8C27E;
+        }
+
+        html.dark-mode .sa-stat-red .sa-stat-label {
+            color: #FEE2E2;
+        }
+
+    html.dark-mode .sa-stat-gold {
+        background: rgba(254,226,226,0.08);
+        border-color: rgba(232,194,126,0.18);
+    }
+
+        html.dark-mode .sa-stat-gold .sa-stat-icon,
+        html.dark-mode .sa-stat-gold .sa-stat-number {
+            color: #E8C27E;
+        }
+
+        html.dark-mode .sa-stat-gold .sa-stat-label {
+            color: #E8C27E;
+        }
+
+    html.dark-mode .sa-stat-green {
+        background: rgba(220,252,231,0.08);
+        border-color: rgba(232,194,126,0.18);
+    }
+
+        html.dark-mode .sa-stat-green .sa-stat-icon,
+        html.dark-mode .sa-stat-green .sa-stat-number {
+            color: #D4A45A;
+        }
+
+        html.dark-mode .sa-stat-green .sa-stat-label {
+            color: #E8C27E;
+        }
+
+    /* Dark mode badge adjustments */
+    html.dark-mode .sa-badge-active {
+        background: rgba(22,163,74,0.15);
+        color: #8FA3B8;
+    }
+
+    html.dark-mode .sa-badge-suspended {
+        background: rgba(220,38,38,0.15);
+        color: #E8C27E;
+    }
+
+    html.dark-mode .sa-badge-new {
+        background: rgba(26,111,168,0.35);
+        color: #8FA3B8;
+    }
+
+    html.dark-mode .sa-badge-plan {
+        background: rgba(212,164,90,0.20) !important;
+        color: #E8C27E;
+    }
+
+    .table-scroll {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    @@media (max-width: 480px) {
+        .sa-section-title { font-size: 0.85rem; margin: 0 0 8px 0; }
+        .sa-section-title span { font-size: 0.7rem; }
+        .sa-stats {
+            grid-template-columns: repeat(3, 1fr);
+            gap: 5px;
+        }
+        .sa-header-text h1 {
+            font-size: 15px;
+        }
+        .sa-header-text p {
+            font-size: 11px;
+        }
+        .sa-stat-number {
+            font-size: 16px;
+        }
+        .sa-stat-label {
+            font-size: 8px;
+        }
+        .sa-stat-icon {
+            width: 24px;
+            height: 24px;
+            font-size: 12px;
+        }
+        .sa-stat { padding: 5px 6px; gap: 4px; min-height: 0; }
+    }
+
+    @@media (max-width: 360px) {
+        .sa-stats {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+    </style>
+
+<div class="sa-root">
+
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" style="margin-bottom:10px;">
+        <ol class="breadcrumb mb-0" style="font-size:.76rem;background:transparent;padding:0;">
+            <li class="breadcrumb-item active" style="color:var(--text-muted)">
+                <i class="fa-solid fa-shield-halved" style="margin-right:4px;color:var(--blue);"></i>Dashboard
+            </li>
+        </ol>
+    </nav>
+
+<!-- Hero Welcome Section -->
+    <div class="hero-welcome card mb-4 border-0 overflow-hidden" style="background:linear-gradient(135deg,#1A6FA8 0%,#D4A45A 100%);border-radius:16px;box-shadow:0 8px 32px rgba(26,111,168,0.15);">
+        <div class="card-body p-4">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" style="width:64px;height:64px;background:rgba(255,255,255,0.25);overflow:hidden;position:relative;">
+                            @if (!string.IsNullOrEmpty(ViewBag.SuperAdminProfileImage as string))
+                            {
+                                <img src="@ViewBag.SuperAdminProfileImage" alt="Profile" style="width:100%;height:100%;object-fit:cover;" />
+                            }
+                            else
+                            {
+                                <i class="fa-solid fa-user text-white" style="font-size:1.8rem;"></i>
+                            }
+                        </div>
+                        <div>
+<h2 class="text-white mb-1 fw-bold" style="font-size:1.8rem;color:#FFFFFF !important;">Global Super Admin</h2>
+                            <p class="text-white-50 mb-0" style="color:rgba(255,255,255,0.85) !important;"><i class="fa-solid fa-shield-halved me-2"></i>Super Admin Dashboard</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4 text-md-end mt-3 mt-md-0">
+                    <div class="d-flex align-items-center justify-content-md-end gap-3">
+                        @if (!string.IsNullOrEmpty(ViewBag.CompanyLogo as string))
+                        {
+                            <div class="company-badge-hero d-flex align-items-center gap-2 rounded-3 px-3 py-2" style="background:rgba(255,255,255,0.15);">
+                                <img src="@ViewBag.CompanyLogo" style="height:36px;width:auto;max-width:100px;object-fit:contain;border-radius:4px;" alt="Logo" />
+                                <span class="text-white fw-semibold" style="font-size:0.95rem;">@ViewBag.CompanyName</span>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="company-badge-hero d-flex align-items-center gap-2 rounded-3 px-3 py-2" style="background:rgba(255,255,255,0.15);">
+                                <i class="fa-solid fa-building text-white" style="font-size:1.4rem;"></i>
+                                <span class="text-white fw-semibold" style="font-size:0.95rem;">@ViewBag.CompanyName</span>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="sa-header">
+        <div class="sa-header-icon">
+            <i class="fa-solid fa-shield-halved"></i>
+        </div>
+        <div class="sa-header-text">
+            <h2>Super Admin Panel</h2>
+            <p>Manage tenants, inquiries &amp; system health</p>
+        </div>
+    </div>
+
+    <div class="sa-section-title">
+        <i class="fa-solid fa-chart-simple"></i> Overview
+        <span>Key metrics at a glance</span>
+    </div>
+
+    <div class="sa-stats">
+        <div class="sa-stat sa-stat-blue">
+            <div class="sa-stat-icon"><i class="fa-solid fa-building"></i></div>
+            <div class="sa-stat-info">
+                <div class="sa-stat-number">@ViewBag.TotalTenants</div>
+                <div class="sa-stat-label">Total Tenants</div>
+            </div>
+        </div>
+        <div class="sa-stat sa-stat-teal">
+            <div class="sa-stat-icon"><i class="fa-solid fa-circle-check"></i></div>
+            <div class="sa-stat-info">
+                <div class="sa-stat-number">@ViewBag.ActiveTenants</div>
+                <div class="sa-stat-label">Active</div>
+            </div>
+        </div>
+        <div class="sa-stat sa-stat-red">
+            <div class="sa-stat-icon"><i class="fa-solid fa-ban"></i></div>
+            <div class="sa-stat-info">
+                <div class="sa-stat-number">@ViewBag.SuspendedTenants</div>
+                <div class="sa-stat-label">Suspended</div>
+            </div>
+        </div>
+        <div class="sa-stat sa-stat-gold">
+            <div class="sa-stat-icon"><i class="fa-solid fa-comment-dots"></i></div>
+            <div class="sa-stat-info">
+                <div class="sa-stat-number">@ViewBag.NewInquiries</div>
+                <div class="sa-stat-label">New Inquiries</div>
+            </div>
+        </div>
+        <div class="sa-stat sa-stat-green">
+            <div class="sa-stat-icon"><i class="fa-solid fa-envelope"></i></div>
+            <div class="sa-stat-info">
+                <div class="sa-stat-number">@ViewBag.TotalEmails</div>
+                <div class="sa-stat-label">Reg. Emails</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="sa-tables-row">
+
+        <div class="sa-card">
+            <div class="sa-card-header">
+                <div class="sa-card-icon sa-card-icon-blue">
+                    <i class="fa-solid fa-users"></i>
+                </div>
+                <h3>Recent Tenants</h3>
+            </div>
+            <div class="table-scroll">
+                <table class="sa-table">
+                    <thead>
+                        <tr>
+                            <th>Company</th>
+                            <th>Plan</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var t in (List<CRM.MasterDb.Models.TenantModel>)ViewBag.RecentTenants)
+                        {
+                            <tr>
+                                <td>
+                                    <div class="sa-company">@t.CompanyName</div>
+                                    <div class="sa-subdomain">@t.Subdomain</div>
+                                </td>
+                                <td>
+                                    <span class="sa-badge sa-badge-plan">@t.Plan</span>
+                                </td>
+                                <td>
+                                    <span class="sa-badge @(t.IsSuspended ? "sa-badge-suspended" : "sa-badge-active")">
+                                        @(t.IsSuspended ? "Suspended" : "Active")
+                                    </span>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="sa-card">
+            <div class="sa-card-header">
+                <div class="sa-card-icon sa-card-icon-gold">
+                    <i class="fa-solid fa-inbox"></i>
+                </div>
+                <h3>Recent Inquiries</h3>
+            </div>
+            <div class="table-scroll">
+                <table class="sa-table">
+                    <thead>
+                        <tr>
+                            <th>Company</th>
+                            <th>Contact</th>
+                            <th>Plan</th>
+                            <th>Date</th>
+                        </tr>
+                    </thead>
+                        <tbody>
+                            @foreach (var i in (List<CRM.MasterDb.Models.InquiryModel>)ViewBag.RecentInquiries)
+                            {
+                                <tr>
+                                    <td>
+                                        <div class="sa-company">@i.CompanyName</div>
+                                        <span class="sa-badge sa-badge-new">@i.Status</span>
+                                    </td>
+                                    <td style="color:var(--text-muted);">@i.ContactPerson</td>
+                                    <td style="color:#6B7B8D;font-weight:600;white-space:nowrap;">@(string.IsNullOrEmpty(i.SelectedPlan) ? "-" : i.SelectedPlan)</td>
+                                    <td style="color:var(--text-muted); white-space:nowrap;">@i.CreatedOn.ToString("MMM dd")</td>
+                                </tr>
+                            }
+                        </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+</div>

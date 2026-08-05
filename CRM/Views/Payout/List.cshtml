@@ -1,0 +1,187 @@
+@using CRM.Models
+@{
+    ViewData["Title"] = "Payouts";
+    var agentPayouts = ViewBag.AgentPayouts as List<AgentPayoutModel> ?? new();
+    var partnerPayouts = ViewBag.PartnerPayouts as List<PartnerPayoutModel> ?? new();
+}
+
+<style>
+    :root {
+        --gold: #D4A45A;
+        --gold-light: #FEF3C7;
+        --blue: #1A6FA8;
+        --blue-light: #E2E8F0;
+        --blue-dark: #0F4C75;
+        --green: #15803D;
+        --green-light: #DCFCE7;
+    }
+    h2 { font-size: 1.4rem; font-weight: 600; margin-bottom: 8px; }
+    .payout-header {
+        background: linear-gradient(120deg, #0F4C75, #1A6FA8);
+        border-radius: 10px; padding: 1.25rem 1.5rem; margin-bottom: 1rem; color: #FFFFFF;
+    }
+    .payout-header h2 { font-size: 1.2rem; font-weight: 700; margin: 0 0 0.15rem; }
+    .payout-header p { font-size: 0.78rem; opacity: 0.78; margin: 0; }
+    .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.6rem; margin-top: 1rem; }
+    .stat-box {
+        background: rgba(255,255,255,0.13); border: 1px solid rgba(255,255,255,0.18);
+        border-radius: 8px; padding: 0.6rem 0.75rem; text-align: center;
+    }
+    .stat-num { font-size: 1.3rem; font-weight: 700; line-height: 1.1; color: #FFFFFF; }
+    .stat-lbl { font-size: 0.7rem; opacity: 0.75; margin-top: 0.15rem; color: #FFFFFF; }
+    .section-title {
+        font-size: 1rem; font-weight: 600; color: var(--blue-dark);
+        margin: 1.25rem 0 0.75rem; padding-bottom: 0.5rem;
+        border-bottom: 2px solid var(--blue-light);
+    }
+    .payout-card {
+        background: #FFFFFF; border: 1px solid #E2E8F0;
+        border-left: 3px solid var(--blue); border-radius: 8px;
+        padding: 0.75rem 1rem; margin-bottom: 0.5rem;
+        box-shadow: 0 1px 4px rgba(26,111,168,0.05);
+        transition: box-shadow 0.2s, transform 0.15s;
+    }
+    .payout-card:hover { box-shadow: 0 3px 12px rgba(26,111,168,0.13); transform: translateY(-1px); }
+    .payout-name { font-size: 0.92rem; font-weight: 700; color: var(--blue-dark); margin-bottom: 0.18rem; }
+    .col-label { font-size: 0.67rem; color: #8FA3B8; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; display: block; margin-bottom: 0.1rem; }
+    .col-value { font-size: 0.82rem; font-weight: 600; color: #1A2332; }
+    .final-amount { font-size: 1rem; font-weight: 700; color: var(--green); }
+    .status-badge {
+        display: inline-block; padding: 0.2rem 0.6rem; border-radius: 10px;
+        font-size: 0.68rem; font-weight: 700; letter-spacing: 0.03em;
+    }
+    .status-pending { background: #FEF3C7; color: #B45309; }
+    .status-paid { background: var(--green-light); color: var(--green); }
+    .status-processed { background: var(--blue-light); color: var(--blue-dark); }
+    .empty-state { text-align: center; padding: 3rem 2rem; background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 10px; }
+    .empty-state i { font-size: 3rem; color: #B8C8D8; margin-bottom: 1rem; }
+    .empty-state h4 { font-size: 1rem; color: #2A3A4A; margin-bottom: 0.4rem; }
+    .empty-state p { font-size: 0.8rem; color: #8FA3B8; }
+    .divider-col { width: 1px; background: #E2E8F0; align-self: stretch; margin: 0 0.25rem; }
+</style>
+
+<div class="content">
+    <nav class="mb-2" aria-label="breadcrumb">
+        <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item"><a href="/Home">Home</a></li>
+            <li class="breadcrumb-item active" style="font-size:0.76rem;">Payouts</li>
+        </ol>
+    </nav>
+
+    <div class="payout-header">
+        <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+            <div>
+                <h2><i class="fa-solid fa-money-bill-wave me-2" style="color:var(--gold);"></i>Payouts</h2>
+                <p>Agent &amp; Partner payouts overview</p>
+            </div>
+        </div>
+        <div class="stats-row">
+            <div class="stat-box">
+                <div class="stat-num">@agentPayouts.Count</div>
+                <div class="stat-lbl">Agent Payouts</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-num">@partnerPayouts.Count</div>
+                <div class="stat-lbl">Partner Payouts</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-num">₹@(agentPayouts.Sum(p => (decimal?)p.FinalPayout).GetValueOrDefault().ToString("N0"))</div>
+                <div class="stat-lbl">Agent Total</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-num" style="color:#E8C27E;">₹@(partnerPayouts.Sum(p => (decimal?)p.Amount).GetValueOrDefault().ToString("N0"))</div>
+                <div class="stat-lbl">Partner Total</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Agent Payouts -->
+    <h5 class="section-title"><i class="fa-solid fa-user-tie me-2" style="color:var(--gold);"></i>Agent Payouts</h5>
+    @if (agentPayouts.Any())
+    {
+        foreach (var payout in agentPayouts)
+        {
+            <div class="payout-card">
+                <div class="d-flex align-items-center gap-3">
+                    <div style="min-width:140px;">
+                        <div class="payout-name">@(payout.Agent?.FullName ?? "Agent #" + payout.AgentId)</div>
+                        <span class="status-badge status-@payout.Status.ToLower()">@payout.Status</span>
+                    </div>
+                    <div class="divider-col"></div>
+                    <div>
+                        <span class="col-label">Period</span>
+                        <div class="col-value">@payout.Month @payout.Year</div>
+                    </div>
+                    <div class="divider-col"></div>
+                    <div>
+                        <span class="col-label">Base Salary</span>
+                        <div class="col-value">₹@payout.BaseSalary.ToString("N0")</div>
+                    </div>
+                    <div class="divider-col"></div>
+                    <div>
+                        <span class="col-label">Commission</span>
+                        <div class="col-value" style="color:var(--green);">+₹@payout.CommissionAmount.ToString("N0")</div>
+                    </div>
+                    <div class="divider-col"></div>
+                    <div>
+                        <span class="col-label">Deduction</span>
+                        <div class="col-value" style="color:#DC2626;">-₹@payout.AttendanceDeduction.ToString("N0")</div>
+                    </div>
+                    <div class="divider-col"></div>
+                    <div style="min-width:100px;">
+                        <span class="col-label">Final Payout</span>
+                        <div class="final-amount">₹@payout.FinalPayout.ToString("N0")</div>
+                    </div>
+                </div>
+            </div>
+        }
+    }
+    else
+    {
+        <div class="empty-state">
+            <i class="fa-solid fa-user-tie"></i>
+            <h4>No Agent Payouts</h4>
+            <p>Process agent payouts to see them here</p>
+        </div>
+    }
+
+    <!-- Partner Payouts -->
+    <h5 class="section-title"><i class="fa-solid fa-handshake me-2" style="color:var(--gold);"></i>Partner Payouts</h5>
+    @if (partnerPayouts.Any())
+    {
+        foreach (var payout in partnerPayouts)
+        {
+            <div class="payout-card" style="border-left-color:var(--gold);">
+                <div class="d-flex align-items-center gap-3">
+                    <div style="min-width:140px;">
+                        <div class="payout-name">@(payout.Partner?.CompanyName ?? payout.Partner?.ContactPerson ?? "Partner #" + payout.PartnerId)</div>
+                        <span class="status-badge status-@payout.Status.ToLower()">@payout.Status</span>
+                    </div>
+                    <div class="divider-col"></div>
+                    <div>
+                        <span class="col-label">Period</span>
+                        <div class="col-value">@payout.Month @payout.Year</div>
+                    </div>
+                    <div class="divider-col"></div>
+                    <div>
+                        <span class="col-label">Commission</span>
+                        <div class="col-value" style="color:var(--green);">+₹@payout.TotalCommission.ToString("N0")</div>
+                    </div>
+                    <div class="divider-col"></div>
+                    <div>
+                        <span class="col-label">Total Payout</span>
+                        <div class="final-amount">₹@payout.Amount.ToString("N0")</div>
+                    </div>
+                </div>
+            </div>
+        }
+    }
+    else
+    {
+        <div class="empty-state">
+            <i class="fa-solid fa-handshake"></i>
+            <h4>No Partner Payouts</h4>
+            <p>Process partner payouts to see them here</p>
+        </div>
+    }
+</div>

@@ -1,0 +1,420 @@
+@model CRM.Models.AgentPayoutModel
+@{
+    ViewData["Title"] = "Agent Payout Details";
+    var commissionLogs = ViewBag.CommissionLogs as List<CRM.Models.AgentCommissionLogModel> ?? new List<CRM.Models.AgentCommissionLogModel>();
+    var attendanceRecords = ViewBag.AttendanceRecords as List<CRM.Models.AgentAttendanceModel> ?? new List<CRM.Models.AgentAttendanceModel>();
+    decimal presentEquivalentDays = 0;
+    foreach (var record in attendanceRecords)
+    {
+        if (string.Equals(record.Status, "Present", StringComparison.OrdinalIgnoreCase))
+        {
+            if (record.LoginTime.HasValue && record.LogoutTime.HasValue)
+            {
+                var hours = (decimal)(record.LogoutTime.Value - record.LoginTime.Value).TotalHours;
+                if (hours >= 9m)
+                {
+                    presentEquivalentDays += 1m;
+                }
+                else if (hours >= 4.5m)
+                {
+                    presentEquivalentDays += 0.5m;
+                }
+            }
+            else
+            {
+                presentEquivalentDays += 1m;
+            }
+        }
+    }
+    var totalWorkingDays = Model.WorkingDays > 0 ? Model.WorkingDays : attendanceRecords.Count;
+    var absentEquivalentDays = Math.Max(0, totalWorkingDays - presentEquivalentDays);
+}
+
+<style>
+    .details-header {
+        background: linear-gradient(135deg, #1A6FA8 0%, #125082 100%);
+        color: white;
+        padding: 2rem;
+        border-radius: 12px;
+        margin-bottom: 2rem;
+    }
+
+    .detail-card {
+        background: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    }
+
+    .dark-mode .detail-card {
+        background: #1E2A3A !important;
+        color: #E2E8F0 !important;
+        box-shadow: 0 2px 8px rgba(255, 255, 255, 0.05) !important;
+    }
+
+    .breakdown-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.75rem 0;
+        border-bottom: 1px solid #F0F4F8;
+    }
+
+    .dark-mode .breakdown-item {
+        border-bottom: 1px solid #2A3A4A !important;
+        color: #E2E8F0 !important;
+    }
+
+    .breakdown-item:last-child {
+        border-bottom: none;
+        font-weight: 600;
+        font-size: 1.1rem;
+        color: #16A34A;
+    }
+
+    .commission-table {
+        background: white;
+        border-radius: 8px;
+        overflow: hidden;
+    }
+
+    .dark-mode .commission-table {
+        background: #2A3A4A !important;
+        color: #E2E8F0 !important;
+    }
+
+    .commission-table th {
+        background: #F0F4F8;
+        font-weight: 600;
+        border: none;
+    }
+
+    .dark-mode .commission-table th {
+        background: #2A3A4A !important;
+        color: #E2E8F0 !important;
+    }
+
+    .dark-mode .commission-table td {
+        background: #2A3A4A !important;
+        color: #E2E8F0 !important;
+        border-color: #2A3A4A !important;
+    }
+
+    .dark-mode .commission-table tfoot th {
+        background: #16A34A !important;
+        color: white !important;
+    }
+
+    .attendance-grid {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        gap: 0.5rem;
+        margin-top: 1rem;
+    }
+
+    .attendance-day {
+        padding: 0.5rem;
+        text-align: center;
+        border-radius: 6px;
+        font-size: 0.875rem;
+        font-weight: 500;
+    }
+
+    .day-present { background: #E2E8F0; color: #121F2E; }
+    .day-absent { background: #FEE2E2; color: #991B1B; }
+    .day-holiday { background: #E2E8F0; color: #2A3A4A; }
+    .day-weekend { background: #FEF3C7; color: #B45309; }
+
+    /* Dark mode attendance days */
+    .dark-mode .day-present { background: #15803D !important; color: #FFFFFF !important; }
+    .dark-mode .day-absent { background: #DC2626 !important; color: #FFFFFF !important; }
+    .dark-mode .day-holiday { background: #6B7B8D !important; color: #FFFFFF !important; }
+    .dark-mode .day-weekend { background: #B45309 !important; color: #FFFFFF !important; }
+    .dark-mode .attendance-day small { color: inherit !important; }
+
+    .summary-box {
+        background: linear-gradient(135deg, #F0F4F8 0%, #E8EDF2 100%);
+        border-radius: 10px;
+        padding: 1.5rem;
+        text-align: center;
+        color: #2A3A4A;
+    }
+
+    .dark-mode .summary-box {
+        background: linear-gradient(135deg, #2A3A4A 0%, #2A3A4A 100%) !important;
+        color: #2589C9 !important;
+    }
+
+    .summary-number {
+        font-size: 2.5rem;
+        font-weight: 700;
+        color: #16A34A;
+        margin-bottom: 0.5rem;
+    }
+
+    .dark-mode .summary-number {
+        color: #16A34A !important;
+    }
+
+    /* Dark mode breadcrumb */
+    .dark-mode .breadcrumb {
+        background: transparent !important;
+    }
+
+    .dark-mode .breadcrumb-item a {
+        color: #8FA3B8 !important;
+    }
+
+    .dark-mode .breadcrumb-item.active {
+        color: #E2E8F0 !important;
+    }
+
+    /* Dark mode text colors */
+    .dark-mode h2,
+    .dark-mode h4,
+    .dark-mode h5 {
+        color: #E2E8F0 !important;
+    }
+
+    .dark-mode .text-success {
+        color: #16A34A !important;
+    }
+
+    .dark-mode .text-danger {
+        color: #DC2626 !important;
+    }
+
+    .dark-mode .text-info {
+        color: #2589C9 !important;
+    }
+
+    .dark-mode .text-primary {
+        color: #2589C9 !important;
+    }
+
+    .dark-mode .text-muted {
+        color: #8FA3B8 !important;
+    }
+</style>
+
+<div class="content">
+    <!-- Breadcrumb -->
+    <nav class="mb-3" aria-label="breadcrumb">
+        <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item"><a href="/Home">Home</a></li>
+            <li class="breadcrumb-item"><a href="/AgentPayout/Index">Agent Payouts</a></li>
+            <li class="breadcrumb-item active">@Model.Agent?.FullName Details</li>
+        </ol>
+    </nav>
+
+    <!-- Header -->
+    <div class="details-header">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <h2 class="mb-0">
+                    <i class="fa-solid fa-user-tie me-2"></i>
+                    @Model.Agent?.FullName - Payout Details
+                </h2>
+                <p class="mb-0 mt-2 opacity-75">@ViewBag.Month @ViewBag.Year | @Model.Agent?.AgentType</p>
+            </div>
+            <div class="col-md-4 text-md-end">
+                <div class="summary-box">
+                    <div class="summary-number">₹@Model.FinalPayout.ToString("N0")</div>
+                    <div>Final Payout</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Salary Breakdown -->
+        <div class="col-md-6">
+            <div class="detail-card">
+                <h5 class="mb-3">
+                    <i class="fa-solid fa-calculator text-primary me-2"></i>
+                    Salary Breakdown
+                </h5>
+                
+                <div class="breakdown-item">
+                    <span>Base Salary</span>
+                    <span class="text-success">₹@Model.BaseSalary.ToString("N0")</span>
+                </div>
+                
+                <div class="breakdown-item">
+                    <span>Attendance Deduction</span>
+                    <span class="text-danger">-₹@Model.AttendanceDeduction.ToString("N0")</span>
+                </div>
+                
+                @if (Model.Agent?.AgentType != "fixedSalary")
+                {
+                    <div class="breakdown-item">
+                        <span>Commission Earned</span>
+                        <span class="text-info">+₹@Model.CommissionAmount.ToString("N0")</span>
+                    </div>
+                }
+                
+                <div class="breakdown-item">
+                    <span><strong>Final Payout</strong></span>
+                    <span class="text-success"><strong>₹@Model.FinalPayout.ToString("N0")</strong></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Attendance Summary -->
+        <div class="col-md-6">
+            <div class="detail-card">
+                <h5 class="mb-3">
+                    <i class="fa-solid fa-calendar-check text-primary me-2"></i>
+                    Attendance Summary
+                </h5>
+                
+                <div class="row text-center mb-3">
+                    <div class="col-4">
+                        <div class="text-success">
+                            <h4>@presentEquivalentDays.ToString("0.#")</h4>
+                            <small>Present</small>
+                        </div>
+                    </div>
+                    <div class="col-4">
+                        <div class="text-danger">
+                            <h4>@absentEquivalentDays.ToString("0.#")</h4>
+                            <small>Absent</small>
+                        </div>
+                    </div>
+                    <div class="col-4">
+                        <div class="text-info">
+                            <h4>@totalWorkingDays</h4>
+                            <small>Working Days</small>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="attendance-grid">
+                    @foreach (var record in attendanceRecords.OrderBy(a => a.Date))
+                    {
+                        var dayClass = record.Status switch
+                        {
+                            "Present" => "day-present",
+                            "Absent" => "day-absent",
+                            "Holiday" => "day-holiday",
+                            _ => "day-weekend"
+                        };
+                        
+                        <div class="attendance-day @dayClass">
+                            <div>@record.Date.Day</div>
+                            <small>@record.Status.Substring(0, 1)</small>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sales & Commission Details -->
+    @if (commissionLogs.Any())
+    {
+        <div class="detail-card">
+            <h5 class="mb-3">
+                <i class="fa-solid fa-chart-line text-primary me-2"></i>
+                Sales & Commission Details (@commissionLogs.Count Sales)
+            </h5>
+            
+            <div class="table-responsive">
+                <table class="table commission-table">
+                    <thead>
+                        <tr>
+                            <th>Sale Date</th>
+                            <th>Property</th>
+                            <th>Flat</th>
+                            <th>Sale Amount</th>
+                            <th>Commission %</th>
+                            <th>Commission Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var log in commissionLogs)
+                        {
+                            <tr>
+                                <td>@log.SaleDate.ToString("MMM dd, yyyy")</td>
+                                <td>@log.Booking?.Property?.PropertyName</td>
+                                <td>@log.Booking?.Flat?.FlatName</td>
+                                <td class="text-primary">₹@log.SaleAmount.ToString("N0")</td>
+                                <td>@log.CommissionPercentage%</td>
+                                <td class="text-success">₹@log.CommissionAmount.ToString("N0")</td>
+                            </tr>
+                        }
+                    </tbody>
+                    <tfoot>
+                        <tr class="table-success">
+                            <th colspan="5">Total Commission</th>
+                            <th>₹@commissionLogs.Sum(c => c.CommissionAmount).ToString("N0")</th>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="detail-card text-center">
+            <i class="fa-solid fa-chart-line text-muted" style="font-size: 3rem;"></i>
+            <h5 class="mt-3">No Sales This Month</h5>
+            <p class="text-muted">This agent had no confirmed sales in @ViewBag.Month @ViewBag.Year</p>
+        </div>
+    }
+
+    <!-- Action Buttons -->
+    <div class="text-center mt-4">
+        <a href="/AgentPayout/Index?month=@ViewBag.Month&year=@ViewBag.Year" class="btn btn-secondary me-2">
+            <i class="fa-solid fa-arrow-left me-2"></i>Back to Payouts
+        </a>
+        
+        @if (Model.Status != "Paid")
+        {
+            <button class="btn btn-success" onclick="updateStatus(@Model.PayoutId, 'Paid')">
+                <i class="fa-solid fa-check me-2"></i>Mark as Paid
+            </button>
+        }
+    </div>
+</div>
+
+<script>
+    function updateStatus(payoutId, status) {
+        Swal.fire({
+            title: 'Are you sure?',
+            text: `Mark this payout as ${status}?`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#16A34A',
+            cancelButtonColor: '#6B7B8D',
+            confirmButtonText: 'Yes, update!'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                $.ajax({
+                    url: '/AgentPayout/UpdateStatus',
+                    type: 'POST',
+                    data: { payoutId, status },
+                    success: function (response) {
+                        if (response.success) {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Success!',
+                                text: response.message,
+                                timer: 2000,
+                                showConfirmButton: false
+                            }).then(() => location.reload());
+                        } else {
+                            Swal.fire('Error', response.message, 'error');
+                        }
+                    },
+                    error: function () {
+                        Swal.fire('Error', 'Failed to update status', 'error');
+                    }
+                });
+            }
+        });
+    }
+</script>
+
+

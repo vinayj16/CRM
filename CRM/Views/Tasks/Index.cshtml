@@ -1,0 +1,473 @@
+@{
+    ViewData["Title"] = "Tasks";
+}
+
+<style>
+/* ━━ COMPACT CRM PRO UI — matches HTML prototype exactly ━━ */
+:root {
+  --P:#1A6FA8;--PD:#125082;--PX:#0F4C75;--PL:#E8EDF2;--PLL:#F0F4F8;
+  --G:#D4A45A;--GD:#B8883E;--GL:#F0F4F8;
+  --bg:#F0F4F8;--card:#FFFFFF;--card2:#FFFFFF;
+  --bd:rgba(0,0,0,0.08);--bd2:rgba(0,0,0,0.14);
+  --t1:#1A2332;--t2:#2A3A4A;--t3:#8FA3B8;
+  --ok:#16A34A;--okl:#F0F4F8;--er:#DC2626;--erl:#F0F4F8;
+  --wa:#F59E0B;--wal:#F0F4F8;
+  --r:6px;--rs:4px;--sh:0 1px 3px rgba(0,0,0,0.08);--sh2:0 4px 14px rgba(0,0,0,0.13);
+  --fn:'Segoe UI',system-ui,sans-serif;
+}
+h1, .h1 {
+    font-size: 0.8rem !important;
+    font-weight: 700 !important;
+    margin-bottom: 0.1rem !important;
+}
+
+p {
+    font-size: 0.95rem !important;
+    line-height: 1.6 !important;
+    margin-bottom: 0px !important;
+}
+/* ━━ SCROLLBAR ━━ */
+::-webkit-scrollbar{width:3px;height:3px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:rgba(26,111,168,.3);border-radius:2px}
+
+/* ━━ BREADCRUMB ━━ */
+.crm-bc{font-size:10.5px;margin-bottom:6px;display:flex;align-items:center;gap:3px}
+.crm-bc a{color:var(--t3);display:flex;align-items:center;gap:3px;text-decoration:none}
+.crm-bc a:hover{color:var(--P)}
+.crm-bc-sep{color:var(--t3);font-size:8px}
+.crm-bc-cur{color:var(--t2);font-weight:600}
+
+/* ━━ PAGE HEADER ━━ */
+.crm-ph{background:linear-gradient(105deg,var(--PX) 0%,var(--P) 50%,#2589C9 100%);border-radius:var(--r);padding:.55rem .9rem;margin-bottom:7px;position:relative;overflow:hidden}
+.crm-ph::after{content:'';position:absolute;right:-15px;top:-15px;width:90px;height:90px;border-radius:50%;background:rgba(212,164,90,.18);pointer-events:none}
+.crm-ph::before{content:'';position:absolute;right:40px;bottom:-20px;width:60px;height:60px;border-radius:50%;background:rgba(212,164,90,.1);pointer-events:none}
+.crm-ph-in{position:relative;z-index:1;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.crm-ph-l{display:flex;align-items:center;gap:7px}
+.crm-ph-ic{width:28px;height:28px;border-radius:5px;background:rgba(212,164,90,.25);display:flex;align-items:center;justify-content:center;color:var(--G);font-size:11px;flex-shrink:0}
+.crm-ph h1{font-size:.88rem;font-weight:700;color:#FFFFFF;margin:0;line-height:1.3}
+.crm-ph p{font-size:.65rem;color:rgba(255,255,255,.7);margin:0}
+
+/* ━━ WEEK NAVIGATION ━━ */
+.crm-wnav{background:var(--card);border:1px solid var(--bd);border-radius:var(--r);padding:5px 9px;margin-bottom:7px;display:flex;align-items:center;justify-content:space-between;gap:8px;box-shadow:var(--sh)}
+.crm-winfo{font-size:.75rem;font-weight:600;color:var(--t1)}
+.crm-nb{display:inline-flex;align-items:center;gap:3px;padding:.23rem .55rem;border-radius:var(--rs);font-size:.68rem;font-weight:600;cursor:pointer;border:1.5px solid var(--P);background:var(--P);color:#FFFFFF;transition:all .15s;height:26px}
+.crm-nb:hover{background:var(--PD);border-color:var(--PD)}
+.crm-nb-o{background:var(--card);color:var(--P)}
+.crm-nb-o:hover{background:var(--PL)}
+
+/* ━━ KANBAN BOARD ━━ */
+.crm-board{display:flex;gap:6px;overflow-x:auto;padding-bottom:6px}
+.crm-board::-webkit-scrollbar{height:3px}
+
+.crm-col{background:var(--card);min-width:190px;flex:1;border-radius:var(--r);padding:7px;box-shadow:var(--sh);border:1px solid var(--bd);display:flex;flex-direction:column;transition:all .15s}
+.crm-col-h{text-align:center;background:linear-gradient(105deg,var(--PX),var(--P));color:#FFFFFF;padding:5px 7px;border-radius:var(--rs);font-size:.7rem;font-weight:600;margin-bottom:6px;box-shadow:0 2px 6px rgba(26,111,168,.2)}
+.crm-col.today .crm-col-h{background:linear-gradient(105deg,#B45309,var(--wa));box-shadow:0 2px 6px rgba(245,158,11,.25)}
+.crm-col-date{font-size:.62rem;opacity:.8;font-weight:400;margin-top:1px}
+.crm-col-cnt{display:inline-flex;align-items:center;justify-content:center;min-width:14px;height:14px;padding:0 3px;background:rgba(255,255,255,.3);color:#FFFFFF;font-size:8px;font-weight:700;border-radius:7px;margin-left:3px;vertical-align:middle}
+
+.crm-cards{flex:1;overflow-y:auto;max-height:calc(100vh - 210px);min-height:140px;padding-right:2px}
+.crm-cards::-webkit-scrollbar{width:2px}
+
+/* ━━ KANBAN CARD ━━ */
+.crm-kcard{padding:7px 9px;margin-bottom:5px;background:var(--card2);border-radius:var(--rs);cursor:grab;transition:all .18s;border:1.5px solid var(--bd);position:relative;overflow:hidden}
+.crm-kcard::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:linear-gradient(to bottom,var(--P),var(--G));border-radius:0}
+.crm-kcard:hover{transform:translateY(-1px);box-shadow:var(--sh2);border-color:rgba(26,111,168,.25)}
+.crm-kcard:active{cursor:grabbing}
+.crm-kcard.dragging{opacity:.5}
+.crm-kcard.completed{opacity:.65;background:linear-gradient(135deg,#F0F4F8,#E2E8F0)}
+.crm-kcard.completed .crm-cname,.crm-kcard.completed .crm-ccontact{text-decoration:line-through;color:var(--t3)!important}
+
+.crm-card-top{display:flex;align-items:flex-start;justify-content:space-between;gap:4px;margin-bottom:4px}
+.crm-cname{font-weight:700;color:var(--P);font-size:.72rem;flex:1;line-height:1.3;cursor:pointer}
+.crm-cname:hover{color:var(--PD)}
+
+/* ━━ CARD MENU ━━ */
+.crm-cmenu{position:relative;flex-shrink:0}
+.crm-mdots{background:none;border:none;font-size:14px;color:var(--t3);cursor:pointer;padding:0 3px;border-radius:3px;line-height:1;transition:all .15s}
+.crm-mdots:hover{background:var(--PL);color:var(--P)}
+.crm-drop{position:absolute;top:100%;right:0;background:var(--card);border:1px solid var(--bd);border-radius:var(--rs);box-shadow:var(--sh2);z-index:500;min-width:130px;display:none}
+.crm-drop.sh{display:block}
+.crm-ditem{padding:5px 9px;cursor:pointer;border:none;background:none;width:100%;text-align:left;font-size:.65rem;color:var(--t2);transition:background .15s;display:flex;align-items:center;gap:4px}
+.crm-ditem:hover{background:var(--PL);color:var(--P)}
+.crm-ditem i{font-size:.6rem;width:12px}
+
+.crm-ccontact{font-size:.62rem;color:var(--t2);display:flex;align-items:center;gap:3px;margin-bottom:3px}
+.crm-ccontact i{font-size:.55rem;color:var(--G)}
+
+/* ━━ STATUS BADGES ━━ */
+.cst{display:inline-block;padding:.1rem .38rem;border-radius:8px;font-size:.58rem;font-weight:600;margin-top:3px}
+.cst-active{background:var(--okl);color:var(--ok)}
+.cst-hot{background:var(--erl);color:var(--er)}
+.cst-warm{background:var(--wal);color:var(--wa)}
+.cst-cold{background:var(--PL);color:var(--P)}
+.cst-inactive{background:var(--card2);color:var(--t3);border:1px solid var(--bd)}
+
+.crm-ccomment{font-size:.6rem;color:var(--t3);margin-top:4px;font-style:italic;line-height:1.35}
+
+/* ━━ EMPTY STATE ━━ */
+.crm-empty-col{text-align:center;padding:16px 8px;color:var(--t3);font-size:.65rem}
+.crm-empty-col i{font-size:1.4rem;color:var(--bd);display:block;margin-bottom:4px}
+
+/* ━━ DRAG OVER ━━ */
+.crm-col.drag-over .crm-cards{background:var(--PLL);border:1.5px dashed var(--P);border-radius:var(--rs)}
+
+/* ━━ PERMISSION ALERT ━━ */
+.crm-warn{font-size:.72rem;padding:.38rem .75rem;border-radius:var(--rs);margin-bottom:6px;display:flex;align-items:center;gap:5px;background:var(--wal);color:#B45309;border:1px solid #E8C27E}
+
+/* ━━ DARK MODE ━━ */
+.dark-mode .crm-wnav,.dark-mode .crm-col,.dark-mode .crm-kcard{background:#1E2A3A;border-color:#2A3A4A}
+.dark-mode .crm-card2,.dark-mode .crm-kcard{background:#2A3A4A!important}
+.dark-mode .crm-winfo,.dark-mode .crm-cname{color:#E2E8F0!important}
+.dark-mode .crm-ccontact{color:#8FA3B8!important}
+.dark-mode .crm-drop{background:#1E2A3A;border-color:#2A3A4A}
+.dark-mode .crm-ditem{color:#8FA3B8}
+.dark-mode .crm-ditem:hover{background:#2A3A4A;color:#E2E8F0}
+
+/* ━━ RESPONSIVE ━━ */
+@@media(max-width:768px){
+  .crm-board{flex-direction:column}
+  .crm-col{min-width:100%}
+  .crm-cards{max-height:260px}
+  .crm-nb span{display:none}
+  .crm-nb{width:30px;height:26px;padding:0;justify-content:center}
+}
+</style>
+
+<!-- ━━━━━━━━ BREADCRUMB ━━━━━━━━ -->
+<div class="crm-bc">
+    <a href="/Home"><i class="fa fa-home" style="font-size:9px"></i> Home</a>
+    <span class="crm-bc-sep"><i class="fa fa-angle-right"></i></span>
+    <span class="crm-bc-cur">Tasks</span>
+</div>
+
+@if (User.IsInRole("Admin") || User.IsInRole("Sales") || User.IsInRole("Agent") || User.IsInRole("Partner"))
+{
+    <!-- ━━━━━━━━ PAGE HEADER ━━━━━━━━ -->
+    <div class="crm-ph">
+        <div class="crm-ph-in">
+            <div class="crm-ph-l">
+                <div class="crm-ph-ic"><i class="fa fa-list-check"></i></div>
+                <div>
+                    <h1>Tasks Management</h1>
+                    <p>Organize tasks by dates, drag to reschedule, mark as complete</p>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+else
+{
+    <div class="crm-warn"><i class="fa fa-triangle-exclamation"></i> You don't have permission to view tasks.</div>
+}
+
+<!-- ━━━━━━━━ WEEK NAVIGATION ━━━━━━━━ -->
+<div class="crm-wnav">
+    <button class="crm-nb crm-nb-o" id="prevWeek">
+        <i class="fa fa-chevron-left"></i><span> Prev Week</span>
+    </button>
+    <div class="crm-winfo" id="weekInfo">Loading…</div>
+    <button class="crm-nb" id="nextWeek">
+        <span>Next Week </span><i class="fa fa-chevron-right"></i>
+    </button>
+</div>
+
+<!-- ━━━━━━━━ KANBAN BOARD ━━━━━━━━ -->
+<div class="crm-board" id="kanbanBoard"></div>
+
+@Html.AntiForgeryToken()
+
+@section Scripts {
+<script>
+let currentWeekStart=null, draggedCard=null, draggedLeadId=null;
+
+document.addEventListener('DOMContentLoaded',function(){
+    loadTasks();
+
+    document.getElementById('prevWeek').addEventListener('click',()=>{
+        const d=new Date(currentWeekStart);
+        d.setDate(d.getDate()-7);
+        loadTasks(d.toISOString().split('T')[0]);
+    });
+    document.getElementById('nextWeek').addEventListener('click',()=>{
+        const d=new Date(currentWeekStart);
+        d.setDate(d.getDate()+7);
+        loadTasks(d.toISOString().split('T')[0]);
+    });
+
+    document.addEventListener('click',function(e){
+        if(!e.target.closest('.crm-cmenu')&&!e.target.closest('.navbar')){
+            document.querySelectorAll('.crm-drop').forEach(m=>m.classList.remove('sh'));
+        }
+    });
+});
+
+function loadTasks(weekStart=null){
+    const url=weekStart?
+        `@Url.Action("GetTasksByDate","Tasks")?weekStart=${weekStart}`:
+        '@Url.Action("GetTasksByDate","Tasks")';
+    fetch(url)
+        .then(r=>r.json())
+        .then(data=>{
+            currentWeekStart=data.weekStart;
+            updateWeekInfo(data.weekStart,data.weekEnd);
+            renderBoard(data.tasksByDate);
+            attachDrag();
+        })
+        .catch(err=>{
+            console.error('Error loading tasks:',err);
+            crmToast('Error loading tasks','er');
+        });
+}
+
+function updateWeekInfo(ws,we){
+    const s=new Date(ws),e=new Date(we);
+    document.getElementById('weekInfo').textContent=
+        `${s.toLocaleDateString('en-US',{month:'short',day:'numeric'})} – ${e.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}`;
+}
+
+function renderBoard(tasksByDate){
+    const board=document.getElementById('kanbanBoard');
+    board.innerHTML='';
+    tasksByDate.forEach(dd=>{
+        const col=document.createElement('div');
+        col.className=`crm-col${dd.isToday?' today':''}`;
+        col.dataset.date=dd.date;
+
+        const dayLbl=dd.isToday?'Today':dd.dayName;
+        col.innerHTML=`
+          <div class="crm-col-h">
+            ${dd.displayDate}
+            <div class="crm-col-date">${dayLbl} <span class="crm-col-cnt">${dd.tasks.length}</span></div>
+          </div>
+          <div class="crm-cards" data-date="${dd.date}">
+            ${dd.tasks.length===0?'<div class="crm-empty-col"><i class="fa fa-clipboard-list"></i>No tasks</div>':''}
+          </div>`;
+
+        const cards=col.querySelector('.crm-cards');
+        dd.tasks.forEach(task=>{
+            cards.appendChild(createCard(task));
+        });
+        board.appendChild(col);
+    });
+}
+
+function createCard(task){
+    const card=document.createElement('div');
+    card.className=`crm-kcard${task.isCompleted?' completed':''}`;
+    card.draggable=true;
+    card.dataset.leadId=task.leadId;
+
+    const nm=task.name&&task.name.trim()?task.name:'Unnamed Lead';
+    const ct=task.contact&&task.contact.trim()?task.contact:'No Contact';
+    const st=task.status||'Inactive';
+    const stCls='cst-'+(st.toLowerCase().replace(/\s+/g,''));
+    const cm=task.comments&&task.comments.trim()?task.comments:'';
+
+    card.innerHTML=`
+      <div class="crm-card-top">
+                <div class="crm-cname" onclick="viewLead('${task.encodeUrl}')">${nm}</div>
+        <div class="crm-cmenu">
+          <button class="crm-mdots" onclick="toggleDrop(this,event)">⋮</button>
+          <div class="crm-drop">
+            <button class="crm-ditem" onclick="markComplete(${task.leadId},${!task.isCompleted})">
+              <i class="fa fa-${task.isCompleted?'undo':'check'}"></i>${task.isCompleted?'Mark Incomplete':'Mark Complete'}
+            </button>
+            <button class="crm-ditem" onclick="showDatePicker(${task.leadId})">
+              <i class="fa fa-calendar"></i>Change Date
+            </button>
+                    <button class="crm-ditem" onclick="viewLead('${task.encodeUrl}')">
+              <i class="fa fa-eye"></i>View Lead
+            </button>
+          </div>
+        </div>
+      </div>
+      <div class="crm-ccontact"><i class="fa fa-phone"></i><span>${ct}</span></div>
+      <span class="cst ${stCls}">${st}</span>
+      ${cm?`<div class="crm-ccomment">${cm}</div>`:''}`;
+
+    card.addEventListener('click',function(e){
+                if(!e.target.closest('.crm-cmenu'))viewLead(task.encodeUrl);
+    });
+    return card;
+}
+
+function toggleDrop(btn,e){
+    e.stopPropagation();
+    const drop=btn.nextElementSibling;
+    document.querySelectorAll('.crm-drop').forEach(m=>{if(m!==drop)m.classList.remove('sh');});
+    drop.classList.toggle('sh');
+}
+
+function markComplete(leadId,isCompleted){
+    document.querySelectorAll('.crm-drop').forEach(m=>m.classList.remove('sh'));
+    fetch('@Url.Action("MarkTaskComplete","Tasks")',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({leadId,isCompleted})
+    })
+    .then(r=>r.json())
+    .then(data=>{
+        if(data.success){
+            crmToast(`Task ${isCompleted?'completed':'reopened'} successfully`,'ok');
+            loadTasks(currentWeekStart);
+        }else{
+            crmToast(data.message||'Error updating task','er');
+        }
+    })
+    .catch(()=>crmToast('Error updating task','er'));
+}
+
+// function viewLead(leadId){window.location.href=`/Leads/Details/${encodeUrl}`}
+
+         function viewLead(url) {
+                    window.location.href = url;
+                }
+
+function showDatePicker(leadId){
+    document.querySelectorAll('.crm-drop').forEach(m=>m.classList.remove('sh'));
+    const today=new Date().toISOString().split('T')[0];
+    const isDark=document.body.classList.contains('dark-mode');
+    Swal.fire({
+        title:'Select New Date',
+        html:`<input type="date" id="newTaskDate" class="swal2-input" min="${today}" value="${today}">`,
+        showCancelButton:true,
+        confirmButtonText:'Move Task',
+        background:isDark?'#1E2A3A':'#FFFFFF',
+        color:isDark?'#E2E8F0':'#000000',
+        customClass:{popup:isDark?'swal2-dark':'',confirmButton:'btn btn-success',cancelButton:'btn btn-secondary'},
+        preConfirm:()=>{
+            const nd=document.getElementById('newTaskDate').value;
+            if(!nd){Swal.showValidationMessage('Please select a date');return false;}
+            return nd;
+        }
+    }).then(result=>{
+        if(result.isConfirmed){
+            const newDate=result.value;
+            const taskCard=document.querySelector(`[data-lead-id="${leadId}"]`);
+            if(taskCard){
+                const taskDate=new Date(newDate);
+                const ws=new Date(currentWeekStart);
+                const we=new Date(ws);we.setDate(we.getDate()+6);
+                if(taskDate>=ws&&taskDate<=we){
+                    const tgt=document.querySelector(`[data-date="${newDate}"].crm-cards`)||
+                              document.querySelector(`.crm-cards[data-date="${newDate}"]`);
+                    if(tgt){
+                        tgt.appendChild(taskCard);
+                        const emp=tgt.querySelector('.crm-empty-col');
+                        if(emp)emp.remove();
+                    }
+                }else{
+                    taskCard.remove();
+                }
+                updateEmptyStates();
+                updateCounts();
+            }
+            updateTaskDate(leadId,newDate);
+        }
+    });
+}
+
+function attachDrag(){
+    document.querySelectorAll('.crm-kcard').forEach(card=>{
+        card.addEventListener('dragstart',handleDragStart);
+        card.addEventListener('dragend',handleDragEnd);
+    });
+    document.querySelectorAll('.crm-cards').forEach(c=>{
+        c.addEventListener('dragover',handleDragOver);
+        c.addEventListener('drop',handleDrop);
+        c.addEventListener('dragleave',handleDragLeave);
+    });
+}
+
+function handleDragStart(e){
+    draggedCard=this;draggedLeadId=parseInt(this.dataset.leadId);
+    this.classList.add('dragging');e.dataTransfer.effectAllowed='move';
+}
+function handleDragEnd(){
+    this.classList.remove('dragging');
+    document.querySelectorAll('.crm-col').forEach(c=>c.classList.remove('drag-over'));
+}
+function handleDragOver(e){
+    e.preventDefault();e.dataTransfer.dropEffect='move';
+    this.closest('.crm-col').classList.add('drag-over');
+}
+function handleDragLeave(e){
+    if(e.target.classList.contains('crm-cards'))
+        this.closest('.crm-col').classList.remove('drag-over');
+}
+function handleDrop(e){
+    e.preventDefault();
+    const col=this.closest('.crm-col');col.classList.remove('drag-over');
+    if(!draggedCard)return;
+    const newDate=this.dataset.date;
+    const oldDate=draggedCard.closest('.crm-cards').dataset.date;
+    if(newDate===oldDate)return;
+    this.appendChild(draggedCard);
+    updateEmptyStates();updateCounts();
+    updateTaskDate(draggedLeadId,newDate);
+}
+
+function updateTaskDate(leadId,newDate){
+    const token=document.querySelector('input[name="__RequestVerificationToken"]');
+    fetch('@Url.Action("UpdateTaskDate","Tasks")',{
+        method:'POST',
+        headers:{'Content-Type':'application/json','RequestVerificationToken':token?token.value:''},
+        body:JSON.stringify({leadId,newDate})
+    })
+    .then(r=>r.json())
+    .then(data=>{
+        if(data.success){
+            crmToast(data.message||'Task date updated','ok');
+            const taskDate=new Date(newDate);
+            const ws=new Date(currentWeekStart);
+            const we=new Date(ws);we.setDate(we.getDate()+6);
+            if(taskDate<ws||taskDate>we){
+                const tc=document.querySelector(`[data-lead-id="${leadId}"]`);
+                if(tc){tc.remove();updateEmptyStates();updateCounts();}
+            }
+        }else{
+            crmToast(data.message||'Error updating task date','er');
+            loadTasks(currentWeekStart);
+        }
+    })
+    .catch(()=>{crmToast('Error updating task date','er');loadTasks(currentWeekStart);});
+}
+
+function updateEmptyStates(){
+    document.querySelectorAll('.crm-cards').forEach(c=>{
+        const cards=c.querySelectorAll('.crm-kcard');
+        const emp=c.querySelector('.crm-empty-col');
+        if(cards.length===0&&!emp)c.innerHTML='<div class="crm-empty-col"><i class="fa fa-clipboard-list"></i>No tasks</div>';
+        else if(cards.length>0&&emp)emp.remove();
+    });
+}
+
+function updateCounts(){
+    document.querySelectorAll('.crm-col').forEach(col=>{
+        const cnt=col.querySelector('.crm-col-cnt');
+        if(cnt)cnt.textContent=col.querySelectorAll('.crm-kcard').length;
+    });
+}
+
+/* ━━ TOAST ━━ */
+function crmToast(msg,type='ok'){
+    if(typeof showToast==='function'){showToast(msg,type==='ok'?'success':type==='er'?'error':'warning');return;}
+    const box=document.getElementById('crmTbox')||createTbox();
+    const t=document.createElement('div');
+    t.style.cssText=`padding:.38rem .75rem;border-radius:4px;font-size:.72rem;font-weight:600;display:flex;align-items:center;gap:5px;box-shadow:0 4px 14px rgba(0,0,0,.13);animation:tslIn .2s ease;max-width:260px;margin-bottom:3px;color:#FFFFFF;background:${type==='ok'?'#16A34A':type==='er'?'#DC2626':'#F59E0B'}`;
+    const ico=type==='ok'?'fa-check-circle':type==='er'?'fa-circle-exclamation':'fa-triangle-exclamation';
+    t.innerHTML=`<i class="fa ${ico}" style="font-size:.75rem"></i>${msg}`;
+    box.appendChild(t);
+    setTimeout(()=>{t.style.transition='.25s';t.style.opacity='0';t.style.transform='translateX(110%)';setTimeout(()=>t.remove(),260)},3000);
+}
+function createTbox(){
+    const b=document.createElement('div');
+    b.id='crmTbox';b.style.cssText='position:fixed;top:48px;right:10px;z-index:3000;pointer-events:none;display:flex;flex-direction:column;';
+    const style=document.createElement('style');
+    style.textContent='@@keyframes tslIn{from{transform:translateX(110%);opacity:0}to{transform:none;opacity:1}}';
+    document.head.appendChild(style);
+    document.body.appendChild(b);return b;
+}
+</script>
+}

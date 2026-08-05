@@ -1,0 +1,24 @@
+<script>
+(function() {
+    var isDark = localStorage.getItem('darkMode') === 'enabled';
+    var bgColor = isDark ? '#1A2332' : '#F0F4F8';
+    var sidebarBg = isDark ? '#1E2A3A' : '#F0F4F8';
+
+    // Fix html background immediately (overrides inline style for light mode)
+    document.documentElement.style.setProperty('background-color', bgColor, 'important');
+    if (isDark) document.documentElement.classList.add('dark-mode');
+    if (!isDark) document.documentElement.style.backgroundColor = bgColor;
+
+    var s = document.createElement('style');
+    s.id = 'critical-freeze-styles';
+    s.textContent =
+        'html,body,.wrapper,.main,.content{background-color:' + bgColor + '!important}' +
+        '.sidebar{background:' + sidebarBg + '!important;position:fixed!important}' +
+        '.sidebar,.sidebar *{transition:none!important;animation:none!important}' +
+        'body:not(.page-loaded) *{transition:none!important}';
+    document.head.appendChild(s);
+})();
+</script>
+
+
+

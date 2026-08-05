@@ -1,0 +1,522 @@
+@model List<CRM.MasterDb.Models.TenantModel>
+@{
+    ViewData["Title"] = "Manage Tenants";
+}
+
+<style>
+    :root {
+        --teal: #1A6FA8;
+        --teal-dk: #0F4C75;
+        --teal-lt: #E8EDF2;
+        --teal-ft: #F0F4F8;
+        --bg: #F0F4F8;
+        --surface: #FFFFFF;
+        --border: #E2E8F0;
+        --txt: #2A3A4A;
+        --muted: #6B7B8D;
+        --success: #16A34A;
+        --danger: #DC2626;
+        --warn: #F59E0B;
+        --r: 6px;
+        --sh: 0 1px 3px rgba(0,0,0,0.06);
+        --sh2: 0 3px 12px rgba(26,111,168,0.12);
+        --fs: 11.5px;
+        --fs-sm: 11px;
+        --fs-xs: 10.5px;
+    }
+    .content { background: var(--bg); }
+
+    /* ── BREADCRUMB ── */
+    .t-bc { font-size: var(--fs-sm); margin-bottom: 5px; }
+    .t-bc a { color: #8FA3B8; text-decoration: none; }
+    .t-bc a:hover { color: var(--teal); }
+    .t-bc .breadcrumb-item.active { color: var(--teal); font-weight: 600; }
+    .t-bc .breadcrumb-item + .breadcrumb-item::before { color: #B8C8D8; }
+
+    /* ── HEADER ── */
+    .t-hdr {
+        background: linear-gradient(125deg, #1A6FA8 0%, #D4A45A 55%, #1A6FA8 100%);
+        border-radius: var(--r);
+        padding: 8px 12px;
+        display: flex; align-items: center; justify-content: space-between;
+        gap: 8px; margin-bottom: 6px; flex-wrap: wrap;
+    }
+    .t-hdr-left { display: flex; align-items: center; gap: 8px; }
+    .t-hdr-ico {
+        width: 28px; height: 28px;
+        background: rgba(255,255,255,0.18); border: 1px solid rgba(255,255,255,0.3);
+        border-radius: 5px; display: flex; align-items: center; justify-content: center;
+        color: #FFFFFF; font-size: 12px; flex-shrink: 0;
+    }
+    .t-hdr h1 { font-size: 13px !important; font-weight: 700 !important; color: #FFFFFF !important; margin: 0 !important; line-height: 1.2 !important; }
+    .t-hdr p  { font-size: 9.5px !important; color: rgba(255,255,255,0.7) !important; margin: 0 !important; }
+    .t-hdr-stats { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
+    .t-stat {
+        background: rgba(255,255,255,0.18); border: 1px solid rgba(255,255,255,0.25);
+        border-radius: 5px; padding: 2px 8px; text-align: center; line-height: 1.1;
+        min-width: 55px;
+    }
+    .t-stat-num { font-size: 14px; font-weight: 800; color: #FFFFFF; display: block; }
+    .t-stat-lbl { font-size: 8px; color: rgba(255,255,255,0.8); text-transform: uppercase; letter-spacing: 0.3px; }
+
+    /* ── FILTER CARD ── */
+    .t-filter {
+        background: var(--surface); border-radius: var(--r);
+        padding: 7px 10px; border: 1px solid var(--border); box-shadow: var(--sh);
+        margin-bottom: 6px;
+    }
+    .t-filter-row {
+        display: grid;
+        grid-template-columns: 1fr 150px auto auto;
+        gap: 6px; align-items: end;
+    }
+    .t-filter label {
+        font-size: var(--fs-xs) !important; font-weight: 600 !important;
+        color: #6B7B8D !important; margin-bottom: 2px !important; display: block;
+    }
+    .t-filter .form-control,
+    .t-filter .form-select {
+        font-size: var(--fs-sm) !important; padding: 3px 7px !important;
+        height: 27px !important; border-color: #E2E8F0 !important;
+        border-radius: 5px !important; background: #FFFFFF !important;
+        color: var(--txt) !important; border: 1px solid #E2E8F0 !important;
+        transition: border-color 0.15s, box-shadow 0.15s !important;
+    }
+    .t-filter .form-control:focus,
+    .t-filter .form-select:focus {
+        border-color: var(--teal) !important;
+        box-shadow: 0 0 0 2px rgba(26,111,168,0.1) !important;
+        background: #FFFFFF !important; outline: none !important;
+    }
+    .t-filter .form-control::placeholder { color: #B8C8D8 !important; font-size: var(--fs-xs) !important; }
+
+    /* Filter buttons */
+    .t-fbtn {
+        display: inline-flex; align-items: center; gap: 3px;
+        padding: 3px 10px; border-radius: 5px; font-size: var(--fs-xs);
+        font-weight: 600; cursor: pointer; border: 1px solid; white-space: nowrap;
+        height: 27px; transition: all 0.15s;
+    }
+    .t-fbtn i { font-size: 9px; }
+    .t-fbtn-primary { background: var(--teal); border-color: var(--teal-dk); color: #FFFFFF; }
+    .t-fbtn-primary:hover { background: var(--teal-dk); color: #FFFFFF; }
+    .t-fbtn-outline { background: #FFFFFF; border-color: #E2E8F0; color: #6B7B8D; text-decoration: none !important; }
+    .t-fbtn-outline:hover { border-color: var(--teal); color: var(--teal); background: var(--teal-ft); }
+
+    /* Search icon */
+    .t-search-wrap { position: relative; }
+    .t-search-ico {
+        position: absolute; left: 7px; top: 50%; transform: translateY(-50%);
+        color: #B8C8D8; font-size: 10px; pointer-events: none;
+    }
+    .t-search-wrap .form-control { padding-left: 22px !important; }
+
+    /* ── TENANTS GRID (2 columns) ── */
+    #tenantsGrid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 4px;
+    }
+
+    /* ── TENANT CARD ── */
+    .t-card {
+        background: var(--surface); border-radius: var(--r);
+        border: 1px solid var(--border); box-shadow: var(--sh);
+        transition: border-color 0.18s, box-shadow 0.18s, transform 0.18s;
+        position: relative; overflow: hidden;
+    }
+    .t-card:hover {
+        box-shadow: var(--sh2);
+        border-color: rgba(26,111,168,0.25);
+        transform: translateY(-1px);
+    }
+    .t-card::before {
+        content: '';
+        position: absolute; left: 0; top: 0; bottom: 0;
+        width: 3px; border-radius: 6px 0 0 6px;
+        background: var(--teal);
+    }
+    .t-card.is-suspended::before { background: var(--danger); }
+
+    .t-card-body { padding: 7px 10px 7px 12px; }
+    .t-card-row { display: flex; align-items: flex-start; gap: 6px; }
+
+    /* Avatar */
+    .t-avatar {
+        width: 30px; height: 30px; border-radius: 6px; flex-shrink: 0;
+        background: var(--teal-lt); border: 1.5px solid rgba(26,111,168,0.18);
+        display: flex; align-items: center; justify-content: center;
+        color: var(--teal); font-size: 12px; font-weight: 700;
+    }
+    .t-card.is-suspended .t-avatar { background: #FEE2E2; border-color: rgba(220,38,38,0.15); color: var(--danger); }
+
+    /* Info */
+    .t-info { flex: 1; min-width: 0; }
+    .t-company {
+        font-size: var(--fs); font-weight: 700; color: var(--txt);
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        margin-bottom: 2px;
+    }
+    .t-meta { display: flex; flex-wrap: wrap; gap: 0 8px; margin-bottom: 2px; }
+    .t-meta-item { display: flex; align-items: center; gap: 2px; font-size: var(--fs-xs); color: var(--muted); }
+    .t-meta-item i { font-size: 9px; width: 10px; color: var(--teal); }
+    .t-meta-item a { color: var(--teal); text-decoration: none; font-weight: 500; }
+    .t-meta-item a:hover { text-decoration: underline; }
+
+    /* Badges */
+    .t-badge {
+        display: inline-flex; align-items: center; gap: 3px;
+        padding: 1px 6px; border-radius: 10px;
+        font-size: 9.5px; font-weight: 700; white-space: nowrap;
+    }
+    .t-badge i { font-size: 8px; }
+    .t-badge-active    { background: #DCFCE7; color: #15803D; }
+    .t-badge-suspended { background: #FEE2E2; color: #991B1B; }
+    .t-badge-inactive  { background: #F0F4F8; color: #2A3A4A; }
+
+    /* Plan badge */
+    .t-plan {
+        font-size: 9px; padding: 1px 5px; border-radius: 4px; font-weight: 700;
+        background: rgba(26,111,168,0.1); color: var(--teal-dk); border: 1px solid rgba(26,111,168,0.18);
+    }
+
+    /* Actions */
+    .t-actions { display: flex; flex-direction: column; gap: 3px; flex-shrink: 0; align-items: flex-end; }
+    .t-act-btn {
+        display: inline-flex; align-items: center; gap: 2px;
+        padding: 2px 8px; border-radius: 4px; font-size: var(--fs-xs);
+        font-weight: 600; cursor: pointer; border: none; white-space: nowrap;
+        transition: all 0.15s;
+    }
+    .t-act-btn i { font-size: 9px; }
+    .t-act-suspend  { background: #FEF3C7; color: #B45309; }
+    .t-act-suspend:hover  { background: var(--warn); color: #FFFFFF; }
+    .t-act-activate { background: #DCFCE7; color: #15803D; }
+    .t-act-activate:hover { background: var(--success); color: #FFFFFF; }
+    .t-act-login    { background: var(--teal-lt); color: var(--teal-dk); }
+    .t-act-login:hover    { background: var(--teal); color: #FFFFFF; }
+
+    /* ── EMPTY STATE ── */
+    .t-empty {
+        text-align: center; padding: 2rem 1.5rem;
+        background: var(--surface); border-radius: var(--r);
+        border: 1px solid var(--border); box-shadow: var(--sh);
+        grid-column: 1 / -1;
+    }
+    .t-empty i { font-size: 2rem; color: #E2E8F0; margin-bottom: 0.5rem; display: block; }
+
+    /* ── PAGINATION ── */
+    .t-pag {
+        background: var(--surface); border-radius: var(--r);
+        padding: 6px 10px; border: 1px solid var(--border); box-shadow: var(--sh);
+        margin-top: 5px; display: flex; align-items: center; justify-content: space-between;
+        flex-wrap: wrap; gap: 5px;
+    }
+    .t-pag-info { font-size: var(--fs-xs); color: var(--muted); }
+    .t-pag-ul { display: flex; gap: 3px; list-style: none; margin: 0; padding: 0; }
+    .t-pag-ul .page-item .page-link {
+        padding: 2px 8px !important; font-size: var(--fs-xs) !important;
+        border-radius: 4px !important; border-color: var(--border) !important;
+        color: var(--teal) !important; background: var(--surface) !important;
+    }
+    .t-pag-ul .page-item.active .page-link { background: var(--teal) !important; border-color: var(--teal) !important; color: #FFFFFF !important; }
+    .t-pag-ul .page-item.disabled .page-link { opacity: 0.4; cursor: not-allowed; }
+    .t-pag-ul .page-link:hover:not(.active) { background: var(--teal-ft) !important; border-color: var(--teal) !important; }
+
+    /* ── RESPONSIVE ── */
+    @@media (max-width: 900px) {
+        #tenantsGrid { grid-template-columns: 1fr; }
+    }
+    @@media (max-width: 768px) {
+        .t-filter-row { grid-template-columns: 1fr 1fr; gap: 5px; }
+        .t-filter-row > *:nth-child(3),
+        .t-filter-row > *:nth-child(4) { grid-column: auto; }
+        #tenantsGrid { grid-template-columns: 1fr; }
+        .t-hdr { padding: 7px 10px; }
+        .t-hdr-stats { width: 100%; justify-content: space-between; }
+    }
+    @@media (max-width: 480px) {
+        .t-filter-row { grid-template-columns: 1fr; }
+        .t-actions { flex-direction: row; flex-wrap: wrap; justify-content: flex-end; }
+    }
+
+    /* ── DARK MODE ── */
+    html.dark-mode .t-filter   { background: #1A2332 !important; border-color: #2A3A4A !important; }
+    html.dark-mode .t-filter label { color: #8FA3B8 !important; }
+    html.dark-mode .t-filter .form-control,
+    html.dark-mode .t-filter .form-select { background: #1E2A3A !important; border-color: #2A3A4A !important; color: #B8C8D8 !important; }
+    html.dark-mode .t-card     { background: #1A2332 !important; border-color: #2A3A4A !important; }
+    html.dark-mode .t-company  { color: #B8C8D8 !important; }
+    html.dark-mode .t-meta-item { color: #8FA3B8 !important; }
+    html.dark-mode .t-avatar   { background: #1E2A3A !important; }
+    html.dark-mode .t-pag      { background: #1A2332 !important; border-color: #2A3A4A !important; }
+    html.dark-mode .t-pag-ul .page-link { background: #1E2A3A !important; border-color: #2A3A4A !important; }
+    html.dark-mode .t-fbtn-outline { background: #1E2A3A !important; border-color: #2A3A4A !important; color: #8FA3B8 !important; }
+    html.dark-mode .t-empty { background: #1A2332 !important; border-color: #2A3A4A !important; }
+    html.dark-mode .t-empty h5 { color: #B8C8D8 !important; }
+    html.dark-mode .t-empty p { color: #8FA3B8 !important; }
+    html.dark-mode .t-badge-active { background: rgba(220,252,231,0.12); color: #8FA3B8; }
+    html.dark-mode .t-badge-suspended { background: rgba(254,226,226,0.12); color: #E8C27E; }
+    html.dark-mode .t-badge-inactive { background: rgba(240,244,248,0.10); color: #8FA3B8; }
+    html.dark-mode .t-plan { background: rgba(26,111,168,0.15); color: #8FA3B8; border-color: rgba(26,111,168,0.25); }
+    html.dark-mode .t-act-suspend { background: rgba(254,243,199,0.12); color: #E8C27E; }
+    html.dark-mode .t-act-activate { background: rgba(220,252,231,0.12); color: #8FA3B8; }
+    html.dark-mode .t-act-login { background: rgba(26,111,168,0.15); color: #8FA3B8; }
+</style>
+
+<div class="content" style="padding: 8px 0;">
+
+    <!-- Breadcrumb -->
+    <nav class="t-bc" aria-label="breadcrumb">
+        <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item"><a href="/SuperAdmin/Dashboard">Dashboard</a></li>
+            <li class="breadcrumb-item active">Tenants</li>
+        </ol>
+    </nav>
+
+    <!-- Header -->
+    <div class="t-hdr">
+        <div class="t-hdr-left">
+            <div class="t-hdr-ico"><i class="fa-solid fa-building"></i></div>
+            <div>
+                <h1>Manage Tenants</h1>
+                <p>Oversee all registered tenant organizations</p>
+            </div>
+        </div>
+        <div class="t-hdr-stats">
+            <div class="t-stat">
+                <span class="t-stat-num">@Model.Count</span>
+                <span class="t-stat-lbl">Total</span>
+            </div>
+            <div class="t-stat">
+                <span class="t-stat-num">@Model.Count(t => !t.IsSuspended)</span>
+                <span class="t-stat-lbl">Active</span>
+            </div>
+            <div class="t-stat">
+                <span class="t-stat-num">@Model.Count(t => t.IsSuspended)</span>
+                <span class="t-stat-lbl">Suspended</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filter Card -->
+    <div class="t-filter">
+        <form method="get">
+            <div class="t-filter-row">
+                <div class="t-search-wrap">
+                    <i class="fa-solid fa-magnifying-glass t-search-ico"></i>
+                    <input name="search" class="form-control" placeholder="Search company, subdomain…" value="@ViewBag.Search">
+                </div>
+                <div>
+                   <select name="status" class="form-select">
+    <option value="">All Statuses</option>
+    <option value="active" selected="@(ViewBag.Status == "active")">Active</option>
+    <option value="suspended" selected="@(ViewBag.Status == "suspended")">Suspended</option>
+    <option value="inactive" selected="@(ViewBag.Status == "inactive")">Inactive</option>
+</select>
+                </div>
+                <button type="submit" class="t-fbtn t-fbtn-primary">
+                    <i class="fa-solid fa-filter"></i> Filter
+                </button>
+                <a href="/SuperAdmin/Tenants" class="t-fbtn t-fbtn-outline">
+                    <i class="fa-solid fa-rotate-left"></i> Clear
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Tenants Grid -->
+    <div id="tenantsGrid">
+        @if (!Model.Any())
+        {
+            <div class="t-empty">
+                <i class="fa-solid fa-building"></i>
+                <h5 style="font-size:12px;font-weight:700;color:#2A3A4A;margin-bottom:4px;">No Tenants Found</h5>
+                <p style="font-size:11px;color:#8FA3B8;margin-bottom:0;">Try adjusting the filters above</p>
+            </div>
+        }
+        @foreach (var tenant in Model)
+        {
+            var baseUrl = Context.RequestServices.GetRequiredService<IConfiguration>()[key: "BaseUrl"]?.TrimEnd(trimChar: '/');
+            var tenantUrl = $"{baseUrl?.Replace(oldValue: "://", "://" + tenant.Subdomain + ".")}";
+            var initial = (tenant.CompanyName ?? "?").Substring(0, 1).ToUpper();
+            var isSuspended = tenant.IsSuspended;
+
+            <div class="sa-card t-card @(isSuspended ? "is-suspended" : "")">
+                <div class="t-card-body">
+                    <div class="t-card-row">
+                        <!-- Avatar -->
+                        <div class="t-avatar">@initial</div>
+
+                        <!-- Info -->
+                        <div class="t-info">
+                            <div style="display:flex;align-items:center;gap:5px;margin-bottom:2px;flex-wrap:wrap;">
+                                <span class="t-company">@tenant.CompanyName</span>
+                                <span class="t-badge @(isSuspended ? "t-badge-suspended" : "t-badge-active")">
+                                    <i class="fa-solid @(isSuspended ? "fa-ban" : "fa-circle-check")"></i>
+                                    @(isSuspended ? "Suspended" : "Active")
+                                </span>
+                                <span class="t-plan">@tenant.Plan</span>
+                            </div>
+                            <div class="t-meta">
+                                <div class="t-meta-item">
+                                    <i class="fa-solid fa-globe"></i>
+                                    <a href="@tenantUrl" target="_blank">@(tenant.Subdomain ?? "-").uproptech.com</a>
+                                </div>
+                                <div class="t-meta-item">
+                                    <i class="fa-solid fa-calendar"></i>
+                                    @tenant.CreatedOn.ToString("MMM dd, yyyy")
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Actions -->
+                        <div class="t-actions">
+                            @if (isSuspended)
+                            {
+                                <button class="t-act-btn t-act-activate" onclick="activateTenant(@tenant.TenantId)">
+                                    <i class="fa-solid fa-play"></i> Activate
+                                </button>
+                            }
+                            else
+                            {
+                                <button class="t-act-btn t-act-suspend" onclick="suspendTenant(@tenant.TenantId, '@tenant.CompanyName')">
+                                    <i class="fa-solid fa-pause"></i> Suspend
+                                </button>
+                            }
+                            <button class="t-act-btn t-act-login" onclick="impersonateTenant(@tenant.TenantId, '@tenant.CompanyName')">
+                                <i class="fa-solid fa-user-secret"></i> Login As
+                            </button>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+
+    <!-- Pagination -->
+    <div id="paginationContainer" class="t-pag" style="display:none;">
+        <div class="t-pag-info">
+            Showing <span id="startRecord">1</span>–<span id="endRecord">8</span> of <span id="totalRecords">0</span> tenants
+        </div>
+        <nav>
+            <ul class="pagination pagination-sm mb-0 t-pag-ul" id="pagination"></ul>
+        </nav>
+    </div>
+
+</div>
+
+<script>
+    function suspendTenant(tenantId, name) {
+        Swal.fire({
+            title: 'Suspend ' + name + '?',
+            input: 'text',
+            inputLabel: 'Reason for suspension',
+            showCancelButton: true,
+            confirmButtonText: 'Suspend',
+            confirmButtonColor: '#DC2626'
+        }).then(function (result) {
+            if (result.isConfirmed) {
+                fetch('/SuperAdmin/SuspendTenant', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-Requested-With': 'XMLHttpRequest' },
+                    body: 'tenantId=' + tenantId + '&reason=' + encodeURIComponent(result.value || '')
+                }).then(function (r) { return r.json(); }).then(function (data) {
+                    if (data.success) location.reload();
+                    else Swal.fire('Error', data.message, 'error');
+                });
+            }
+        });
+    }
+
+    function activateTenant(tenantId) {
+        fetch('/SuperAdmin/ActivateTenant', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-Requested-With': 'XMLHttpRequest' },
+            body: 'tenantId=' + tenantId
+        }).then(function (r) { return r.json(); }).then(function (data) {
+            if (data.success) location.reload();
+            else Swal.fire('Error', data.message, 'error');
+        });
+    }
+
+    function impersonateTenant(tenantId, name) {
+        Swal.fire({
+            title: 'Login as Admin of ' + name + '?',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Yes, Impersonate'
+        }).then(function (result) {
+            if (result.isConfirmed) {
+                fetch('/SuperAdmin/ImpersonateTenant', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-Requested-With': 'XMLHttpRequest' },
+                    body: 'tenantId=' + tenantId
+                }).then(function (r) { return r.json(); }).then(function (data) {
+                    if (data.success) window.location.href = data.redirect;
+                    else Swal.fire('Error', data.message, 'error');
+                });
+            }
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        const itemsPerPage = 8;
+        const maxVisiblePages = 5;
+        const cards = Array.from(document.querySelectorAll('#tenantsGrid .sa-card'));
+        const totalItems = cards.length;
+        if (totalItems === 0) return;
+
+        const paginationContainer = document.getElementById('paginationContainer');
+        const pagination = document.getElementById('pagination');
+        const startRecord = document.getElementById('startRecord');
+        const endRecord = document.getElementById('endRecord');
+        const totalRecords = document.getElementById('totalRecords');
+        let currentPage = 1;
+        const totalPages = Math.ceil(totalItems / itemsPerPage);
+        totalRecords.textContent = totalItems;
+
+        function showPage(page) {
+            currentPage = page;
+            const start = (page - 1) * itemsPerPage;
+            const end = start + itemsPerPage;
+            cards.forEach(function (card, index) {
+                card.style.display = (index >= start && index < end) ? '' : 'none';
+            });
+            startRecord.textContent = start + 1;
+            endRecord.textContent = Math.min(end, totalItems);
+            renderPagination();
+        }
+
+        function renderPagination() {
+            pagination.innerHTML = '';
+            const prevLi = document.createElement('li');
+            prevLi.className = 'page-item' + (currentPage === 1 ? ' disabled' : '');
+            prevLi.innerHTML = '<a class="page-link" href="javascript:void(0)"><i class="fa-solid fa-chevron-left" style="font-size:9px;"></i></a>';
+            prevLi.onclick = function () { if (currentPage > 1) showPage(currentPage - 1); };
+            pagination.appendChild(prevLi);
+
+            let startPage = Math.max(1, currentPage - 2);
+            let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+            if ((endPage - startPage + 1) < maxVisiblePages) startPage = Math.max(1, endPage - maxVisiblePages + 1);
+
+            for (let i = startPage; i <= endPage; i++) {
+                const li = document.createElement('li');
+                li.className = 'page-item' + (i === currentPage ? ' active' : '');
+                li.innerHTML = '<a class="page-link" href="javascript:void(0)">' + i + '</a>';
+                (function (p) { li.onclick = function () { showPage(p); }; })(i);
+                pagination.appendChild(li);
+            }
+
+            const nextLi = document.createElement('li');
+            nextLi.className = 'page-item' + (currentPage === totalPages ? ' disabled' : '');
+            nextLi.innerHTML = '<a class="page-link" href="javascript:void(0)"><i class="fa-solid fa-chevron-right" style="font-size:9px;"></i></a>';
+            nextLi.onclick = function () { if (currentPage < totalPages) showPage(currentPage + 1); };
+            pagination.appendChild(nextLi);
+        }
+
+        if (totalPages > 1) paginationContainer.style.display = 'flex';
+        showPage(1);
+    });
+</script>

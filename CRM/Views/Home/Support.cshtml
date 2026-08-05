@@ -1,0 +1,169 @@
+@{
+    ViewData["Title"] = "Support";
+    var branding = ViewBag.Branding as CRM.Models.BrandingModel;
+    var settings = ViewBag.Settings as Dictionary<string, string>;
+    var companyName = settings?.GetValueOrDefault("CompanyName", "CRM Platform");
+    var supportEmail = settings?.GetValueOrDefault("CompanyEmail", "support@company.com");
+    var supportPhone = settings?.GetValueOrDefault("SupportPhone", "+91-9876543210");
+}
+
+<div class="container-fluid p-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-success text-white">
+                    <div class="d-flex align-items-center">
+                        @if (!string.IsNullOrEmpty(branding?.CompanyLogo))
+                        {
+                            <img src="@branding.CompanyLogo" alt="@companyName" style="height: 40px; margin-right: 15px;">
+                        }
+                        <h1 class="mb-0"><i class="fas fa-headset me-2"></i>Customer Support</h1>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-8">
+                            <h3 class="text-success mb-3">We're Here to Help</h3>
+                            <p class="lead">Our dedicated support team at @companyName is committed to ensuring you have the best experience with our CRM platform.</p>
+                            
+                            <div class="row mb-4">
+                                <div class="col-md-6">
+                                    <div class="card border-success">
+                                        <div class="card-body text-center">
+                                            <i class="fas fa-envelope fa-2x text-success mb-3"></i>
+                                            <h5>Email Support</h5>
+                                            <p class="text-muted">Get help via email</p>
+                                            <a href="mailto:@supportEmail" class="btn btn-success btn-sm">
+                                                @supportEmail
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="card border-success">
+                                        <div class="card-body text-center">
+                                            <i class="fas fa-phone fa-2x text-success mb-3"></i>
+                                            <h5>Phone Support</h5>
+                                            <p class="text-muted">@supportPhone</p>
+                                            <a href="tel:@supportPhone.Replace(" ", "").Replace("(", "").Replace(")", "").Replace("-", "")" class="btn btn-success btn-sm">
+                                                Call us directly
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <h4 class="mb-3">Support Hours</h4>
+                            <div class="table-responsive">
+                                <table class="table table-striped">
+                                    <tbody>
+                                        <tr>
+                                            <td><strong>Monday - Friday</strong></td>
+                                            <td>9:00 AM - 6:00 PM (EST)</td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Saturday</strong></td>
+                                            <td>10:00 AM - 4:00 PM (EST)</td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Sunday</strong></td>
+                                            <td>Closed</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <h4 class="mb-3">Frequently Asked Questions</h4>
+                            <div class="accordion" id="faqAccordion">
+                                <div class="accordion-item">
+                                    <h2 class="accordion-header" id="faq1">
+                                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faqCollapse1" aria-expanded="false" aria-controls="faqCollapse1">
+                                            How do I add a new lead to the system?
+                                        </button>
+                                    </h2>
+                                    <div id="faqCollapse1" class="accordion-collapse collapse" aria-labelledby="faq1" data-bs-parent="#faqAccordion">
+                                        <div class="accordion-body">
+                                            Navigate to <strong>Leads</strong> in the sidebar and click the <span class="badge bg-primary">Add Lead</span> button. Fill in the required details (Name, Contact, Email, Stage, etc.) and click <strong>Save Lead</strong>. The lead will appear in your leads list immediately.
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="accordion-item">
+                                    <h2 class="accordion-header" id="faq2">
+                                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faqCollapse2" aria-expanded="false" aria-controls="faqCollapse2">
+                                            How can I track my sales performance?
+                                        </button>
+                                    </h2>
+                                    <div id="faqCollapse2" class="accordion-collapse collapse" aria-labelledby="faq2" data-bs-parent="#faqAccordion">
+                                        <div class="accordion-body">
+                                            Go to the <strong>Dashboard</strong> and select <strong>Sales Overview</strong>. You can view metrics like total leads, conversion rates, revenue, and team performance. Use the date filters to analyze specific periods.
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="accordion-item">
+                                    <h2 class="accordion-header" id="faq3">
+                                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faqCollapse3" aria-expanded="false" aria-controls="faqCollapse3">
+                                            What are the different user roles available?
+                                        </button>
+                                    </h2>
+                                    <div id="faqCollapse3" class="accordion-collapse collapse" aria-labelledby="faq3" data-bs-parent="#faqAccordion">
+                                        <div class="accordion-body">
+                                            The system supports multiple roles: <strong>Admin</strong> (full access), <strong>Manager</strong> (team oversight), <strong>Sales/Agent</strong> (lead management), and <strong>Partner</strong> (channel partner access). Each role has specific permissions and access levels.
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card bg-light">
+                                <div class="card-body text-center">
+                                    @if (!string.IsNullOrEmpty(branding?.AboutUsImage))
+                                    {
+                                        <img src="@branding.AboutUsImage" alt="@companyName" class="img-fluid mb-3" style="max-height: 150px;">
+                                    }
+                                    <h5 class="card-title">Additional Support</h5>
+                                    <p class="card-text">Connect with us through social media</p>
+                                    <div class="d-flex justify-content-center gap-2 mb-3 flex-wrap">
+                                        @if (!string.IsNullOrEmpty(branding?.InstagramUrl))
+                                        {
+                                            <a href="@branding.InstagramUrl" target="_blank" class="btn btn-outline-danger btn-sm">
+                                                <i class="fab fa-instagram"></i> Instagram
+                                            </a>
+                                        }
+                                        @if (!string.IsNullOrEmpty(branding?.FacebookUrl))
+                                        {
+                                            <a href="@branding.FacebookUrl" target="_blank" class="btn btn-outline-primary btn-sm">
+                                                <i class="fab fa-facebook"></i> Facebook
+                                            </a>
+                                        }
+                                    </div>
+                                    <div class="d-flex justify-content-center gap-2 flex-wrap">
+                                        @if (!string.IsNullOrEmpty(branding?.TwitterUrl))
+                                        {
+                                            <a href="@branding.TwitterUrl" target="_blank" class="btn btn-outline-info btn-sm">
+                                                <i class="fab fa-twitter"></i> Twitter
+                                            </a>
+                                        }
+                                        @if (!string.IsNullOrEmpty(branding?.LinkedInUrl))
+                                        {
+                                            <a href="@branding.LinkedInUrl" target="_blank" class="btn btn-outline-dark btn-sm">
+                                                <i class="fab fa-linkedin"></i> LinkedIn
+                                            </a>
+                                        }
+                                        @if (!string.IsNullOrEmpty(branding?.WhatsAppNumber))
+                                        {
+                                            <a href="https://wa.me/@branding.WhatsAppNumber.Replace("+", "").Replace(" ", "")" target="_blank" class="btn btn-outline-success btn-sm">
+                                                <i class="fab fa-whatsapp"></i> WhatsApp
+                                            </a>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+

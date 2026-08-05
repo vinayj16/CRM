@@ -1,0 +1,437 @@
+@model CRM.Models.BrandingModel
+@{
+    ViewData["Title"] = "Landing Page Branding";
+}
+
+<style>
+    /* Mobile Button Layout */
+    @@media (max-width: 768px) {
+        .mobile-button-row {
+            display: flex !important;
+            gap: 0.5rem;
+            width: 100%;
+        }
+        
+        .mobile-button-row .btn {
+            flex: 1 !important;
+            padding: 0.75rem 1rem;
+            font-weight: 600;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+    }
+
+    .btn-remove-img {
+        width: 28px;
+        height: 28px;
+        padding: 0;
+        border-radius: 50%;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+
+    @@media (max-width: 768px) {
+        .btn-remove-img {
+            width: 20px !important;
+            height: 20px !important;
+            font-size: 10px;
+        }
+    }
+
+    /* ━━ DARK MODE FIXES ━━ */
+    html.dark-mode .card {
+        background: var(--card-bg);
+        border-color: var(--border-color);
+    }
+    html.dark-mode .card-header {
+        background: linear-gradient(135deg, #1A6FA8, #0F4C75);
+        border-color: var(--border-color);
+    }
+    html.dark-mode .card-title {
+        color: #FFFFFF !important;
+    }
+    html.dark-mode .form-label,
+    html.dark-mode .card-body label {
+        color: var(--text-primary) !important;
+    }
+    html.dark-mode .form-control {
+        background-color: #1E2A3A;
+        border-color: #2A3A4A;
+        color: var(--text-primary);
+    }
+    html.dark-mode .form-control:focus {
+        border-color: var(--blue);
+        box-shadow: 0 0 0 3px rgba(26,111,168,0.15);
+    }
+    html.dark-mode .text-muted {
+        color: #8FA3B8 !important;
+    }
+    html.dark-mode .text-primary {
+        color: #8FA3B8 !important;
+    }
+    html.dark-mode .border-bottom {
+        border-color: var(--border-color) !important;
+    }
+    html.dark-mode .border {
+        border-color: var(--border-color) !important;
+    }
+    html.dark-mode .btn-outline-danger {
+        color: #D4A45A;
+        border-color: #D4A45A;
+    }
+    html.dark-mode .btn-outline-danger:hover {
+        background: #DC2626;
+        color: #FFFFFF;
+    }
+    html.dark-mode h6 {
+        color: var(--text-primary) !important;
+    }
+</style>
+
+<div class="container-fluid">
+    <div class="page-hd"><i class="fa-solid fa-palette"></i><h4>Branding Settings</h4></div>
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Landing Page Branding Settings</h5>
+                </div>
+                <div class="card-body">
+                    <form id="brandingForm" enctype="multipart/form-data">
+                        @Html.AntiForgeryToken()
+                        
+                        <!-- Header Section -->
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <h6 class="text-primary border-bottom pb-2">Header & Navigation</h6>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Company Logo</label>
+                                    <input type="file" class="form-control" name="CompanyLogo" accept="image/*">
+                                    <small class="text-muted">Max size: 2MB. Formats: PNG, JPG, GIF</small>
+                                    @if (!string.IsNullOrEmpty(Model.CompanyLogo))
+                                    {
+                                        <div class="mt-2 d-flex align-items-center gap-2" id="companyLogoPreview">
+                                            <img src="@Model.CompanyLogo" alt="Company Logo" style="max-height: 60px;" class="border">
+                                            <button type="button" class="btn btn-sm btn-outline-danger btn-remove-img" onclick="removeBrandingImage('CompanyLogo', 'companyLogoPreview')" title="Remove Logo">
+                                                <i class="fas fa-times"></i>
+                                            </button>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Navbar Display Style</label>
+                                    @{
+                                        var logoStyles = new List<SelectListItem>
+                                        {
+                                            new SelectListItem("Logo Only", "LogoOnly", Model.LogoDisplayStyle == "LogoOnly"),
+                                            new SelectListItem("Logo + Company Name", "LogoWithName", Model.LogoDisplayStyle == "LogoWithName"),
+                                            new SelectListItem("Company Name Only", "NameOnly", Model.LogoDisplayStyle == "NameOnly")
+                                        };
+                                    }
+                                    @Html.DropDownList("LogoDisplayStyle", logoStyles, new { @class = "form-select" })
+                                    <small class="text-muted">How the navbar brand appears on the landing page. Company Name is taken from Settings page.</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Social Media Section -->
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <h6 class="text-primary border-bottom pb-2">Social Media Links</h6>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Twitter URL</label>
+                                    <input type="url" class="form-control" name="TwitterUrl" value="@Model.TwitterUrl" placeholder="https://twitter.com/yourcompany">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Facebook URL</label>
+                                    <input type="url" class="form-control" name="FacebookUrl" value="@Model.FacebookUrl" placeholder="https://facebook.com/yourcompany">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">LinkedIn URL</label>
+                                    <input type="url" class="form-control" name="LinkedInUrl" value="@Model.LinkedInUrl" placeholder="https://linkedin.com/company/yourcompany">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">WhatsApp Number</label>
+                                    <input type="text" class="form-control" name="WhatsAppNumber" value="@Model.WhatsAppNumber" placeholder="+91-9876543210">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Instagram URL</label>
+                                    <input type="url" class="form-control" name="InstagramUrl" value="@Model.InstagramUrl" placeholder="https://instagram.com/yourcompany">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- About Us Section -->
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <h6 class="text-primary border-bottom pb-2">About Us Section</h6>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">About Us Text</label>
+                                    <textarea class="form-control" name="AboutUsText" rows="4" placeholder="Enter about us description...">@Model.AboutUsText</textarea>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">About Us Image</label>
+                                    <input type="file" class="form-control" name="AboutUsImage" accept="image/*">
+                                    <small class="text-muted">Max size: 2MB. Formats: PNG, JPG, GIF</small>
+                                    @if (!string.IsNullOrEmpty(Model.AboutUsImage))
+                                    {
+                                        <div class="mt-2 d-flex align-items-center gap-2" id="aboutUsImagePreview">
+                                            <img src="@Model.AboutUsImage" alt="About Us" style="max-height: 100px;" class="border">
+                                            <button type="button" class="btn btn-sm btn-outline-danger btn-remove-img" onclick="removeBrandingImage('AboutUsImage', 'aboutUsImagePreview')" title="Remove Image">
+                                                <i class="fas fa-times"></i>
+                                            </button>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Footer Section -->
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <h6 class="text-primary border-bottom pb-2">Footer Section</h6>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Footer Logo</label>
+                                    <input type="file" class="form-control" name="FooterLogo" accept="image/*">
+                                    <small class="text-muted">Smaller version for footer. Max size: 2MB</small>
+                                    @if (!string.IsNullOrEmpty(Model.FooterLogo))
+                                    {
+                                        <div class="mt-2 d-flex align-items-center gap-2" id="footerLogoPreview">
+                                            <img src="@Model.FooterLogo" alt="Footer Logo" style="max-height: 40px;" class="border">
+                                            <button type="button" class="btn btn-sm btn-outline-danger btn-remove-img" onclick="removeBrandingImage('FooterLogo', 'footerLogoPreview')" title="Remove Logo">
+                                                <i class="fas fa-times"></i>
+                                            </button>
+                                        </div>
+                                    }
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Company Information</label>
+                                    <textarea class="form-control" name="CompanyInfo" rows="4" placeholder="Company Name, Address, Phone, Email...">@Model.CompanyInfo</textarea>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Terms & Conditions</label>
+                                    <textarea class="form-control" name="TermsAndConditions" rows="5" placeholder="&lt;h4&gt;Section Title&lt;/h4&gt;&#10;&lt;p&gt;Your terms content here...&lt;/p&gt;">@Model.TermsAndConditions</textarea>
+                                    <div class="d-flex align-items-center gap-2 mt-1">
+                                        <small class="text-muted">Supports HTML format.</small>
+                                        <button type="button" class="btn btn-outline-primary btn-sm py-0 px-2" style="font-size:0.75rem;" onclick="copySampleFormat('terms')"><i class="fa-solid fa-copy me-1"></i>Copy Sample Format</button>
+                                    </div>
+                                    
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Privacy Policy</label>
+                                    <textarea class="form-control" name="PrivacyPolicy" rows="5" placeholder="&lt;h4&gt;Section Title&lt;/h4&gt;&#10;&lt;p&gt;Your privacy policy content here...&lt;/p&gt;">@Model.PrivacyPolicy</textarea>
+                                    <div class="d-flex align-items-center gap-2 mt-1">
+                                        <small class="text-muted">Supports HTML format.</small>
+                                        <button type="button" class="btn btn-outline-primary btn-sm py-0 px-2" style="font-size:0.75rem;" onclick="copySampleFormat('privacy')"><i class="fa-solid fa-copy me-1"></i>Copy Sample Format</button>
+                                    </div>
+                                    
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Return, Refund & Cancellation Policy</label>
+                                    <textarea class="form-control" name="RefundPolicy" rows="5" placeholder="&lt;h4&gt;Section Title&lt;/h4&gt;&#10;&lt;p&gt;Your refund policy content here...&lt;/p&gt;">@Model.RefundPolicy</textarea>
+                                    <div class="d-flex align-items-center gap-2 mt-1">
+                                        <small class="text-muted">Supports HTML format.</small>
+                                        <button type="button" class="btn btn-outline-primary btn-sm py-0 px-2" style="font-size:0.75rem;" onclick="copySampleFormat('refund')"><i class="fa-solid fa-copy me-1"></i>Copy Sample Format</button>
+                                    </div>
+                                    
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="row">
+                            <div class="col-12">
+                                <div class="mobile-button-row">
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="fas fa-save"></i> Update Branding
+                                    </button>
+                                    <a href="@Url.Action("Index", "Settings")" class="btn btn-secondary">
+                                        <i class="fas fa-arrow-left"></i> Back to Settings
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('brandingForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        var formData = new FormData(this);
+        
+        fetch('@Url.Action("UpdateBranding", "SaasSetting")', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                Swal.fire({ icon: 'success', title: 'Success', text: data.message }).then(() => location.reload());
+            } else {
+                Swal.fire({ icon: 'error', title: 'Error', text: data.message });
+            }
+        })
+        .catch(error => {
+            Swal.fire({ icon: 'error', title: 'Error', text: 'An error occurred while updating branding settings.' });
+        });
+    });
+});
+
+// Live preview for Company Logo
+document.querySelector('input[name="CompanyLogo"]').addEventListener('change', function() {
+    previewBrandingImage(this, 'companyLogoPreview', 60, 'Company Logo', 'CompanyLogo');
+});
+
+// Live preview for About Us Image
+document.querySelector('input[name="AboutUsImage"]').addEventListener('change', function() {
+    previewBrandingImage(this, 'aboutUsImagePreview', 100, 'About Us', 'AboutUsImage');
+});
+
+// Live preview for Footer Logo
+document.querySelector('input[name="FooterLogo"]').addEventListener('change', function() {
+    previewBrandingImage(this, 'footerLogoPreview', 40, 'Footer Logo', 'FooterLogo');
+});
+
+function previewBrandingImage(input, previewId, maxHeight, altText, fieldName) {
+    var file = input.files[0];
+    if (!file) return;
+    var reader = new FileReader();
+    reader.onload = function(e) {
+        var existing = document.getElementById(previewId);
+        if (existing) {
+            existing.querySelector('img').src = e.target.result;
+        } else {
+            var div = document.createElement('div');
+            div.className = 'mt-2 d-flex align-items-center gap-2';
+            div.id = previewId;
+            div.innerHTML = '<img src="' + e.target.result + '" alt="' + altText + '" style="max-height: ' + maxHeight + 'px;" class="border">' +
+                '<button type="button" class="btn btn-sm btn-outline-danger btn-remove-img" onclick="removeBrandingImage(\'' + fieldName + '\', \'' + previewId + '\')" title="Remove"><i class="fas fa-times"></i></button>';
+            input.closest('.mb-3').appendChild(div);
+        }
+    };
+    reader.readAsDataURL(file);
+}
+
+function removeBrandingImage(fieldName, previewId) {
+    if (!confirm('Are you sure you want to remove this image?')) return;
+
+    fetch('@Url.Action("RemoveBrandingImage", "SaasSetting")', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(fieldName)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            document.getElementById(previewId).remove();
+        } else {
+            Swal.fire({ icon: 'error', title: 'Error', text: data.message });
+        }
+    })
+    .catch(() => Swal.fire({ icon: 'error', title: 'Error', text: 'Error removing image.' }));
+}
+
+
+
+function copySampleFormat(type) {
+    var samples = {
+        terms: `<h4>OVERVIEW</h4>
+<p>This website is operated by [Your Company Name]. By visiting our site and/or purchasing something from us, you engage in our "Service" and agree to be bound by the following terms and conditions.</p>
+
+<h4>SECTION 1 - GENERAL CONDITIONS</h4>
+<p>We reserve the right to refuse service to anyone for any reason at any time.</p>
+
+<h4>SECTION 2 - PRODUCTS OR SERVICES</h4>
+<p>Certain products or services may be available exclusively online through the website.</p>
+<ul>
+<li>All descriptions of products are subject to change at any time</li>
+<li>We reserve the right to discontinue any product at any time</li>
+</ul>
+
+<h4>SECTION 3 - GOVERNING LAW</h4>
+<p>These Terms of Service shall be governed by and construed in accordance with the laws of India.</p>
+
+<h4>CONTACT INFORMATION</h4>
+<p>Questions about the Terms of Service should be sent to us at <strong>your-email@company.com</strong>.</p>`,
+
+        privacy: `<h4>WHAT INFORMATION DO WE COLLECT?</h4>
+<p>We collect personal information you provide such as your Full Name, Address, Email and Phone Number.</p>
+
+<h4>HOW DO WE USE YOUR INFORMATION?</h4>
+<ul>
+<li>To provide and maintain our services</li>
+<li>To process transactions</li>
+<li>To send updates and support messages</li>
+</ul>
+
+<h4>PAYMENT</h4>
+<p>We use Razorpay for processing payments. Your card data is encrypted through PCI-DSS standards.</p>
+
+<h4>SECURITY</h4>
+<p>We take reasonable precautions and follow industry best practices to protect your personal information.</p>
+
+<h4>CONTACT US</h4>
+<p>For questions about this Privacy Policy, contact us at <strong>your-email@company.com</strong>.</p>`,
+
+        refund: `<h4>RETURNS</h4>
+<p>Our return policy lasts 10 days from the date of purchase.</p>
+<p><strong>Non-returnable items:</strong></p>
+<ul>
+<li>Downloadable software products</li>
+<li>Customized applications</li>
+<li>Services already rendered</li>
+</ul>
+
+<h4>REFUNDS</h4>
+<p>Once your refund request is received and approved, a credit will be applied to your original method of payment within 7 working days.</p>
+
+<h4>CANCELLATION</h4>
+<p>To be eligible for cancellation, the service must not have been delivered or started.</p>
+
+<h4>NEED HELP?</h4>
+<p>Contact us at <strong>your-email@company.com</strong> for questions related to refunds, returns and cancellations.</p>`
+    };
+
+    var sample = samples[type];
+    if (sample) {
+        navigator.clipboard.writeText(sample).then(function() {
+            Swal.fire({ icon: 'success', title: 'Copied!', text: 'Sample format copied to clipboard. Paste it in the textarea and edit with your content.', timer: 3000, showConfirmButton: false });
+        }).catch(function() {
+            var ta = document.createElement('textarea');
+            ta.value = sample;
+            document.body.appendChild(ta);
+            ta.select();
+            document.execCommand('copy');
+            document.body.removeChild(ta);
+            Swal.fire({ icon: 'success', title: 'Copied!', text: 'Sample format copied. Paste it in the textarea and edit.', timer: 3000, showConfirmButton: false });
+        });
+    }
+}
+</script>
+
+

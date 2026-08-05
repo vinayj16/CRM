@@ -1,0 +1,154 @@
+@{
+    var db = Context.RequestServices.GetService<CRM.AppDbContext>();
+    var branding = db?.Branding.FirstOrDefault() ?? new CRM.Models.BrandingModel();
+    var footerAddress = db?.Settings.FirstOrDefault(s => s.SettingKey == "CompanyAddress" && s.ChannelPartnerId == null)?.SettingValue ?? "";
+    var footerPhone = db?.Settings.FirstOrDefault(s => s.SettingKey == "CompanyPhone" && s.ChannelPartnerId == null)?.SettingValue ?? "";
+    var footerEmail = db?.Settings.FirstOrDefault(s => s.SettingKey == "CompanyEmail" && s.ChannelPartnerId == null)?.SettingValue ?? "";
+    var footerCompanyName = db?.Settings.FirstOrDefault(s => s.SettingKey == "CompanyName" && s.ChannelPartnerId == null)?.SettingValue ?? "PropTech CRM";
+    var footerMapUrl = db?.Settings.FirstOrDefault(s => s.SettingKey == "CompanyMapUrl" && s.ChannelPartnerId == null)?.SettingValue;
+}
+
+<div class="container-fluid bg-dark text-light footer pt-4 mt-4" style="flex-shrink: 0;">
+    <div class="container-fluid py-4">
+        <div class="row g-5">
+            <div class="col-lg-3 col-md-6" style="padding: 0 40px 0 15px;">
+                @if (!string.IsNullOrEmpty(branding?.FooterLogo))
+                {
+                    <div class="mb-3">
+                        <img src="@branding.FooterLogo" alt="Footer Logo" style="max-height: 60px; max-width: 200px; object-fit: contain;">
+                    </div>
+                }
+                else
+                {
+                    <h4 class="text-white mb-3">@footerCompanyName</h4>
+                }
+                @if (!string.IsNullOrEmpty(branding?.CompanyInfo))
+                {
+                    <div class="mb-3">@Html.Raw(branding.CompanyInfo.Replace("\n", "<br/>"))</div>
+                }
+                else
+                {
+                    <p>Building dreams, creating homes. Your trusted partner in real estate.</p>
+                }
+                <div class="d-flex pt-2">
+                    @if (!string.IsNullOrEmpty(branding?.TwitterUrl))
+                    {
+                        <a class="btn btn-social me-2" href="@branding.TwitterUrl" target="_blank" style="background-color: #2589C9; border-color: #2589C9; color: white; width:40px; height:40px; display:inline-flex; align-items:center; justify-content:center; border-radius:50%;"><i class="fab fa-twitter"></i></a>
+                    }
+                    @if (!string.IsNullOrEmpty(branding?.FacebookUrl))
+                    {
+                        <a class="btn btn-social me-2" href="@branding.FacebookUrl" target="_blank" style="background-color: #2589C9; border-color: #2589C9; color: white; width:40px; height:40px; display:inline-flex; align-items:center; justify-content:center; border-radius:50%;"><i class="fab fa-facebook-f"></i></a>
+                    }
+                    @if (!string.IsNullOrEmpty(branding?.InstagramUrl))
+                    {
+                        <a class="btn btn-social me-2" href="@branding.InstagramUrl" target="_blank" style="background: linear-gradient(45deg, #DC2626, #DC2626, #F59E0B, #DC2626); border: none; color: white; width:40px; height:40px; display:inline-flex; align-items:center; justify-content:center; border-radius:50%;"><i class="fab fa-instagram"></i></a>
+                    }
+                    @if (!string.IsNullOrEmpty(branding?.LinkedInUrl))
+                    {
+                        <a class="btn btn-social me-2" href="@branding.LinkedInUrl" target="_blank" style="background-color: #1A6FA8; border-color: #1A6FA8; color: white; width:40px; height:40px; display:inline-flex; align-items:center; justify-content:center; border-radius:50%;"><i class="fab fa-linkedin-in"></i></a>
+                    }
+                    @if (!string.IsNullOrEmpty(branding?.WhatsAppNumber))
+                    {
+                        <a class="btn btn-social me-2" href="https://wa.me/@(branding.WhatsAppNumber.Replace("+", "").Replace("-", "").Replace(" ", ""))" target="_blank" style="background-color: #16A34A; border-color: #16A34A; color: white; width:40px; height:40px; display:inline-flex; align-items:center; justify-content:center; border-radius:50%;"><i class="fab fa-whatsapp"></i></a>
+                    }
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-6">
+                <h4 class="text-white mb-3">Quick Links</h4>
+                <a class="btn btn-link" href="/Home/Landing#about">About Us</a>
+                <a class="btn btn-link" href="/Home/Landing#projects">Our Projects</a>
+                <a class="btn btn-link" href="/Home/Terms">Terms & Conditions</a>
+                <a class="btn btn-link" href="/Home/Privacy">Privacy Policy</a>
+                <a class="btn btn-link" href="/Home/RefundPolicy">Refund Policy</a>
+            </div>
+            @if (!string.IsNullOrEmpty(footerAddress) || !string.IsNullOrEmpty(footerPhone) || !string.IsNullOrEmpty(footerEmail))
+            {
+                <div class="col-lg-3 col-md-6" style="padding: 0 15px;">
+                    <h4 class="text-white mb-3">Contact Info</h4>
+                    @if (!string.IsNullOrEmpty(footerAddress))
+                    {
+                        @if (!string.IsNullOrEmpty(footerMapUrl))
+                        {
+                            <p class="mb-2"><i class="fa fa-map-marker-alt me-3"></i><a href="@footerMapUrl" target="_blank" style="color: inherit; text-decoration: none;">@footerAddress</a></p>
+                        }
+                        else
+                        {
+                            <p class="mb-2"><i class="fa fa-map-marker-alt me-3"></i>@footerAddress</p>
+                        }
+                    }
+                    @if (!string.IsNullOrEmpty(footerPhone))
+                    {
+                        <p class="mb-2"><i class="fa fa-phone-alt me-3"></i>@footerPhone</p>
+                    }
+                    @if (!string.IsNullOrEmpty(footerEmail))
+                    {
+                        <p class="mb-2"><i class="fa fa-envelope me-3"></i><a href="mailto:@footerEmail" style="color: inherit; text-decoration: none;">@footerEmail</a></p>
+                    }
+                </div>
+            }
+            <div class="col-lg-3 col-md-6" style="padding: 0 15px;">
+                <h4 class="text-white mb-3">Newsletter</h4>
+                <p>Stay updated with our latest projects and offers.</p>
+            </div>
+        </div>
+    </div>
+    <div class="container-fluid">
+        <div class="copyright">
+            <div class="row align-items-center">
+                <div class="col-lg-6 col-md-6 text-center text-md-start mb-0">
+                    @{
+                        var currentYear = DateTime.Now.Year;
+                        var copyrightText = Context.RequestServices.GetService<CRM.AppDbContext>()?.Settings.FirstOrDefault(s => s.SettingKey == "CopyrightText" && s.ChannelPartnerId == null)?.SettingValue;
+                    }
+                    <div class="landing-copyright-line">
+                        <span>
+                            <text>&copy; 2015-@currentYear</text>@if (!string.IsNullOrEmpty(copyrightText)){<a href="/Home/Landing" onclick="window.location.reload(); return false;" style="color: inherit; cursor: pointer;">@Html.Raw(copyrightText)</a>}else{<a class="border-bottom" href="/Home/Landing" onclick="window.location.reload(); return false;">@footerCompanyName</a>}<text>. All Rights Reserved.</text>
+                        </span>
+                        <span class="landing-copyright-sep"> | </span>
+                        <span>
+                            <text>Powered by </text>
+                            <a href="https://proptechit.com/" target="_blank">PropTech Solutions Private Limited</a>
+                        </span>
+                    </div>
+                </div>
+                <div class="col-lg-6 col-md-6 text-center text-md-end">
+                    <div class="footer-menu">
+                        <a href="/Home/Terms">Terms &amp; Conditions</a>
+                        <a href="/Home/Privacy">Privacy Policy</a>
+                        <a href="/Home/RefundPolicy">Return, Refund &amp; Cancellation Policy</a>
+                    </div>
+                </div>
+            </div>
+            <style>
+                .landing-copyright-line {
+                    display: flex;
+                    flex-wrap: nowrap;
+                    align-items: center;
+                    gap: 0;
+                }
+                .landing-copyright-sep {
+                    margin: 0 4px;
+                }
+                .landing-copyright-line > span:last-child {
+                    white-space: nowrap;
+                }
+                .landing-copyright-line > span:first-child {
+                    white-space: nowrap;
+                }
+                @@media (max-width: 1300px) {
+                    .landing-copyright-line {
+                        flex-wrap: wrap;
+                    }
+                    .landing-copyright-sep {
+                        display: none;
+                    }
+                    .landing-copyright-line > span:last-child {
+                        display: block;
+                        width: 100%;
+                        margin-top: 2px;
+                    }
+                }
+            </style>
+        </div>
+    </div>
+</div>

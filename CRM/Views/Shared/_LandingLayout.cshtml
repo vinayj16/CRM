@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <title>@ViewData["Title"] - PropTech CRM</title>
+    <meta content="" name="description">
+    <meta content="" name="keywords">
+
+    <!-- Favicons -->
+    <link rel="icon" type="image/png" href="~/icons/PropTech_Logo_Favicon.png">
+    <link rel="shortcut icon" href="~/icons/PropTech_Logo_Favicon.png">
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600&family=Nunito:wght@600;700;800&display=swap" rel="stylesheet">
+
+    <!-- Icon Font Stylesheet -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.10.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.4.1/font/bootstrap-icons.css" rel="stylesheet">
+
+    <!-- Libraries Stylesheet -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/OwlCarousel2/2.3.4/assets/owl.carousel.min.css" rel="stylesheet">
+
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Template Stylesheet -->
+    <style>
+        /* Global scrollbar styles - Hide scrollbar but keep functionality */
+        * {
+            scrollbar-width: none; /* Firefox */
+            -ms-overflow-style: none; /* IE/Edge */
+        }
+        
+        *::-webkit-scrollbar {
+            display: none; /* Chrome/Safari */
+        }
+        
+        html, body {
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+        
+        html::-webkit-scrollbar, body::-webkit-scrollbar {
+            display: none;
+        }
+
+        :root {
+            --primary: #2589C9;
+            --light: #F0F4F8;
+            --dark: #162436;
+        }
+
+        .fw-medium {
+            font-weight: 600 !important;
+        }
+
+        .fw-semi-bold {
+            font-weight: 700 !important;
+        }
+
+        .back-to-top {
+            position: fixed;
+            display: none;
+            right: 45px;
+            bottom: 45px;
+            z-index: 99;
+        }
+
+        /*** Progressive Logo Loading ***/
+        #spinner {
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity .5s ease-out, visibility 0s linear .5s;
+            z-index: 99999;
+            background: white !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+        }
+
+        #spinner.show {
+            transition: opacity .5s ease-out, visibility 0s linear 0s;
+            visibility: visible;
+            opacity: 1;
+        }
+
+        /*** Button ***/
+        .btn {
+            font-family: 'Nunito', sans-serif;
+            font-weight: 600;
+            transition: .5s;
+        }
+
+        .btn.btn-primary,
+        .btn.btn-secondary {
+            color: #FFFFFF;
+        }
+
+        .btn-square {
+            width: 38px;
+            height: 38px;
+        }
+
+        .btn-sm-square {
+            width: 32px;
+            height: 32px;
+        }
+
+        .btn-lg-square {
+            width: 48px;
+            height: 48px;
+        }
+
+        .btn-square,
+        .btn-sm-square,
+        .btn-lg-square {
+            padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: normal;
+            border-radius: 0px;
+        }
+
+        /*** Navbar ***/
+        .navbar {
+            transition: all 0.5s ease;
+            padding: 10px 0 !important;
+        }
+
+        .navbar.navbar-shrink {
+            padding: 5px 0 !important;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .navbar.navbar-shrink .navbar-brand img {
+            max-height: 35px !important;
+            transition: all 0.3s ease;
+        }
+
+        .navbar.navbar-shrink .navbar-brand h2 {
+            font-size: 1.3rem !important;
+            transition: all 0.3s ease;
+        }
+
+        .navbar.navbar-shrink .navbar-nav .nav-link {
+            padding: 12px 0 !important;
+        }
+
+        .navbar .dropdown-toggle::after {
+            border: none;
+            content: "\f107";
+            font-family: "Font Awesome 5 Free";
+            font-weight: 900;
+            vertical-align: middle;
+            margin-left: 5px;
+            transition: .5s;
+        }
+
+        .navbar .dropdown-toggle[aria-expanded=true]::after {
+            transform: rotate(-180deg);
+        }
+
+        .navbar-light .navbar-nav .nav-link {
+            margin-right: 30px;
+            padding: 18px 0;
+            color: #1E2A3A;
+            font-size: 15px;
+            font-weight: 500;
+            text-transform: uppercase;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+
+        .navbar-light .navbar-nav .nav-link:hover,
+        .navbar-light .navbar-nav .nav-link.active {
+            color: var(--primary);
+            background-color: transparent;
+        }
+
+        .navbar .btn-primary {
+            margin-left: 20px;
+            padding: 10px 20px;
+        }
+
+        .navbar.navbar-shrink .btn-primary {
+            padding: 8px 16px;
+        }
+
+        @@media (max-width: 991.98px) {
+            .navbar-dark .navbar-nav .nav-link,
+            .navbar-light .navbar-nav .nav-link {
+                margin-right: 0;
+                padding: 10px 0;
+            }
+
+            .navbar-collapse {
+                margin-top: 15px;
+                border-top: 1px solid #E2E8F0;
+            }
+        }
+
+        /*** Header carousel ***/
+        .header-carousel .owl-carousel-item {
+            position: relative;
+            min-height: 450px;
+            max-height: 500px;
+        }
+
+        @@media (max-width: 768px) {
+            .header-carousel .owl-carousel-item {
+                position: relative;
+                min-height: 400px;
+            }
+            
+            .header-carousel .owl-carousel-item img {
+                position: absolute;
+                width: 100%;
+                height: 100%;
+                object-fit: cover;
+            }
+        }
+
+        .header-carousel .owl-nav {
+            position: absolute;
+            top: 50%;
+            right: 8%;
+            transform: translateY(-50%);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header-carousel .owl-nav .owl-prev,
+        .header-carousel .owl-nav .owl-next {
+            margin: 7px 0;
+            width: 45px;
+            height: 45px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #FFFFFF;
+            background: transparent;
+            border: 1px solid #FFFFFF;
+            font-size: 22px;
+            transition: .5s;
+        }
+
+        .header-carousel .owl-nav .owl-prev:hover,
+        .header-carousel .owl-nav .owl-next:hover {
+            background: var(--primary);
+            border-color: var(--primary);
+        }
+
+        /*** Section Title ***/
+        .section-title {
+            position: relative;
+            display: inline-block;
+            text-transform: uppercase;
+        }
+
+        .section-title::before {
+            position: absolute;
+            content: "";
+            width: 100px;
+            height: 2px;
+            top: 50%;
+            left: -120px;
+            margin-top: -1px;
+            background: var(--primary);
+        }
+
+        .section-title::after {
+            position: absolute;
+            content: "";
+            width: 100px;
+            height: 2px;
+            top: 50%;
+            right: -120px;
+            margin-top: -1px;
+            background: var(--primary);
+        }
+
+        .section-title.text-start::before,
+        .section-title.text-end::after {
+            display: none;
+        }
+
+        /*** Service ***/
+        .service-item {
+            background: var(--light);
+            transition: .5s;
+        }
+
+        .service-item:hover {
+            margin-top: -10px;
+            background: var(--primary);
+        }
+
+        .service-item * {
+            transition: .5s;
+        }
+
+        .service-item:hover * {
+            color: var(--light) !important;
+        }
+
+
+        /*** Categories & Courses ***/
+        .category img,
+        .course-item img {
+            transition: .5s;
+        }
+
+        .category a:hover img,
+        .course-item:hover img {
+            transform: scale(1.1);
+        }
+
+        /*** Team ***/
+        .team-item img {
+            transition: .5s;
+        }
+
+        .team-item:hover img {
+            transform: scale(1.1);
+        }
+
+        /*** Testimonial ***/
+        .testimonial-carousel::before {
+            position: absolute;
+            content: "";
+            top: 0;
+            left: 0;
+            height: 100%;
+            width: 0;
+            background: linear-gradient(to right, rgba(255, 255, 255, 1) 0%, rgba(255, 255, 255, 0) 100%);
+            z-index: 1;
+        }
+
+        .testimonial-carousel::after {
+            position: absolute;
+            content: "";
+            top: 0;
+            right: 0;
+            height: 100%;
+            width: 0;
+            background: linear-gradient(to left, rgba(255, 255, 255, 1) 0%, rgba(255, 255, 255, 0) 100%);
+            z-index: 1;
+        }
+
+        @@media (min-width: 768px) {
+            .testimonial-carousel::before,
+            .testimonial-carousel::after {
+                width: 200px;
+            }
+        }
+
+        @@media (min-width: 992px) {
+            .testimonial-carousel::before,
+            .testimonial-carousel::after {
+                width: 300px;
+            }
+        }
+
+        .testimonial-carousel .owl-item .testimonial-text,
+        .testimonial-carousel .owl-item.center .testimonial-text * {
+            transition: .5s;
+        }
+
+        .testimonial-carousel .owl-item.center .testimonial-text {
+            background: var(--primary) !important;
+        }
+
+        .testimonial-carousel .owl-item.center .testimonial-text * {
+            color: #FFFFFF !important;
+        }
+
+        .testimonial-carousel .owl-dots {
+            margin-top: 24px;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+        }
+
+        .testimonial-carousel .owl-dot {
+            position: relative;
+            display: inline-block;
+            margin: 0 5px;
+            width: 15px;
+            height: 15px;
+            border: 1px solid #B8C8D8;
+            transition: .5s;
+        }
+
+        .testimonial-carousel .owl-dot.active {
+            background: var(--primary);
+            border-color: var(--primary);
+        }
+
+        /*** Footer ***/
+        .footer .btn.btn-social {
+            margin-right: 5px;
+            width: 35px;
+            height: 35px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--light);
+            font-weight: normal;
+            border: 1px solid #FFFFFF;
+            border-radius: 35px;
+            transition: .3s;
+        }
+
+        .footer .btn.btn-social:hover {
+            color: var(--primary);
+        }
+
+        .footer .btn.btn-link {
+            display: block;
+            margin-bottom: 5px;
+            padding: 0;
+            text-align: left;
+            color: #FFFFFF;
+            font-size: 15px;
+            font-weight: normal;
+            text-transform: capitalize;
+            transition: .3s;
+            text-decoration: none;
+        }
+
+        .footer .btn.btn-link:hover {
+            letter-spacing: 1px;
+            box-shadow: none;
+            text-decoration: none;
+        }
+
+        .footer .copyright {
+            padding: 25px 0;
+            font-size: 15px;
+            border-top: 1px solid rgba(256, 256, 256, .1);
+        }
+
+        .footer .copyright .row {
+            align-items: center;
+            row-gap: 4px;
+        }
+
+        .footer .copyright .col-md-6 {
+            margin-bottom: 0 !important;
+            line-height: 1.2;
+        }
+
+        .footer .copyright a {
+            color: var(--light);
+        }
+
+        .footer .footer-menu {
+            display: flex;
+            gap: 4px;
+            align-items: center;
+            justify-content: flex-end;
+            margin: 0;
+            padding-right: 60px;
+        }
+
+        .footer .footer-menu a {
+            flex: none;
+            white-space: nowrap;
+            padding: 0;
+            line-height: 1.2;
+            margin-right: 15px;
+            padding-right: 15px;
+            border-right: 1px solid rgba(255, 255, 255, .1);
+        }
+
+        .footer .footer-menu a:last-child {
+            margin-right: 0;
+            padding-right: 0;
+            border-right: none;
+        }
+
+        @@media (max-width: 767px) {
+            .footer .copyright .col-md-6 {
+                text-align: center !important;
+            }
+
+            .footer .footer-menu {
+                flex-direction: column;
+                gap: 6px;
+                justify-content: center;
+                align-items: center;
+                width: 100%;
+                margin: 0 auto;
+                padding: 0 8px;
+            }
+
+            .footer .footer-menu a {
+                display: block;
+                text-align: center;
+                white-space: normal;
+                padding: 2px 4px;
+                font-size: 0.85rem;
+                line-height: 1.4;
+                margin-right: 0;
+                padding-right: 0;
+                border-right: none;
+            }
+        }
+
+        .footer a {
+            text-decoration: none !important;
+            border-bottom: none !important;
+            box-shadow: none !important;
+        }
+
+            .footer a:hover {
+                text-decoration: none !important;
+                border-bottom: none !important;
+                box-shadow: none !important;
+            }
+
+        .footer .copyright a {
+            text-decoration: none !important;
+            border-bottom: none !important;
+        }
+
+        .footer * {
+            text-decoration: none !important;
+            border-bottom: none !important;
+        }
+    </style>
+</head>
+
+<body style="display: flex; flex-direction: column; min-height: 100vh;">
+    @RenderBody()
+
+    <!-- JavaScript Libraries -->
+    <script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/wow/1.1.2/wow.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/easing/1.4.1/easing.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/waypoints/4.0.1/jquery.waypoints.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/OwlCarousel2/2.3.4/owl.carousel.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/7.0.5/signalr.min.js"></script>
+
+    <!-- Template Javascript -->
+    <script>
+        (function ($) {
+            "use strict";
+
+            // Progressive Logo Loading - handled by Landing.cshtml
+            var spinner = function () {
+                // Spinner logic moved to Landing.cshtml to avoid duplicate handlers
+            };
+            spinner();
+
+            // Initiate the wowjs
+            new WOW().init();
+
+            // Sticky Navbar with shrink effect
+            $(window).scroll(function () {
+                var scroll = $(window).scrollTop();
+                if (scroll > 100) {
+                    $('.sticky-top').addClass('navbar-shrink');
+                    $('.sticky-top').css('top', '0px');
+                } else {
+                    $('.sticky-top').removeClass('navbar-shrink');
+                    $('.sticky-top').css('top', '-100px');
+                }
+            });
+
+            // Dropdown on mouse hover
+            const $dropdown = $(".dropdown");
+            const $dropdownToggle = $(".dropdown-toggle");
+            const $dropdownMenu = $(".dropdown-menu");
+            const showClass = "show";
+
+            $(window).on("load resize", function() {
+                if (this.matchMedia("(min-width: 992px)").matches) {
+                    $dropdown.hover(
+                    function() {
+                        const $this = $(this);
+                        $this.addClass(showClass);
+                        $this.find($dropdownToggle).attr("aria-expanded", "true");
+                        $this.find($dropdownMenu).addClass(showClass);
+                    },
+                    function() {
+                        const $this = $(this);
+                        $this.removeClass(showClass);
+                        $this.find($dropdownToggle).attr("aria-expanded", "false");
+                        $this.find($dropdownMenu).removeClass(showClass);
+                    }
+                    );
+                } else {
+                    $dropdown.off("mouseenter mouseleave");
+                }
+            });
+
+            // Back to top button
+            $(window).scroll(function () {
+                if ($(this).scrollTop() > 300) {
+                    $('.back-to-top').fadeIn('slow');
+                } else {
+                    $('.back-to-top').fadeOut('slow');
+                }
+            });
+            $('.back-to-top').click(function (e) {
+                e.preventDefault();
+                $('html, body').animate({scrollTop: 0}, 1000, 'swing');
+                return false;
+            });
+
+            // Header carousel
+            $(".header-carousel").owlCarousel({
+                autoplay: true,
+                smartSpeed: 1500,
+                items: 1,
+                dots: false,
+                loop: true,
+                nav : true,
+                navText : [
+                    '<i class="bi bi-chevron-left"></i>',
+                    '<i class="bi bi-chevron-right"></i>'
+                ]
+            });
+
+            // Testimonials carousel
+            $(".testimonial-carousel").owlCarousel({
+                autoplay: true,
+                smartSpeed: 1000,
+                center: true,
+                margin: 24,
+                dots: true,
+                loop: true,
+                nav : false,
+                responsive: {
+                    0:{
+                        items:1
+                    },
+                    768:{
+                        items:2
+                    },
+                    992:{
+                        items:3
+                    }
+                }
+            });
+
+        })(jQuery);
+
+    </script>
+
+    <script>
+        // Navbar active link highlighting
+        $(document).ready(function() {
+            var footerActiveNav = 'services';
+
+            function getActiveSection() {
+                var scrollPos = $(window).scrollTop() + 200;
+                var docHeight = $(document).height();
+                var winHeight = $(window).height();
+
+                // Near bottom of page = footer
+                if (scrollPos + winHeight >= docHeight - 50) {
+                    return 'footer';
+                }
+
+                var result = 'home';
+                var checkSections = ['home', 'about', 'projects', 'whychoose', 'footer'];
+                for (var i = 0; i < checkSections.length; i++) {
+                    var el = document.getElementById(checkSections[i]);
+                    if (el && scrollPos >= $(el).offset().top) {
+                        result = checkSections[i];
+                    }
+                }
+                return result;
+            }
+
+            $(window).on('scroll', function() {
+                var active = getActiveSection();
+
+                $('.navbar-nav .nav-link').removeClass('active');
+
+                if (active === 'whychoose' || active === 'footer') {
+                    $('[data-nav="' + footerActiveNav + '"]').addClass('active');
+                } else if (active === 'home') {
+                    $('a.nav-link[href="#home"]').addClass('active');
+                } else if (active === 'about') {
+                    $('a.nav-link[href="#about"]').addClass('active');
+                } else if (active === 'projects') {
+                    $('a.nav-link[href="#projects"]').addClass('active');
+                }
+            });
+
+            $(document).on('click', '.navbar-nav .nav-link[data-nav]', function() {
+                footerActiveNav = $(this).attr('data-nav');
+            });
+
+            // Trigger once on load
+            $(window).trigger('scroll');
+        });
+    </script>
+
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    @await RenderSectionAsync("Scripts", required: false)
+    
+    <!-- Chatbot Widget -->
+    @Html.Partial("_ChatWidget")
+</body>
+</html>
+
+

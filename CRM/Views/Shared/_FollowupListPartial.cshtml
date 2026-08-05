@@ -1,0 +1,441 @@
+@model List<CRM.Models.FollowUpModel>
+
+<div class="followups-list">
+    @if (Model == null || !Model.Any())
+    {
+        <div class="text-center py-5">
+            <i class="fa-solid fa-calendar-xmark text-body-tertiary" style="font-size: 2.2rem;"></i>
+            <h5 class="mt-3 text-body-tertiary">No Follow-ups Yet</h5>
+            <p class="text-body-secondary">Click "Add Follow-up" to create your first follow-up activity.</p>
+        </div>
+    }
+    else
+    {
+        <div class="timeline">
+            @foreach (var followup in Model)
+            {
+                var executive = (ViewBag.Executives as List<CRM.Models.UserModel>)?.FirstOrDefault(e => e.UserId == followup.ExecutiveId);
+                var executiveName = executive?.Username ?? "Unknown";
+                
+                var badgeClass = followup.Status switch
+                {
+                    "Hot" => "badge-phoenix-danger",
+                    "Warm" => "badge-phoenix-warning",
+                    "Cold" => "badge-phoenix-info",
+                    "Active" => "badge-phoenix-success",
+                    "Inactive" => "badge-phoenix-secondary",
+                    _ => "badge-phoenix-primary"
+                };
+
+                var stageClass = followup.Stage switch
+                {
+                    "New" => "badge-phoenix-primary",
+                    "Contacted" => "badge-phoenix-info",
+                    "Qualified" => "badge-phoenix-success",
+                    "Proposal" => "badge-phoenix-warning",
+                    "Negotiation" => "badge-phoenix-warning",
+                    "Won" => "badge-phoenix-success",
+                    "Lost" => "badge-phoenix-danger",
+                    _ => "badge-phoenix-secondary"
+                };
+
+                // Check if this follow-up is in the past
+                var isPastFollowup = followup.FollowUpDate.HasValue && followup.FollowUpDate.Value.Date < CRM.Helpers.IndianTime.Today;
+
+                <div class="timeline-item border-bottom pb-3 mb-3 @(isPastFollowup ? "past-followup" : "")">
+                    <div class="d-flex align-items-start gap-3">
+                        <div class="timeline-icon" style="flex-shrink: 0;">
+                            <div class="avatar avatar-m">
+                                <div class="avatar-name rounded-circle followup-avatar @(isPastFollowup ? "opacity-50" : "")" style="width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;">
+                                    <span class="fs-9 fw-bold">@executiveName.Substring(0, 1).ToUpper()</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="flex-1" style="min-width: 0;">
+                            <div class="d-flex justify-content-between align-items-start mb-2 flex-wrap gap-2">
+                                <div class="flex-1" style="min-width: 200px;">
+                                    <div class="d-flex flex-wrap align-items-center gap-1 mb-2">
+                                        <span class="badge @stageClass" style="font-size: 0.7rem; padding: 0.25rem 0.5rem;">@followup.Stage</span>
+                                        <span class="badge @badgeClass" style="font-size: 0.7rem; padding: 0.25rem 0.5rem;">@followup.Status</span>
+                                        @if (!string.IsNullOrEmpty(followup.Rating))
+                                        {
+                                            <span class="badge @badgeClass" style="font-size: 0.7rem; padding: 0.25rem 0.5rem;">@followup.Rating</span>
+                                        }
+                                        @if (isPastFollowup)
+                                        {
+                                            <span class="badge bg-secondary" style="font-size: 0.7rem; padding: 0.25rem 0.5rem;">Completed</span>
+                                        }
+                                    </div>
+                                    <p class="text-body-tertiary fs-9 mb-0 d-flex flex-wrap align-items-center gap-1" style="line-height: 1.6;">
+                                        <span><i class="fa-solid fa-user-tie me-1"></i>@executiveName</span>
+                                        <span class="mx-1">|</span>
+                                        <span>
+                                            <i class="fa-solid fa-calendar me-1"></i>
+                                            @if (followup.FollowUpDate.HasValue)
+                                            {
+                                                @followup.FollowUpDate.Value.ToString("MMM dd, yyyy")
+                                            }
+                                            else
+                                            {
+                                                <text>No date set</text>
+                                            }
+                                        </span>
+                                        @if (!string.IsNullOrEmpty(followup.FollowUpTime))
+                                        {
+                                            <span class="mx-1">|</span>
+                                            <span>
+                                                <i class="fa-solid fa-clock me-1"></i>
+                                                @if (TimeSpan.TryParse(followup.FollowUpTime, out var ts1))
+                                                {
+                                                    @DateTime.Today.Add(ts1).ToString("hh:mm tt")
+                                                }
+                                                else
+                                                {
+                                                    @followup.FollowUpTime
+                                                }
+                                            </span>
+                                        }
+                                    </p>
+                                </div>
+                                <div class="text-end" style="min-width: 120px;">
+                                    @if (followup.FollowUpDate.HasValue)
+                                    {
+                                        <small class="text-body-tertiary d-block">
+                                            <i class="fa-solid fa-calendar-check me-1"></i>@followup.FollowUpDate.Value.ToString("MMM dd, yyyy")
+                                        </small>
+                                        @if (!string.IsNullOrEmpty(followup.FollowUpTime))
+                                        {
+                                            <small class="text-body-tertiary d-block">
+                                                <i class="fa-solid fa-clock me-1"></i>
+                                                @if (TimeSpan.TryParse(followup.FollowUpTime, out var ts2))
+                                                {
+                                                    @DateTime.Today.Add(ts2).ToString("hh:mm tt")
+                                                }
+                                                else
+                                                {
+                                                    @followup.FollowUpTime
+                                                }
+                                            </small>
+                                        }
+                                    }
+                                </div>
+                            </div>
+                            
+                            @if (!string.IsNullOrEmpty(followup.Comments))
+                            {
+                                <div class="card bg-body-tertiary border-0 mt-2">
+                                    <div class="card-body py-2 px-3">
+                                        <p class="mb-0 fs-9 text-body-secondary">
+                                            <i class="fa-solid fa-quote-left me-1"></i>
+                                            @followup.Comments
+                                        </p>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+<style>
+    .followups-list {
+        animation: fadeIn 0.3s ease-in;
+    }
+
+    .timeline-item {
+        transition: all 0.3s ease;
+        position: relative;
+    }
+
+    /* Desktop-specific improvements */
+    @@media (min-width: 769px) {
+        .timeline-item {
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            border-radius: 16px;
+            border: 1px solid rgba(0, 0, 0, 0.05) !important;
+            background: #FFFFFF;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            transition: all 0.3s ease;
+        }
+
+        .timeline-item:hover {
+            background-color: #F0F4F8;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+            transform: translateY(-3px);
+            border-color: rgba(26,111,168, 0.2) !important;
+        }
+
+        .timeline-icon .avatar-name {
+            width: 56px;
+            height: 56px;
+            font-size: 1.25rem;
+            background: linear-gradient(135deg, #1A6FA8 0%, #125082 100%) !important;
+            color: white !important;
+            border: 3px solid rgba(26,111,168, 0.12);
+            box-shadow: 0 4px 15px rgba(18,80,130, 0.18);
+        }
+
+        .timeline-icon .avatar {
+            background: transparent !important;
+            border: none !important;
+            box-shadow: none !important;
+            width: auto;
+            height: auto;
+        }
+
+        /* Improved badge layout */
+        .timeline-item h6.mb-1 {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            margin-bottom: 0.75rem !important;
+        }
+
+        .timeline-item .badge {
+            font-size: 0.75rem !important;
+            padding: 0.35rem 0.65rem;
+            font-weight: 500;
+        }
+
+        /* Better info line spacing */
+        .timeline-item p.text-body-tertiary {
+            font-size: 0.875rem;
+            line-height: 1.6;
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 0.25rem;
+        }
+
+        .timeline-item p.text-body-tertiary .mx-2 {
+            margin-left: 0.5rem !important;
+            margin-right: 0.5rem !important;
+            color: #E2E8F0;
+        }
+
+        /* Right side alignment */
+        .timeline-item .text-end {
+            min-width: 120px;
+        }
+
+        .timeline-item .text-end small {
+            font-size: 0.8rem;
+            display: block;
+            margin-top: 0.25rem;
+            color: #6B7B8D;
+        }
+
+        /* Comments card */
+        .timeline-item .card.bg-body-tertiary {
+            margin-top: 0.875rem;
+            border-radius: 6px;
+            background-color: #F0F4F8 !important;
+        }
+
+        .timeline-item .card-body {
+            padding: 0.75rem 1rem;
+        }
+
+        .timeline-item .card-body p {
+            font-size: 0.875rem;
+            line-height: 1.5;
+            color: #2A3A4A;
+        }
+    }
+
+    /* Mobile - keep existing simple layout */
+    @@media (max-width: 768px) {
+        .timeline-item {
+            padding: 0.75rem 0;
+        }
+
+        .timeline-icon .avatar-name {
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .timeline-item .badge {
+            font-size: 0.7rem;
+        }
+    }
+
+    /* Enhanced Badge Styles */
+    .timeline-item .badge {
+        border-radius: 12px;
+        font-weight: 500;
+        padding: 0.25rem 0.5rem;
+        font-size: 0.7rem;
+        border: 1px solid transparent;
+        transition: all 0.2s ease;
+        white-space: nowrap;
+    }
+    
+    /* Better spacing and wrapping */
+    .timeline-item {
+        padding: 0.875rem;
+        border-radius: 8px;
+        transition: all 0.3s ease;
+    }
+    
+    .timeline-item:hover {
+        background-color: #FFFFFF;
+    }
+    
+    .timeline-item .flex-1 {
+        overflow: hidden;
+    }
+    
+    .timeline-item p {
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+    }
+    
+    /* Circle avatar spacing */
+    .timeline-icon {
+        margin-right: 0;
+    }
+    
+    .timeline-icon .avatar {
+        margin: 0;
+    }
+    
+    /* Badge color improvements */
+    .badge-phoenix-success {
+        background-color: rgba(21,128,61, 0.15);
+        color: #15803D;
+        border-color: rgba(21,128,61, 0.3);
+    }
+
+    .badge-phoenix-danger {
+        background-color: rgba(220,38,38, 0.15);
+        color: #DC2626;
+        border-color: rgba(220,38,38, 0.3);
+    }
+
+    .badge-phoenix-warning {
+        background-color: rgba(245,158,11, 0.15);
+        color: #F59E0B;
+        border-color: rgba(245,158,11, 0.3);
+    }
+
+    .badge-phoenix-info {
+        background-color: rgba(37,137,201, 0.15);
+        color: #2589C9;
+        border-color: rgba(37,137,201, 0.3);
+    }
+
+    .badge-phoenix-primary {
+        background-color: rgba(26,111,168, 0.15);
+        color: #1A6FA8;
+        border-color: rgba(26,111,168, 0.3);
+    }
+
+    .badge-phoenix-secondary {
+        background-color: rgba(107,123,141, 0.15);
+        color: #6B7B8D;
+        border-color: rgba(107,123,141, 0.3);
+    }
+
+    /* Past Follow-ups Styling */
+    .past-followup {
+        opacity: 0.65;
+        background-color: #F0F4F8;
+        position: relative;
+    }
+
+    .past-followup::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 4px;
+        background: #6B7B8D;
+        border-radius: 4px 0 0 4px;
+    }
+
+    .past-followup:hover {
+        opacity: 0.85;
+    }
+
+    @@keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    /* Icon improvements */
+    .timeline-item i.fa-solid {
+        opacity: 0.7;
+        font-size: 0.85em;
+    }
+
+    .timeline-item .fa-quote-left {
+        color: #6B7B8D;
+        font-size: 0.75rem;
+    }
+
+    /* Dark Mode Support */
+    .dark-mode .timeline-item {
+        background: #1E2A3A !important;
+        border-color: #2A3A4A !important;
+    }
+
+    .dark-mode .timeline-item:hover {
+        background-color: #2A3A4A !important;
+    }
+
+    .dark-mode .timeline-item .card.bg-body-tertiary {
+        background-color: #2A3A4A !important;
+    }
+
+    .dark-mode .timeline-item .card-body p {
+        color: #8FA3B8 !important;
+    }
+
+    .dark-mode .timeline-icon .avatar-name,
+    .dark-mode .followup-avatar {
+        background: rgba(26,111,168, 0.25) !important;
+        color: #2589C9 !important;
+        border-color: rgba(26,111,168, 0.3) !important;
+    }
+
+    .dark-mode .timeline-icon .avatar {
+        background: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
+    }
+
+    .followup-avatar {
+        background: #E2E8F0;
+        color: #1A6FA8;
+    }
+
+    .dark-mode .past-followup {
+        background-color: #2A3A4A !important;
+    }
+
+    .dark-mode .text-body-tertiary {
+        color: #8FA3B8 !important;
+    }
+
+    .dark-mode .text-body-secondary {
+        color: #8FA3B8 !important;
+    }
+</style>
+
+
+

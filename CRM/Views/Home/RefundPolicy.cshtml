@@ -1,0 +1,520 @@
+@{
+    ViewData["Title"] = "Return, Refund & Cancellation Policy";
+    Layout = "_LandingLayout";
+    var branding = ViewBag.Branding as CRM.Models.BrandingModel;
+    var settings = ViewBag.Settings as Dictionary<string, string>;
+    var companyName = settings?.GetValueOrDefault("CompanyName", "Our Company");
+    var companyEmail = settings?.GetValueOrDefault("CompanyEmail", "support@company.com");
+    var customContent = !string.IsNullOrWhiteSpace(branding?.RefundPolicy) ? branding.RefundPolicy : settings?.GetValueOrDefault("RefundContent", "");
+}
+
+@section Scripts {
+<style>
+/* ═══════════ TOKENS ═══════════ */
+:root {
+    --blue:   #1A6FA8;
+    --blue-d: #125082;
+    --blue-l: #F0F4F8;
+    --gold:   #D4A45A;
+    --gold-d: #B8883E;
+    --gold-l: #F0F4F8;
+    --dark:   #162436;
+    --text:   #2A3A4A;
+    --muted:  #6B7B8D;
+    --border: #E2E8F0;
+    --bg:     #FFFFFF;
+    --white:  #FFFFFF;
+    --grad:   linear-gradient(135deg, var(--blue) 0%, var(--dark) 100%);
+    --nav-h:  60px;
+    --r:      10px;
+    --sh:     0 4px 24px rgba(26,111,168,.10);
+    --sh2:    0 12px 40px rgba(26,111,168,.18);
+}
+
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth;overflow-x:hidden}
+body{font-family:'Segoe UI',system-ui,sans-serif;font-size:14px;color:var(--text);background:var(--bg);overflow-x:hidden}
+img{max-width:100%;display:block}
+a{color:inherit;text-decoration:none}
+.pp-wrap{max-width:900px;margin:0 auto;padding:0 20px}
+.fw-wrap{max-width:1200px;margin:0 auto;padding:0 20px}
+
+/* ═══════════ NAVBAR ═══════════ */
+
+/* ═══════════ HERO STRIP ═══════════ */
+.rf-hero{background:var(--grad);padding:28px 0 0;position:relative;overflow:hidden}
+.rf-hero::before{content:'';position:absolute;top:-50px;right:-50px;width:220px;height:220px;background:rgba(212,164,90,.07);border-radius:50%}
+.rf-hero::after{content:'';position:absolute;bottom:10px;left:30px;width:120px;height:120px;background:rgba(255,255,255,.04);border-radius:50%}
+.rf-hero-inner{display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:12px}
+.rf-hero-left{position:relative;z-index:1}
+.rf-breadcrumb{display:flex;align-items:center;gap:6px;font-size:11px;font-weight:600;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:8px}
+.rf-breadcrumb a{color:var(--gold);transition:opacity .2s}
+.rf-breadcrumb a:hover{opacity:.8}
+.rf-breadcrumb span{color:rgba(255,255,255,.25)}
+.rf-hero h1{font-size:1.8rem;font-weight:900;color:#FFFFFF;line-height:1.15;margin-bottom:6px;display:flex;align-items:center;gap:12px}
+.rf-hero h1 .icon-wrap{width:40px;height:40px;border-radius:10px;background:rgba(212,164,90,.22);border:1px solid rgba(212,164,90,.4);display:flex;align-items:center;justify-content:center;font-size:17px;color:var(--gold);flex-shrink:0}
+.rf-hero-sub{font-size:12px;color:rgba(255,255,255,.52);margin-bottom:20px}
+.rf-back-btn{display:inline-flex;align-items:center;gap:7px;padding:8px 18px;border-radius:7px;background:transparent;color:rgba(255,255,255,.85);border:1.5px solid rgba(255,255,255,.28);font-size:12px;font-weight:600;transition:all .25s;position:relative;z-index:1}
+.rf-back-btn:hover{background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.6);color:#FFFFFF}
+.rf-hero-wave{display:block;width:100%;margin-bottom:-2px}
+
+/* ═══════════ LAYOUT ═══════════ */
+.rf-layout{display:grid;grid-template-columns:210px 1fr;gap:24px;max-width:1100px;margin:0 auto;padding:28px 20px 52px;align-items:start}
+
+/* TOC */
+.rf-toc{position:sticky;top:calc(var(--nav-h) + 14px);background:#FFFFFF;border-radius:var(--r);border:1.5px solid var(--border);box-shadow:var(--sh);overflow:hidden}
+.rf-toc-head{padding:11px 15px;background:linear-gradient(90deg,var(--blue),var(--dark));font-size:10px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:var(--gold)}
+.rf-toc-list{list-style:none;padding:6px 0}
+.rf-toc-list li a{display:flex;align-items:center;gap:8px;padding:7px 14px;font-size:12px;font-weight:500;color:var(--muted);transition:all .2s;border-left:2px solid transparent}
+.rf-toc-list li a:hover,.rf-toc-list li a.active{color:var(--blue);background:var(--blue-l);border-left-color:var(--blue)}
+.toc-dot{width:7px;height:7px;border-radius:50%;background:var(--border);flex-shrink:0;transition:background .2s}
+.rf-toc-list li a:hover .toc-dot,.rf-toc-list li a.active .toc-dot{background:var(--blue)}
+
+/* CONTENT */
+.rf-content{min-width:0}
+
+.rf-updated{display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:20px;background:var(--blue-l);border:1px solid rgba(26,111,168,.2);font-size:11px;font-weight:600;color:var(--blue);margin-bottom:18px}
+.rf-updated i{font-size:10px}
+
+/* Alert / info banner */
+.rf-alert{
+    display:flex;align-items:flex-start;gap:12px;
+    background:linear-gradient(90deg,var(--gold-l),#FFFFFF);
+    border:1.5px solid rgba(212,164,90,.35);border-left:4px solid var(--gold);
+    border-radius:var(--r);padding:14px 18px;margin-bottom:20px;
+}
+.rf-alert i{color:var(--gold-d);font-size:16px;margin-top:1px;flex-shrink:0}
+.rf-alert-body strong{display:block;font-size:13px;font-weight:800;color:var(--dark);margin-bottom:3px}
+.rf-alert-body p{font-size:12px;color:var(--muted);margin:0;line-height:1.65}
+
+/* Section cards */
+.rf-section{
+    background:#FFFFFF;border-radius:var(--r);
+    border:1.5px solid var(--border);box-shadow:var(--sh);
+    margin-bottom:14px;overflow:hidden;transition:box-shadow .25s;
+    scroll-margin-top:calc(var(--nav-h) + 20px);
+}
+.rf-section:hover{box-shadow:var(--sh2);border-color:rgba(26,111,168,.25)}
+.rf-section-head{display:flex;align-items:center;gap:11px;padding:13px 18px;background:linear-gradient(90deg,var(--blue-l),#FFFFFF);border-bottom:1.5px solid var(--border)}
+.rf-sec-icon{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0}
+.rf-sec-icon.blue{background:rgba(26,111,168,.12);color:var(--blue)}
+.rf-sec-icon.gold{background:rgba(212,164,90,.15);border:1px solid rgba(212,164,90,.3);color:var(--gold-d)}
+.rf-section-head h4{font-size:13px;font-weight:800;color:var(--dark);margin:0;text-transform:uppercase;letter-spacing:.4px}
+.rf-section-body{padding:15px 18px}
+.rf-section-body p{font-size:13px;color:var(--muted);line-height:1.8;margin-bottom:8px}
+.rf-section-body p:last-child{margin-bottom:0}
+.rf-section-body strong{color:var(--text)}
+.rf-section-body a{color:var(--blue);font-weight:600}
+.rf-section-body a:hover{color:var(--blue-d)}
+.rf-section-body ul{list-style:none;margin:10px 0;padding:0}
+.rf-section-body ul li{font-size:13px;color:var(--muted);line-height:1.8;padding:4px 0 4px 20px;position:relative;border-bottom:1px solid var(--border)}
+.rf-section-body ul li:last-child{border-bottom:none}
+.rf-section-body ul li::before{content:'›';position:absolute;left:0;color:var(--gold);font-weight:800;font-size:16px;line-height:1.4}
+
+/* Timeline for refund process */
+.rf-timeline{margin:12px 0 4px;padding-left:0;list-style:none}
+.rf-timeline li{display:flex;align-items:flex-start;gap:12px;padding:10px 0;border-bottom:1px dashed var(--border);font-size:13px;color:var(--muted)}
+.rf-timeline li:last-child{border-bottom:none}
+.rf-tl-num{width:24px;height:24px;border-radius:50%;background:var(--blue);color:#FFFFFF;font-size:10px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
+.rf-tl-body strong{display:block;font-size:12px;font-weight:700;color:var(--dark);margin-bottom:2px}
+
+/* Highlight box */
+.rf-highlight{background:var(--blue-l);border:1px solid rgba(26,111,168,.2);border-left:3px solid var(--blue);border-radius:7px;padding:11px 14px;font-size:12px;color:var(--text);line-height:1.7;margin-top:10px;display:flex;align-items:flex-start;gap:9px}
+.rf-highlight i{color:var(--blue);margin-top:2px;flex-shrink:0}
+
+/* Days badge */
+.rf-days-badge{display:inline-flex;align-items:center;gap:8px;background:linear-gradient(90deg,var(--blue),var(--blue-d));color:#FFFFFF;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:800;margin-bottom:12px}
+.rf-days-badge span{font-size:1.4rem;font-weight:900;color:var(--gold)}
+
+/* Contact card */
+.rf-contact-card{background:var(--grad);border-radius:var(--r);padding:18px 22px;margin-top:14px;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap}
+.rf-contact-card h5{color:#FFFFFF;font-size:13px;font-weight:800;margin-bottom:3px}
+.rf-contact-card p{color:rgba(255,255,255,.6);font-size:12px;margin:0}
+.rf-contact-card a.cc-btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:7px;background:var(--gold);color:var(--dark);font-size:12px;font-weight:700;flex-shrink:0;transition:background .2s}
+.rf-contact-card a.cc-btn:hover{background:var(--gold-d)}
+
+/* Custom content */
+.rf-custom-content{background:#FFFFFF;border-radius:var(--r);border:1.5px solid var(--border);box-shadow:var(--sh);padding:24px 28px;line-height:1.8;font-size:14px;color:var(--text)}
+.rf-custom-content h1,.rf-custom-content h2,.rf-custom-content h3{color:var(--blue);margin:18px 0 8px}
+.rf-custom-content h4{color:var(--blue);font-weight:700;border-left:3px solid var(--gold);padding-left:10px;margin:18px 0 8px}
+.rf-custom-content a{color:var(--blue)}
+.rf-custom-content p{margin-bottom:10px}
+.rf-custom-content ul{margin:8px 0 8px 16px}
+.rf-custom-content li{margin-bottom:4px;color:var(--muted)}
+
+@@media(max-width:900px){.rf-layout{grid-template-columns:1fr}.rf-toc{position:static}}
+@@media(max-width:575px){
+    .rf-hero h1{font-size:1.25rem}
+    .rf-section-head{padding:11px 14px}
+    .rf-section-body{padding:13px 14px}
+    .rf-contact-card{flex-direction:column;align-items:flex-start}
+    .rf-custom-content{padding:16px}
+}
+
+/* ═══════════ FOOTER ═══════════ */
+.rf-footer{background:var(--dark);color:rgba(255,255,255,.75)}
+.footer-body{padding:42px 0 32px}
+.footer-grid{display:grid;grid-template-columns:2fr 1fr 1.5fr;gap:32px}
+.footer-col-title{font-size:10px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:var(--gold);margin-bottom:16px;padding-bottom:8px;border-bottom:2px solid rgba(26,111,168,.3);display:block}
+.footer-logo{max-height:44px;max-width:160px;object-fit:contain;margin-bottom:12px}
+.footer-bname{font-size:1.2rem;font-weight:800;color:#FFFFFF;display:block;margin-bottom:10px}
+.footer-brand p{font-size:12px;line-height:1.7;color:r#FFFFFFff;margin-bottom:14px}
+.footer-socials{display:flex;gap:7px;flex-wrap:wrap}
+.fsoc{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;transition:all .25s;color:#FFFFFF;flex-shrink:0}
+.fsoc:hover{transform:translateY(-3px);box-shadow:0 4px 12px rgba(0,0,0,.3)}
+.fsoc-tw{background:#2589C9}.fsoc-fb{background:#2589C9}
+.fsoc-ig{background:linear-gradient(45deg,#DC2626,#DC2626)}.fsoc-li{background:#1A6FA8}.fsoc-wa{background:#16A34A}
+.footer-lnk{display:flex;align-items:center;gap:7px;font-size:12px;#FFFFFFff;padding:4px 0;transition:color .2s}
+.footer-lnk i{font-size:9px;color:var(--blue)}
+.footer-lnk:hover{color:#D4A45A}
+.footer-contact{display:flex;align-items:flex-start;gap:8px;font-size:12px;color:r#FFFFFFff;margin-bottom:10px;line-height:1.5}
+.footer-contact i{color:var(--blue);margin-top:2px;flex-shrink:0}
+.footer-contact a{color:#D4A45A;transition:color .2s}
+.footer-contact a:hover{color:#FFFFFFff;}
+@@media(max-width:991px){.footer-grid{grid-template-columns:1fr 1fr}}
+@@media(max-width:575px){.footer-grid{grid-template-columns:1fr}}
+.footer-strip{background:rgba(0,0,0,.4);padding:12px 0}
+.footer-strip-inner{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}
+.footer-copy{font-size:13px;color:rgba(255,255,255,.45)}
+.footer-copy a{color:#D4A45A;transition:color .2s}
+.footer-copy a:hover{color:#FFFFFFff;}
+.footer-legal{display:flex;gap:14px;flex-wrap:wrap}
+.footer-legal a{font-size:13px;color:#FFFFFFff;transition:color .2s}
+.footer-legal a:hover{color:#D4A45A}
+@@media(max-width:575px){.footer-strip-inner{flex-direction:column;align-items:flex-start}.footer-legal{gap:8px}}
+
+/* back to top */
+.back-top{position:fixed;bottom:22px;right:22px;z-index:900;width:40px;height:40px;border-radius:8px;background:var(--gold);color:var(--dark);display:none;align-items:center;justify-content:center;font-size:15px;font-weight:700;box-shadow:0 4px 16px rgba(212,164,90,.4);transition:all .3s}
+.back-top:hover{background:var(--gold-d);transform:translateY(-3px)}
+.back-top.show{display:flex}
+</style>
+}
+
+
+
+<!-- ═══ HERO STRIP ═══ -->
+<div class="rf-hero">
+    <div class="fw-wrap">
+        <div class="rf-hero-inner">
+            <div class="rf-hero-left">
+                <div class="rf-breadcrumb">
+                    <a href="/Home/Landing"><i class="fa fa-home"></i> Home</a>
+                    <span>/</span>
+                    <span>Refund Policy</span>
+                </div>
+                <h1>
+                    <span class="icon-wrap"><i class="fa fa-undo-alt"></i></span>
+                    Return, Refund &amp; Cancellation
+                </h1>
+                <p class="rf-hero-sub">Our policies on returns, refunds, exchanges and cancellations</p>
+            </div>
+            <a href="/Home/Landing" class="rf-back-btn">
+                <i class="fa fa-arrow-left"></i> Back to Home
+            </a>
+        </div>
+    </div>
+    <svg class="rf-hero-wave" viewBox="0 0 1440 32" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
+        <path d="M0,32 C360,0 1080,0 1440,32 L1440,32 L0,32 Z" fill="#FFFFFF"/>
+    </svg>
+</div>
+
+<!-- ═══ MAIN LAYOUT ═══ -->
+<div class="rf-layout">
+
+    <!-- TOC - only for default content -->
+    @if (string.IsNullOrWhiteSpace(customContent)) {
+    <aside class="rf-toc">
+        <div class="rf-toc-head">Contents</div>
+        <ul class="rf-toc-list">
+            <li><a href="#s-returns"    class="toc-lnk"><span class="toc-dot"></span>Returns</a></li>
+            <li><a href="#s-refunds"    class="toc-lnk"><span class="toc-dot"></span>Refunds</a></li>
+            <li><a href="#s-late"       class="toc-lnk"><span class="toc-dot"></span>Late Refunds</a></li>
+            <li><a href="#s-exchange"   class="toc-lnk"><span class="toc-dot"></span>Exchanges</a></li>
+            <li><a href="#s-cancel"     class="toc-lnk"><span class="toc-dot"></span>Cancellation</a></li>
+            <li><a href="#s-help"       class="toc-lnk"><span class="toc-dot"></span>Need Help?</a></li>
+        </ul>
+    </aside>
+    }
+
+    <!-- CONTENT -->
+    <div class="rf-content">
+
+        @if (!string.IsNullOrWhiteSpace(customContent)) {
+            <div class="rf-updated"><i class="fa fa-clock"></i> Last updated: @DateTime.Now.Year</div>
+            <div class="rf-custom-content">@Html.Raw(customContent)</div>
+        } else {
+
+        <div class="rf-updated"><i class="fa fa-clock"></i> Last updated: @DateTime.Now.Year</div>
+
+        <!-- Alert banner -->
+        <div class="rf-alert">
+            <i class="fa fa-exclamation-triangle"></i>
+            <div class="rf-alert-body">
+                <strong>Important Notice</strong>
+                <p>All return and refund requests are subject to the conditions outlined below. Please read carefully before making a purchase decision.</p>
+            </div>
+        </div>
+
+        <!-- RETURNS -->
+        <div class="rf-section" id="s-returns">
+            <div class="rf-section-head">
+                <span class="rf-sec-icon blue"><i class="fa fa-box-open"></i></span>
+                <h4>Returns</h4>
+            </div>
+            <div class="rf-section-body">
+                <div class="rf-days-badge">
+                    <span>10</span> Day Return Window
+                </div>
+                <p>Our policy lasts <strong>10 days</strong>. If 10 days have gone by since your purchase, unfortunately we can't offer you a refund or exchange.</p>
+                <p>To be eligible for a return, your application/software package must <strong>not</strong> have been downloaded from the server.</p>
+                <p><strong>Additional non-returnable items:</strong></p>
+                <ul>
+                    <li>Downloadable software products</li>
+                    <li>Themes / Templates / Plugins</li>
+                    <li>Customized Applications etc.</li>
+                </ul>
+                <div class="rf-highlight">
+                    <i class="fa fa-info-circle"></i>
+                    <span>To complete your return, we require a <strong>receipt or proof of purchase</strong>. Please keep your transaction details safe.</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- REFUNDS -->
+        <div class="rf-section" id="s-refunds">
+            <div class="rf-section-head">
+                <span class="rf-sec-icon gold"><i class="fa fa-rupee-sign"></i></span>
+                <h4>Refunds (if applicable)</h4>
+            </div>
+            <div class="rf-section-body">
+                <p>Once your return/refund request is received and inspected, we will send you an email to notify you that we have received your refund request. We will also notify you of the approval or rejection.</p>
+                <ul class="rf-timeline">
+                    <li>
+                        <span class="rf-tl-num">1</span>
+                        <div class="rf-tl-body"><strong>Request Received</strong>We acknowledge and begin reviewing your refund request</div>
+                    </li>
+                    <li>
+                        <span class="rf-tl-num">2</span>
+                        <div class="rf-tl-body"><strong>Inspection &amp; Decision</strong>We review eligibility and notify you via email of approval or rejection</div>
+                    </li>
+                    <li>
+                        <span class="rf-tl-num">3</span>
+                        <div class="rf-tl-body"><strong>Credit Applied</strong>If approved, credit is applied to your original payment method within <strong>7 working days</strong></div>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- LATE REFUNDS -->
+        <div class="rf-section" id="s-late">
+            <div class="rf-section-head">
+                <span class="rf-sec-icon blue"><i class="fa fa-clock"></i></span>
+                <h4>Late or Missing Refunds (if applicable)</h4>
+            </div>
+            <div class="rf-section-body">
+                <p>If you haven't received a refund yet, please follow these steps in order:</p>
+                <ul>
+                    <li>First check your bank account again</li>
+                    <li>Contact your credit card company — it may take some time before your refund is officially posted</li>
+                    <li>Next contact your bank — there is often processing time before a refund is posted</li>
+                </ul>
+                <div class="rf-highlight">
+                    <i class="fa fa-envelope"></i>
+                    <span>If you've done all of this and still have not received your refund, please contact us at&nbsp;
+                        <a href="mailto:@companyEmail"><strong>@companyEmail</strong></a>
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <!-- EXCHANGES -->
+        <div class="rf-section" id="s-exchange">
+            <div class="rf-section-head">
+                <span class="rf-sec-icon gold"><i class="fa fa-exchange-alt"></i></span>
+                <h4>Exchanges (if applicable)</h4>
+            </div>
+            <div class="rf-section-body">
+                <p>We only replace software if it is <strong>defective or damaged</strong>. If you need to exchange it for the same item, send us an email at
+                    <a href="mailto:@companyEmail"><strong>@companyEmail</strong></a> with order details.
+                </p>
+                <div class="rf-highlight">
+                    <i class="fa fa-tools"></i>
+                    <span>Exchanges are only applicable for defective or damaged products and must be reported within the 10-day window.</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- CANCELLATION -->
+        <div class="rf-section" id="s-cancel">
+            <div class="rf-section-head">
+                <span class="rf-sec-icon blue"><i class="fa fa-ban"></i></span>
+                <h4>Cancellation</h4>
+            </div>
+            <div class="rf-section-body">
+                <p>To be eligible for a cancellation, your application/software package must <strong>not</strong> have been downloaded from the server.</p>
+                <div class="rf-highlight">
+                    <i class="fa fa-info-circle"></i>
+                    <span>Once a product is downloaded, it is considered delivered and cancellation requests will not be entertained.</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- HELP -->
+        <div class="rf-section" id="s-help">
+            <div class="rf-section-head">
+                <span class="rf-sec-icon gold"><i class="fa fa-headset"></i></span>
+                <h4>Need Help?</h4>
+            </div>
+            <div class="rf-section-body">
+                <p>Contact us for questions related to refunds, returns and cancellations.</p>
+                <div class="rf-contact-card">
+                    <div>
+                        <h5>We're Here to Help</h5>
+                        <p>Our support team typically responds within 24 hours</p>
+                    </div>
+                    <a href="mailto:@companyEmail" class="cc-btn">
+                        <i class="fa fa-envelope"></i> @companyEmail
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        }
+    </div><!-- /.rf-content -->
+</div><!-- /.rf-layout -->
+
+<!-- ═══ FOOTER ═══ -->
+<footer class="rf-footer">
+    @{
+        var footerAddress     = Context.RequestServices.GetService<CRM.AppDbContext>()?.Settings.FirstOrDefault(s => s.SettingKey=="CompanyAddress"  && s.ChannelPartnerId==null)?.SettingValue ?? "";
+        var footerPhone       = Context.RequestServices.GetService<CRM.AppDbContext>()?.Settings.FirstOrDefault(s => s.SettingKey=="CompanyPhone"    && s.ChannelPartnerId==null)?.SettingValue ?? "";
+        var footerEmail       = Context.RequestServices.GetService<CRM.AppDbContext>()?.Settings.FirstOrDefault(s => s.SettingKey=="CompanyEmail"    && s.ChannelPartnerId==null)?.SettingValue ?? "";
+        var footerCompanyName = Context.RequestServices.GetService<CRM.AppDbContext>()?.Settings.FirstOrDefault(s => s.SettingKey=="CompanyName"     && s.ChannelPartnerId==null)?.SettingValue ?? "PropTech CRM";
+        var footerMapUrl      = Context.RequestServices.GetService<CRM.AppDbContext>()?.Settings.FirstOrDefault(s => s.SettingKey=="CompanyMapUrl"   && s.ChannelPartnerId==null)?.SettingValue;
+    }
+    <div class="footer-body">
+        <div class="fw-wrap">
+            <div class="footer-grid">
+                <div class="footer-brand">
+                    @if (!string.IsNullOrEmpty(branding?.FooterLogo)) {
+                        <img src="@branding.FooterLogo" alt="Logo" class="footer-logo" />
+                    } else {
+                        <span class="footer-bname">@footerCompanyName</span>
+                    }
+                    @if (!string.IsNullOrEmpty(branding?.CompanyInfo)) {
+                        <p>@Html.Raw(branding.CompanyInfo.Replace("\n","<br/>"))</p>
+                    } else {
+                        <p>Building dreams, creating homes. Your trusted partner in real estate excellence.</p>
+                    }
+                    <div class="footer-socials">
+                        @if (!string.IsNullOrEmpty(branding?.TwitterUrl))     { <a href="@branding.TwitterUrl"   target="_blank" class="fsoc fsoc-tw"><i class="fab fa-twitter"></i></a> }
+                        @if (!string.IsNullOrEmpty(branding?.FacebookUrl))    { <a href="@branding.FacebookUrl"  target="_blank" class="fsoc fsoc-fb"><i class="fab fa-facebook-f"></i></a> }
+                        @if (!string.IsNullOrEmpty(branding?.InstagramUrl))   { <a href="@branding.InstagramUrl" target="_blank" class="fsoc fsoc-ig"><i class="fab fa-instagram"></i></a> }
+                        @if (!string.IsNullOrEmpty(branding?.LinkedInUrl))    { <a href="@branding.LinkedInUrl"  target="_blank" class="fsoc fsoc-li"><i class="fab fa-linkedin-in"></i></a> }
+                        @if (!string.IsNullOrEmpty(branding?.WhatsAppNumber)) {
+                            <a href="https://wa.me/@(branding.WhatsAppNumber.Replace("+","").Replace("-","").Replace(" ",""))" target="_blank" class="fsoc fsoc-wa"><i class="fab fa-whatsapp"></i></a>
+                        }
+                    </div>
+                </div>
+                <div class="footer-col">
+                    <span class="footer-col-title">Quick Links</span>
+                    <a href="/Home/Landing#about"    class="footer-lnk"><i class="fa fa-chevron-right"></i> About Us</a>
+                    <a href="/Home/Landing#why"      class="footer-lnk"><i class="fa fa-chevron-right"></i> Services</a>
+                    <a href="/Home/Landing#projects" class="footer-lnk"><i class="fa fa-chevron-right"></i> Our Projects</a>
+                    <a href="/Account/Login"         class="footer-lnk"><i class="fa fa-chevron-right"></i> Login</a>
+                </div>
+                @if (!string.IsNullOrEmpty(footerAddress) || !string.IsNullOrEmpty(footerPhone) || !string.IsNullOrEmpty(footerEmail)) {
+                <div class="footer-col">
+                    <span class="footer-col-title">Contact Us</span>
+                    @if (!string.IsNullOrEmpty(footerAddress)) {
+                        <div class="footer-contact"><i class="fa fa-map-marker-alt"></i>
+                            @if (!string.IsNullOrEmpty(footerMapUrl)) { <a href="@footerMapUrl" target="_blank">@footerAddress</a> }
+                            else { <span>@footerAddress</span> }
+                        </div>
+                    }
+                    @if (!string.IsNullOrEmpty(footerPhone)) {
+                        <div class="footer-contact"><i class="fa fa-phone-alt"></i><span>@footerPhone</span></div>
+                    }
+                    @if (!string.IsNullOrEmpty(footerEmail)) {
+                        <div class="footer-contact"><i class="fa fa-envelope"></i>
+                            <a href="https://mail.google.com/mail/?view=cm&to=@footerEmail" target="_blank">@footerEmail</a>
+                        </div>
+                    }
+                </div>
+                }
+            </div>
+        </div>
+    </div>
+    <div class="footer-strip">
+        <div class="fw-wrap footer-strip-inner">
+            <div class="footer-copy">
+                @{ var currentYear = DateTime.Now.Year;
+                   var copyrightText = Context.RequestServices.GetService<CRM.AppDbContext>()?.Settings.FirstOrDefault(s => s.SettingKey=="CopyrightText" && s.ChannelPartnerId==null)?.SettingValue; }
+                &copy; 2015–@currentYear&nbsp;
+                @if (!string.IsNullOrEmpty(copyrightText)) { <a href="/Home/Landing">@Html.Raw(copyrightText)</a> }
+                else { <a href="/Home/Landing">@footerCompanyName</a> }
+                . All Rights Reserved.&nbsp;|&nbsp;Powered by <a href="https://proptechit.com/" target="_blank">PropTech Solutions</a>
+            </div>
+            <div class="footer-legal">
+                <a href="/Home/Terms">Terms &amp; Conditions</a>
+                <a href="/Home/Privacy">Privacy Policy</a>
+                <a href="/Home/RefundPolicy">Refund Policy</a>
+            </div>
+        </div>
+    </div>
+</footer>
+
+<a href="#" class="back-top" id="rfBackTop"><i class="fa fa-arrow-up"></i></a>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+
+    /* Burger */
+    const burger  = document.getElementById('rfBurger');
+    const navMenu = document.getElementById('rfNavMenu');
+    if (burger) burger.addEventListener('click', () => navMenu.classList.toggle('open'));
+
+    /* Back to top */
+    const bTop = document.getElementById('rfBackTop');
+    window.addEventListener('scroll', () => bTop.classList.toggle('show', window.scrollY > 300), { passive: true });
+
+    /* TOC active on scroll */
+    const tocLinks = document.querySelectorAll('.toc-lnk');
+    const sections = document.querySelectorAll('.rf-section[id]');
+    if (sections.length && tocLinks.length) {
+
+    }
+
+    /* Smooth scroll */
+    document.querySelectorAll('a[href^="#"]').forEach(a => {
+        a.addEventListener('click', function (e) {
+            const href = this.getAttribute('href');
+            if (href === '#') return;
+            const target = document.querySelector(href);
+            if (target) {
+                e.preventDefault();
+                const navH = document.getElementById('rfNav')?.offsetHeight || 60;
+                window.scrollTo({ top: target.getBoundingClientRect().top + window.pageYOffset - navH - 16, behavior: 'smooth' });
+            }
+        });
+    });
+
+    /* Card entrance animation */
+    const cards = document.querySelectorAll('.rf-section');
+    const obs = new IntersectionObserver(entries => {
+        entries.forEach((en, i) => {
+            if (en.isIntersecting) {
+                en.target.style.opacity = '1';
+                en.target.style.transform = 'translateY(0)';
+                obs.unobserve(en.target);
+            }
+        });
+    }, { threshold: 0.08 });
+    cards.forEach((c, i) => {
+        c.style.opacity = '0';
+        c.style.transform = 'translateY(16px)';
+        c.style.transition = 'opacity .4s ease ' + (i * 0.05) + 's, transform .4s ease ' + (i * 0.05) + 's';
+        obs.observe(c);
+    });
+});
+</script>

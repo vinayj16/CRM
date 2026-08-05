@@ -1,0 +1,249 @@
+@model Dictionary<string, object>
+@{
+    ViewData["Title"] = "Maintenance Mode";
+    var isEnabled = Model.ContainsKey("MaintenanceMode") && (Model["MaintenanceMode"]?.ToString() == "true");
+    var message = Model.ContainsKey("MaintenanceMessage") ? Model["MaintenanceMessage"]?.ToString() : "";
+    var startDate = Model.ContainsKey("MaintenanceStartDate") ? Model["MaintenanceStartDate"]?.ToString() : "";
+    var endDate = Model.ContainsKey("MaintenanceEndDate") ? Model["MaintenanceEndDate"]?.ToString() : "";
+    var maintenanceLogs = Model.ContainsKey("MaintenanceLogs") ? Model["MaintenanceLogs"] as List<CRM.Models.MaintenanceLogModel> ?? new() : new List<CRM.Models.MaintenanceLogModel>();
+}
+
+<style>
+    .mm-container { max-width: 1000px; margin: 0 auto; padding: 10px; }
+    .mm-header { margin-bottom: 24px; }
+    .mm-header h2 { font-size: 1.5rem; font-weight: 600; margin: 0; color: var(--text-primary); display: flex; align-items: center; gap: 10px; }
+    .mm-card { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 12px; padding: 24px; margin-bottom: 20px; }
+    .mm-card-title { font-size: 1.1rem; font-weight: 600; margin: 0 0 16px 0; color: var(--text-primary); display: flex; align-items: center; gap: 8px; }
+    .mm-group { margin-bottom: 16px; }
+    .mm-group label { display: block; font-weight: 600; font-size: 0.85rem; margin-bottom: 6px; color: var(--text-primary); }
+    .mm-group input, .mm-group select, .mm-group textarea {
+        width: 100%; padding: 10px 12px; border: 1px solid var(--border-color);
+        border-radius: 8px; background: var(--body-bg); color: var(--text-primary);
+        font-size: 0.9rem; transition: border-color 0.2s;
+    }
+    .mm-group input:focus, .mm-group select:focus, .mm-group textarea:focus {
+        border-color: var(--blue); outline: none; box-shadow: 0 0 0 3px rgba(26,111,168,0.12);
+    }
+    .mm-group textarea { min-height: 100px; resize: vertical; }
+    .mm-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    @@media (max-width: 600px) { .mm-row { grid-template-columns: 1fr; } }
+    .mm-btn { padding: 10px 24px; border: none; border-radius: 8px; font-size: 0.9rem; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+    .mm-btn-primary { background: linear-gradient(135deg, var(--blue), var(--blue-light)); color: #FFFFFF; }
+    .mm-btn-primary:hover { background: linear-gradient(135deg, var(--blue-dark), var(--blue)); }
+    .mm-btn-danger { background: linear-gradient(135deg, #DC2626, #DC2626); color: #FFFFFF; }
+    .mm-btn-danger:hover { background: linear-gradient(135deg, #991B1B, #DC2626); }
+    .mm-toggle { position: relative; width: 50px; height: 26px; background: var(--border-color); border-radius: 13px; cursor: pointer; transition: background 0.2s; display: inline-block; flex-shrink: 0; }
+    .mm-toggle.active { background: #DC2626; }
+    .mm-toggle::after { content: ''; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; background: #FFFFFF; border-radius: 50%; transition: transform 0.2s; }
+    .mm-toggle.active::after { transform: translateX(24px); }
+    .mm-status { display: inline-flex; align-items: center; gap: 8px; padding: 6px 14px; border-radius: 20px; font-size: 0.8rem; font-weight: 600; }
+    .mm-status-active { background: #FEE2E2; color: #DC2626; }
+    .mm-status-inactive { background: #E2E8F0; color: var(--blue); }
+    .mm-log-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+    .mm-log-table thead { background: linear-gradient(135deg, var(--blue), var(--blue-dark)); }
+    .mm-log-table th { color: #FFFFFF; padding: 10px 12px; text-align: left; font-weight: 600; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.3px; }
+    .mm-log-table td { padding: 8px 12px; border-bottom: 1px solid var(--border-color); }
+    .mm-log-table tbody tr:hover td { background: rgba(26,111,168,0.04); }
+    .mm-empty { text-align: center; padding: 40px 20px; color: var(--text-muted); }
+    .mm-badge-enabled { background: #FEE2E2; color: #DC2626; padding: 2px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: 600; }
+    .mm-badge-disabled { background: #E2E8F0; color: var(--blue); padding: 2px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: 600; }
+</style>
+
+<div class="mm-container">
+    <nav class="mb-3" aria-label="breadcrumb">
+        <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item"><a href="/SaasSetting/Index">Settings</a></li>
+            <li class="breadcrumb-item active">Maintenance Mode</li>
+        </ol>
+    </nav>
+
+    <div class="mm-header">
+        <h2><i class="fa-solid fa-shield-halved" style="color:var(--gold);"></i> Maintenance Mode</h2>
+        <p style="color:var(--text-muted);margin:4px 0 0 0;font-size:0.9rem;">
+            Schedule and manage maintenance windows for the entire platform
+        </p>
+    </div>
+
+    <div class="mm-card">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div class="mm-card-title" style="margin:0;">
+                <i class="fa-solid fa-power-off" style="color:var(--gold);"></i> Current Status
+            </div>
+            <div>
+                <span class="mm-status @(isEnabled ? "mm-status-active" : "mm-status-inactive")">
+                    <i class="fa-solid @(isEnabled ? "fa-exclamation-triangle" : "fa-check-circle")"></i>
+                    @(isEnabled ? "Maintenance Active" : "System Online")
+                </span>
+            </div>
+        </div>
+
+        <form id="maintenanceForm">
+            @Html.AntiForgeryToken()
+            <div class="mm-group">
+                <label>
+                    <div style="display:flex;align-items:center;gap:12px;cursor:pointer;" onclick="toggleMaintenance()">
+                        <span>Enable Maintenance Mode</span>
+                        <span class="mm-toggle @(isEnabled ? "active" : "")" id="maintenanceToggle"></span>
+                    </div>
+                </label>
+                <div style="font-size:0.8rem;color:var(--text-muted);margin-top:4px;">
+                    When enabled, all users will see the maintenance page instead of the application.
+                </div>
+            </div>
+            <input type="hidden" id="isEnabled" name="isEnabled" value="@(isEnabled ? "true" : "false")" />
+
+            <div class="mm-group">
+                <label>Maintenance Message</label>
+                <textarea id="message" name="message" placeholder="Enter the message to display to users during maintenance...">@message</textarea>
+                <div style="font-size:0.8rem;color:var(--text-muted);margin-top:4px;">
+                    This message will be shown on the maintenance page.
+                </div>
+            </div>
+
+            <div class="mm-row">
+                <div class="mm-group">
+                    <label>Start Date & Time</label>
+                    <input type="datetime-local" id="startDate" name="startDate" value="@startDate" />
+                </div>
+                <div class="mm-group">
+                    <label>End Date & Time</label>
+                    <input type="datetime-local" id="endDate" name="endDate" value="@endDate" />
+                </div>
+            </div>
+
+            <div style="display:flex;gap:12px;justify-content:flex-end;margin-top:20px;">
+                <button type="button" class="mm-btn mm-btn-danger" onclick="disableMaintenance()">
+                    <i class="fa-solid fa-power-off me-1"></i> Disable Now
+                </button>
+                <button type="submit" class="mm-btn mm-btn-primary">
+                    <i class="fa-solid fa-save me-1"></i> Save Settings
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Maintenance History -->
+    <div class="mm-card">
+        <div class="mm-card-title">
+            <i class="fa-solid fa-clock-rotate-left" style="color:var(--gold);"></i> Maintenance History
+        </div>
+
+        @if (!maintenanceLogs.Any())
+        {
+            <div class="mm-empty">
+                <i class="fa-solid fa-shield-halved" style="font-size:40px;opacity:0.3;margin-bottom:12px;color:var(--gold);"></i>
+                <p>No maintenance events recorded yet.</p>
+            </div>
+        }
+        else
+        {
+            <div style="overflow-x:auto;">
+                <table class="mm-log-table">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Status</th>
+                            <th>Message</th>
+                            <th>Duration</th>
+                            <th>Set By</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var log in maintenanceLogs.OrderByDescending(l => l.CreatedOn))
+                        {
+                            <tr>
+                                <td style="white-space:nowrap;">@log.CreatedOn.ToString("MMM dd, yyyy HH:mm")</td>
+                                <td>
+                                    <span class="@(log.IsEnabled ? "mm-badge-enabled" : "mm-badge-disabled")">
+                                        @(log.IsEnabled ? "Enabled" : "Disabled")
+                                    </span>
+                                </td>
+                                <td style="max-width:250px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">@(log.Message ?? "-")</td>
+                                <td>
+                            @if (log.EndedOn.HasValue)
+                            {
+                                var duration = log.EndedOn.Value - log.StartedOn;
+                                        <span>@(duration.Days > 0 ? $"{duration.Days}d " : "")@duration.Hours.ToString("00"):@duration.Minutes.ToString("00")</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">-</span>
+                                    }
+                                </td>
+                                <td>@(log.SetBy ?? "System")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>
+
+<script>
+    function toggleMaintenance() {
+        var toggle = document.getElementById('maintenanceToggle');
+        var input = document.getElementById('isEnabled');
+        toggle.classList.toggle('active');
+        input.value = toggle.classList.contains('active') ? 'true' : 'false';
+    }
+
+    async function disableMaintenance() {
+        if (typeof Swal !== 'undefined') {
+            var result = await Swal.fire({
+                title: 'Disable Maintenance?',
+                text: 'This will immediately bring the system back online for all users.',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#DC2626',
+                confirmButtonText: 'Yes, disable',
+                cancelButtonText: 'Cancel'
+            });
+            if (!result.isConfirmed) return;
+        } else {
+            if (!confirm('Disable maintenance mode?')) return;
+        }
+
+        document.getElementById('isEnabled').value = 'false';
+        document.getElementById('message').value = '';
+        document.getElementById('startDate').value = '';
+        document.getElementById('endDate').value = '';
+        document.getElementById('maintenanceToggle').classList.remove('active');
+        document.getElementById('maintenanceForm').submit();
+    }
+
+    document.getElementById('maintenanceForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+
+        var formData = new FormData(this);
+        var token = document.querySelector('input[name="__RequestVerificationToken"]');
+        if (token) formData.append('__RequestVerificationToken', token.value);
+        var submitBtn = this.querySelector('button[type="submit"]');
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-1"></i> Saving...';
+
+        try {
+            var resp = await fetch('/saassetting/SaveMaintenanceSettings', {
+                method: 'POST',
+                headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                body: formData
+            });
+            var result = await resp.json();
+            if (result.success) {
+                if (typeof Swal !== 'undefined') {
+                    await Swal.fire({ icon: 'success', title: 'Saved', text: result.message || 'Maintenance settings updated', timer: 2000, showConfirmButton: false });
+                }
+                location.reload();
+            } else {
+                if (typeof Swal !== 'undefined') {
+                    await Swal.fire({ icon: 'error', title: 'Error', text: result.message || 'Failed to save settings' });
+                } else { showToast(result.message || 'Failed to save settings', 'error'); }
+            }
+        } catch (err) {
+            showToast('Failed to save maintenance settings', 'error');
+        } finally {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="fa-solid fa-save me-1"></i> Save Settings';
+        }
+    });
+</script>

@@ -1,0 +1,322 @@
+<style>
+    #addFlatModal .modal-header .modal-title, #bulkUploadFlatsModal .modal-header .modal-title, #addFlatModal .modal-header i, #bulkUploadFlatsModal .modal-header i {
+        color: #1A6FA8 !important;
+    }
+
+    @@media (max-width: 768px) {
+        #addFlatModal .modal-dialog {
+            width: auto !important;
+            max-width: 95% !important;
+            margin: 10px auto !important;
+        }
+    }
+
+    #addFlatModal .modal-body .row, #bulkUploadFlatsModal .modal-body .row {
+        --bs-gutter-x: 0.65rem;
+        --bs-gutter-y: 0px !important;
+    }
+
+    }
+
+    .modal-title {
+        color: #1A6FA8 !important;
+    }
+</style>
+<div class="modal fade" id="addFlatModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" style="max-width: 620px !important; width: 620px;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="flatModalTitle" style=" color: #1A6FA8 !important;">Add New Flat</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="flatForm" novalidate>
+                <div class="modal-body">
+                    <input type="hidden" id="flatId" value="0">
+                    <input type="hidden" id="flatPropertyId" value="@ViewContext.RouteData.Values["id"]">
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Block Name<span class="text-danger">*</span></label>
+                            <input type="text"
+                                   class="form-control"
+                                   id="blockName"
+                                   name="blockName"
+                                   required
+                                   pattern="[A-Za-z0-9 ]{1,}"
+                                   title="Block name is required">
+                            <div class="invalid-feedback">Please enter block name</div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Floor Name<span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="floorName" required>
+                            <div class="invalid-feedback">Please enter floor name</div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Flat Name <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="flatName" required>
+                            <div class="invalid-feedback">Please enter flat name</div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">BHK<span class="text-danger">*</span></label>
+                            <select class="form-select"
+                                    id="bhk"
+                                    name="bhk"
+                                    required>
+                                <option value="">Select BHK</option>
+                                <option value="1BHK">1BHK</option>
+                                <option value="2BHK">2BHK</option>
+                                <option value="3BHK">3BHK</option>
+                                <option value="4BHK">4BHK</option>
+                                <option value="5BHK">5BHK</option>
+                            </select>
+                            <div class="invalid-feedback">Please select BHK</div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Property Type<span class="text-danger">*</span></label>
+                            <select class="form-select"
+                                    id="propertyType"
+                                    name="propertyType"
+                                    required>
+                                <option value="">Select Property Type</option>
+                                <option value="Standalone">Standalone</option>
+                                <option value="Flat">Flat</option>
+                                <option value="Villa">Villa</option>
+                                <option value="Apartment">Apartment</option>
+                            </select>
+                            <div class="invalid-feedback">Please select property type</div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Group</label>
+                            <input type="text" class="form-control" id="propertyGroup">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Area (Sqft)<span class="text-danger">*</span></label>
+                            <input type="number" step="0.01" min="0.01" class="form-control" id="areaSqft" required>
+                            <div class="invalid-feedback">Please enter area in sqft</div>
+                        </div>
+                        <div class="col-md-12 mb-3">
+                            <label class="form-label">Location<span class="text-danger">*</span></label>
+                            <input type="text"
+                                   class="form-control"
+                                   id="location"
+                                   name="location"
+                                   required
+                                   pattern=".{3,}"
+                                   title="Location is required">
+                            <div class="invalid-feedback">Please enter location</div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Bedroom Count<span class="text-danger">*</span></label>
+                            <input type="number"
+                                   class="form-control"
+                                   id="bedroomCount"
+                                   name="bedroomCount"
+                                   min="0"
+                                   required>
+                            <div class="invalid-feedback">Please enter bedroom count</div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Bathroom Count<span class="text-danger">*</span></label>
+                            <input type="number"
+                                   class="form-control"
+                                   id="bathroomCount"
+                                   name="bathroomCount"
+                                   min="0"
+                                   required>
+                            <div class="invalid-feedback">Please enter bathroom count</div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Parking Available</label>
+                            <div class="form-check form-switch mt-2">
+                                <input class="form-check-input" type="checkbox" id="parkingAvailable">
+                                <label class="form-check-label" for="parkingAvailable">Yes</label>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Flat Status<span class="text-danger">*</span></label>
+                            <select class="form-select"
+                                    id="flatStatus"
+                                    name="flatStatus"
+                                    required>
+                                <option value="">Select Flat Status</option>
+                                <option value="Available">Available</option>
+                                <option value="Booked">Booked</option>
+                                <option value="Sold">Sold</option>
+                            </select>
+                            <div class="invalid-feedback">
+                                Please select Flat Status
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Price<span class="text-danger">*</span></label>
+                            <input type="number"
+                                   step="0.01"
+                                   min="1"
+                                   class="form-control"
+                                   id="price"
+                                   name="price"
+                                   required
+                                   placeholder="Enter price">
+                            <div class="invalid-feedback">
+                                Please enter Price
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer d-flex flex-nowrap">
+                    <button type="button" class="btn btn-secondary flex-fill" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary flex-fill" id="saveFlatBtn">
+                        <span class="spinner-border spinner-border-sm d-none" id="saveFlatSpinner"></span>
+                        Save Flat
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const flatForm = document.getElementById('flatForm');
+        const addFlatModal = document.getElementById('addFlatModal');
+
+        // Form submission
+        if (flatForm) {
+            flatForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+
+                if (!flatForm.checkValidity()) {
+                    flatForm.classList.add('was-validated');
+                    return;
+                }
+
+                saveFlat();
+            });
+        }
+
+        // Reset form when modal is closed
+        if (addFlatModal) {
+            addFlatModal.addEventListener('hidden.bs.modal', function() {
+                resetFlatForm();
+            });
+        }
+
+        // Set propertyId when modal opens
+        if (addFlatModal) {
+            addFlatModal.addEventListener('show.bs.modal', function() {
+                if (typeof propertyId !== 'undefined') {
+                    document.getElementById('flatPropertyId').value = propertyId;
+                }
+            });
+        }
+    });
+
+    function saveFlat() {
+        const form = document.getElementById('flatForm');
+        const saveBtn = document.getElementById('saveFlatBtn');
+        const spinner = document.getElementById('saveFlatSpinner');
+
+        // Disable button and show spinner
+        saveBtn.disabled = true;
+        spinner.classList.remove('d-none');
+
+        const formData = new FormData();
+        formData.append('flatId', document.getElementById('flatId').value);
+        formData.append('propertyId', document.getElementById('flatPropertyId').value);
+        formData.append('blockName', document.getElementById('blockName').value || '');
+        formData.append('floorName', document.getElementById('floorName').value || '');
+        formData.append('flatName', document.getElementById('flatName').value);
+        formData.append('bhk', document.getElementById('bhk').value || '');
+        formData.append('propertyType', document.getElementById('propertyType').value || '');
+        formData.append('propertyGroup', document.getElementById('propertyGroup').value || '');
+        formData.append('areaSqft', document.getElementById('areaSqft').value || '');
+        formData.append('location', document.getElementById('location').value || '');
+        formData.append('bedroomCount', document.getElementById('bedroomCount').value || '');
+        formData.append('bathroomCount', document.getElementById('bathroomCount').value || '');
+        formData.append('parkingAvailable', document.getElementById('parkingAvailable').checked);
+        formData.append('flatStatus', document.getElementById('flatStatus').value || 'Available');
+
+        // Add anti-forgery token
+        const token = document.querySelector('input[name="__RequestVerificationToken"]');
+        if (token) {
+            formData.append('__RequestVerificationToken', token.value);
+        }
+        formData.append('price', document.getElementById('price').value || '');
+
+        fetch('/Properties/SaveFlat', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            saveBtn.disabled = false;
+            spinner.classList.add('d-none');
+
+            if (data.success) {
+                showFlatToast(data.message || 'Flat saved successfully!', 'success');
+                bootstrap.Modal.getInstance(document.getElementById('addFlatModal')).hide();
+                resetFlatForm();
+
+                // Dispatch event to reload flats
+                window.dispatchEvent(new Event('flat-saved'));
+            } else {
+                showFlatToast(data.message || 'Error saving flat', 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            saveBtn.disabled = false;
+            spinner.classList.add('d-none');
+            showFlatToast('Error saving flat', 'error');
+        });
+    }
+
+    function resetFlatForm() {
+        const form = document.getElementById('flatForm');
+        if (form) {
+            form.reset();
+            form.classList.remove('was-validated');
+            document.getElementById('flatId').value = '0';
+            document.getElementById('flatModalTitle').textContent = 'Add New Flat';
+            document.getElementById('parkingAvailable').checked = false;
+            document.getElementById('flatStatus').value = 'Available';
+        }
+    }
+
+    // Function to populate modal for editing (called from Details.cshtml)
+    window.populateFlatModal = function(flat) {
+        document.getElementById('flatModalTitle').textContent = 'Edit Flat';
+        document.getElementById('flatId').value = flat.flatId;
+        document.getElementById('flatPropertyId').value = flat.propertyId;
+        document.getElementById('blockName').value = flat.blockName || '';
+        document.getElementById('floorName').value = flat.floorName || '';
+        document.getElementById('flatName').value = flat.flatName || '';
+        document.getElementById('bhk').value = flat.bhk || '';
+        document.getElementById('propertyType').value = flat.propertyType || '';
+        document.getElementById('propertyGroup').value = flat.propertyGroup || '';
+        document.getElementById('areaSqft').value = flat.areaSqft || '';
+        document.getElementById('location').value = flat.location || '';
+        document.getElementById('bedroomCount').value = flat.bedroomCount || '';
+        document.getElementById('bathroomCount').value = flat.bathroomCount || '';
+        document.getElementById('parkingAvailable').checked = flat.parkingAvailable || false;
+        document.getElementById('flatStatus').value = flat.flatStatus || 'Available';
+        document.getElementById('price').value = flat.price || '';
+    };
+
+    function showFlatToast(message, type) {
+        const alertDiv = document.createElement('div');
+        alertDiv.className = `alert alert-${type === 'success' ? 'success' : 'danger'} alert-dismissible fade show position-fixed`;
+        alertDiv.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+        alertDiv.innerHTML = `
+            <i class="fa-solid fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'} me-2"></i>
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+
+        document.body.appendChild(alertDiv);
+
+        setTimeout(() => {
+            alertDiv.remove();
+        }, 5000);
+    }
+</script>

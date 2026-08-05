@@ -1,0 +1,314 @@
+@{
+    var sessionTimeoutMinutes = 30;
+    var warningMinutes = 2;
+}
+
+<style>
+    .session-warning-overlay {
+        position: fixed;
+        top: 0; left: 0; right: 0; bottom: 0;
+        background: rgba(0,0,0,0.6);
+        z-index: 99999;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        backdrop-filter: blur(4px);
+    }
+    .session-warning-overlay.show { display: flex; }
+    .session-warning-modal {
+        background: #FFFFFF;
+        border-radius: 16px;
+        padding: 32px;
+        max-width: 420px;
+        width: 90%;
+        text-align: center;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        animation: sessionFadeIn 0.3s ease;
+    }
+    .session-warning-modal .session-icon {
+        width: 64px; height: 64px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #F59E0B, #F59E0B);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 16px;
+        font-size: 28px;
+    }
+    .session-warning-modal h4 { font-weight: 700; margin-bottom: 8px; color: #1A2332; }
+    .session-warning-modal p { color: #6B7B8D; font-size: 14px; margin-bottom: 20px; }
+    .session-warning-modal .timer {
+        font-size: 36px;
+        font-weight: 800;
+        color: #F59E0B;
+        margin-bottom: 16px;
+    }
+    .session-warning-modal .btn-continue {
+        background: linear-gradient(135deg, #1A6FA8, #D4A45A);
+        color: #FFFFFF;
+        border: none;
+        border-radius: 10px;
+        padding: 10px 32px;
+        font-weight: 600;
+        width: 100%;
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .session-warning-modal .btn-continue:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 14px rgba(26,111,168,0.4);
+        color: #FFFFFF;
+    }
+    .session-warning-modal .btn-logout-now {
+        background: transparent; color: #6B7B8D; border: none;
+        padding: 8px 16px; margin-top: 8px; font-size: 13px; transition: color 0.2s;
+    }
+    .session-warning-modal .btn-logout-now:hover { color: #DC2626; }
+    html.dark-mode .session-warning-modal {
+        background: #1E2A3A;
+    }
+    html.dark-mode .session-warning-modal h4 { color: #E8EDF2; }
+    html.dark-mode .session-warning-modal p { color: #8FA3B8; }
+    html.dark-mode .session-warning-modal .btn-logout-now { color: #8FA3B8; }
+    html.dark-mode .session-warning-modal .btn-logout-now:hover { color: #D4A45A; }
+
+    @@keyframes sessionFadeIn {
+        from { opacity: 0; transform: scale(0.95); }
+        to { opacity: 1; transform: scale(1); }
+    }
+
+    .toast-notification-container {
+        position: fixed;
+        top: 70px;
+        right: 20px;
+        z-index: 99998;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        max-width: 380px;
+    }
+    .toast-notification {
+        background: #FFFFFF;
+        border-radius: 12px;
+        padding: 14px 16px;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+        border-left: 4px solid #1A6FA8;
+        display: flex;
+        align-items: start;
+        gap: 10px;
+        animation: toastSlideIn 0.3s ease;
+        cursor: pointer;
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .toast-notification:hover {
+        transform: translateX(-4px);
+        box-shadow: 0 12px 32px rgba(0,0,0,0.2);
+    }
+    .toast-notification .toast-icon {
+        width: 32px; height: 32px; border-radius: 8px;
+        display: flex; align-items: center; justify-content: center;
+        flex-shrink: 0; font-size: 14px;
+    }
+    .toast-notification .toast-content { flex: 1; min-width: 0; }
+    .toast-notification .toast-title {
+        font-weight: 600; font-size: 13px; color: #1A2332;
+        margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .toast-notification .toast-message {
+        font-size: 12px; color: #6B7B8D;
+        display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+    }
+    .toast-notification .toast-close {
+        background: none; border: none; color: #8FA3B8; cursor: pointer;
+        padding: 2px; font-size: 14px; line-height: 1;
+    }
+    html.dark-mode .toast-notification { background: #1E2A3A; }
+    html.dark-mode .toast-notification .toast-title { color: #E8EDF2; }
+    html.dark-mode .toast-notification .toast-message { color: #8FA3B8; }
+    html.dark-mode .toast-notification .toast-close { color: #6B7B8D; }
+
+    @@keyframes toastSlideIn {
+        from { opacity: 0; transform: translateX(100px); }
+        to { opacity: 1; transform: translateX(0); }
+    }
+    @@keyframes toastSlideOut {
+        from { opacity: 1; transform: translateX(0); }
+        to { opacity: 0; transform: translateX(100px); }
+    }
+</style>
+
+<!-- Session Timeout Warning Modal -->
+<div class="session-warning-overlay" id="sessionTimeoutOverlay">
+    <div class="session-warning-modal">
+        <div class="session-icon">
+            <i class="fas fa-clock" style="color:#FFFFFF;"></i>
+        </div>
+        <h4>Session About to Expire</h4>
+        <p>Your session will expire due to inactivity. Click "Continue" to stay logged in.</p>
+        <div class="timer" id="sessionTimer">2:00</div>
+        <button class="btn-continue" onclick="resetSessionTimeout()">
+            <i class="fas fa-check-circle me-1"></i> Continue Session
+        </button>
+        <br/>
+        <button class="btn-logout-now" onclick="logoutSession()">Logout Now</button>
+    </div>
+</div>
+
+<!-- Toast Notification Container -->
+<div class="toast-notification-container" id="toastContainer"></div>
+
+<script>
+    // =====================================================
+    // SESSION TIMEOUT SYSTEM
+    // =====================================================
+    var SESSION_TIMEOUT_MS = @(sessionTimeoutMinutes * 60 * 1000);
+    var WARNING_BEFORE_MS = @(warningMinutes * 60 * 1000);
+    var sessionTimerInterval = null;
+    var countdownInterval = null;
+    var lastActivityTime = Date.now();
+    var isWarningShown = false; // FIX: prevent countdown reset loop
+
+    function resetUserActivity() {
+        lastActivityTime = Date.now();
+        hideSessionWarning();
+        clearInterval(sessionTimerInterval);
+        sessionTimerInterval = setInterval(checkSessionTimeout, 10000);
+    }
+
+    function checkSessionTimeout() {
+        var elapsed = Date.now() - lastActivityTime;
+        if (elapsed >= SESSION_TIMEOUT_MS) {
+            clearInterval(sessionTimerInterval);
+            logoutSession();
+        } else if (elapsed >= (SESSION_TIMEOUT_MS - WARNING_BEFORE_MS)) {
+            if (!isWarningShown) {
+                isWarningShown = true;
+                showSessionWarning();
+                var remaining = SESSION_TIMEOUT_MS - elapsed;
+                startCountdown(remaining);
+            }
+        }
+    }
+
+    function showSessionWarning() {
+        var overlay = document.getElementById('sessionTimeoutOverlay');
+        if (overlay) overlay.classList.add('show');
+    }
+
+    function hideSessionWarning() {
+        isWarningShown = false;
+        var overlay = document.getElementById('sessionTimeoutOverlay');
+        if (overlay) overlay.classList.remove('show');
+        clearInterval(countdownInterval);
+    }
+
+    function startCountdown(remainingMs) {
+        clearInterval(countdownInterval);
+        countdownInterval = setInterval(function() {
+            remainingMs -= 1000;
+            if (remainingMs <= 0) {
+                clearInterval(countdownInterval);
+                return;
+            }
+            var seconds = Math.floor(remainingMs / 1000);
+            var mins = Math.floor(seconds / 60);
+            var secs = seconds % 60;
+            var timer = document.getElementById('sessionTimer');
+            if (timer) timer.textContent = mins + ':' + (secs < 10 ? '0' : '') + secs;
+        }, 1000);
+    }
+
+    function resetSessionTimeout() {
+        fetch('/Account/KeepAlive', { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+            .catch(function() {});
+        resetUserActivity();
+    }
+
+    function logoutSession() {
+        window.location.href = '/Account/Logout';
+    }
+
+    // Activity monitoring
+    document.addEventListener('mousemove', resetUserActivity);
+    document.addEventListener('keydown', resetUserActivity);
+    document.addEventListener('scroll', resetUserActivity);
+    document.addEventListener('click', resetUserActivity);
+    document.addEventListener('touchstart', resetUserActivity);
+
+    resetUserActivity();
+
+    // =====================================================
+    // TOAST NOTIFICATION SYSTEM (FIXED: no duplicate toasts)
+    // =====================================================
+    var lastNotificationId = 0;
+
+    function showToastNotification(title, message, type, link, notificationId) {
+        var container = document.getElementById('toastContainer');
+        if (!container) return;
+
+        // Track highest seen ID to avoid repeats
+        if (notificationId && notificationId > lastNotificationId) {
+            lastNotificationId = notificationId;
+        }
+
+        var iconMap = {
+            'LeadAdded': { bg: '#E2E8F0', color: '#2589C9', icon: 'fa-user-plus' },
+            'PaymentReceived': { bg: '#DCFCE7', color: '#16A34A', icon: 'fa-credit-card' },
+            'BookingCreated': { bg: '#DCFCE7', color: '#16A34A', icon: 'fa-book' },
+            'FollowUpReminder': { bg: '#FEF3C7', color: '#F59E0B', icon: 'fa-bell' },
+            'SystemAlert': { bg: '#FEE2E2', color: '#DC2626', icon: 'fa-exclamation-triangle' }
+        };
+        var iconInfo = iconMap[type] || { bg: '#E2E8F0', color: '#2589C9', icon: 'fa-bell' };
+
+        var toast = document.createElement('div');
+        toast.className = 'toast-notification';
+        toast.onclick = function() { if (link) window.location.href = link; };
+
+        toast.innerHTML = `
+            <div class="toast-icon" style="background:${iconInfo.bg};color:${iconInfo.color};">
+                <i class="fas ${iconInfo.icon}"></i>
+            </div>
+            <div class="toast-content">
+                <div class="toast-title">${title}</div>
+                <div class="toast-message">${message}</div>
+            </div>
+            <button class="toast-close" onclick="event.stopPropagation();this.parentElement.remove();">
+                <i class="fas fa-times"></i>
+            </button>
+        `;
+
+        container.appendChild(toast);
+
+        setTimeout(function() {
+            if (toast.parentElement) {
+                toast.style.animation = 'toastSlideOut 0.3s ease forwards';
+                setTimeout(function() { if (toast.parentElement) toast.remove(); }, 300);
+            }
+        }, 6000);
+
+        while (container.children.length > 3) {
+            container.firstChild.remove();
+        }
+    }
+
+    function pollNotifications() {
+        setTimeout(function() {
+            setInterval(function() {
+                fetch('/Home/GetAdminNotifications')
+                    .then(function(r) { return r.json(); })
+                    .then(function(notifications) {
+                        if (notifications && notifications.length > 0) {
+                            notifications.forEach(function(n) {
+                                // FIX: Only show toasts for NEW notifications (higher IDs)
+                                if (n.notificationId && n.notificationId > lastNotificationId) {
+                                    showToastNotification(n.title, n.message, n.type, n.link, n.notificationId);
+                                }
+                            });
+                        }
+                    })
+                    .catch(function() {});
+            }, 30000);
+        }, 15000); // FIX: Increased from 5s to 15s for gentler startup
+    }
+
+    pollNotifications();
+</script>

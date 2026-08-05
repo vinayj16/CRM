@@ -1,0 +1,1078 @@
+@model List<CRM.Models.ExpenseModel>
+@{
+    ViewData["Title"] = "Expenses";
+}
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM%2BSans:wght@400;500;600&family=Playfair%2BDisplay:wght@600&display=swap">
+
+<style>
+/* ─── Base ─── */
+.content { font-family: 'DM Sans', sans-serif; }
+
+/* ─── Header ─── */
+.expenses-header {
+    background: linear-gradient(120deg, #1A6FA8 0%, #0F4C75 58%, #0F4C75 100%);
+    color: white;
+    padding: .9rem 1.1rem;
+    border-radius: 10px;
+    margin-bottom: .7rem;
+    position: relative;
+    overflow: hidden;
+}
+.expenses-header::before {
+    content: '';
+    position: absolute;
+    right: -20px; top: -20px;
+    width: 150px; height: 150px;
+    border-radius: 50%;
+    background: rgba(212,164,90,.12);
+    pointer-events: none;
+}
+
+/* ─── Stats ─── */
+.stats-card {
+    background: rgba(255,255,255,.10);
+    border: 1px solid rgba(212,164,90,.22);
+    border-radius: 7px;
+    padding: 8px 10px;
+    text-align: center;
+}
+.stats-number {
+    font-size: 15px;
+    font-weight: 700;
+    color: #D4A45A;
+    line-height: 1.2;
+    margin-bottom: 1px;
+}
+
+/* ─── Create button ─── */
+.create-btn {
+    background: #D4A45A !important;
+    border: none !important;
+    color: #162436 !important;
+    font-size: 11.5px !important;
+    font-weight: 700 !important;
+    padding: 5px 14px !important;
+    border-radius: 5px !important;
+    box-shadow: none !important;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    transition: opacity .2s, transform .2s !important;
+}
+.create-btn:hover {
+    opacity: .88 !important;
+    transform: translateY(-1px) !important;
+    color: #162436 !important;
+    box-shadow: none !important;
+}
+
+/* ─── Filter card ─── */
+.filter-card {
+    background: #FFFFFF;
+    border: .5px solid #E2E8F0;
+    border-radius: 9px;
+    padding: .6rem .9rem;
+    box-shadow: none;
+    margin-bottom: .65rem;
+}
+.dark-mode .filter-card { background: #1A2332 !important; border-color: #2A3A4A !important; }
+
+.filter-card .form-label {
+    font-size: 9.5px !important;
+    color: #8FA3B8 !important;
+    font-weight: 700 !important;
+    text-transform: uppercase;
+    letter-spacing: .4px;
+    margin-bottom: 3px !important;
+}
+.dark-mode .filter-card .form-label { color: #6B7B8D !important; }
+
+.filter-card .form-control,
+.filter-card .form-select {
+    font-size: 12px !important;
+    background: #F0F4F8 !important;
+    border: .5px solid #E2E8F0 !important;
+    border-radius: 5px !important;
+    padding: 4px 8px !important;
+    height: 30px !important;
+    font-family: 'DM Sans', sans-serif !important;
+    color: #1E2A3A !important;
+}
+.dark-mode .filter-card .form-control,
+.dark-mode .filter-card .form-select {
+    background: #1E2A3A !important;
+    border-color: #2A3A4A !important;
+    color: #E2E8F0 !important;
+}
+.filter-card .form-control:focus,
+.filter-card .form-select:focus {
+    border-color: #1A6FA8 !important;
+    box-shadow: 0 0 0 2px rgba(26,111,168,.1) !important;
+}
+
+/* flatpickr date icon wrapper */
+.fp-wrap { position: relative; }
+.fp-wrap .fp-icon {
+    position: absolute; right: 7px; top: 50%;
+    transform: translateY(-50%);
+    color: #1A6FA8; font-size: 11px; pointer-events: none;
+}
+
+/* export / filter action buttons */
+.btn-filter-action {
+    background: #1A6FA8 !important;
+    color: #FFFFFF !important;
+    border: none !important;
+    border-radius: 5px !important;
+    height: 30px !important;
+    font-size: 12px !important;
+    font-weight: 600 !important;
+    padding: 0 12px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 5px !important;
+    font-family: 'DM Sans', sans-serif !important;
+}
+.btn-success.w-100 {
+    background: #F0F4F8 !important;
+    color: #1A6FA8 !important;
+    border: .5px solid #E2E8F0 !important;
+    border-radius: 5px !important;
+    height: 30px !important;
+    font-size: 12px !important;
+    font-weight: 600 !important;
+    padding: 0 12px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 5px !important;
+    justify-content: center !important;
+    font-family: 'DM Sans', sans-serif !important;
+    box-shadow: none !important;
+}
+.dark-mode .btn-success.w-100 { background: #1E2A3A !important; border-color: #2A3A4A !important; color: #8FA3B8 !important; }
+
+/* custom date range row */
+#customDateRange .form-control { margin-bottom: 4px !important; }
+
+/* ─── Section label ─── */
+.ew-sec-lbl {
+    font-size: 10px; font-weight: 700; color: #6B7B8D;
+    text-transform: uppercase; letter-spacing: .6px;
+    margin-bottom: .4rem;
+    display: flex; align-items: center; gap: 7px;
+}
+.ew-sec-lbl::after { content: ''; flex: 1; height: .5px; background: #E8EDF2; }
+.dark-mode .ew-sec-lbl { color: #2A3A4A; }
+.dark-mode .ew-sec-lbl::after { background: #2A3A4A; }
+
+/* ─── Expense Card ─── */
+.expense-card {
+    background: #FFFFFF !important;
+    border: .5px solid #E2E8F0 !important;
+    border-left: 3px solid #D4A45A !important;
+    border-radius: 9px !important;
+    padding: 0 !important;
+    margin-bottom: .4rem !important;
+    box-shadow: none !important;
+    transition: box-shadow .18s, transform .18s !important;
+}
+.expense-card:hover {
+    box-shadow: 0 2px 10px rgba(26,111,168,.09) !important;
+    transform: translateY(-1px) !important;
+}
+.dark-mode .expense-card {
+    background: #1A2332 !important;
+    border-color: #2A3A4A !important;
+    border-left-color: #D4A45A !important;
+}
+.expense-card .card-body {
+    padding: .55rem .85rem !important;
+}
+
+/* desktop row tweaks */
+.expense-card .row.align-items-center {
+    margin: 0 !important;
+    gap: 0 !important;
+}
+.expense-card h5 {
+    font-size: 12.5px !important;
+    font-weight: 700 !important;
+    color: #1A6FA8 !important;
+    margin-bottom: 2px !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 5px !important;
+}
+.dark-mode .expense-card h5 { color: #8FA3B8 !important; }
+.expense-card h5 i { color: #D4A45A !important; font-size: 12px !important; }
+.expense-card p.text-muted {
+    font-size: 11.5px !important;
+    margin-bottom: 1px !important;
+    color: #6B7B8D !important;
+}
+.dark-mode .expense-card p.text-muted { color: #6B7B8D !important; }
+.expense-card h4.text-danger {
+    font-size: 15px !important;
+    font-weight: 700 !important;
+    color: #1A6FA8 !important;
+    margin: 0 !important;
+}
+.dark-mode .expense-card h4.text-danger { color: #8FA3B8 !important; }
+.expense-card small.text-muted {
+    font-size: 9.5px !important;
+    text-transform: uppercase !important;
+    letter-spacing: .35px !important;
+    color: #B8C8D8 !important;
+    font-weight: 700 !important;
+}
+
+/* ─── Type badge ─── */
+.type-badge {
+    padding: 2px 8px !important;
+    border-radius: 9px !important;
+    font-weight: 700 !important;
+    font-size: 10px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 3px !important;
+    /* base — overridden per type below */
+    background: rgba(26,111,168,.08);
+    color: #0F4C75;
+}
+
+/* colorful per-type via data attribute */
+.expense-card[data-type="Land"]         .type-badge { background:#F0F4F8; color:#0F4C75; }
+.expense-card[data-type="Construction"] .type-badge { background:#E8EDF2; color:#15803D; }
+.expense-card[data-type="Legal"]        .type-badge { background:#F0F4F8; color:#6B7B8D; }
+.expense-card[data-type="Marketing"]    .type-badge { background:#FEE2E2; color:#B45309; }
+.expense-card[data-type="Agent"]        .type-badge { background:#FEE2E2; color:#DC2626; }
+.expense-card[data-type="Tax"]          .type-badge { background:#FEE2E2; color:#F59E0B; }
+.expense-card[data-type="Maintenance"]  .type-badge { background:#DCFCE7; color:#15803D; }
+.expense-card[data-type="Other"]        .type-badge { background:#E8EDF2; color:#6B7B8D; }
+
+/* ─── Action dropdown button + z-index fix ─── */
+.expense-card .btn-outline-primary {
+    background: #F0F4F8 !important;
+    border: .5px solid #E2E8F0 !important;
+    border-radius: 5px !important;
+    width: 28px !important;
+    height: 28px !important;
+    padding: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    color: #6B7B8D !important;
+    font-size: 13px !important;
+}
+.expense-card .btn-outline-primary:hover { background: #1A6FA8 !important; color: #FFFFFF !important; border-color: #1A6FA8 !important; }
+.dark-mode .expense-card .btn-outline-primary { background: #1E2A3A !important; border-color: #2A3A4A !important; color: #8FA3B8 !important; }
+
+/* ─── Dropdown z-index fix (three dots menu) ─── */
+.expense-card { overflow: visible !important; }
+.expense-card .card-body { overflow: visible !important; }
+.expense-card .dropdown { position: static; }
+.expense-card .dropdown-menu {
+    z-index: 9999 !important;
+    position: absolute !important;
+    font-size: 12px !important;
+    min-width: 150px !important;
+    padding: 4px 0 !important;
+    border: .5px solid #E2E8F0 !important;
+    border-radius: 7px !important;
+    box-shadow: 0 4px 16px rgba(0,0,0,.12) !important;
+}
+.dark-mode .expense-card .dropdown-menu {
+    background: #1E2A3A !important;
+    border-color: #2A3A4A !important;
+}
+.expense-card .dropdown-menu .dropdown-item {
+    font-size: 12px !important;
+    padding: 5px 12px !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+}
+.expense-card .dropdown-menu .dropdown-item:hover {
+    background: rgba(26,111,168,.08) !important;
+    color: #1A6FA8 !important;
+}
+.dark-mode .expense-card .dropdown-menu .dropdown-item { color: #E2E8F0 !important; }
+.dark-mode .expense-card .dropdown-menu .dropdown-item:hover { background: #2A3A4A !important; color: #8FA3B8 !important; }
+.expense-card .dropdown-menu .dropdown-item.text-danger { color: #DC2626 !important; }
+.expense-card .dropdown-menu .dropdown-item.text-danger:hover { background: #FEE2E2 !important; color: #DC2626 !important; }
+.expense-card .dropdown-menu .dropdown-divider { margin: 3px 0 !important; border-color: #E8EDF2 !important; }
+.dark-mode .expense-card .dropdown-menu .dropdown-divider { border-color: #2A3A4A !important; }
+
+/* ─── _ExpenseModal partial — compact overrides ─── */
+/* Modal dialog sizing */
+.modal-dialog { max-width: 420px !important; margin: 1rem auto !important; }
+@@media (max-width: 480px) { .modal-dialog { max-width: 96vw !important; margin: .5rem auto !important; } }
+
+/* Modal header */
+.modal-header {
+    background: linear-gradient(120deg, #1A6FA8 0%, #0F4C75 100%) !important;
+    border-radius: 9px 9px 0 0 !important;
+    padding: .55rem 1rem !important;
+    border-bottom: none !important;
+}
+.modal-header .modal-title {
+    font-size: 13px !important;
+    font-weight: 700 !important;
+    color: #FFFFFF !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+}
+.modal-header .modal-title::before {
+    content: '\f067';
+    font-family: 'Font Awesome 6 Free';
+    font-weight: 900;
+    font-size: 11px;
+    color: #D4A45A;
+}
+.modal-header .btn-close {
+    filter: invert(1) !important;
+    opacity: .7 !important;
+    width: 20px !important;
+    height: 20px !important;
+    padding: 0 !important;
+}
+.modal-header .btn-close:hover { opacity: 1 !important; }
+
+/* Modal body */
+.modal-body {
+    padding: .7rem .9rem !important;
+}
+
+/* Form labels inside modal */
+.modal-body .form-label,
+.modal-body label {
+    font-size: 10px !important;
+    font-weight: 700 !important;
+    color: #6B7B8D !important;
+    text-transform: uppercase !important;
+    letter-spacing: .4px !important;
+    margin-bottom: 3px !important;
+}
+.dark-mode .modal-body .form-label,
+.dark-mode .modal-body label { color: #6B7B8D !important; }
+
+/* Required star */
+.modal-body .text-danger { font-size: 10px !important; }
+
+/* Form controls inside modal */
+.modal-body .form-control,
+.modal-body .form-select,
+.modal-body input,
+.modal-body select,
+.modal-body textarea {
+    font-size: 12px !important;
+    height: 31px !important;
+    padding: 4px 9px !important;
+    border: .5px solid #E2E8F0 !important;
+    border-radius: 5px !important;
+    background: #F0F4F8 !important;
+    font-family: 'DM Sans', sans-serif !important;
+    color: #1E2A3A !important;
+    transition: border-color .2s !important;
+    box-shadow: none !important;
+}
+.modal-body textarea,
+.modal-body textarea.form-control {
+    height: 58px !important;
+    resize: none !important;
+    padding-top: 6px !important;
+}
+.modal-body .form-control:focus,
+.modal-body .form-select:focus,
+.modal-body input:focus,
+.modal-body select:focus,
+.modal-body textarea:focus {
+    border-color: #1A6FA8 !important;
+    box-shadow: 0 0 0 2px rgba(26,111,168,.1) !important;
+    background: #FFFFFF !important;
+}
+.dark-mode .modal-body .form-control,
+.dark-mode .modal-body .form-select,
+.dark-mode .modal-body input,
+.dark-mode .modal-body select,
+.dark-mode .modal-body textarea {
+    background: #1E2A3A !important;
+    border-color: #2A3A4A !important;
+    color: #E2E8F0 !important;
+}
+
+/* Mb spacing between fields */
+.modal-body .mb-3,
+.modal-body .mb-4 {
+    margin-bottom: .55rem !important;
+}
+
+/* Modal footer */
+.modal-footer {
+    padding: .5rem .9rem !important;
+    border-top: .5px solid #E8EDF2 !important;
+    gap: 6px !important;
+}
+.dark-mode .modal-footer { border-top-color: #2A3A4A !important; }
+
+/* Cancel button */
+.modal-footer .btn-secondary,
+.modal-footer .btn-light {
+    background: #F0F4F8 !important;
+    border: .5px solid #E2E8F0 !important;
+    color: #6B7B8D !important;
+    border-radius: 5px !important;
+    font-size: 12px !important;
+    font-weight: 600 !important;
+    padding: 4px 14px !important;
+    font-family: 'DM Sans', sans-serif !important;
+    box-shadow: none !important;
+}
+.dark-mode .modal-footer .btn-secondary,
+.dark-mode .modal-footer .btn-light {
+    background: #1E2A3A !important;
+    border-color: #2A3A4A !important;
+    color: #8FA3B8 !important;
+}
+
+/* Save / submit button */
+.modal-footer .btn-primary,
+.modal-footer .btn-success {
+    background: #1A6FA8 !important;
+    border: none !important;
+    color: #FFFFFF !important;
+    border-radius: 5px !important;
+    font-size: 12px !important;
+    font-weight: 700 !important;
+    padding: 4px 16px !important;
+    font-family: 'DM Sans', sans-serif !important;
+    box-shadow: none !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 5px !important;
+}
+.modal-footer .btn-primary:hover,
+.modal-footer .btn-success:hover { opacity: .88 !important; }
+
+/* ─── Empty state ─── */
+.empty-state {
+    text-align: center;
+    padding: 3rem 2rem;
+    background: #FFFFFF;
+    border: .5px solid #E2E8F0;
+    border-radius: 10px;
+}
+.dark-mode .empty-state { background: #1A2332 !important; border-color: #2A3A4A !important; }
+.empty-state i { font-size: 44px; color: #E2E8F0; display: block; margin-bottom: .75rem; }
+.dark-mode .empty-state i { color: #2A3A4A !important; }
+.empty-state h3 { font-size: 15px; font-weight: 600; color: #2A3A4A; margin-bottom: .4rem; }
+.dark-mode .empty-state h3 { color: #B8C8D8 !important; }
+.empty-state p { font-size: 12px; color: #8FA3B8; }
+.dark-mode .empty-state p { color: #6B7B8D !important; }
+
+/* ─── Pagination ─── */
+.pagination-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: .45rem;
+    padding: .5rem .85rem;
+    background: #FFFFFF;
+    border: .5px solid #E2E8F0;
+    border-radius: 7px;
+    box-shadow: none;
+}
+.dark-mode .pagination-container { background: #1A2332 !important; border-color: #2A3A4A !important; }
+.pagination-info { color: #8FA3B8; font-size: 11.5px; }
+.dark-mode .pagination-info { color: #6B7B8D !important; }
+.pagination-controls { display: flex; gap: 3px; align-items: center; }
+.pagination-btn {
+    padding: 3px 9px !important;
+    border: .5px solid #E2E8F0 !important;
+    background: #F0F4F8 !important;
+    color: #6B7B8D !important;
+    border-radius: 4px !important;
+    cursor: pointer;
+    transition: all .15s;
+    font-size: 11.5px !important;
+    line-height: 1.5 !important;
+    font-family: 'DM Sans', sans-serif !important;
+}
+.pagination-btn:hover:not(:disabled) { border-color: #D4A45A !important; color: #D4A45A !important; background: #F0F4F8 !important; }
+.pagination-btn:disabled { opacity: .35; cursor: not-allowed; }
+.pagination-btn.active { background: #1A6FA8 !important; border-color: #1A6FA8 !important; color: #FFFFFF !important; }
+.dark-mode .pagination-btn { background: #1E2A3A !important; border-color: #2A3A4A !important; color: #8FA3B8 !important; }
+.dark-mode .pagination-btn.active { background: #1A6FA8 !important; border-color: #1A6FA8 !important; color: #FFFFFF !important; }
+.dark-mode .pagination-btn:disabled { opacity: .35; color: #6B7B8D !important; }
+
+/* ─── flatpickr overrides ─── */
+.flatpickr-calendar { font-family: 'DM Sans', sans-serif !important; border-radius: 9px !important; box-shadow: 0 6px 20px rgba(0,0,0,.12) !important; }
+.flatpickr-day.selected, .flatpickr-day.selected:hover { background: #1A6FA8 !important; border-color: #1A6FA8 !important; }
+.flatpickr-day:hover { background: rgba(26,111,168,.08) !important; }
+.flatpickr-months .flatpickr-month { background: #1A6FA8 !important; border-radius: 9px 9px 0 0 !important; }
+.flatpickr-current-month .flatpickr-monthDropdown-months,
+.flatpickr-current-month input.cur-year { color: #FFFFFF !important; }
+.flatpickr-weekday { color: #1A6FA8 !important; font-weight: 700 !important; }
+.flatpickr-prev-month svg, .flatpickr-next-month svg { fill: #FFFFFF !important; }
+.numInputWrapper span.arrowUp:after { border-bottom-color: #FFFFFF !important; }
+.numInputWrapper span.arrowDown:after { border-top-color: #FFFFFF !important; }
+
+/* ─── Responsive ─── */
+@@media (max-width: 768px) {
+    .expense-card .row { display: none !important; }
+    .expense-card .mobile-layout { display: block !important; }
+    .pagination-container { flex-direction: column !important; gap: .6rem !important; text-align: center !important; }
+    .pagination-controls { flex-wrap: wrap !important; justify-content: center !important; }
+    .pagination-btn { padding: 3px 7px !important; font-size: 11px !important; }
+    .expenses-header .row > div:last-child { text-align: left !important; margin-top: 6px; }
+    .filter-card .row { gap: 6px 0; }
+}
+@@media (max-width: 480px) {
+    .stats-number { font-size: 13px !important; }
+    .expenses-header { padding: .75rem .85rem; }
+}
+
+/* ─── Mobile card layout ─── */
+.mobile-expense-type { font-weight: 700; font-size: 13px; color: #1A6FA8; }
+.dark-mode .mobile-expense-type { color: #8FA3B8; }
+.mobile-description { font-weight: 600; font-size: 12.5px; color: #1E2A3A; margin-bottom: 3px; }
+.dark-mode .mobile-description { color: #E2E8F0; }
+.mobile-info-label { color: #8FA3B8; font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .35px; margin-bottom: 2px; }
+.mobile-info-value { font-weight: 600; color: #1E2A3A; font-size: 12px; }
+.dark-mode .mobile-info-value { color: #B8C8D8; }
+.mobile-total-amount { font-size: 15px; font-weight: 700; color: #1A6FA8; }
+.dark-mode .mobile-total-amount { color: #8FA3B8; }
+.mobile-expense-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: .5rem; }
+.mobile-info-row { margin: .45rem 0; }
+.mobile-amount-row { display: flex; justify-content: space-between; align-items: center; margin-top: .6rem; }
+.mobile-amount-left { flex: 1; }
+</style>
+
+<div class="content">
+    <nav class="mb-2" aria-label="breadcrumb">
+        <ol class="breadcrumb mb-0" style="font-size:12px;">
+            <li class="breadcrumb-item"><a href="/Home">Home</a></li>
+            <li class="breadcrumb-item active">Expenses</li>
+        </ol>
+    </nav>
+
+    <!-- ── Header with Stats ── -->
+    <div class="expenses-header">
+        <div class="row align-items-center mb-2" style="position:relative;z-index:1;">
+            <div class="col-md-6">
+                <h2 class="mb-0" style="font-family:'Playfair Display',serif;font-size:18px;font-weight:600;color:#FFFFFF;display:flex;align-items:center;gap:7px;">
+                    <i class="fa-solid fa-receipt" style="color:#D4A45A;font-size:16px;"></i>Expenses
+                </h2>
+                <p class="mb-0" style="font-size:10.5px;color:rgba(255,255,255,.55);margin-top:2px;">Track all expenses and costs</p>
+            </div>
+            @if (User.IsInRole("Admin") || User.IsInRole("Sales") || User.IsInRole("Agent") || User.IsInRole("Partner"))
+            {
+                <div class="col-md-6 text-md-end">
+                    <button onclick="openExpenseModal()" class="btn create-btn">
+                        <i class="fa-solid fa-plus"></i>New Expense
+                    </button>
+                </div>
+            }
+        </div>
+        <div class="row g-2" style="position:relative;z-index:1;">
+            <div class="col-md-4">
+                <div class="stats-card">
+                    <div class="stats-number" id="statCount">@Model.Count</div>
+                    <div style="font-size:9px;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.4px;">Total Entries</div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="stats-card">
+                    <div class="stats-number" id="statAmount">₹@Model.Sum(e => e.Amount).ToString("N0")</div>
+                    <div style="font-size:9px;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.4px;">Total Expenses</div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="stats-card">
+                    <div class="stats-number" id="statAgent">@Model.Count(e => e.Type == "Agent")</div>
+                    <div style="font-size:9px;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.4px;">Agent Commissions</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── Filter Section ── -->
+    <div class="filter-card">
+        <div class="row g-2 align-items-end">
+            <div class="col-md-3">
+                <label for="searchInput" class="form-label">Search</label>
+                <input type="text" class="form-control" id="searchInput" placeholder="Search anything...">
+            </div>
+            <div class="col-md-2">
+                <label for="typeFilter" class="form-label">Category Type</label>
+                <select class="form-select" id="typeFilter">
+                    <option value="">All Types</option>
+                    <option value="Land">Land</option>
+                    <option value="Construction">Construction</option>
+                    <option value="Legal">Legal</option>
+                    <option value="Marketing">Marketing</option>
+                    <option value="Agent">Agent</option>
+                    <option value="Tax">Tax</option>
+                    <option value="Maintenance">Maintenance</option>
+                    <option value="Other">Other</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label for="dateRangeFilter" class="form-label">Date Range</label>
+                <select class="form-select" id="dateRangeFilter">
+                    <option value="all">All Time</option>
+                    <option value="today">Today</option>
+                    <option value="thisWeek">This Week</option>
+                    <option value="thisMonth">This Month</option>
+                    <option value="last3Months">Last 3 Months</option>
+                    <option value="custom">Custom Range</option>
+                </select>
+            </div>
+            <div class="col-md-2" id="customDateRange" style="display: none;">
+                <label class="form-label">From</label>
+                <div class="fp-wrap">
+                    <input type="text" class="form-control ew-fp-filter" id="startDate" placeholder="Start" readonly>
+                    <i class="fa-regular fa-calendar fp-icon"></i>
+                </div>
+                <label class="form-label mt-1">To</label>
+                <div class="fp-wrap">
+                    <input type="text" class="form-control ew-fp-filter" id="endDate" placeholder="End" readonly>
+                    <i class="fa-regular fa-calendar fp-icon"></i>
+                </div>
+            </div>
+            @if (User.IsInRole("Admin") || User.IsInRole("Sales") || User.IsInRole("Agent"))
+            {
+                <div class="col-md-2">
+                    <button class="btn btn-success w-100" type="button" onclick="exportData()">
+                        <i class="fa-solid fa-file-excel" style="font-size:11px;"></i>Export Excel
+                    </button>
+                </div>
+            }
+        </div>
+    </div>
+
+    <!-- ── Expenses List ── -->
+    @if (Model.Any())
+    {
+        <div class="ew-sec-lbl">Recent Expenses</div>
+
+        foreach (var expense in Model)
+        {
+            <div class="card expense-card paginated-item" data-type="@expense.Type">
+                <div class="card-body">
+                    <!-- Desktop Layout -->
+                    <div class="row align-items-center">
+                        <div class="col-md-6">
+                            <h5 class="mb-2">
+                                <i class="fa-solid fa-file-invoice"></i>
+                                @expense.Type
+                            </h5>
+                            <p class="mb-1 text-muted" style="font-size:11px;">
+                                <i class="fa-solid fa-calendar me-1"></i>
+                                @expense.Date.ToString("MMM dd, yyyy")
+                            </p>
+                            <p class="mb-0 text-muted" style="font-size:11px;">
+                                <i class="fa-solid fa-comment-dots me-1"></i>
+                                @expense.Description
+                            </p>
+                        </div>
+                        <div class="col-md-3 text-center">
+                            <small class="text-muted d-block mb-1">Amount</small>
+                            <h4 class="text-danger mb-0">₹@expense.Amount.ToString("N0")</h4>
+                        </div>
+                        <div class="col-md-2 text-center">
+                            <span class="type-badge">@expense.Type</span>
+                        </div>
+                        <div class="col-md-1 text-end">
+                            <div class="dropdown">
+                                <button class="btn btn-sm btn-outline-primary" type="button" data-bs-toggle="dropdown">
+                                    <i class="fa-solid fa-ellipsis-vertical"></i>
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end">
+                                    <li>
+                                        <a class="dropdown-item" href="/expensedetails/@IdObfuscator.Encode(expense.ExpenseId)">
+                                            <i class="fa-solid fa-eye me-2"></i>View Details
+                                        </a>
+                                    </li>
+                                    @if (User.IsInRole("Admin") || User.IsInRole("Sales") || User.IsInRole("Agent"))
+                                    {
+                                        <li>
+                                            <a class="dropdown-item" href="#" onclick="editExpense(@expense.ExpenseId)">
+                                                <i class="fa-solid fa-edit me-2"></i>Edit
+                                            </a>
+                                        </li>
+                                    }
+                                    @if (User.IsInRole("Admin") || User.IsInRole("Sales") || User.IsInRole("Agent"))
+                                    {
+                                        <li><hr class="dropdown-divider"></li>
+                                        <li>
+                                            <a class="dropdown-item text-danger" href="#" onclick="deleteExpense(@expense.ExpenseId)">
+                                                <i class="fa-solid fa-trash me-2"></i>Delete
+                                            </a>
+                                        </li>
+                                    }
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Mobile Layout -->
+                    <div class="mobile-layout d-none">
+                        <div class="mobile-expense-header">
+                            <div class="mobile-expense-type">@expense.Type</div>
+                            <div class="dropdown">
+                                <button class="btn btn-sm btn-outline-primary" type="button" data-bs-toggle="dropdown">
+                                    <i class="fa-solid fa-ellipsis-vertical"></i>
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end">
+                                    <li>
+                                        <a class="dropdown-item" href="/expensedetails/@IdObfuscator.Encode(expense.ExpenseId)">
+                                            <i class="fa-solid fa-eye me-2"></i>View Details
+                                        </a>
+                                    </li>
+                                    @if (User.IsInRole("Admin") || User.IsInRole("Sales") || User.IsInRole("Agent"))
+                                    {
+                                        <li>
+                                            <a class="dropdown-item" href="#" onclick="editExpense(@expense.ExpenseId)">
+                                                <i class="fa-solid fa-edit me-2"></i>Edit
+                                            </a>
+                                        </li>
+                                    }
+                                    @if (User.IsInRole("Admin") || User.IsInRole("Sales") || User.IsInRole("Agent"))
+                                    {
+                                        <li><hr class="dropdown-divider"></li>
+                                        <li>
+                                            <a class="dropdown-item text-danger" href="#" onclick="deleteExpense(@expense.ExpenseId)">
+                                                <i class="fa-solid fa-trash me-2"></i>Delete
+                                            </a>
+                                        </li>
+                                    }
+                                </ul>
+                            </div>
+                        </div>
+
+                        <div class="mobile-description">@expense.Description</div>
+
+                        <div class="mobile-info-row">
+                            <div class="mobile-info-label">Date</div>
+                            <div class="mobile-info-value">@expense.Date.ToString("MMM dd, yyyy")</div>
+                        </div>
+
+                        <div class="mobile-amount-row">
+                            <div class="mobile-amount-left">
+                                <div class="mobile-info-label">Amount</div>
+                                <div class="mobile-total-amount">₹@expense.Amount.ToString("N0")</div>
+                            </div>
+                            <div>
+                                <span class="type-badge">@expense.Type</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+
+        <!-- Pagination -->
+        <div class="pagination-container" id="paginationContainer" style="display: none;">
+            <div class="pagination-info">
+                <span id="paginationInfo">Showing 1-10 of 50 expenses</span>
+            </div>
+            <div class="pagination-controls">
+                <button class="pagination-btn" id="prevBtn" onclick="changePage(-1)">
+                    <i class="fa-solid fa-chevron-left"></i> Previous
+                </button>
+                <div id="pageNumbers"></div>
+                <button class="pagination-btn" id="nextBtn" onclick="changePage(1)">
+                    Next <i class="fa-solid fa-chevron-right"></i>
+                </button>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="empty-state">
+            <i class="fa-solid fa-receipt"></i>
+            <h3>No Expenses Found</h3>
+            <p class="text-muted">Start by adding your first expense entry</p>
+            @if (User.IsInRole("Admin") || User.IsInRole("Sales") || User.IsInRole("Agent"))
+            {
+                <button onclick="openExpenseModal()" class="btn create-btn mt-3">
+                    <i class="fa-solid fa-plus"></i>Create Expense
+                </button>
+            }
+        </div>
+    }
+</div>
+
+@await Html.PartialAsync("_ExpenseModal")
+
+@section Scripts {
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+let allExpenseData = @Html.Raw(Json.Serialize(Model.Select(e => new {
+    Type = e.Type,
+    Description = e.Description,
+    Amount = e.Amount,
+    Date = e.Date.ToString("yyyy-MM-dd"),
+    DateFormatted = e.Date.ToString("MMM dd, yyyy")
+})));
+
+// Pagination variables
+let currentPage = 1;
+let pageSize = 10;
+let filteredItems = [];
+
+// ── Flatpickr filter date inputs ──
+document.querySelectorAll('.ew-fp-filter').forEach(function(el) {
+    flatpickr(el, {
+        dateFormat: 'Y-m-d',
+        altInput: true,
+        altFormat: 'd M Y',
+        disableMobile: true,
+        allowInput: false,
+        onChange: function() { applyFilters(); }
+    });
+});
+
+$(document).ready(function () {
+    function getDateRange(range) {
+        const today = new Date();
+        const startOfWeek = new Date(today.setDate(today.getDate() - today.getDay()));
+        const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+        const last3Months = new Date(today.getFullYear(), today.getMonth() - 3, 1);
+
+        switch(range) {
+            case 'today':
+                return { start: new Date().toISOString().split('T')[0], end: new Date().toISOString().split('T')[0] };
+            case 'thisWeek':
+                return { start: startOfWeek.toISOString().split('T')[0], end: new Date().toISOString().split('T')[0] };
+            case 'thisMonth':
+                return { start: startOfMonth.toISOString().split('T')[0], end: new Date().toISOString().split('T')[0] };
+            case 'last3Months':
+                return { start: last3Months.toISOString().split('T')[0], end: new Date().toISOString().split('T')[0] };
+            default:
+                return null;
+        }
+    }
+
+    function updateStatsCards() {
+        var visibleCards = $('.expense-card:visible');
+        var totalEntries = visibleCards.length;
+        var totalAmount = 0;
+        var agentCount = 0;
+
+        visibleCards.each(function() {
+            var amount = $(this).find('h4.text-danger').text().replace('₹', '').replace(/,/g, '');
+            totalAmount += parseFloat(amount) || 0;
+
+            var type = $(this).find('.type-badge').text().trim();
+            if (type === 'Agent') agentCount++;
+        });
+
+        $('#statCount').text(totalEntries);
+        $('#statAmount').text('₹' + Math.round(totalAmount).toLocaleString('en-IN'));
+        $('#statAgent').text(agentCount);
+    }
+
+    function applyFilters() {
+        var search = $('#searchInput').val().toLowerCase();
+        var type = $('#typeFilter').val();
+        var dateRange = $('#dateRangeFilter').val();
+        var startDate = $('#startDate').val();
+        var endDate = $('#endDate').val();
+
+        var dateFilter = null;
+        if (dateRange !== 'all') {
+            if (dateRange === 'custom' && startDate && endDate) {
+                dateFilter = { start: startDate, end: endDate };
+            } else if (dateRange !== 'custom') {
+                dateFilter = getDateRange(dateRange);
+            }
+        }
+
+        filteredItems = [];
+        $('.expense-card').each(function () {
+            var card = $(this);
+            var cardText = card.text().toLowerCase();
+            var cardType = card.find('.type-badge').text().trim();
+            var cardDateText = card.find('p').first().text();
+            var cardDate = cardDateText.match(/\w{3} \d{2}, \d{4}/);
+
+            var matchesSearch = !search || cardText.includes(search);
+            var matchesType = !type || cardType === type;
+            var matchesDate = true;
+
+            if (dateFilter && cardDate) {
+                var date = new Date(cardDate[0]).toISOString().split('T')[0];
+                matchesDate = date >= dateFilter.start && date <= dateFilter.end;
+            }
+
+            if (matchesSearch && matchesType && matchesDate) {
+                filteredItems.push(card.closest('.paginated-item')[0]);
+            }
+        });
+
+        currentPage = 1;
+        updatePagination();
+        updateStatsCards();
+    }
+
+    window.applyFilters = applyFilters;
+
+    $('#searchInput').on('input', applyFilters);
+    $('#typeFilter').on('change', applyFilters);
+    $('#dateRangeFilter').on('change', function() {
+        if ($(this).val() === 'custom') {
+            $('#customDateRange').show();
+        } else {
+            $('#customDateRange').hide();
+            applyFilters();
+        }
+    });
+    $('#startDate, #endDate').on('change', applyFilters);
+
+    // Initialize pagination
+    filteredItems = Array.from(document.querySelectorAll('.paginated-item'));
+    updatePagination();
+    applyFilters();
+});
+
+function updatePagination() {
+    const totalPages = Math.ceil(filteredItems.length / pageSize);
+    const startIndex = (currentPage - 1) * pageSize;
+    const endIndex = Math.min(startIndex + pageSize, filteredItems.length);
+
+    // Hide all items first
+    $('.paginated-item').hide();
+
+    // Show items for current page
+    for (let i = startIndex; i < endIndex; i++) {
+        if (filteredItems[i]) {
+            $(filteredItems[i]).show();
+        }
+    }
+
+    // Update pagination info
+    const start = filteredItems.length > 0 ? startIndex + 1 : 0;
+    const end = endIndex;
+    $('#paginationInfo').text(`Showing ${start}-${end} of ${filteredItems.length} expenses`);
+
+    // Update page numbers
+    updatePageNumbers(totalPages);
+
+    // Update prev/next buttons
+    $('#prevBtn').prop('disabled', currentPage === 1);
+    $('#nextBtn').prop('disabled', currentPage === totalPages || totalPages === 0);
+
+    // Show/hide pagination
+    if (filteredItems.length > 0) {
+        $('#paginationContainer').show();
+        $('.empty-state').hide();
+    } else {
+        $('#paginationContainer').hide();
+        $('.empty-state').show();
+    }
+}
+
+function updatePageNumbers(totalPages) {
+    const pageNumbers = $('#pageNumbers');
+    pageNumbers.empty();
+
+    if (totalPages <= 1) return;
+
+    const maxVisiblePages = 5;
+    let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+    let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+
+    if (endPage - startPage + 1 < maxVisiblePages) {
+        startPage = Math.max(1, endPage - maxVisiblePages + 1);
+    }
+
+    for (let i = startPage; i <= endPage; i++) {
+        const btn = $('<button></button>')
+            .addClass('pagination-btn')
+            .addClass(i === currentPage ? 'active' : '')
+            .text(i)
+            .on('click', function() { goToPage(i); });
+        pageNumbers.append(btn);
+    }
+}
+
+function changePage(direction) {
+    const totalPages = Math.ceil(filteredItems.length / pageSize);
+    const newPage = currentPage + direction;
+
+    if (newPage >= 1 && newPage <= totalPages) {
+        currentPage = newPage;
+        updatePagination();
+    }
+}
+
+function goToPage(page) {
+    currentPage = page;
+    updatePagination();
+}
+
+function exportData() {
+    const visibleData = [];
+    $('.expense-card:visible').each(function() {
+        const card = $(this);
+        const type = card.find('h5').text().trim();
+        const description = card.find('p').eq(1).text().replace(/.*\s+/, '').trim();
+        const amount = card.find('h4.text-danger').text().replace('₹', '').replace(/,/g, '').trim();
+        const date = card.find('p').eq(0).text().replace(/.*\s+/, '').trim();
+
+        visibleData.push({ Type: type, Description: description, Amount: amount, Date: date });
+    });
+
+    if (visibleData.length === 0) {
+        Swal.fire('No Data', 'No data to export', 'info');
+        return;
+    }
+
+    const ws = XLSX.utils.json_to_sheet(visibleData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Expenses');
+    XLSX.writeFile(wb, `Expenses_Report_${new Date().toISOString().split('T')[0]}.xlsx`);
+}
+
+function deleteExpense(expenseId) {
+    Swal.fire({
+        title: 'Are you sure?',
+        text: 'Do you want to delete this expense entry?',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#1A6FA8',
+        cancelButtonColor: '#6B7B8D',
+        confirmButtonText: 'Yes, delete it!'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            $.ajax({
+                url: '/Expenses/DeleteExpense',
+                type: 'POST',
+                data: { expenseId },
+                success: function (response) {
+                    if (response.success) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Deleted!',
+                            text: 'Expense entry deleted successfully.'
+                        }).then(() => { location.reload(); });
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: response.message
+                        });
+                    }
+                }
+            });
+        }
+    });
+}
+</script>
+}

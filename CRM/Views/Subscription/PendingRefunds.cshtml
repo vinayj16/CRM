@@ -1,0 +1,603 @@
+@model List<CRM.Models.PaymentTransactionModel>
+@{
+    ViewData["Title"] = "Pending Refunds";
+    var totalRefundAmount = ViewBag.TotalRefundAmount as decimal? ?? 0;
+}
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+
+<style>
+/* ══════════════════════════════════════
+   SCOPE: .prf-wrap
+   --g=#D4A45A gold  --b=#1A6FA8 blue
+   Compact, beautiful, responsive
+══════════════════════════════════════ */
+.prf-wrap {
+    --g:#D4A45A; --gd:#B8883E; --gp:#FEE2E2;
+    --b:#1A6FA8; --bd:#0F4C75; --bp:#F0F4F8; --bl:#B8C8D8;
+    --tx:#1A2332; --mu:#6B7B8D; --su:#FFFFFF; --bg:#F0F4F8; --br:#E2E8F0;
+    --ok:#16A34A; --okp:#F0F4F8;
+    --wa:#DC2626; --wap:#F0F4F8;
+    --am:#F59E0B; --amp:#FFFFFF;
+    font-family:'Segoe UI',system-ui,sans-serif;
+    font-size:12.5px; color:var(--tx);
+}
+p {
+    font-size: 0.95rem !important;
+    line-height: 1.6 !important;
+    margin-bottom: 0px !important;
+}
+
+/* ── hero ── */
+.prf-hero {
+    background:linear-gradient(118deg,#0F4C75 0%,var(--b) 55%,#2589C9 100%);
+    border-radius:9px; padding:.7rem 1rem;
+    margin-bottom:.45rem; position:relative; overflow:hidden;
+    display:flex; align-items:center; justify-content:space-between;
+    flex-wrap:wrap; gap:.5rem;
+}
+.prf-hero::before {
+    content:''; position:absolute; top:-28px; right:-28px;
+    width:110px; height:110px; border-radius:50%;
+    background:rgba(212,164,90,.15); pointer-events:none;
+}
+.prf-hero::after {
+    content:''; position:absolute; bottom:-20px; left:25%;
+    width:70px; height:70px; border-radius:50%;
+    background:rgba(212,164,90,.08); pointer-events:none;
+}
+.prf-hero-left { position:relative; z-index:1; }
+.prf-hero-title {
+    font-size:.92rem; font-weight:700; color:#FFFFFF; margin:0;
+    display:flex; align-items:center; gap:6px;
+}
+.prf-hero-title i { color:var(--g); }
+.prf-hero-sub { font-size:.65rem; color:rgba(255,255,255,.6); margin:.1rem 0 0; }
+.prf-total-badge {
+    position:relative; z-index:1;
+    background:rgba(220,38,38,.2); border:1px solid rgba(220,38,38,.35);
+    color:#E8C27E; border-radius:7px;
+    padding:.35rem .85rem; font-size:.78rem; font-weight:700;
+    display:flex; align-items:center; gap:5px;
+    backdrop-filter:blur(4px);
+}
+.prf-total-badge i { color:#E8C27E; }
+
+/* ── stat cards ── */
+.prf-stats {
+    display:grid; grid-template-columns:repeat(3,1fr);
+    gap:.4rem; margin-bottom:.45rem;
+}
+.prf-sc {
+    background:var(--su); border:1px solid var(--br);
+    border-radius:7px; padding:.4rem .65rem;
+    display:flex; align-items:center; gap:.45rem;
+}
+.prf-sc-ico {
+    width:28px; height:28px; border-radius:5px; flex-shrink:0;
+    display:flex; align-items:center; justify-content:center; font-size:.78rem;
+}
+.ico-r  { background:var(--wap); color:var(--wa); }
+.ico-g  { background:var(--gp);  color:var(--gd); }
+.ico-am { background:var(--amp); color:var(--am); }
+.prf-sc-num { font-size:.92rem; font-weight:700; color:var(--tx); line-height:1; margin-bottom:1px; }
+.prf-sc-lbl { font-size:.6rem; color:var(--mu); font-weight:500; }
+
+/* ── filter card ── */
+.prf-fbar {
+    background:var(--su); border:1px solid var(--br);
+    border-radius:7px; padding:.5rem .75rem;
+    margin-bottom:.45rem;
+}
+.prf-fbar-title {
+    font-size:.63rem; font-weight:700; color:var(--mu);
+    text-transform:uppercase; letter-spacing:.06em;
+    display:flex; align-items:center; gap:4px; margin-bottom:.4rem;
+}
+.prf-fgrid { display:grid; grid-template-columns:1fr auto; gap:.4rem; align-items:end; }
+.prf-fl { font-size:.62rem; font-weight:600; color:var(--mu); margin-bottom:2px; display:block; }
+.prf-fi {
+    width:100%; border:1px solid var(--br); border-radius:5px;
+    font-size:.74rem; padding:.18rem .5rem; height:28px;
+    color:var(--tx); outline:none; background:var(--su);
+    transition:border-color .14s,box-shadow .14s;
+}
+.prf-fi:focus { border-color:var(--b); box-shadow:0 0 0 2px rgba(26,111,168,.11); }
+.prf-btn-row { display:flex; gap:.35rem; }
+.prf-btn {
+    height:28px; padding:0 .7rem; border-radius:5px;
+    font-size:.7rem; font-weight:700; border:none; cursor:pointer;
+    display:inline-flex; align-items:center; gap:4px; white-space:nowrap;
+    transition:all .14s;
+}
+.prf-btn-primary { background:var(--b); color:#FFFFFF; }
+.prf-btn-primary:hover { background:var(--bd); }
+.prf-btn-secondary { background:var(--bg); color:var(--mu); border:1px solid var(--br); }
+.prf-btn-secondary:hover { border-color:var(--b); color:var(--b); }
+
+/* ── table wrapper ── */
+.prf-card {
+    background:var(--su); border:1px solid var(--br);
+    border-radius:9px; overflow:hidden;
+}
+.prf-thead-row {
+    display:grid;
+    grid-template-columns:2fr 1fr .7fr .8fr 1fr 1fr .9fr;
+    gap:.35rem; padding:.3rem .75rem;
+    background:var(--bg); border-bottom:1px solid var(--br);
+}
+.prf-th {
+    font-size:.58rem; font-weight:700; color:var(--mu);
+    text-transform:uppercase; letter-spacing:.05em;
+}
+.prf-th.c { text-align:center; }
+.prf-th.r { text-align:right; }
+
+/* ── data row ── */
+.prf-row {
+    display:grid;
+    grid-template-columns:2fr 1fr .7fr .8fr 1fr 1fr .9fr;
+    gap:.35rem; padding:.5rem .75rem;
+    border-bottom:1px solid var(--br);
+    align-items:center;
+    transition:background .12s;
+}
+.prf-row:last-child { border-bottom:none; }
+.prf-row:hover { background:var(--bp); }
+
+.prf-company { font-size:.78rem; font-weight:700; color:var(--tx); margin-bottom:1px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.prf-contact { font-size:.65rem; color:var(--mu); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.prf-email   { font-size:.62rem; color:var(--b); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+
+.prf-plan-badge {
+    font-size:.57rem; font-weight:700; padding:.15rem .45rem;
+    border-radius:20px; display:inline-block;
+    background:var(--bp); color:var(--b); border:1px solid var(--bl);
+    text-transform:uppercase; letter-spacing:.03em; white-space:nowrap;
+}
+.prf-billing { font-size:.72rem; color:var(--tx); font-weight:500; }
+.prf-amount  { font-size:.85rem; font-weight:700; color:var(--wa); }
+
+.prf-date-main { font-size:.72rem; font-weight:600; color:var(--tx); }
+.prf-date-sub  { font-size:.62rem; color:var(--mu); }
+
+.prf-act { display:flex; justify-content:center; }
+
+/* ── action buttons ── */
+.prf-mark-btn {
+    height:24px; padding:0 .55rem; border-radius:5px;
+    font-size:.65rem; font-weight:700; border:none; cursor:pointer;
+    display:inline-flex; align-items:center; gap:3px;
+    background:var(--ok); color:#FFFFFF;
+    transition:all .13s; white-space:nowrap;
+    box-shadow:0 1px 4px rgba(22,163,74,.25);
+}
+.prf-mark-btn:hover { background:#15803D; transform:translateY(-1px); }
+.prf-pending-badge {
+    font-size:.6rem; font-weight:700; padding:.18rem .5rem;
+    border-radius:20px; background:var(--amp); color:var(--am);
+    border:1px solid rgba(245,158,11,.3);
+    display:inline-flex; align-items:center; gap:3px; white-space:nowrap;
+}
+
+/* ── pagination ── */
+.prf-pag {
+    display:flex; justify-content:space-between; align-items:center;
+    padding:.4rem .75rem; border-top:1px solid var(--br);
+    background:var(--bg);
+}
+.prf-pag-info { font-size:.65rem; color:var(--mu); }
+.prf-pag-ctrl { display:flex; gap:3px; }
+.prf-pb {
+    padding:.18rem .42rem; border:1px solid var(--br);
+    background:var(--su); color:var(--mu); border-radius:4px;
+    font-size:.64rem; cursor:pointer; transition:all .13s; line-height:1.5;
+    text-decoration:none; display:inline-flex; align-items:center;
+}
+.prf-pb:hover { border-color:var(--b); color:var(--b); background:var(--bp); }
+.prf-pb.active { background:var(--b); border-color:var(--b); color:#FFFFFF; font-weight:700; }
+
+/* ── empty state ── */
+.prf-empty {
+    text-align:center; padding:2rem 1.5rem;
+}
+.prf-empty i { font-size:2.2rem; color:var(--ok); opacity:.4; display:block; margin-bottom:.55rem; }
+.prf-empty h5 { font-size:.85rem; font-weight:600; margin-bottom:.2rem; color:var(--ok); }
+.prf-empty p  { font-size:.72rem; color:var(--mu); }
+
+/* ── mobile card ── */
+.prf-mob { display:none; }
+
+/* ── dark mode ── */
+.dark-mode .prf-wrap {
+    --su:#1A2332; --br:#1E2A3A; --tx:#E2E8F0; --mu:#6B7B8D;
+    --bg:#111827; --bp:#1A2332; --bl:#2A3A4A; --gp:#111827;
+    --okp:#0D1A24; --wap:#111827; --amp:#0D1A24;
+}
+.dark-mode .prf-sc,
+.dark-mode .prf-card,
+.dark-mode .prf-fbar { background:#1A2332 !important; border-color:#1E2A3A !important; }
+.dark-mode .prf-thead-row,
+.dark-mode .prf-pag { background:#111827 !important; border-color:#1E2A3A !important; }
+.dark-mode .prf-row:hover { background:#1A2332 !important; }
+.dark-mode .prf-fi { background:#1E2A3A !important; border-color:#2A3A4A !important; color:#E2E8F0 !important; }
+.dark-mode .prf-btn-secondary { background:#1E2A3A !important; border-color:#2A3A4A !important; }
+.dark-mode .prf-pb { background:#1E2A3A !important; border-color:#2A3A4A !important; color:#6B7B8D !important; }
+.dark-mode .prf-pb.active { background:var(--b) !important; color:#FFFFFF !important; }
+
+/* ── responsive ── */
+@@media (max-width:900px) {
+    .prf-thead-row { display:none; }
+    .prf-row { grid-template-columns:1fr !important; padding:.55rem .7rem; gap:.3rem; }
+    .prf-row > *:not(.prf-mob) { display:none !important; }
+    .prf-mob { display:block !important; }
+    .prf-stats { grid-template-columns:1fr 1fr 1fr; }
+    .prf-pag { flex-direction:column; gap:.3rem; text-align:center; }
+    .prf-hero { flex-direction:column; align-items:flex-start; }
+}
+@@media (max-width:540px) {
+    .prf-stats { grid-template-columns:1fr; }
+    .prf-fgrid { grid-template-columns:1fr; }
+    .prf-btn-row { flex-direction:row; }
+    .prf-btn-row .prf-btn { flex:1; justify-content:center; }
+}
+
+/* ── mobile card inner ── */
+.prf-mob-head { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:.3rem; }
+.prf-mob-co { font-size:.8rem; font-weight:700; color:var(--tx); }
+.prf-mob-sub { font-size:.65rem; color:var(--mu); margin:.1rem 0; }
+.prf-mob-foot { display:flex; justify-content:space-between; align-items:center; padding-top:.28rem; border-top:1px solid var(--br); margin-top:.28rem; }
+
+/* ── flatpickr overrides ── */
+.flatpickr-calendar { font-size:.72rem !important; border-radius:8px !important; box-shadow:0 5px 18px rgba(0,0,0,.12) !important; }
+.flatpickr-day.selected,.flatpickr-day.selected:hover { background:var(--b) !important; border-color:var(--b) !important; }
+.flatpickr-months .flatpickr-month { background:#1A6FA8 !important; color:#FFFFFF !important; }
+.flatpickr-weekday,span.flatpickr-weekday { background:#1A6FA8 !important; color:rgba(255,255,255,.85) !important; font-weight:700 !important; }
+</style>
+
+<div class="prf-wrap">
+
+    <!-- Breadcrumb -->
+    <nav class="mb-2" aria-label="breadcrumb">
+        <ol class="breadcrumb mb-0" style="font-size:.7rem;">
+            <li class="breadcrumb-item"><a href="/Home/Index">Home</a></li>
+            <li class="breadcrumb-item active">Pending Refunds</li>
+        </ol>
+    </nav>
+
+    <!-- HERO -->
+    <div class="prf-hero">
+        <div class="prf-hero-left">
+            <div class="prf-hero-title">
+                <i class="fa-solid fa-money-bill-transfer"></i>Pending Refunds
+            </div>
+            <p class="prf-hero-sub">Cancelled subscriptions requiring refund processing</p>
+        </div>
+        <div class="prf-total-badge">
+            <i class="fa-solid fa-indian-rupee-sign"></i>
+            Total: ₹@totalRefundAmount.ToString("N0")
+        </div>
+    </div>
+
+    <!-- STATS -->
+    <div class="prf-stats">
+        <div class="prf-sc">
+            <div class="prf-sc-ico ico-r"><i class="fa-solid fa-clock"></i></div>
+            <div>
+                <div class="prf-sc-num">@(Model?.Count ?? 0)</div>
+                <div class="prf-sc-lbl">Pending Refunds</div>
+            </div>
+        </div>
+        <div class="prf-sc">
+            <div class="prf-sc-ico ico-g"><i class="fa-solid fa-indian-rupee-sign"></i></div>
+            <div>
+                <div class="prf-sc-num">₹@totalRefundAmount.ToString("N0")</div>
+                <div class="prf-sc-lbl">Total Amount</div>
+            </div>
+        </div>
+        <div class="prf-sc">
+            <div class="prf-sc-ico ico-am"><i class="fa-solid fa-building"></i></div>
+            <div>
+                <div class="prf-sc-num">@(Model?.Select(m => m.ChannelPartner?.CompanyName).Distinct().Count() ?? 0)</div>
+                <div class="prf-sc-lbl">Partners</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- FILTER -->
+    <div class="prf-fbar">
+        <div class="prf-fbar-title"><i class="fa-solid fa-filter"></i>Search</div>
+        <form method="get">
+            <div class="prf-fgrid">
+                <div>
+                    <label class="prf-fl">Search Partner</label>
+                    <input type="text" class="prf-fi" name="search" value="@ViewBag.Search"
+                           placeholder="Company name or contact person…">
+                </div>
+                <div style="align-self:flex-end;">
+                    <div class="prf-btn-row">
+                        <button type="submit" class="prf-btn prf-btn-primary">
+                            <i class="fa-solid fa-search"></i>Search
+                        </button>
+                        <a href="/Subscription/PendingRefunds" class="prf-btn prf-btn-secondary">
+                            <i class="fa-solid fa-redo"></i>Reset
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- TABLE / CARDS -->
+    @if (Model != null && Model.Any())
+    {
+        <div class="prf-card">
+
+            <!-- Desktop thead -->
+            <div class="prf-thead-row">
+                <span class="prf-th">Partner</span>
+                <span class="prf-th">Plan</span>
+                <span class="prf-th">Billing</span>
+                <span class="prf-th r">Amount</span>
+                <span class="prf-th">Cancelled On</span>
+                <span class="prf-th">Payment Date</span>
+                <span class="prf-th c">Action</span>
+            </div>
+
+            @foreach (var transaction in Model)
+            {
+                <div class="prf-row">
+
+                    <!-- Partner -->
+                    <div>
+                        <div class="prf-company">@transaction.ChannelPartner?.CompanyName</div>
+                        <div class="prf-contact">@transaction.ChannelPartner?.ContactPerson</div>
+                        <div class="prf-email">@transaction.ChannelPartner?.Email</div>
+                    </div>
+
+                    <!-- Plan -->
+                    <div><span class="prf-plan-badge">@transaction.PlanName</span></div>
+
+                    <!-- Billing -->
+                    <div class="prf-billing">@transaction.BillingCycle</div>
+
+                    <!-- Amount -->
+                    <div style="text-align:right;">
+                        <span class="prf-amount">₹@transaction.Amount.ToString("N0")</span>
+                    </div>
+
+                    <!-- Cancelled On -->
+                    <div>
+                        <div class="prf-date-main">@transaction.TransactionDate.ToString("MMM dd, yyyy")</div>
+                        <div class="prf-date-sub">@transaction.TransactionDate.ToString("hh:mm tt")</div>
+                    </div>
+
+                    <!-- Payment Date -->
+                    <div>
+                        @if (transaction.CompletedDate.HasValue)
+                        {
+                            <div class="prf-date-main">@transaction.CompletedDate?.ToString("MMM dd, yyyy")</div>
+                        }
+                        else
+                        {
+                            <span class="prf-date-sub">N/A</span>
+                        }
+                    </div>
+
+                    <!-- Action -->
+                    <div class="prf-act">
+                        @if (ViewBag.IsAdmin == true)
+                        {
+                            <button class="prf-mark-btn"
+                                    onclick="markRefundProcessed(@transaction.TransactionId, '@transaction.ChannelPartner?.CompanyName', @transaction.Amount)">
+                                <i class="fa-solid fa-check"></i>Process
+                            </button>
+                        }
+                        else
+                        {
+                            <span class="prf-pending-badge">
+                                <i class="fa-solid fa-clock"></i>Pending
+                            </span>
+                        }
+                    </div>
+
+                    <!-- Mobile card -->
+                    <div class="prf-mob">
+                        <div class="prf-mob-head">
+                            <div>
+                                <div class="prf-mob-co">@transaction.ChannelPartner?.CompanyName</div>
+                                <div class="prf-mob-sub">@transaction.ChannelPartner?.ContactPerson</div>
+                                <div class="prf-mob-sub" style="color:var(--b)">@transaction.ChannelPartner?.Email</div>
+                            </div>
+                            <span class="prf-amount">₹@transaction.Amount.ToString("N0")</span>
+                        </div>
+                        <div style="display:flex;gap:.35rem;flex-wrap:wrap;margin-bottom:.28rem;">
+                            <span class="prf-plan-badge">@transaction.PlanName</span>
+                            <span class="prf-billing">@transaction.BillingCycle</span>
+                        </div>
+                        <div class="prf-mob-foot">
+                            <div>
+                                <div class="prf-date-sub">Cancelled: @transaction.TransactionDate.ToString("MMM dd, yyyy")</div>
+                            </div>
+                            @if (ViewBag.IsAdmin == true)
+                            {
+                                <button class="prf-mark-btn"
+                                        onclick="markRefundProcessed(@transaction.TransactionId, '@transaction.ChannelPartner?.CompanyName', @transaction.Amount)">
+                                    <i class="fa-solid fa-check"></i>Process
+                                </button>
+                            }
+                            else
+                            {
+                                <span class="prf-pending-badge"><i class="fa-solid fa-clock"></i>Pending</span>
+                            }
+                        </div>
+                    </div>
+
+                </div>
+            }
+
+            <!-- Pagination -->
+            @if (ViewBag.TotalPages > 1)
+            {
+                <div class="prf-pag">
+                    <div class="prf-pag-info">
+                        Page @ViewBag.CurrentPage of @ViewBag.TotalPages
+                    </div>
+                    <div class="prf-pag-ctrl">
+                        @for (int i = 1; i <= ViewBag.TotalPages; i++)
+                        {
+                            <a class="prf-pb @(i == ViewBag.CurrentPage ? "active" : "")"
+                               href="?page=@i&search=@ViewBag.Search">@i</a>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+    }
+    else
+    {
+        <div class="prf-card">
+            <div class="prf-empty">
+                <i class="fa-solid fa-check-circle"></i>
+                <h5>All caught up!</h5>
+                <p>No pending refunds at the moment.</p>
+            </div>
+        </div>
+    }
+
+</div><!-- /prf-wrap -->
+
+@section Scripts {
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<style>
+/* SweetAlert dark mode */
+[data-bs-theme="dark"] .swal2-popup,
+.dark-mode .swal2-popup { background:var(--bs-dark) !important; color:#FFFFFF !important; }
+[data-bs-theme="dark"] .swal2-title,
+.dark-mode .swal2-title { color:#FFFFFF !important; }
+[data-bs-theme="dark"] .swal2-html-container,
+[data-bs-theme="dark"] .swal2-html-container *,
+.dark-mode .swal2-html-container,
+.dark-mode .swal2-html-container * { color:#FFFFFF !important; }
+[data-bs-theme="dark"] .swal2-confirm,
+[data-bs-theme="dark"] .swal2-cancel,
+.dark-mode .swal2-confirm,
+.dark-mode .swal2-cancel { color:#FFFFFF !important; }
+[data-bs-theme="dark"] .swal2-actions .swal2-confirm,
+[data-bs-theme="dark"] .swal2-actions .swal2-cancel,
+.dark-mode .swal2-actions .swal2-confirm,
+.dark-mode .swal2-actions .swal2-cancel { color:#FFFFFF !important; font-weight:600 !important; }
+[data-bs-theme="dark"] .swal2-actions button,
+.dark-mode .swal2-actions button { color:#FFFFFF !important; }
+
+/* Swal form compact */
+.prf-swal-label { font-size:.7rem; font-weight:700; color:#6B7B8D; text-transform:uppercase; letter-spacing:.05em; margin-bottom:3px; display:block; }
+.prf-swal-textarea {
+    width:100%; border:1.5px solid #E2E8F0; border-radius:6px;
+    padding:.35rem .55rem; font-size:.78rem; font-family:'Segoe UI',system-ui,sans-serif;
+    color:#1A2332; background:#FFFFFF; resize:vertical; height:62px;
+    outline:none; transition:border-color .14s,box-shadow .14s;
+}
+.prf-swal-textarea:focus { border-color:#1A6FA8; box-shadow:0 0 0 2px rgba(26,111,168,.12); background:#FFFFFF; }
+</style>
+<script>
+    /* ── backend functions unchanged ── */
+    function markRefundProcessed(transactionId, companyName, amount) {
+        fetch(`/Subscription/GetRefundDetails?transactionId=${transactionId}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) { showRefundModal(data.refundDetails); }
+                else { Swal.fire('Error', data.message, 'error'); }
+            })
+            .catch(() => { Swal.fire('Error', 'Failed to load refund details', 'error'); });
+    }
+
+    function showRefundModal(details) {
+        let paymentInfo = '';
+        let refundMethod = '';
+
+        if (details.originalPayment && details.canProcessRazorpayRefund) {
+            const cardInfo = details.originalPayment.cardNetwork && details.originalPayment.cardLast4
+                ? `${details.originalPayment.cardNetwork} **** ${details.originalPayment.cardLast4}` : 'Card';
+            const cardType = details.originalPayment.cardType ? ` (${details.originalPayment.cardType})` : '';
+            const bankInfo = details.originalPayment.bankName ? ` - ${details.originalPayment.bankName}` : '';
+            paymentInfo = `
+                <div style="background:#F0F4F8;border:1px solid #B8C8D8;border-radius:7px;padding:.55rem .75rem;margin-bottom:.45rem;text-align:left;">
+                    <div style="font-size:.68rem;font-weight:700;color:#1A6FA8;text-transform:uppercase;letter-spacing:.05em;margin-bottom:.3rem;">
+                        <i class="fas fa-credit-card" style="margin-right:4px;"></i>Original Payment
+                    </div>
+                    <div style="font-size:.74rem;color:#1A2332;line-height:1.7;">
+                        <strong>Method:</strong> ${cardInfo}${cardType}${bankInfo}<br>
+                        <strong>Date:</strong> ${details.originalPayment.paymentDate}<br>
+                        <strong>Amount:</strong> ₹${details.originalPayment.amount}<br>
+                        <strong>ID:</strong> <span style="font-size:.65rem;color:#6B7B8D;">${details.originalPayment.razorpayPaymentId}</span>
+                    </div>
+                </div>`;
+            refundMethod = `<div style="font-size:.72rem;color:#16A34A;margin-bottom:.4rem;">
+                <i class="fas fa-check-circle" style="margin-right:4px;"></i>Refund will be auto-processed via Razorpay</div>`;
+        } else {
+            paymentInfo = `
+                <div style="background:#FFFFFF;border:1px solid rgba(245,158,11,.3);border-radius:7px;padding:.55rem .75rem;margin-bottom:.45rem;text-align:left;">
+                    <div style="font-size:.68rem;font-weight:700;color:#B45309;text-transform:uppercase;letter-spacing:.05em;margin-bottom:.2rem;">
+                        <i class="fas fa-exclamation-triangle" style="margin-right:4px;"></i>No Razorpay Payment
+                    </div>
+                    <div style="font-size:.72rem;color:#991B1B;">Original payment not available for auto-refund.</div>
+                </div>`;
+            refundMethod = `<div style="font-size:.72rem;color:#F59E0B;margin-bottom:.4rem;">
+                <i class="fas fa-hand-paper" style="margin-right:4px;"></i>Manual refund required</div>`;
+        }
+
+        Swal.fire({
+            title: '<span style="font-size:.9rem;font-weight:700;">Process Refund</span>',
+            html: `
+                <div style="text-align:left;font-family:Segoe UI,system-ui,sans-serif;">
+                    <div style="background:#F0F4F8;border-radius:7px;padding:.55rem .75rem;margin-bottom:.45rem;">
+                        <div style="font-size:.68rem;font-weight:700;color:#6B7B8D;text-transform:uppercase;letter-spacing:.05em;margin-bottom:.3rem;">Refund Summary</div>
+                        <div style="font-size:.74rem;color:#1A2332;line-height:1.75;">
+                            <strong>Partner:</strong> ${details.partnerName}<br>
+                            <strong>Email:</strong> ${details.partnerEmail}<br>
+                            <strong>Plan:</strong> ${details.planName} (${details.billingCycle})<br>
+                            <strong>Cancelled:</strong> ${details.cancelledDate}<br>
+                            <strong>Amount:</strong> <span style="color:#DC2626;font-weight:700;font-size:.82rem;">₹${details.refundAmount}</span>
+                        </div>
+                    </div>
+                    ${paymentInfo}
+                    ${refundMethod}
+                    <label class="prf-swal-label">Notes <span style="color:#B8C8D8;font-weight:400;text-transform:none;">(optional)</span></label>
+                    <textarea id="refundNotes" class="prf-swal-textarea" placeholder="Add notes about this refund…"></textarea>
+                </div>`,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#16A34A',
+            cancelButtonColor: '#6B7B8D',
+            confirmButtonText: details.canProcessRazorpayRefund ? '<i class="fas fa-bolt me-1"></i>Process via Razorpay' : '<i class="fas fa-check me-1"></i>Mark Manual Refund',
+            cancelButtonText: 'Cancel',
+            width: '500px',
+            preConfirm: () => document.getElementById('refundNotes').value
+        }).then((result) => {
+            if (result.isConfirmed) processRefund(details.transactionId, result.value || '');
+        });
+    }
+
+    function processRefund(transactionId, refundNotes) {
+        fetch('/Subscription/MarkRefundProcessed', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-Requested-With': 'XMLHttpRequest' },
+            body: `transactionId=${transactionId}&refundNotes=${encodeURIComponent(refundNotes)}`
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                Swal.fire({ title:'Success!', text:data.message, icon:'success', confirmButtonColor:'#16A34A' })
+                    .then(() => location.reload());
+            } else {
+                Swal.fire({ title:'Error', text:data.message, icon:'error', confirmButtonColor:'#DC2626' });
+            }
+        })
+        .catch(() => {
+            Swal.fire({ title:'Error', text:'Failed to process refund', icon:'error', confirmButtonColor:'#DC2626' });
+        });
+    }
+</script>
+}

@@ -1,0 +1,269 @@
+@model IEnumerable<dynamic>
+@{
+    ViewData["Title"] = "Lead Tracking Dashboard";
+}
+
+<style>
+    @@keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+    @@keyframes slideInLeft { from { opacity: 0; transform: translateX(-50px); } to { opacity: 1; transform: translateX(0); } }
+    @@keyframes bounce { 0%, 20%, 50%, 80%, 100% { transform: translateY(0); } 40% { transform: translateY(-10px); } 60% { transform: translateY(-5px); } }
+
+    .dashboard-card {
+        background: white;
+        border-radius: 12px;
+        padding: 1.25rem;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        border: 1px solid rgba(0,0,0,0.05);
+        transition: all 0.3s;
+        animation: fadeInUp 0.6s ease-out;
+    }
+    .dashboard-card:hover { transform: translateY(-5px); box-shadow: 0 12px 40px rgba(0,0,0,0.15); }
+    .stat-card { position: relative; overflow: hidden; min-height: 120px; }
+    .stat-number { font-size: 2rem; font-weight: 700; margin: 0; }
+    .stat-label { color: #6B7B8D; font-size: 0.85rem; margin-top: 0.5rem; }
+    .stat-icon { font-size: 2.5rem; opacity: 0.8; position: absolute; right: 1rem; top: 1rem; animation: bounce 2s infinite; }
+    .commission-card .stat-number { color: #1A6FA8; }
+    .commission-card .stat-icon { color: #1A6FA8; }
+    .paid-card .stat-number { color: #16A34A; }
+    .paid-card .stat-icon { color: #16A34A; }
+    .pending-card .stat-number { color: #F59E0B; }
+    .pending-card .stat-icon { color: #F59E0B; }
+    .rate-card .stat-number { color: #2589C9; }
+    .rate-card .stat-icon { color: #2589C9; }
+    .table-card { min-height: 320px; }
+    .table-card .table-responsive { max-height: 450px; overflow-y: auto; }
+    .table-card .table-responsive::-webkit-scrollbar { width: 4px; }
+    .table-card .table-responsive::-webkit-scrollbar-thumb { background: #6B7B8D; border-radius: 10px; }
+    .table-card .table thead th { background: linear-gradient(135deg, #F0F4F8 0%, #E8EDF2 100%); border: none; font-weight: 600; color: #2A3A4A; font-size: 0.85rem; white-space: nowrap; }
+    .table-card .table tbody tr { transition: all 0.2s; }
+    .table-card .table tbody tr:hover { background-color: rgba(26,111,168, 0.05) !important; }
+    .animated-row { animation: slideInLeft 0.5s ease-out; }
+    .card-1 { animation-delay: 0.1s; }
+    .card-2 { animation-delay: 0.2s; }
+    .card-3 { animation-delay: 0.3s; }
+    .card-4 { animation-delay: 0.4s; }
+
+    .dark-mode .dashboard-card { background: #1E2A3A !important; border-color: #2A3A4A !important; color: #E2E8F0 !important; }
+    .dark-mode .stat-label { color: #8FA3B8 !important; }
+    .dark-mode .table-card .table thead th { background: #2A3A4A !important; color: #E2E8F0 !important; }
+    .dark-mode .table-card .table tbody tr:hover { background-color: rgba(26,111,168, 0.1) !important; }
+    .dark-mode .table { color: #E2E8F0 !important; }
+</style>
+
+<div class="content">
+    <nav class="mb-3" aria-label="breadcrumb">
+        <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item"><a href="/Home">Home</a></li>
+            <li class="breadcrumb-item active">Lead Tracking</li>
+        </ol>
+    </nav>
+
+    <div class="d-flex justify-content-between align-items-center mb-4" style="animation: fadeInUp 0.5s ease-out;">
+        <h1 class="h3 mb-0"><i class="fa-solid fa-chart-line me-2"></i>Lead Tracking Dashboard</h1>
+        <button class="btn btn-primary" onclick="refreshDashboard()" style="border-radius:8px;">
+            <i class="fas fa-sync-alt me-1"></i> Refresh
+        </button>
+    </div>
+
+    <!-- Commission Summary Cards -->
+    <div class="row g-3 mb-4" id="commissionSummary">
+        <!-- Will be populated by AJAX -->
+    </div>
+
+    <!-- Handed Over Leads Table -->
+    <div class="dashboard-card table-card" style="animation-delay: 0.5s;">
+        <h5 class="mb-3"><i class="fa-solid fa-handshake me-2" style="color:#1A6FA8;"></i>Handed Over Leads</h5>
+        <div class="table-responsive">
+            <table class="table table-hover mb-0" id="leadsTable">
+                <thead>
+                    <tr>
+                        <th class="py-2 px-3">Lead Name</th>
+                        <th class="py-2 px-3">Contact</th>
+                        <th class="py-2 px-3">Handover Date</th>
+                        <th class="py-2 px-3">Status</th>
+                        <th class="py-2 px-3">Admin Agent</th>
+                        <th class="py-2 px-3">Commission Status</th>
+                        <th class="py-2 px-3">Commission Amount</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @{ var idx = 0; }
+                    @foreach (var lead in Model)
+                    {
+                        <tr class="animated-row" style="animation-delay: @(0.1 * idx)s;">
+                            <td class="py-2 px-3 fw-semibold">@lead.Name</td>
+                            <td class="py-2 px-3">@lead.Contact</td>
+                            <td class="py-2 px-3"><small>@(lead.HandoverDate?.ToString("MMM dd, yyyy") ?? "-")</small></td>
+                            <td class="py-2 px-3">
+                                <span class="badge bg-@(lead.HandoverStatus == "HandedOver" ? "success" : "warning")" style="border-radius:12px;padding:0.3rem 0.625rem;">
+                                    @lead.HandoverStatus
+                                </span>
+                            </td>
+                            <td class="py-2 px-3">@(lead.AdminAgent ?? "Not Assigned")</td>
+                            <td class="py-2 px-3">
+                                @if (lead.CommissionStatus != null)
+                                {
+                                    <span class="badge bg-@(lead.CommissionStatus == "Paid" ? "success" : lead.CommissionStatus == "Approved" ? "warning" : "secondary")" style="border-radius:12px;padding:0.3rem 0.625rem;">
+                                        @lead.CommissionStatus
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-secondary" style="border-radius:12px;padding:0.3rem 0.625rem;">Pending</span>
+                                }
+                            </td>
+                            <td class="py-2 px-3">
+                                @if (lead.CommissionAmount != null)
+                                {
+                                    <span class="fw-bold text-success">₹@(((decimal)lead.CommissionAmount).ToString("N2"))</span>
+                                    <br><small class="text-muted">@lead.CommissionCalculation</small>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">-</span>
+                                }
+                            </td>
+                        </tr>
+                        idx++;
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Lead Details Modal -->
+<div class="modal fade" id="leadDetailsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Lead Tracking Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="leadDetailsContent">
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    $(document).ready(function() {
+        loadCommissionSummary();
+    });
+
+    function loadCommissionSummary() {
+        $.get('/PartnerTracking/GetCommissionSummary', function(response) {
+            if (response.success) {
+                const data = response.data;
+                const html = `
+                    <div class="col-xl-3 col-md-6">
+                        <div class="dashboard-card stat-card commission-card card-1">
+                            <i class="fa-solid fa-indian-rupee-sign stat-icon"></i>
+                            <h2 class="stat-number">${data.totalCommissions}</h2>
+                            <p class="stat-label">Total Commissions</p>
+                        </div>
+                    </div>
+                    <div class="col-xl-3 col-md-6">
+                        <div class="dashboard-card stat-card paid-card card-2">
+                            <i class="fa-solid fa-check-circle stat-icon"></i>
+                            <h2 class="stat-number">₹${data.paidAmount.toLocaleString('en-IN')}</h2>
+                            <p class="stat-label">Paid Amount</p>
+                        </div>
+                    </div>
+                    <div class="col-xl-3 col-md-6">
+                        <div class="dashboard-card stat-card pending-card card-3">
+                            <i class="fa-solid fa-clock stat-icon"></i>
+                            <h2 class="stat-number">₹${data.pendingAmount.toLocaleString('en-IN')}</h2>
+                            <p class="stat-label">Pending Amount</p>
+                        </div>
+                    </div>
+                    <div class="col-xl-3 col-md-6">
+                        <div class="dashboard-card stat-card rate-card card-4">
+                            <i class="fa-solid fa-percentage stat-icon"></i>
+                            <h2 class="stat-number">${data.commissionPercentage}%</h2>
+                            <p class="stat-label">Commission Rate</p>
+                        </div>
+                    </div>
+                `;
+                $('#commissionSummary').html(html);
+            }
+        });
+    }
+
+    function viewLeadDetails(leadId) {
+        $.get('/PartnerTracking/GetLeadTracking', { leadId: leadId }, function(response) {
+            if (response.success) {
+                const data = response.data;
+                let html = `
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Lead Information</h6>
+                            <p><strong>Name:</strong> ${data.Lead.Name}</p>
+                            <p><strong>Contact:</strong> ${data.Lead.Contact}</p>
+                            <p><strong>Status:</strong> ${data.Lead.HandoverStatus}</p>
+                            <p><strong>Admin Agent:</strong> ${data.Lead.AdminAgent || 'Not Assigned'}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Booking Information</h6>
+                `;
+
+                if (data.Booking) {
+                    html += `
+                        <p><strong>Status:</strong> ${data.Booking.Status}</p>
+                        <p><strong>Amount:</strong> ₹${data.Booking.BookingAmount.toLocaleString()}</p>
+                        <p><strong>Date:</strong> ${new Date(data.Booking.CreatedOn).toLocaleDateString()}</p>
+                    `;
+                } else {
+                    html += '<p class="text-muted">No booking yet</p>';
+                }
+
+                html += `
+                        </div>
+                    </div>
+                    <hr>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Commission Information</h6>
+                `;
+
+                if (data.Commission) {
+                    html += `
+                        <p><strong>Status:</strong> <span class="badge badge-${data.Commission.Status === 'Paid' ? 'success' : data.Commission.Status === 'Approved' ? 'warning' : 'secondary'}">${data.Commission.Status}</span></p>
+                        <p><strong>Amount:</strong> ₹${data.Commission.CommissionAmount.toLocaleString()}</p>
+                        <p><strong>Rate:</strong> ${data.Commission.CommissionPercentage}%</p>
+                        ${data.Commission.PaidOn ? `<p><strong>Paid On:</strong> ${new Date(data.Commission.PaidOn).toLocaleDateString()}</p>` : ''}
+                    `;
+                } else {
+                    html += '<p class="text-muted">Commission not calculated yet</p>';
+                }
+
+                html += `
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Payment History</h6>
+                `;
+
+                if (data.Payments && data.Payments.length > 0) {
+                    html += '<div class="table-responsive"><table class="table table-sm"><thead><tr><th>Date</th><th>Amount</th><th>Method</th></tr></thead><tbody>';
+                    data.Payments.forEach(payment => {
+                        html += `<tr><td>${new Date(payment.PaymentDate).toLocaleDateString()}</td><td>₹${payment.Amount.toLocaleString()}</td><td>${payment.PaymentMethod}</td></tr>`;
+                    });
+                    html += '</tbody></table></div>';
+                } else {
+                    html += '<p class="text-muted">No payments yet</p>';
+                }
+
+                html += '</div></div>';
+
+                $('#leadDetailsContent').html(html);
+                $('#leadDetailsModal').modal('show');
+            }
+        });
+    }
+
+    function refreshDashboard() {
+        location.reload();
+    }
+</script>
+}

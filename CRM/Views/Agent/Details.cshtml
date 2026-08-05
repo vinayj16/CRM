@@ -1,0 +1,528 @@
+@model CRM.Models.AgentModel
+@{
+    ViewData["Title"] = "Agent Details";
+    var documents = ViewBag.Documents as List<CRM.Models.AgentDocumentModel>;
+}
+
+<style>
+    .agent-header {
+        background: linear-gradient(135deg, #16A34A 0%, #2589C9 100%);
+        border-radius: 16px;
+        padding: 2rem;
+        color: white;
+        margin-bottom: 2rem;
+        box-shadow: 0 8px 32px rgba(22,163,74, 0.15);
+    }
+
+    .agent-header h1 {
+        font-size: 2rem;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+    }
+
+    .status-badge {
+        padding: 0.5rem 1rem;
+        border-radius: 25px;
+        font-weight: 600;
+        font-size: 0.875rem;
+        border: 2px solid transparent;
+    }
+
+    .status-pending { background-color: #FEF3C7; color: #B45309; border-color: #F59E0B; }
+    .status-approved { background-color: #DCFCE7; color: #15803D; border-color: #16A34A; }
+    .status-rejected { background-color: #FEE2E2; color: #991B1B; border-color: #DC2626; }
+
+    .info-card {
+        background: white;
+        border-radius: 16px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        border: 1px solid rgba(0, 0, 0, 0.05);
+    }
+
+    .info-card h5 {
+        font-weight: 600;
+        color: #16A34A;
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .info-row {
+        display: flex;
+        padding: 0.75rem 0;
+        border-bottom: 1px solid #E8EDF2;
+    }
+
+    .info-row:last-child {
+        border-bottom: none;
+    }
+
+    .info-label {
+        font-weight: 600;
+        color: #6B7B8D;
+        min-width: 150px;
+    }
+
+    .info-value {
+        color: #2A3A4A;
+        flex: 1;
+        overflow-wrap: anywhere;
+        word-break: break-all;
+        min-width: 0;
+    }
+
+    .document-card {
+        background: white;
+        border: 1px solid #E2E8F0;
+        border-radius: 12px;
+        padding: 1rem;
+        margin-bottom: 1rem;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .document-card:hover {
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        border-color: #16A34A;
+    }
+
+    .document-info {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        flex: 1;
+    }
+
+    .document-icon {
+        width: 48px;
+        height: 48px;
+        background: linear-gradient(135deg, #16A34A 0%, #2589C9 100%);
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 1.5rem;
+    }
+
+    .document-details h6 {
+        margin: 0 0 0.25rem 0;
+        font-weight: 600;
+        color: #2A3A4A;
+    }
+
+    .document-details p {
+        margin: 0;
+        font-size: 0.875rem;
+        color: #6B7B8D;
+    }
+
+    .document-actions {
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    .btn-icon {
+        width: 36px;
+        height: 36px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: none;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .btn-icon:hover {
+        transform: translateY(-2px);
+    }
+
+    .btn-download {
+        background-color: #2589C9;
+        color: white;
+    }
+
+    .btn-download:hover {
+        background-color: #2589C9;
+    }
+
+    .btn-delete {
+        background-color: #DC2626;
+        color: white;
+    }
+
+    .btn-delete:hover {
+        background-color: #DC2626;
+    }
+
+    .empty-documents {
+        text-align: center;
+        padding: 3rem 1rem;
+        color: #8FA3B8;
+    }
+
+    .empty-documents i {
+        font-size: 2.2rem;
+        margin-bottom: 1rem;
+        opacity: 0.5;
+    }
+
+    .upload-section {
+        background: #FFFFFF;
+        border: 2px dashed #B8C8D8;
+        border-radius: 12px;
+        padding: 2rem;
+        text-align: center;
+        margin-bottom: 1.5rem;
+    }
+
+    .dark-mode .info-card {
+        background: #1E2A3A !important;
+        border-color: #2A3A4A !important;
+        color: #E2E8F0 !important;
+    }
+
+    .dark-mode .info-card h5 {
+        color: #2589C9 !important;
+    }
+
+    .dark-mode .info-label {
+        color: #8FA3B8 !important;
+    }
+
+    .dark-mode .info-value {
+        color: #E2E8F0 !important;
+    }
+
+    .dark-mode .document-card {
+        background: #1E2A3A !important;
+        border-color: #2A3A4A !important;
+    }
+
+    .dark-mode .document-details h6 {
+        color: #E2E8F0 !important;
+    }
+
+    .dark-mode .upload-section {
+        background: #1E2A3A !important;
+        border-color: #2A3A4A !important;
+    }
+</style>
+
+<div class="content">
+    <!-- Breadcrumb -->
+    <nav class="mb-3" aria-label="breadcrumb">
+        <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item"><a href="/home">Home</a></li>
+            <li class="breadcrumb-item"><a href="/agent/list">Agents</a></li>
+            <li class="breadcrumb-item active">@Model.FullName</li>
+        </ol>
+    </nav>
+
+    <!-- Agent Header -->
+    <div class="agent-header">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <h1>@Model.FullName</h1>
+                <p class="mb-0 opacity-90">
+                    <i class="fa-solid fa-envelope me-2"></i>@Model.Email
+                    <i class="fa-solid fa-phone ms-3 me-2"></i>@Model.Phone
+                </p>
+            </div>
+            <div class="col-md-4 text-md-end">
+                <span class="status-badge status-@Model.Status.ToLower()">@Model.Status</span>
+                <div class="mt-2">
+                    <span class="badge bg-light text-dark">@Model.AgentType</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Agent Information -->
+        <div class="col-lg-4">
+            <!-- Basic Information -->
+            <div class="info-card">
+                <h5>
+                    <i class="fa-solid fa-user"></i>
+                    <span>Basic Information</span>
+                </h5>
+                <div class="info-row">
+                    <div class="info-label">Full Name:</div>
+                    <div class="info-value">@Model.FullName</div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label">Email:</div>
+                    <div class="info-value">@Model.Email</div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label">Phone:</div>
+                    <div class="info-value">@Model.Phone</div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label">Address:</div>
+                    <div class="info-value">@(Model.Address ?? "N/A")</div>
+                </div>
+            </div>
+
+            <!-- Employment Details -->
+            <div class="info-card">
+                <h5>
+                    <i class="fa-solid fa-briefcase"></i>
+                    <span>Employment Details</span>
+                </h5>
+                <div class="info-row">
+                    <div class="info-label">Agent Type:</div>
+                    <div class="info-value">@Model.AgentType</div>
+                </div>
+                @if (Model.Salary.HasValue && Model.Salary > 0)
+                {
+                    <div class="info-row">
+                        <div class="info-label">Salary:</div>
+                        <div class="info-value">₹@Model.Salary.Value.ToString("N2")</div>
+                    </div>
+                }
+                <div class="info-row">
+                    <div class="info-label">Commission:</div>
+                    <div class="info-value">@(Model.CommissionRules ?? "N/A")</div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label">Status:</div>
+                    <div class="info-value">
+                        <span class="status-badge status-@Model.Status.ToLower()">@Model.Status</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Timeline -->
+            <div class="info-card">
+                <h5>
+                    <i class="fa-solid fa-clock"></i>
+                    <span>Timeline</span>
+                </h5>
+                <div class="info-row">
+                    <div class="info-label">Joined:</div>
+                    <div class="info-value">@Model.CreatedOn.ToString("MMMM dd, yyyy")</div>
+                </div>
+                @if (Model.ApprovedOn.HasValue)
+                {
+                    <div class="info-row">
+                        <div class="info-label">Approved:</div>
+                        <div class="info-value">@Model.ApprovedOn.Value.ToString("MMMM dd, yyyy")</div>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- Documents Section -->
+        <div class="col-lg-8">
+            <div class="info-card">
+                <h5>
+                    <i class="fa-solid fa-file-alt"></i>
+                    <span>Documents</span>
+                </h5>
+
+                <!-- Upload Section -->
+                <div class="upload-section">
+                    <a href="/agent/downloadalldocuments/@IdObfuscator.Encode(Model.AgentId)" class="btn btn-secondary me-2">
+                        <i class="fa-solid fa-download me-2"></i>Download All Documents
+                    </a>
+                    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#uploadModal">
+                        <i class="fa-solid fa-upload me-2"></i>Upload New Document
+                    </button>
+                </div>
+
+                <!-- Documents List -->
+                @if (documents != null && documents.Any())
+                {
+                    <div id="documentsList">
+                        @foreach (var doc in documents)
+                        {
+                            <div class="document-card" data-document-id="@doc.DocumentId">
+                                <div class="document-info">
+                                    <div class="document-icon">
+                                        <i class="fa-solid fa-file"></i>
+                                    </div>
+                                    <div class="document-details">
+                                        <h6>@doc.DocumentName</h6>
+                                        <p>
+                                            <span class="badge bg-secondary me-2">@doc.DocumentType</span>
+                                            @(doc.FileSize / 1024.0).ToString("F2") KB
+                                            • Uploaded @doc.UploadedOn.ToString("MMM dd, yyyy")
+                                        </p>
+                                    </div>
+                                </div>
+                                <div class="document-actions">
+                                    <a href="/Agent/DownloadDocument?documentId=@doc.DocumentId" class="btn-icon btn-download" title="Download">
+                                        <i class="fa-solid fa-download"></i>
+                                    </a>
+                                    <button type="button" class="btn-icon btn-delete" onclick="deleteDocument(@doc.DocumentId)" title="Delete">
+                                        <i class="fa-solid fa-trash"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <div class="empty-documents">
+                        <i class="fa-solid fa-folder-open"></i>
+                        <h5>No Documents Yet</h5>
+                        <p>Upload documents to get started</p>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Upload Document Modal -->
+<div class="modal fade" id="uploadModal" tabindex="-1" aria-labelledby="uploadModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="uploadModalLabel">Upload Document</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="uploadForm" enctype="multipart/form-data">
+                <div class="modal-body">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="agentId" value="@Model.AgentId" />
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Document Name <span class="text-danger">*</span></label>
+                        <input type="text" name="documentName" class="form-control" required placeholder="e.g., Aadhar Card" />
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Document Type <span class="text-danger">*</span></label>
+                        <select name="documentType" class="form-select" required>
+                            <option value="">Select Type</option>
+                            <option value="Aadhar Card">Aadhar Card</option>
+                            <option value="PAN Card">PAN Card</option>
+                            <option value="Resume">Resume</option>
+                            <option value="Bank Details">Bank Details</option>
+                            <option value="Educational Certificate">Educational Certificate</option>
+                            <option value="Photo">Photo</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Choose File <span class="text-danger">*</span></label>
+                        <input type="file" name="documentFile" class="form-control" required accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" />
+                        <small class="text-muted">Supported formats: PDF, JPG, PNG, DOC, DOCX</small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fa-solid fa-upload me-2"></i>Upload
+                    </button>
+                </div>
+            </form>
+            <div id="uploadSuccess" class="alert alert-success mt-3 mx-3 d-none">Document uploaded successfully!</div>
+            <div id="uploadError" class="alert alert-danger mt-3 mx-3 d-none"></div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Handle document upload
+        document.getElementById('uploadForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(this);
+            
+            // Add anti-forgery token (FormData(this) may not include it if it's outside the form)
+            const token = document.querySelector('input[name="__RequestVerificationToken"]');
+            if (token && !formData.has('__RequestVerificationToken')) {
+                formData.append('__RequestVerificationToken', token.value);
+            }
+            
+            try {
+                const response = await fetch('/Agent/UploadDocument', {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                });
+                
+                if (response.ok) {
+                    document.getElementById('uploadSuccess').classList.remove('d-none');
+                    document.getElementById('uploadError').classList.add('d-none');
+                    
+                    setTimeout(() => {
+                        location.reload();
+                    }, 1000);
+                } else {
+                    throw new Error('Upload failed');
+                }
+            } catch (error) {
+                document.getElementById('uploadError').textContent = 'Error: ' + error.message;
+                document.getElementById('uploadError').classList.remove('d-none');
+                document.getElementById('uploadSuccess').classList.add('d-none');
+            }
+        });
+
+        // Handle document deletion
+        async function deleteDocument(documentId) {
+            if (!confirm('Are you sure you want to delete this document?')) {
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('documentId', documentId);
+
+            // Add anti-forgery token
+            const token = document.querySelector('input[name="__RequestVerificationToken"]');
+            if (token) {
+                formData.append('__RequestVerificationToken', token.value);
+            }
+
+            try {
+                const response = await fetch('/Agent/DeleteDocument', {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                });
+
+                if (response.ok) {
+                    // Remove the document card from UI
+                    const docCard = document.querySelector(`[data-document-id="${documentId}"]`);
+                    if (docCard) {
+                        docCard.remove();
+                    }
+                    
+                    // Check if no documents left
+                    const docsList = document.getElementById('documentsList');
+                    if (docsList && docsList.children.length === 0) {
+                        location.reload();
+                    }
+                } else {
+                    showToast('Failed to delete document', 'error');
+                }
+            } catch (error) {
+                showToast('Error: ' + error.message, 'error');
+            }
+        }
+
+        // Reset form when modal closes
+        document.getElementById('uploadModal').addEventListener('hidden.bs.modal', function() {
+            document.getElementById('uploadForm').reset();
+            document.getElementById('uploadSuccess').classList.add('d-none');
+            document.getElementById('uploadError').classList.add('d-none');
+        });
+    </script>
+}

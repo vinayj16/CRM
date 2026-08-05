@@ -1,0 +1,34 @@
+@model CRM.Models.ExpenseModel
+@{
+    ViewData["Title"] = "Add Expense";
+}
+<div class="container mt-4">
+    <h2>Add Expense</h2>
+    <form asp-action="Create" method="post">
+        <div class="mb-3">
+            <label class="form-label">Category Type</label>
+            <select name="Type" class="form-select" required>
+                <option value="Land">Land cost / Purchase price</option>
+                <option value="Construction">Construction / Development</option>
+                <option value="Legal">Legal / Registration</option>
+                <option value="Marketing">Marketing / Sales</option>
+                <option value="Agent">Agent / Channel Partner Commission</option>
+                <option value="Tax">Taxes (GST, Stamp Duty)</option>
+                <option value="Maintenance">Maintenance / Utilities / Operations</option>
+                <option value="Other">Other</option>
+            </select>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Description</label>
+            <input name="Description" class="form-control" required />
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Amount</label>
+            <input name="Amount" class="form-control" type="number" step="0.01" min="0" required />
+        </div>
+        <button type="submit" class="btn btn-primary">Add Expense</button>
+    </form>
+</div>
+
+
+

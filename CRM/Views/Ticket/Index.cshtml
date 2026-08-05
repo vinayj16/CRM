@@ -1,0 +1,742 @@
+@{
+    ViewData["Title"] = "Support Tickets";
+    var role = Context.User?.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value;
+    bool isAdmin = role?.ToLower() == "admin";
+}
+
+<style>
+    /* ── Stats Cards ── */
+    .ts-stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+        gap: 8px;
+        margin-bottom: 12px;
+    }
+    .ts-stat-card {
+        background: #FFFFFF;
+        border-radius: 10px;
+        padding: 12px 14px;
+        border: 1px solid #E8EDF2;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+        transition: all 0.2s ease;
+        cursor: default;
+    }
+    .ts-stat-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+    }
+    .ts-stat-card .ts-stat-icon {
+        width: 32px; height: 32px;
+        border-radius: 8px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 14px;
+        margin-bottom: 8px;
+    }
+    .ts-stat-card .ts-stat-num {
+        font-size: 22px;
+        font-weight: 700;
+        line-height: 1.1;
+        margin-bottom: 2px;
+    }
+    .ts-stat-card .ts-stat-lbl {
+        font-size: 11px;
+        color: #6B7B8D;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+    }
+    .ts-stat-blue  { background: #E8EDF2; color: #1A6FA8; }
+    .ts-stat-green { background: #DCFCE7; color: #16A34A; }
+    .ts-stat-amber { background: #FEF3C7; color: #F59E0B; }
+    .ts-stat-purple{ background: #E2E8F0; color: #2589C9; }
+    .ts-stat-red   { background: #FEE2E2; color: #DC2626; }
+    .ts-stat-gray  { background: #F0F4F8; color: #6B7B8D; }
+
+    .dark-mode .ts-stat-card {
+        background: #1E2A3A !important;
+        border-color: #2A3A4A !important;
+    }
+    .dark-mode .ts-stat-card .ts-stat-lbl { color: #8FA3B8 !important; }
+    .dark-mode .ts-stat-blue  { background: rgba(26,111,168,0.2) !important; color: #8FA3B8 !important; }
+    .dark-mode .ts-stat-green { background: rgba(22,163,74,0.15) !important; color: #16A34A !important; }
+    .dark-mode .ts-stat-amber { background: rgba(245,158,11,0.15) !important; color: #F59E0B !important; }
+    .dark-mode .ts-stat-purple{ background: rgba(37,137,201,0.15) !important; color: #8FA3B8 !important; }
+    .dark-mode .ts-stat-red   { background: rgba(220,38,38,0.15) !important; color: #D4A45A !important; }
+    .dark-mode .ts-stat-gray  { background: rgba(107,123,141,0.15) !important; color: #8FA3B8 !important; }
+
+    /* ── Shimmer Loading Animation ── */
+    .ts-stat-num.loading {
+        display: inline-block;
+        width: 40px;
+        height: 22px;
+        border-radius: 4px;
+        background: linear-gradient(90deg, #E8EDF2 25%, #E2E8F0 50%, #E8EDF2 75%);
+        background-size: 200% 100%;
+        animation: shimmer 1.5s ease-in-out infinite;
+    }
+    .dark-mode .ts-stat-num.loading {
+        background: linear-gradient(90deg, #2A3A4A 25%, #2A3A4A 50%, #2A3A4A 75%);
+        background-size: 200% 100%;
+    }
+    @@keyframes shimmer {
+        0% { background-position: 200% 0; }
+        100% { background-position: -200% 0; }
+    }
+
+    .ticket-card {
+        background: #FFFFFF;
+        border-radius: 12px;
+        padding: 18px;
+        margin-bottom: 12px;
+        border: 1px solid #E8EDF2;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+        transition: all 0.25s ease;
+        cursor: pointer;
+    }
+    .ticket-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(0,0,0,0.1);
+        border-color: var(--blue);
+    }
+    .ticket-card .ticket-subject {
+        font-weight: 600;
+        font-size: 1rem;
+        color: #1A2332;
+        margin-bottom: 6px;
+    }
+    .ticket-card .ticket-meta {
+        font-size: 0.8rem;
+        color: #6B7B8D;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        align-items: center;
+    }
+    .priority-badge {
+        padding: 3px 10px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+    .priority-urgent { background: #FEE2E2; color: #DC2626; }
+    .priority-high { background: #FEF3C7; color: #B45309; }
+    .priority-normal { background: #E2E8F0; color: #2589C9; }
+    .priority-low { background: #E2E8F0; color: #2589C9; }
+    .status-badge {
+        padding: 3px 10px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+    .status-open { background: #DCFCE7; color: #16A34A; }
+    .status-inprogress { background: #E2E8F0; color: #2589C9; }
+    .status-waiting { background: #FEF3C7; color: #F59E0B; }
+    .status-resolved { background: #E2E8F0; color: #2589C9; }
+    .status-closed { background: #F0F4F8; color: #6B7B8D; }
+    .create-ticket-btn {
+        background: linear-gradient(135deg, #1A6FA8, #D4A45A);
+        color: #FFFFFF;
+        border: none;
+        border-radius: 10px;
+        padding: 10px 24px;
+        font-weight: 600;
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .create-ticket-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 14px rgba(26,111,168,0.4);
+        color: #FFFFFF;
+    }
+    .ticket-detail-modal .modal-header {
+        background: linear-gradient(135deg, #1A6FA8, #D4A45A);
+        color: #FFFFFF;
+        border-radius: 12px 12px 0 0;
+    }
+    .reply-bubble {
+        background: #F0F4F8;
+        border-radius: 12px;
+        padding: 12px 16px;
+        margin-bottom: 10px;
+        border-left: 3px solid var(--blue);
+    }
+    .reply-bubble.staff {
+        background: #E8EDF2;
+        border-left-color: #D4A45A;
+    }
+    .reply-bubble .reply-meta {
+        font-size: 0.75rem;
+        color: #6B7B8D;
+        display: flex;
+        gap: 8px;
+        margin-bottom: 6px;
+    }
+    .reply-bubble .reply-text {
+        font-size: 0.9rem;
+        line-height: 1.5;
+        white-space: pre-wrap;
+    }
+    .dark-mode .ticket-card {
+        background: #1E2A3A;
+        border-color: #2A3A4A;
+    }
+    .dark-mode .ticket-card .ticket-subject { color: #E8EDF2; }
+    .dark-mode .ticket-card .ticket-meta { color: #8FA3B8; }
+    .dark-mode .reply-bubble { background: #1E2A3A; border-color: #1A6FA8; }
+    .dark-mode .reply-bubble.staff { background: #162436; border-color: #D4A45A; }
+    .dark-mode .reply-bubble .reply-meta { color: #8FA3B8; }
+    .dark-mode .ticket-detail-modal .modal-content { background: #1E2A3A; }
+</style>
+
+<div class="container-fluid mt-3">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <h4 class="mb-1"><i class="fas fa-ticket-alt me-2" style="color: var(--gold);"></i>Support Tickets</h4>
+            <p class="text-muted mb-0 small">Manage and track support requests</p>
+        </div>
+        <div class="d-flex gap-2">
+            @if (isAdmin)
+            {
+                <span id="unassignedBadge" class="badge bg-danger d-none align-self-center" style="font-size:0.75rem;">
+                    <i class="fas fa-exclamation-circle"></i> <span id="unassignedCount">0</span> unassigned
+                </span>
+            }
+            <button class="create-ticket-btn" onclick="openCreateModal()">
+                <i class="fas fa-plus me-1"></i> New Ticket
+            </button>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="card mb-3">
+        <div class="card-body py-2 px-3">
+            <div class="row g-2 align-items-center">
+                <div class="col-md-3">
+                    <select id="filterStatus" class="form-select form-select-sm" onchange="loadTickets()">
+                        <option value="all">All Status</option>
+                        <option value="Open">Open</option>
+                        <option value="InProgress">In Progress</option>
+                        <option value="Waiting">Waiting</option>
+                        <option value="Resolved">Resolved</option>
+                        <option value="Closed">Closed</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <select id="filterPriority" class="form-select form-select-sm" onchange="loadTickets()">
+                        <option value="all">All Priority</option>
+                        <option value="Low">Low</option>
+                        <option value="Normal">Normal</option>
+                        <option value="High">High</option>
+                        <option value="Urgent">Urgent</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <select id="filterCategory" class="form-select form-select-sm" onchange="loadTickets()">
+                        <option value="all">All Categories</option>
+                        <option value="General">General</option>
+                        <option value="Technical">Technical</option>
+                        <option value="Billing">Billing</option>
+                        <option value="Feature Request">Feature Request</option>
+                        <option value="Bug Report">Bug Report</option>
+                    </select>
+                </div>
+                <div class="col-md-3 text-end">
+                    <span id="ticketCount" class="badge bg-secondary">0 tickets</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stats Overview Cards -->
+    <div class="ts-stats" id="ticketStats">
+        <div class="ts-stat-card">
+            <div class="ts-stat-icon ts-stat-blue"><i class="fas fa-ticket-alt"></i></div>
+            <div class="ts-stat-num loading" id="statTotal"></div>
+            <div class="ts-stat-lbl">Total Tickets</div>
+        </div>
+        <div class="ts-stat-card">
+            <div class="ts-stat-icon ts-stat-green"><i class="fas fa-inbox"></i></div>
+            <div class="ts-stat-num loading" id="statOpen"></div>
+            <div class="ts-stat-lbl">Open</div>
+        </div>
+        <div class="ts-stat-card">
+            <div class="ts-stat-icon ts-stat-amber"><i class="fas fa-spinner"></i></div>
+            <div class="ts-stat-num loading" id="statInProgress"></div>
+            <div class="ts-stat-lbl">In Progress</div>
+        </div>
+        <div class="ts-stat-card">
+            <div class="ts-stat-icon ts-stat-purple"><i class="fas fa-check-circle"></i></div>
+            <div class="ts-stat-num loading" id="statResolved"></div>
+            <div class="ts-stat-lbl">Resolved</div>
+        </div>
+        <div class="ts-stat-card">
+            <div class="ts-stat-icon ts-stat-red"><i class="fas fa-exclamation-triangle"></i></div>
+            <div class="ts-stat-num loading" id="statUrgent"></div>
+            <div class="ts-stat-lbl">Urgent</div>
+        </div>
+        <div class="ts-stat-card">
+            <div class="ts-stat-icon ts-stat-gray"><i class="fas fa-clock"></i></div>
+            <div class="ts-stat-num loading" id="statClosed"></div>
+            <div class="ts-stat-lbl">Closed</div>
+        </div>
+    </div>
+
+    <!-- Tickets List -->
+    <div id="ticketsContainer">
+        <div class="text-center py-5">
+            <div class="spinner-border text-primary" role="status"></div>
+            <p class="mt-2 text-muted">Loading tickets...</p>
+        </div>
+    </div>
+</div>
+
+<!-- Create Ticket Modal -->
+<div class="modal fade" id="createTicketModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header" style="background:linear-gradient(135deg,#1A6FA8,#D4A45A);color:#FFFFFF;border-radius:10px 10px 0 0;">
+                <h5 class="modal-title"><i class="fas fa-plus-circle me-2"></i>Create Support Ticket</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">Subject <span class="text-danger">*</span></label>
+                    <input id="ticketSubject" class="form-control" placeholder="Brief description of the issue" maxlength="200" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Description <span class="text-danger">*</span></label>
+                    <textarea id="ticketDescription" class="form-control" rows="4" placeholder="Detailed description of your issue..."></textarea>
+                </div>
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label">Category</label>
+                        <select id="ticketCategory" class="form-select">
+                            <option value="General">General</option>
+                            <option value="Technical">Technical</option>
+                            <option value="Billing">Billing</option>
+                            <option value="Feature Request">Feature Request</option>
+                            <option value="Bug Report">Bug Report</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Priority</label>
+                        <select id="ticketPriority" class="form-select">
+                            <option value="Low">Low</option>
+                            <option value="Normal" selected>Normal</option>
+                            <option value="High">High</option>
+                            <option value="Urgent">Urgent</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="createTicket()">
+                    <i class="fas fa-paper-plane me-1"></i> Submit Ticket
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Ticket Detail Modal -->
+<div class="modal fade ticket-detail-modal" id="ticketDetailModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-ticket-alt me-2"></i>Ticket #<span id="detailTicketId"></span></h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="detailContent">
+                    <div class="text-center py-4">
+                        <div class="spinner-border text-primary" role="status"></div>
+                        <p class="mt-2 text-muted">Loading ticket details...</p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer d-flex justify-content-between">
+                <div>
+                    @if (isAdmin)
+                    {
+                        <div class="btn-group me-2">
+                            <button class="btn btn-outline-success btn-sm" onclick="updateStatus('Resolved')">
+                                <i class="fas fa-check"></i> Resolve
+                            </button>
+                            <button class="btn btn-outline-secondary btn-sm" onclick="updateStatus('Closed')">
+                                <i class="fas fa-times"></i> Close
+                            </button>
+                            <button class="btn btn-outline-info btn-sm" onclick="showAssignModal()">
+                                <i class="fas fa-user-plus"></i> Assign
+                            </button>
+                        </div>
+                    }
+                </div>
+                <div class="input-group" style="max-width: 500px;">
+                    <textarea id="replyMessage" class="form-control" rows="1" placeholder="Type your reply..." style="resize:none;"></textarea>
+                    <button class="btn btn-primary" onclick="addReply()">
+                        <i class="fas fa-reply"></i> Send
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Assign Modal -->
+<div class="modal fade" id="assignModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-sm modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h6 class="modal-title">Assign Ticket</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <select id="assignUserSelect" class="form-select">
+                    <option value="">Select user...</option>
+                </select>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="assignTicket()">Assign</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        let currentTicketId = 0;
+
+        $(document).ready(function () {
+            loadTickets();
+            if (@(isAdmin ? "true" : "false")) loadUnassignedCount();
+        });
+
+        function loadTickets() {
+            const status = $('#filterStatus').val();
+            const priority = $('#filterPriority').val();
+            const category = $('#filterCategory').val();
+
+            $.ajax({
+                url: '/Ticket/GetTickets',
+                type: 'GET',
+                data: { status, priority, category },
+                success: function (res) {
+                    if (res.success) {
+                        renderTickets(res.data);
+                        updateTicketStats(res.data);
+                        $('#ticketCount').text(res.data.length + ' tickets');
+                    }
+                },
+                error: function () {
+                    $('#ticketsContainer').html('<div class="alert alert-danger">Error loading tickets</div>');
+                    updateTicketStats([]); // Stop shimmer, show 0s
+                }
+            });
+        }
+
+        function updateTicketStats(tickets) {
+            // Remove shimmer loading animation from all stat numbers
+            $('#ticketStats .ts-stat-num').removeClass('loading');
+
+            if (!tickets || !tickets.length) {
+                $('#statTotal').text('0');
+                $('#statOpen').text('0');
+                $('#statInProgress').text('0');
+                $('#statResolved').text('0');
+                $('#statUrgent').text('0');
+                $('#statClosed').text('0');
+                return;
+            }
+            $('#statTotal').text(tickets.length);
+            $('#statOpen').text(tickets.filter(function(t) { return t.status === 'Open'; }).length);
+            $('#statInProgress').text(tickets.filter(function(t) { return t.status === 'InProgress'; }).length);
+            $('#statResolved').text(tickets.filter(function(t) { return t.status === 'Resolved'; }).length);
+            $('#statUrgent').text(tickets.filter(function(t) { return t.priority === 'Urgent'; }).length);
+            $('#statClosed').text(tickets.filter(function(t) { return t.status === 'Closed'; }).length);
+        }
+
+        function renderTickets(tickets) {
+            const container = $('#ticketsContainer');
+            if (!tickets || tickets.length === 0) {
+                container.html(`
+                    <div class="text-center py-5">
+                        <i class="fas fa-ticket-alt fa-3x text-muted mb-3"></i>
+                        <h5 class="text-muted">No tickets found</h5>
+                        <p class="text-muted small">Create a new ticket to get started</p>
+                    </div>
+                `);
+                return;
+            }
+
+            let html = '';
+            tickets.forEach(t => {
+                const priorityClass = 'priority-' + t.priority.toLowerCase();
+                const statusClass = 'status-' + t.status.toLowerCase().replace(/\s+/g, '');
+                const priorityLabel = t.priority;
+                const statusLabel = t.status === 'InProgress' ? 'In Progress' : t.status;
+                const date = new Date(t.createdOn).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+
+                html += `
+                    <div class="ticket-card" onclick="openTicketDetail(${t.ticketId})">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div class="ticket-subject">${t.subject}</div>
+                            <div class="d-flex gap-1">
+                                <span class="priority-badge ${priorityClass}">${priorityLabel}</span>
+                                <span class="status-badge ${statusClass}">${statusLabel}</span>
+                            </div>
+                        </div>
+                        <div class="ticket-meta">
+                            <span><i class="far fa-user"></i> ${t.createdByName || 'Unknown'}</span>
+                            <span><i class="far fa-folder"></i> ${t.category}</span>
+                            <span><i class="far fa-calendar"></i> ${date}</span>
+                            ${t.assignedToName ? `<span><i class="fas fa-user-check"></i> ${t.assignedToName}</span>` : ''}
+                            <span><i class="far fa-comment"></i> ${t.replyCount} replies</span>
+                        </div>
+                    </div>
+                `;
+            });
+            container.html(html);
+        }
+
+        function openCreateModal() {
+            $('#ticketSubject').val('');
+            $('#ticketDescription').val('');
+            $('#ticketCategory').val('General');
+            $('#ticketPriority').val('Normal');
+            $('#createTicketModal').modal('show');
+        }
+
+        function createTicket() {
+            const subject = $('#ticketSubject').val().trim();
+            const description = $('#ticketDescription').val().trim();
+            const category = $('#ticketCategory').val();
+            const priority = $('#ticketPriority').val();
+
+            if (!subject) { showToast('Please enter a subject', 'warning'); return; }
+            if (!description) { showToast('Please enter a description', 'warning'); return; }
+
+            $.ajax({
+                url: '/Ticket/Create',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({ subject, description, category, priority }),
+                success: function (res) {
+                    if (res.success) {
+                        $('#createTicketModal').modal('hide');
+                        showToast('Ticket #' + res.ticketId + ' created successfully!', 'success');
+                        loadTickets();
+                        if (@(isAdmin ? "true" : "false")) loadUnassignedCount();
+                    } else {
+                        showToast(res.message, 'error');
+                    }
+                },
+                error: function () {
+                    showToast('Error creating ticket', 'error');
+                }
+            });
+        }
+
+        function openTicketDetail(id) {
+            currentTicketId = id;
+            $('#detailTicketId').text(id);
+            $('#detailContent').html('<div class="text-center py-4"><div class="spinner-border text-primary" role="status"></div><p class="mt-2 text-muted">Loading ticket details...</p></div>');
+            $('#replyMessage').val('');
+            $('#ticketDetailModal').modal('show');
+
+            $.ajax({
+                url: '/Ticket/GetTicket',
+                type: 'GET',
+                data: { id },
+                success: function (res) {
+                    if (res.success) renderTicketDetail(res.data);
+                    else showToast(res.message, 'error');
+                },
+                error: function () {
+                    showToast('Error loading ticket details', 'error');
+                }
+            });
+        }
+
+        function renderTicketDetail(t) {
+            const priorityClass = 'priority-' + t.priority.toLowerCase();
+            const statusClass = 'status-' + t.status.toLowerCase().replace(/\s+/g, '');
+            const createdDate = new Date(t.createdOn).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+
+            let repliesHtml = '';
+            if (t.replies && t.replies.length > 0) {
+                t.replies.forEach(r => {
+                    const replyDate = new Date(r.createdOn).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+                    const staffClass = r.isStaff ? 'staff' : '';
+                    const staffBadge = r.isStaff ? '<span class="badge bg-warning text-dark ms-1" style="font-size:0.65rem;">Staff</span>' : '';
+                    repliesHtml += `
+                        <div class="reply-bubble ${staffClass}">
+                            <div class="reply-meta">
+                                <strong>${r.userName || 'Unknown'}</strong>${staffBadge}
+                                <span>${replyDate}</span>
+                            </div>
+                            <div class="reply-text">${r.message}</div>
+                        </div>
+                    `;
+                });
+            } else {
+                repliesHtml = '<p class="text-muted text-center small">No replies yet</p>';
+            }
+
+            $('#detailContent').html(`
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <h5 class="mb-0">${t.subject}</h5>
+                        <div class="d-flex gap-1">
+                            <span class="priority-badge ${priorityClass}">${t.priority}</span>
+                            <span class="status-badge ${statusClass}">${t.status}</span>
+                        </div>
+                    </div>
+                    <div class="mb-2 small text-muted">
+                        <span><i class="far fa-user"></i> ${t.createdByName || 'Unknown'}</span>
+                        <span class="ms-3"><i class="far fa-folder"></i> ${t.category}</span>
+                        <span class="ms-3"><i class="far fa-calendar"></i> ${createdDate}</span>
+                        ${t.assignedToName ? `<span class="ms-3"><i class="fas fa-user-check"></i> Assigned to: ${t.assignedToName}</span>` : '<span class="ms-3 badge bg-warning text-dark">Unassigned</span>'}
+                    </div>
+                    <div class="card bg-light p-3 mb-3">
+                        <p style="white-space:pre-wrap;margin:0;">${t.description}</p>
+                    </div>
+                    ${t.resolution ? `<div class="alert alert-success mb-3"><strong>Resolution:</strong> ${t.resolution}</div>` : ''}
+                </div>
+                <hr/>
+                <h6 class="mb-3"><i class="fas fa-comments me-1"></i> Conversation (${t.replies ? t.replies.length : 0} replies)</h6>
+                <div style="max-height: 300px; overflow-y: auto;">
+                    ${repliesHtml}
+                </div>
+            `);
+        }
+
+        function addReply() {
+            const message = $('#replyMessage').val().trim();
+            if (!message) { showToast('Please type a message', 'warning'); return; }
+
+            $.ajax({
+                url: '/Ticket/AddReply',
+                type: 'POST',
+                data: { ticketId: currentTicketId, message },
+                success: function (res) {
+                    if (res.success) {
+                        $('#replyMessage').val('');
+                        openTicketDetail(currentTicketId);
+                        loadTickets();
+                        showToast('Reply sent', 'success');
+                    } else {
+                        showToast(res.message, 'error');
+                    }
+                },
+                error: function () {
+                    showToast('Error sending reply', 'error');
+                }
+            });
+        }
+
+        function updateStatus(status) {
+            let resolution = null;
+            if (status === 'Resolved') {
+                resolution = prompt('Enter resolution details:');
+                if (resolution === null) return;
+                if (!resolution.trim()) { showToast('Please enter resolution details', 'warning'); return; }
+            }
+
+            $.ajax({
+                url: '/Ticket/UpdateStatus',
+                type: 'POST',
+                data: { ticketId: currentTicketId, status, resolution },
+                success: function (res) {
+                    if (res.success) {
+                        openTicketDetail(currentTicketId);
+                        loadTickets();
+                        showToast('Status updated to ' + status, 'success');
+                    } else {
+                        showToast(res.message, 'error');
+                    }
+                },
+                error: function () {
+                    showToast('Error updating status', 'error');
+                }
+            });
+        }
+
+        function showAssignModal() {
+            $.ajax({
+                url: '/Ticket/GetAssignedUsers',
+                type: 'GET',
+                success: function (res) {
+                    if (res.success) {
+                        let options = '<option value="">Select user...</option>';
+                        res.data.forEach(u => {
+                            options += `<option value="${u.userId}">${u.username} (${u.role})</option>`;
+                        });
+                        $('#assignUserSelect').html(options);
+                        $('#assignModal').modal('show');
+                    }
+                }
+            });
+        }
+
+        function assignTicket() {
+            const assignedTo = $('#assignUserSelect').val();
+            if (!assignedTo) { showToast('Please select a user', 'warning'); return; }
+
+            $.ajax({
+                url: '/Ticket/Assign',
+                type: 'POST',
+                data: { ticketId: currentTicketId, assignedTo: parseInt(assignedTo) },
+                success: function (res) {
+                    if (res.success) {
+                        $('#assignModal').modal('hide');
+                        openTicketDetail(currentTicketId);
+                        loadTickets();
+                        showToast(res.message, 'success');
+                    } else {
+                        showToast(res.message, 'error');
+                    }
+                },
+                error: function () {
+                    showToast('Error assigning ticket', 'error');
+                }
+            });
+        }
+
+        function loadUnassignedCount() {
+            $.ajax({
+                url: '/Ticket/GetUnassignedCount',
+                type: 'GET',
+                success: function (res) {
+                    if (res.count > 0) {
+                        $('#unassignedBadge').removeClass('d-none');
+                        $('#unassignedCount').text(res.count);
+                    } else {
+                        $('#unassignedBadge').addClass('d-none');
+                    }
+                }
+            });
+        }
+
+        function showToast(message, type) {
+            if (typeof Swal !== 'undefined') {
+                var icon = type === 'success' ? 'success' : type === 'warning' ? 'warning' : 'error';
+                Swal.fire({
+                    icon: icon,
+                    title: type === 'success' ? 'Success' : type === 'warning' ? 'Warning' : 'Error',
+                    text: message,
+                    toast: true,
+                    position: 'top-end',
+                    showConfirmButton: false,
+                    timer: 4000,
+                    timerProgressBar: true
+                });
+            } else {
+                const bg = type === 'success' ? '#16A34A' : type === 'warning' ? '#F59E0B' : '#DC2626';
+                const toast = '<div style="position:fixed;top:70px;right:20px;z-index:99999;background:' + bg + ';color:#FFFFFF;padding:12px 20px;border-radius:10px;box-shadow:0 4px 14px rgba(0,0,0,0.2);font-weight:500;">' + message + '</div>';
+                $('body').append(toast);
+                setTimeout(function() { $('body').children(':last').remove(); }, 3000);
+            }
+        }
+    </script>
+}

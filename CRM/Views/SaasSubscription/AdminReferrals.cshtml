@@ -1,0 +1,260 @@
+@using CRM.Models
+@inject CRM.MasterDb.MasterDbContext _masterDb
+@{
+    ViewData["Title"] = "Referral Management";
+    var balance = ViewBag.Balance as decimal? ?? 0;
+    var referrals = ViewBag.Referrals as List<ReferralEarningModel> ?? new List<ReferralEarningModel>();
+    var tenants = ViewBag.Tenants as Dictionary<int, string> ?? new Dictionary<int, string>();
+    var tenantId = ViewBag.TenantId as int? ?? 0;
+    var tenant = await _masterDb.Tenants.FindAsync(tenantId);
+    var referralCode = tenant?.Referral ?? "";
+}
+
+<style>
+    .referral-root * { box-sizing: border-box; }
+    .referral-header { background: linear-gradient(135deg, #1A6FA8, #D4A45A) !important; color: #FFFFFF; padding: 20px; border-radius: 12px; margin-bottom: 20px; }
+    .referral-card { background: var(--card-bg); border-radius: 12px; border: 1px solid var(--border-color); padding: 20px; margin-bottom: 20px; }
+    .referral-stat { text-align: center; padding: 15px; }
+    .referral-stat-number { font-size: 28px; font-weight: 700; }
+    .stat-blue .referral-stat-number { color: #1A6FA8; }
+    .stat-green .referral-stat-number { color: #16A34A; }
+    .stat-amber .referral-stat-number { color: #D4A45A; }
+    .referral-badge { padding: 3px 10px; border-radius: 4px; font-size: 11px; font-weight: 600; }
+    .badge-used { background: #E2E8F0; color: #6B7B8D; }
+    .badge-available { background: #DCFCE7; color: #15803D; }
+    .referral-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .referral-table th, .referral-table td { padding: 12px; border-bottom: 1px solid var(--border-color); }
+    .referral-table th { background: var(--blue); color: #FFFFFF; font-weight: 600; }
+    .referral-table tr:hover { background: rgba(26,111,168, 0.04); }
+    .copy-btn { cursor: pointer; padding: 2px 8px; border-radius: 4px; border: 1px solid rgba(212,164,90,0.3); background: transparent; font-size: 12px; transition: all 0.15s; }
+    .copy-btn:hover { background: rgba(212,164,90,0.1); border-color: #D4A45A; }
+    html.dark-mode .referral-table th { background: #2A3A4A; }
+</style>
+
+<div class="referral-root">
+    <!-- Header -->
+    <div class="referral-header">
+        <div class="d-flex align-items-center justify-content-between flex-wrap">
+            <div>
+                <h4 class="mb-1 text-white">Referral Management</h4>
+                <p class="mb-0 text-white-50">Track and manage your referral earnings</p>
+            </div>
+            <div class="text-end">
+                <small class="text-white-50 d-block">Your Referral Code</small>
+                <strong class="text-white fs-5" id="refCodeDisplay">@referralCode</strong>
+                <button class="copy-btn text-white ms-2" onclick="copyReferralCode()" title="Copy referral code">
+                    <i class="fas fa-copy"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-4">
+            <div class="card referal-card stat-blue">
+                <div class="referral-stat">
+                    <div class="referral-stat-number">₹@balance.ToString("N2")</div>
+                    <div class="text-muted small">Available Balance</div>
+                    <small class="text-muted">Can be used to reduce plan cost</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card referal-card stat-green">
+                <div class="referral-stat">
+                    <div class="referral-stat-number">@referrals.Count(r => !r.IsUsed)</div>
+                    <div class="text-muted small">Active Referrals</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card referal-card stat-amber">
+                <div class="referral-stat">
+                    <div class="referral-stat-number">@referrals.Count</div>
+                    <div class="text-muted small">Total Referrals</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Add Referral Form -->
+        <div class="col-md-5">
+            <div class="card referal-card">
+                <div class="card-header bg-transparent border-bottom">
+                    <h5 class="mb-0"><i class="fas fa-plus-circle text-primary me-2"></i>Add Referral Earning</h5>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted small mb-3">Record a referral bonus for referring another company or member. The amount will be added to your wallet and can be used to reduce subscription plan payments.</p>
+                    <form id="addReferralForm">
+                        @Html.AntiForgeryToken()
+                        <div class="mb-3">
+                            <label class="form-label">Referred Company Name <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="referredCompany" placeholder="e.g. ABC Realty" required />
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Amount (₹) <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control" id="referralAmount" placeholder="e.g. 500" min="1" step="0.01" required />
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Description (Optional)</label>
+                            <textarea class="form-control" id="referralDescription" rows="2" placeholder="e.g. Referral bonus for XYZ Company"></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="fas fa-check me-1"></i>Add Referral Earning
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Referral History -->
+        <div class="col-md-7">
+            <div class="card referal-card">
+                <div class="card-header bg-transparent border-bottom d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="fas fa-history me-2"></i>Referral History</h5>
+                    <button class="btn btn-sm btn-outline-primary" onclick="refreshReferrals()">
+                        <i class="fas fa-sync-alt me-1"></i>Refresh
+                    </button>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="referral-table">
+                            <thead>
+                                <tr>
+                                    <th>Company</th>
+                                    <th>Amount</th>
+                                    <th>Description</th>
+                                    <th>Status</th>
+                                    <th>Date</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (referrals.Any())
+                                {
+                                    foreach (var r in referrals)
+                                    {
+                                        var companyName = r.ReferredTenantId.HasValue && tenants.ContainsKey(r.ReferredTenantId.Value)
+                                            ? tenants[r.ReferredTenantId.Value] : "Manual Entry";
+                                        <tr>
+                                            <td>@companyName</td>
+                                            <td><strong>₹@r.Amount.ToString("N2")</strong></td>
+                                            <td>@(r.Description ?? "-")</td>
+                                            <td>
+                                                @if (r.IsUsed)
+                                                {
+                                                    <span class="badge badge-used">Used</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge badge-available">Available</span>
+                                                }
+                                            </td>
+                                            <td>@r.CreatedOn.ToString("MMM dd, yyyy")</td>
+                                        </tr>
+                                    }
+                                }
+                                else
+                                {
+                                    <tr>
+                                        <td colspan="5" class="text-center text-muted py-4">
+                                            <i class="fas fa-inbox fa-2x d-block mb-2"></i>
+                                            No referral earnings yet. Add one above.
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Info Card -->
+    <div class="card referal-card mt-3">
+        <div class="card-body">
+            <div class="d-flex align-items-start gap-3">
+                <i class="fas fa-info-circle text-primary fs-4 mt-1"></i>
+                <div>
+                    <h6 class="mb-1">How Referral Earnings Work</h6>
+                    <p class="text-muted small mb-0">
+                        Your referral balance can be used to reduce your subscription plan payments.
+                        When you upgrade or subscribe to a plan, the available referral balance will be automatically deducted
+                        from the amount due. You only pay the remaining amount.
+                        Referral earnings are applied on a first-come, first-served basis.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function copyReferralCode() {
+        var code = document.getElementById('refCodeDisplay').textContent.trim();
+        navigator.clipboard.writeText(code).then(function () {
+            toastr.success('Referral code copied: ' + code);
+        }).catch(function () {
+            // Fallback
+            var textarea = document.createElement('textarea');
+            textarea.value = code;
+            document.body.appendChild(textarea);
+            textarea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textarea);
+            toastr.success('Referral code copied!');
+        });
+    }
+
+    document.getElementById('addReferralForm').addEventListener('submit', function (e) {
+        e.preventDefault();
+        var company = document.getElementById('referredCompany').value.trim();
+        var amount = parseFloat(document.getElementById('referralAmount').value);
+        var description = document.getElementById('referralDescription').value.trim();
+
+        if (!company) { toastr.error('Please enter a company name'); return; }
+        if (!amount || amount <= 0) { toastr.error('Please enter a valid amount'); return; }
+
+        var btn = this.querySelector('button[type="submit"]');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Adding...';
+
+        fetch('/SaasSubscription/AdminAddReferral', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || ''
+            },
+            body: 'referredCompany=' + encodeURIComponent(company) +
+                  '&amount=' + encodeURIComponent(amount) +
+                  '&description=' + encodeURIComponent(description)
+        })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+            if (data.success) {
+                toastr.success(data.message);
+                document.getElementById('referredCompany').value = '';
+                document.getElementById('referralAmount').value = '';
+                document.getElementById('referralDescription').value = '';
+                refreshReferrals();
+            } else {
+                toastr.error(data.message || 'Failed to add referral');
+            }
+        })
+        .catch(function (err) {
+            toastr.error('Error: ' + err.message);
+        })
+        .finally(function () {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-check me-1"></i>Add Referral Earning';
+        });
+    });
+
+    function refreshReferrals() {
+        var btn = document.querySelector('.btn-outline-primary .fas.fa-sync-alt');
+        if (btn) btn.classList.add('fa-spin');
+        window.location.reload();
+    }
+</script>

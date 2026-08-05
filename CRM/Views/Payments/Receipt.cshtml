@@ -1,0 +1,595 @@
+@model CRM.Models.PaymentModel
+@{
+    ViewData["Title"] = "Payment Receipt";
+    var invoice = Model.Invoice;
+    var booking = invoice?.Booking;
+    var lead = booking?.Lead;
+    var property = booking?.Property;
+    var flat = booking?.Flat;
+    var installment = Model.Installment;
+    
+    var companyName = ViewBag.CompanyName?.ToString() ?? "Company Name";
+    var companyAddress = ViewBag.CompanyAddress?.ToString() ?? "Company Address";
+    var companyPhone = ViewBag.CompanyPhone?.ToString() ?? "Phone";
+    var companyEmail = ViewBag.CompanyEmail?.ToString() ?? "Email";
+    var companyGst = ViewBag.CompanyGST?.ToString() ?? "GST Number";
+}
+
+<style>
+/* =============================================
+   PAYMENT RECEIPT — COMPACT PREMIUM DESIGN
+   #D4A45A (gold)  ·  #1A6FA8 (blue)
+   ============================================= */
+:root {
+    --rc-gold:      #D4A45A;
+    --rc-gold-l:    #E8C27E;
+    --rc-gold-dim:  rgba(212,164,90,.12);
+    --rc-gold-brd:  rgba(212,164,90,.3);
+    --rc-blue:      #1A6FA8;
+    --rc-blue-d:    #125082;
+    --rc-blue-dim:  rgba(26,111,168,.08);
+    --rc-blue-brd:  rgba(26,111,168,.18);
+    --rc-green:     #16A34A;
+    --rc-amber:     #B45309;
+    --rc-amber-bg:  rgba(180,83,9,.08);
+    --rc-text:      #1E2A3A;
+    --rc-sub:       #6B7B8D;
+    --rc-muted:     #6B7B8D;
+    --rc-border:    rgba(26,111,168,.12);
+    --rc-bg:        #F0F4F8;
+    --rc-card:      #FFFFFF;
+    --rc-radius:    10px;
+    --rc-rsm:       6px;
+    --rc-shadow:    0 2px 14px rgba(26,111,168,.1);
+}
+
+/* Page */
+.rc-page {
+    background: var(--rc-bg);
+    min-height: 100vh;
+    padding: 10px 12px 20px;
+}
+
+p {
+    font-size: 0.95rem !important;
+    line-height: 1.6 !important;
+    margin-bottom: 0px !important;
+}
+/* Action bar */
+.rc-bar {
+    max-width: 780px;
+    margin: 0 auto 8px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+.rc-bar-btn {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 5px 13px; border-radius: 20px;
+    font-size: .72rem; font-weight: 700;
+    border: 1.5px solid; cursor: pointer;
+    text-decoration: none; transition: all .16s;
+    white-space: nowrap;
+}
+.rc-bar-btn-back {
+    background: #FFFFFF; color: var(--rc-blue);
+    border-color: var(--rc-blue-brd);
+}
+.rc-bar-btn-back:hover { background: var(--rc-blue); color: #FFFFFF; }
+.rc-bar-btn-dl {
+    background: linear-gradient(135deg,var(--rc-gold),#B8883E);
+    color: #FFFFFF; border-color: transparent;
+    box-shadow: 0 2px 8px rgba(212,164,90,.35);
+}
+.rc-bar-btn-dl:hover { box-shadow: 0 4px 14px rgba(212,164,90,.5); transform: translateY(-1px); color:#FFFFFF; }
+
+/* Receipt card */
+.rc-card {
+    max-width: 780px;
+    margin: 0 auto;
+    background: var(--rc-card);
+    border-radius: var(--rc-radius);
+    box-shadow: var(--rc-shadow);
+    overflow: hidden;
+    border: 1px solid var(--rc-border);
+}
+
+/* ---- HEADER ---- */
+.rc-head {
+    background: linear-gradient(135deg, var(--rc-blue) 0%, var(--rc-blue-d) 100%);
+    padding: 16px 20px 14px;
+    position: relative;
+    overflow: hidden;
+}
+.rc-head::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: radial-gradient(circle at 90% 50%, rgba(212,164,90,.22) 0%, transparent 60%);
+    pointer-events: none;
+}
+.rc-head::after {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 0; right: 0; height: 3px;
+    background: linear-gradient(90deg, var(--rc-gold), var(--rc-gold-l), var(--rc-gold));
+}
+.rc-co-name {
+    font-size: .95rem; font-weight: 800;
+    color: #FFFFFF; letter-spacing: .01em;
+    margin-bottom: 2px; line-height: 1.2;
+}
+.rc-co-meta {
+    font-size: .63rem; color: rgba(255,255,255,.65);
+    line-height: 1.5; margin: 0;
+}
+.rc-co-meta strong { color: var(--rc-gold-l); }
+.rc-badge-receipt {
+    display: inline-flex; align-items: center; gap: 5px;
+    background: rgba(212,164,90,.2);
+    border: 1.5px solid var(--rc-gold-brd);
+    border-radius: 20px;
+    padding: 3px 11px;
+    color: var(--rc-gold-l);
+    font-size: .65rem; font-weight: 800;
+    letter-spacing: .06em; text-transform: uppercase;
+    white-space: nowrap;
+    margin-top: 6px;
+}
+
+/* ---- RECEIPT NUMBER STRIP ---- */
+.rc-num-strip {
+    background: linear-gradient(90deg, var(--rc-gold-dim), rgba(212,164,90,.06));
+    border-bottom: 1px solid var(--rc-gold-brd);
+    padding: 7px 20px;
+    display: flex; align-items: center; justify-content: space-between;
+    flex-wrap: wrap; gap: 4px;
+}
+.rc-num-label { font-size: .6rem; font-weight: 700; color: var(--rc-gold); text-transform: uppercase; letter-spacing: .08em; }
+.rc-num-value { font-size: .82rem; font-weight: 800; color: var(--rc-blue); }
+.rc-date-chip {
+    display: inline-flex; align-items: center; gap: 4px;
+    background: var(--rc-blue-dim);
+    border: 1px solid var(--rc-blue-brd);
+    border-radius: 8px; padding: 2px 8px;
+    font-size: .62rem; font-weight: 600; color: var(--rc-blue);
+}
+
+/* ---- BODY ---- */
+.rc-body { padding: 14px 20px 16px; }
+
+/* Two-col info grid */
+.rc-info-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 12px;
+}
+.rc-info-box {
+    background: var(--rc-bg);
+    border: 1px solid var(--rc-border);
+    border-radius: var(--rc-rsm);
+    padding: 9px 12px;
+}
+.rc-info-box-title {
+    font-size: .58rem; font-weight: 800;
+    color: var(--rc-gold); text-transform: uppercase;
+    letter-spacing: .08em;
+    display: flex; align-items: center; gap: 4px;
+    margin-bottom: 6px; padding-bottom: 5px;
+    border-bottom: 1px solid var(--rc-gold-brd);
+}
+.rc-info-row {
+    display: flex; gap: 4px;
+    font-size: .67rem; line-height: 1.45;
+    margin-bottom: 2px; color: var(--rc-text);
+}
+.rc-info-row .rc-lbl { color: var(--rc-muted); min-width: 72px; flex-shrink: 0; }
+.rc-info-row .rc-val { font-weight: 600; word-break: break-word; }
+
+/* Property summary strip */
+.rc-prop-strip {
+    background: var(--rc-blue-dim);
+    border: 1px solid var(--rc-blue-brd);
+    border-radius: var(--rc-rsm);
+    padding: 8px 12px;
+    margin-bottom: 12px;
+    font-size: .67rem; color: var(--rc-text);
+    line-height: 1.6;
+}
+.rc-prop-strip strong { color: var(--rc-blue); }
+
+/* ---- AMOUNT BOX ---- */
+.rc-amount-box {
+    background: linear-gradient(135deg, var(--rc-blue) 0%, var(--rc-blue-d) 100%);
+    border-radius: var(--rc-rsm);
+    padding: 14px 18px;
+    display: flex; align-items: center; justify-content: space-between;
+    flex-wrap: wrap; gap: 8px;
+    margin-bottom: 10px;
+    position: relative; overflow: hidden;
+}
+.rc-amount-box::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: radial-gradient(circle at 80% 50%, rgba(212,164,90,.18) 0%, transparent 55%);
+    pointer-events: none;
+}
+.rc-amount-label {
+    font-size: .58rem; font-weight: 800;
+    color: rgba(255,255,255,.65); text-transform: uppercase; letter-spacing: .1em;
+    margin-bottom: 2px;
+}
+.rc-amount-value {
+    font-size: 1.5rem; font-weight: 900;
+    color: #FFFFFF; line-height: 1;
+}
+.rc-amount-value small {
+    font-size: .7rem; font-weight: 600;
+    color: var(--rc-gold-l); margin-right: 2px;
+}
+.rc-method-pill {
+    display: inline-flex; align-items: center; gap: 5px;
+    background: rgba(212,164,90,.22);
+    border: 1.5px solid var(--rc-gold-brd);
+    border-radius: 20px; padding: 4px 12px;
+    color: var(--rc-gold-l); font-size: .66rem; font-weight: 700;
+}
+
+/* Words strip */
+.rc-words {
+    background: var(--rc-gold-dim);
+    border: 1px solid var(--rc-gold-brd);
+    border-radius: var(--rc-rsm);
+    padding: 7px 12px;
+    margin-bottom: 10px;
+    font-size: .67rem; color: var(--rc-text);
+}
+.rc-words strong { color: var(--rc-gold); }
+
+/* Outstanding */
+.rc-outstanding {
+    background: rgba(180,83,9,.07);
+    border: 1px solid rgba(180,83,9,.2);
+    border-radius: var(--rc-rsm);
+    padding: 8px 12px;
+    margin-bottom: 10px;
+    display: flex; align-items: center; justify-content: space-between;
+    flex-wrap: wrap; gap: 4px;
+}
+.rc-outstanding-lbl { font-size: .62rem; font-weight: 700; color: var(--rc-amber); text-transform: uppercase; letter-spacing: .06em; }
+.rc-outstanding-val { font-size: .95rem; font-weight: 900; color: var(--rc-amber); }
+
+/* Notes */
+.rc-notes {
+    background: var(--rc-bg);
+    border-left: 3px solid var(--rc-blue);
+    border-radius: 0 var(--rc-rsm) var(--rc-rsm) 0;
+    padding: 7px 11px;
+    margin-bottom: 10px;
+    font-size: .67rem; color: var(--rc-sub);
+    line-height: 1.55;
+}
+.rc-notes-title { font-size: .58rem; font-weight: 800; color: var(--rc-blue); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 3px; }
+
+/* ---- FOOTER STRIP ---- */
+.rc-footer {
+    border-top: 1px solid var(--rc-border);
+    padding: 10px 20px;
+    display: flex; align-items: flex-start; justify-content: space-between;
+    flex-wrap: wrap; gap: 10px;
+    background: var(--rc-bg);
+}
+.rc-terms { font-size: .6rem; color: var(--rc-muted); line-height: 1.65; }
+.rc-terms li { margin-bottom: 1px; }
+.rc-sig { text-align: right; }
+.rc-sig-line {
+    width: 140px; height: 1px;
+    border-top: 1.5px solid rgba(26,111,168,.3);
+    margin: 28px 0 4px auto;
+}
+.rc-sig-lbl { font-size: .6rem; color: var(--rc-muted); font-weight: 600; }
+
+/* ---- THANK YOU ---- */
+.rc-thankyou {
+    background: linear-gradient(90deg, var(--rc-gold-dim), rgba(212,164,90,.04));
+    border-top: 1px solid var(--rc-gold-brd);
+    padding: 7px 20px;
+    text-align: center;
+    font-size: .65rem; color: var(--rc-gold); font-weight: 700;
+    letter-spacing: .04em;
+}
+
+/* ---- DIVIDER ---- */
+.rc-divider {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--rc-border), transparent);
+    margin: 8px 0;
+}
+
+/* =============================================
+   DARK MODE
+   ============================================= */
+html.dark-mode {
+    --rc-text:   #E2E8F0;
+    --rc-sub:    #8FA3B8;
+    --rc-muted:  #8FA3B8;
+    --rc-border: rgba(26,111,168,.22);
+    --rc-bg:     #121F2E;
+    --rc-card:   #1E2A3A;
+}
+html.dark-mode .rc-page { background: #111827; }
+html.dark-mode .rc-bar-btn-back { background: #1E2A3A; color: var(--rc-gold-l); border-color: var(--rc-gold-brd); }
+html.dark-mode .rc-bar-btn-back:hover { background: var(--rc-blue); color: #FFFFFF; border-color: transparent; }
+html.dark-mode .rc-info-box { background: #121F2E; border-color: rgba(26,111,168,.22); }
+html.dark-mode .rc-prop-strip { background: rgba(26,111,168,.12); }
+html.dark-mode .rc-words { background: rgba(212,164,90,.08); }
+html.dark-mode .rc-notes { background: rgba(26,111,168,.1); }
+html.dark-mode .rc-footer { background: #121F2E; border-color: rgba(26,111,168,.22); }
+html.dark-mode .rc-thankyou { background: rgba(212,164,90,.08); }
+html.dark-mode .rc-terms { color: #6B7B8D; }
+html.dark-mode .rc-outstanding { background: rgba(180,83,9,.12); border-color: rgba(180,83,9,.25); }
+
+/* =============================================
+   PRINT
+   ============================================= */
+@@media print {
+    .rc-bar, .no-print { display: none !important; }
+    .rc-page { background: white !important; padding: 0; }
+    .rc-card { box-shadow: none !important; border: none; border-radius: 0; }
+    body { background: white !important; }
+    .rc-amount-box { background: #1A6FA8 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .rc-head { background: #1A6FA8 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .rc-amount-value, .rc-amount-label, .rc-method-pill, .rc-co-name, .rc-co-meta, .rc-badge-receipt { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}
+
+/* =============================================
+   RESPONSIVE
+   ============================================= */
+@@media (max-width: 600px) {
+    .rc-page { padding: 6px 6px 16px; }
+    .rc-head { padding: 12px 14px 12px; }
+    .rc-body { padding: 10px 12px 12px; }
+    .rc-footer { padding: 8px 12px; }
+    .rc-thankyou { padding: 6px 12px; }
+    .rc-num-strip { padding: 6px 12px; }
+    .rc-info-grid { grid-template-columns: 1fr; gap: 7px; }
+    .rc-amount-box { flex-direction: column; align-items: flex-start; gap: 8px; }
+    .rc-amount-value { font-size: 1.2rem; }
+    .rc-bar { gap: 4px; }
+    .rc-bar-btn { font-size: .67rem; padding: 4px 10px; }
+    .rc-footer { flex-direction: column-reverse; gap: 8px; }
+    .rc-sig { text-align: left; }
+    .rc-sig-line { margin-left: 0; }
+}
+@@media (max-width: 400px) {
+    .rc-co-name { font-size: .82rem; }
+    .rc-num-value { font-size: .72rem; }
+}
+</style>
+
+<div class="content">
+<div class="rc-page">
+
+    <!-- Action Bar -->
+    <div class="rc-bar no-print">
+        <a href="/Payments/Index" class="rc-bar-btn rc-bar-btn-back">
+            <i class="fa-solid fa-arrow-left" style="font-size:.62rem;"></i> Back to List
+        </a>
+            <a href="/paymentreceipt/@IdObfuscator.Encode(Model.PaymentId)" class="rc-bar-btn rc-bar-btn-dl"
+           onclick="sessionStorage.setItem('paymentAutoPrint','1');">
+            <i class="fa-solid fa-download" style="font-size:.62rem;"></i> Download PDF
+        </a>
+    </div>
+
+    <!-- Receipt Card -->
+    <div class="rc-card">
+
+        <!-- Header -->
+        <div class="rc-head">
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex-wrap:wrap;">
+                <div>
+                    <div class="rc-co-name">@companyName</div>
+                    <p class="rc-co-meta">@companyAddress</p>
+                    <p class="rc-co-meta">
+                        <i class="fa-solid fa-phone" style="font-size:.55rem;margin-right:3px;"></i>@companyPhone &nbsp;·&nbsp;
+                        <i class="fa-solid fa-envelope" style="font-size:.55rem;margin-right:3px;"></i>@companyEmail
+                    </p>
+                    <p class="rc-co-meta"><strong>GSTIN: @companyGst</strong></p>
+                </div>
+                <div style="text-align:right;">
+                    <div class="rc-badge-receipt">
+                        <i class="fa-solid fa-file-invoice" style="font-size:.6rem;"></i>
+                        Payment Receipt
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Receipt Number Strip -->
+        <div class="rc-num-strip">
+            <div>
+                <div class="rc-num-label">Receipt No.</div>
+                <div class="rc-num-value"># @Model.ReceiptNumber</div>
+            </div>
+            <div class="rc-date-chip">
+                <i class="fa-solid fa-calendar-day" style="font-size:.58rem;"></i>
+                @Model.PaymentDate.ToString("dd MMM yyyy")
+            </div>
+        </div>
+
+        <!-- Body -->
+        <div class="rc-body">
+
+            <!-- Info Grid: Customer | Payment -->
+            <div class="rc-info-grid">
+                <!-- Customer Info -->
+                <div class="rc-info-box">
+                    <div class="rc-info-box-title">
+                        <i class="fa-solid fa-user" style="font-size:.6rem;color:var(--rc-gold);"></i>
+                        Customer Details
+                    </div>
+                    <div class="rc-info-row"><span class="rc-lbl">Name</span><span class="rc-val">@lead?.Name</span></div>
+                    <div class="rc-info-row"><span class="rc-lbl">Contact</span><span class="rc-val">@lead?.Contact</span></div>
+                    <div class="rc-info-row"><span class="rc-lbl">Email</span><span class="rc-val">@lead?.Email</span></div>
+                    <div class="rc-info-row"><span class="rc-lbl">Booking</span><span class="rc-val">@booking?.BookingNumber</span></div>
+                </div>
+
+                <!-- Payment Info -->
+                <div class="rc-info-box">
+                    <div class="rc-info-box-title">
+                        <i class="fa-solid fa-credit-card" style="font-size:.6rem;color:var(--rc-gold);"></i>
+                        Payment Details
+                    </div>
+                    <div class="rc-info-row"><span class="rc-lbl">Date</span><span class="rc-val">@Model.PaymentDate.ToString("dd MMM yyyy")</span></div>
+                    <div class="rc-info-row"><span class="rc-lbl">Method</span><span class="rc-val">@Model.PaymentMethod</span></div>
+                    @if (!string.IsNullOrEmpty(Model.TransactionReference))
+                    {
+                        <div class="rc-info-row"><span class="rc-lbl">Reference</span><span class="rc-val">@Model.TransactionReference</span></div>
+                    }
+                    @if (!string.IsNullOrEmpty(Model.ChequeNumber))
+                    {
+                        <div class="rc-info-row"><span class="rc-lbl">Cheque No</span><span class="rc-val">@Model.ChequeNumber</span></div>
+                    }
+                    @if (!string.IsNullOrEmpty(Model.BankName))
+                    {
+                        <div class="rc-info-row"><span class="rc-lbl">Bank</span><span class="rc-val">@Model.BankName</span></div>
+                    }
+                    <div class="rc-info-row"><span class="rc-lbl">Invoice</span><span class="rc-val">@invoice?.InvoiceNumber</span></div>
+                </div>
+            </div>
+
+            <!-- Property Strip -->
+            <div class="rc-prop-strip">
+                <i class="fa-solid fa-building" style="color:var(--rc-blue);margin-right:5px;font-size:.65rem;"></i>
+                Property: <strong>@property?.PropertyName</strong> &nbsp;·&nbsp;
+                Unit: <strong>@flat?.FlatName</strong> &nbsp;·&nbsp;
+                <strong>@flat?.BHK</strong> &nbsp;·&nbsp;
+                Area: <strong>@flat?.Area sq.ft</strong>
+                @if (installment != null)
+                {
+                    <span> &nbsp;·&nbsp; Installment <strong>#@installment.InstallmentNumber</strong> – @installment.MilestoneName</span>
+                }
+            </div>
+
+            <!-- Amount Box -->
+            <div class="rc-amount-box">
+                <div>
+                    <div class="rc-amount-label">Amount Received</div>
+                    <div class="rc-amount-value"><small>₹</small>@Model.Amount.ToString("N2")</div>
+                </div>
+                <div class="rc-method-pill">
+                    <i class="fa-solid fa-check-circle" style="font-size:.65rem;"></i>
+                    @Model.PaymentMethod — Verified
+                </div>
+            </div>
+
+            <!-- Amount in Words -->
+            <div class="rc-words">
+                <strong>In Words:</strong> Rupees @NumberToWords((int)Model.Amount) Only
+            </div>
+
+            <!-- Outstanding -->
+            @if (invoice != null)
+            {
+                var outstanding = invoice.TotalAmount - invoice.PaidAmount;
+                if (outstanding > 0)
+                {
+                    <div class="rc-outstanding">
+                        <div>
+                            <div class="rc-outstanding-lbl">Outstanding Balance</div>
+                            <div style="font-size:.62rem;color:var(--rc-amber);margin-top:1px;">Invoice total: ₹@invoice.TotalAmount.ToString("N2")</div>
+                        </div>
+                        <div class="rc-outstanding-val">₹@outstanding.ToString("N2")</div>
+                    </div>
+                }
+            }
+
+            <!-- Notes -->
+            @if (!string.IsNullOrEmpty(Model.Notes))
+            {
+                <div class="rc-notes">
+                    <div class="rc-notes-title"><i class="fa-solid fa-note-sticky" style="font-size:.58rem;margin-right:3px;"></i>Notes</div>
+                    @Model.Notes
+                </div>
+            }
+
+        </div><!-- /rc-body -->
+
+        <!-- Footer -->
+        <div class="rc-footer">
+            <ul class="rc-terms" style="list-style:none;padding:0;margin:0;">
+                <li>• This is a computer-generated receipt and does not require a signature.</li>
+                <li>• Payment is subject to realization of cheque / online transfer.</li>
+                <li>• Please retain this receipt for your records.</li>
+            </ul>
+            <div class="rc-sig">
+                <div class="rc-sig-line"></div>
+                <div class="rc-sig-lbl">Authorized Signature</div>
+            </div>
+        </div>
+
+        <!-- Thank You -->
+        <div class="rc-thankyou">
+            <i class="fa-solid fa-heart" style="font-size:.58rem;margin-right:4px;"></i>
+            Thank you for your payment! &nbsp;·&nbsp; @companyPhone &nbsp;·&nbsp; @companyEmail
+        </div>
+
+    </div><!-- /rc-card -->
+
+</div><!-- /rc-page -->
+</div><!-- /content -->
+
+<style>
+    html.payment-pdf-mode #sidebar,
+    html.payment-pdf-mode .sidebar,
+    html.payment-pdf-mode .navbar,
+    html.payment-pdf-mode .navbar-bg,
+    html.payment-pdf-mode .sidebar-toggle,
+    html.payment-pdf-mode #navbar-skeleton,
+    html.payment-pdf-mode .global-search-container,
+    html.payment-pdf-mode .global-search-overlay,
+    html.payment-pdf-mode .offcanvas,
+    html.payment-pdf-mode .modal-backdrop { display: none !important; }
+    html.payment-pdf-mode .main { margin-left: 0 !important; width: 100% !important; overflow: visible !important; }
+    html.payment-pdf-mode main.content { padding-top: 0 !important; margin-top: 0 !important; overflow: visible !important; height: auto !important; }
+    html.payment-pdf-mode, html.payment-pdf-mode body, html.payment-pdf-mode .wrapper, html.payment-pdf-mode .content { overflow: visible !important; overflow-x: hidden !important; height: auto !important; scrollbar-width: none !important; }
+    html.payment-pdf-mode::-webkit-scrollbar, html.payment-pdf-mode body::-webkit-scrollbar, html.payment-pdf-mode .content::-webkit-scrollbar, html.payment-pdf-mode main.content::-webkit-scrollbar { display: none !important; width: 0 !important; height: 0 !important; }
+    html.payment-pdf-mode .rc-card { box-shadow: none !important; }
+</style>
+
+<script>
+    window.addEventListener('load', function () {
+        var params = new URLSearchParams(window.location.search);
+        var shouldAutoPrint = params.get('autoPrint') === 'true' || sessionStorage.getItem('paymentAutoPrint') === '1';
+        if (!shouldAutoPrint) return;
+        sessionStorage.removeItem('paymentAutoPrint');
+        document.documentElement.classList.add('payment-pdf-mode');
+        document.body.classList.add('payment-pdf-mode');
+        if (window.location.search) history.replaceState({}, document.title, window.location.pathname);
+        var hasReloaded = false;
+        var reloadOnce = function () { if (hasReloaded) return; hasReloaded = true; window.location.replace(window.location.pathname); };
+        window.addEventListener('afterprint', function () { setTimeout(reloadOnce, 120); }, { once: true });
+        setTimeout(function () { window.print(); setTimeout(reloadOnce, 2500); }, 300);
+    });
+</script>
+
+@functions {
+    private string NumberToWords(int number)
+    {
+        if (number == 0) return "Zero";
+        string[] ones = { "", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine" };
+        string[] teens = { "Ten", "Eleven", "Twelve", "Thirteen", "Fourteen", "Fifteen", "Sixteen", "Seventeen", "Eighteen", "Nineteen" };
+        string[] tens = { "", "", "Twenty", "Thirty", "Forty", "Fifty", "Sixty", "Seventy", "Eighty", "Ninety" };
+        string words = "";
+        if (number >= 10000000) { words += NumberToWords(number / 10000000) + " Crore "; number %= 10000000; }
+        if (number >= 100000)   { words += NumberToWords(number / 100000)   + " Lakh ";  number %= 100000;   }
+        if (number >= 1000)     { words += NumberToWords(number / 1000)     + " Thousand "; number %= 1000;  }
+        if (number >= 100)      { words += ones[number / 100] + " Hundred "; number %= 100; }
+        if (number >= 20)       { words += tens[number / 10] + " "; number %= 10; }
+        if (number >= 10)       { words += teens[number - 10] + " "; number = 0; }
+        if (number > 0)         { words += ones[number] + " "; }
+        return words.Trim();
+    }
+}

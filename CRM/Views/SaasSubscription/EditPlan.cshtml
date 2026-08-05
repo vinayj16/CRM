@@ -1,0 +1,335 @@
+﻿@model CRM.MasterDb.Models.SaasSubscriptionPlanModel
+@{
+    ViewData["Title"] = "Edit Subscription Plan";
+}
+
+<div class="content">
+    <div class="page-hd"><i class="fa-solid fa-pen-to-square"></i><h4>Edit Plan</h4></div>
+    <nav class="mb-3" aria-label="breadcrumb">
+        <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item"><a href="/Home/Index">Home</a></li>
+            <li class="breadcrumb-item"><a href="/saassubscription/Plans">Subscription Plans</a></li>
+            <li class="breadcrumb-item active">Edit Plan</li>
+        </ol>
+    </nav>
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Edit Subscription Plan</h5>
+                </div>
+                <div class="card-body">
+                    <div id="subscriberAlert" class="alert alert-danger d-none">
+                        <i class="fas fa-lock"></i>
+                        <strong>Cannot Edit Plan:</strong> This plan has <span id="subscriberCount"></span> active subscribers and cannot be modified.
+                        <div class="mt-2">
+                            <small><strong>Active Subscribers:</strong></small>
+                            <ul id="subscriberList" class="mb-0 mt-1"></ul>
+                        </div>
+                        <div class="mt-3">
+                            <button type="button" class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#createPlanModal">
+                                <i class="fas fa-plus"></i> Create New Plan Instead
+                            </button>
+                        </div>
+                    </div>
+
+                    <form id="editPlanForm" method="post" action="/saassubscription/UpdatePlan" novalidate>
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="PlanId" value="@Model.PlanId" />
+
+                        <div class="row g-2">
+                            <div class="col-md-4 mb-2">
+                                <label class="form-label">Plan Name <span class="text-danger">*</span></label>
+                                <input name="PlanName" class="form-control" value="@Model.PlanName" required />
+                                <div class="invalid-feedback">Please enter plan name</div>
+                            </div>
+                            <div class="col-md-4 mb-2">
+                                <label class="form-label">Sort Order <span class="text-danger">*</span></label>
+                                <input name="SortOrder" type="number" class="form-control" value="@Model.SortOrder" required />
+                                <div class="invalid-feedback">Please enter sort order</div>
+                            </div>
+                        </div>
+                        <div class="col-12 mb-2">
+                            <label class="form-label">Description <span class="text-danger">*</span></label>
+                            <textarea name="Description" class="form-control" rows="2" required>@Model.Description</textarea>
+                            <div class="invalid-feedback">Please enter description</div>
+                        </div>
+
+                        <h6 class="mb-2 mt-2">Limits</h6>
+                        <div class="row g-2">
+                            <div class="col-md-4 mb-2">
+                                <label class="form-label">Max Agents <span class="text-danger">*</span></label>
+                                <input name="MaxAgents" type="number" class="form-control" value="@Model.MaxAgents" required />
+                                <div class="invalid-feedback">Please enter max agents</div>
+                            </div>
+                            <div class="col-md-4 mb-2">
+                                <label class="form-label">Max Leads/Month <span class="text-danger">*</span></label>
+                                <input name="MaxLeadsPerMonth" type="number" class="form-control" value="@Model.MaxLeadsPerMonth" required />
+                                <div class="invalid-feedback">Please enter max leads</div>
+                            </div>
+                        </div>
+                        <input type="hidden" name="MaxStorageGB" value="1080" />
+
+                        <h6 class="mb-2 mt-2">Features</h6>
+                        <div class="d-flex flex-wrap gap-3 mb-3">
+                            <div class="form-check">
+                                <input name="HasWhatsAppIntegration" type="checkbox" class="form-check-input" @(Model.HasWhatsAppIntegration ? "checked" : "") value="true" />
+                                <label class="form-check-label">WhatsApp Integration</label>
+                            </div>
+                            <div class="form-check">
+                                <input name="HasFacebookIntegration" type="checkbox" class="form-check-input" @(Model.HasFacebookIntegration ? "checked" : "") value="true" />
+                                <label class="form-check-label">Facebook Integration</label>
+                            </div>
+                            <div class="form-check">
+                                <input name="HasEmailIntegration" type="checkbox" class="form-check-input" @(Model.HasEmailIntegration ? "checked" : "") value="true" />
+                                <label class="form-check-label">Email Integration</label>
+                            </div>
+                            <div class="form-check">
+                                <input name="HasCustomAPIAccess" type="checkbox" class="form-check-input" @(Model.HasCustomAPIAccess ? "checked" : "") value="true" />
+                                <label class="form-check-label">Custom API Access</label>
+                            </div>
+                            <div class="form-check">
+                                <input name="HasDataExport" type="checkbox" class="form-check-input" @(Model.HasAdvancedReports ? "checked" : "") value="true" />
+                                <label class="form-check-label">Data Export</label>
+                            </div>
+                            <div class="form-check">
+                                <input name="HasPrioritySupport" type="checkbox" class="form-check-input" @(Model.HasPrioritySupport ? "checked" : "") value="true" />
+                                <label class="form-check-label">Priority Support</label>
+                            </div>
+                            <div class="form-check">
+                                <input name="IsActive" type="checkbox" class="form-check-input" @(Model.IsActive ? "checked" : "") value="true" />
+                                <label class="form-check-label">Active</label>
+                            </div>
+                        </div>
+
+                        <input type="hidden" name="HasAdvancedReports" value="false" />
+                        <input type="hidden" name="HasCustomReports" value="false" />
+                        <input type="hidden" name="HasPrioritySupport" value="false" />
+                        <input type="hidden" name="HasPhoneSupport" value="false" />
+                        <input type="hidden" name="HasDedicatedManager" value="false" />
+
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary">Update Plan</button>
+                            <a href="/saassubscription/Plans" class="btn btn-secondary">Cancel</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Check for active subscribers when page loads
+        checkActiveSubscribers();
+
+        function checkActiveSubscribers() {
+            console.log('Checking subscribers for plan ID:', @Model.PlanId);
+
+            fetch('/saassubscription/CheckPlanSubscribers?planId=@Model.PlanId')
+                .then(response => response.json())
+                .then(data => {
+                    console.log('Response received:', data);
+                    if (data.hasActiveSubscribers) {
+                        document.getElementById('subscriberCount').textContent = data.count;
+
+                        const subscriberList = document.getElementById('subscriberList');
+                        subscriberList.innerHTML = '';
+
+                        data.subscribers.forEach(function(subscriber) {
+                            const endDate = new Date(subscriber.endDate).toLocaleDateString();
+                            const li = document.createElement('li');
+                            li.innerHTML = '<strong>' + subscriber.companyName + '</strong> (expires: ' + endDate + ')';
+                            subscriberList.appendChild(li);
+                        });
+
+                        document.getElementById('subscriberAlert').classList.remove('d-none');
+
+                        // Disable all form inputs
+                        const form = document.getElementById('editPlanForm');
+                        const inputs = form.querySelectorAll('input, select, textarea');
+                        inputs.forEach(input => input.disabled = true);
+
+                        const submitBtn = form.querySelector('button[type="submit"]');
+                        if (submitBtn) {
+                            submitBtn.disabled = true;
+                            submitBtn.textContent = 'Cannot Update - Has Active Subscribers';
+                        }
+                    } else {
+                        console.log('No active subscribers found');
+                    }
+                })
+                .catch(error => {
+                    console.log('Fetch failed:', error);
+                });
+        }
+
+        // Handle form submission via AJAX
+        document.getElementById('editPlanForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            const alert = document.getElementById('subscriberAlert');
+            if (!alert.classList.contains('d-none')) {
+                return false;
+            }
+
+            if (!this.checkValidity()) {
+                e.stopPropagation();
+                this.classList.add('was-validated');
+                return;
+            }
+
+            const formData = new FormData(this);
+
+            fetch('/saassubscription/UpdatePlan', {
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showToast(data.message || 'Plan updated successfully!', 'success');
+                    setTimeout(() => {
+                        window.location.href = '/saassubscription/Plans';
+                    }, 1500);
+                } else {
+                    const errors = data.errors || ['An error occurred'];
+                    showToast(errors.join(', '), 'error');
+                }
+            })
+            .catch(error => {
+                showToast('An error occurred while updating plan', 'error');
+            });
+        });
+    });
+
+    // showToast is global from _Layout.cshtml
+</script>
+
+<!-- Create Plan Modal -->
+<div class="modal fade" id="createPlanModal" tabindex="-1" aria-labelledby="createPlanModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="createPlanModalLabel">Create New Subscription Plan</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="createPlanForm" method="post" action="/saassubscription/CreatePlan">
+                    @Html.AntiForgeryToken()
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Plan Name <span class="text-danger">*</span></label>
+                            <input name="PlanName" class="form-control" required />
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Plan Type</label>
+                            <select name="PlanType" class="form-select">
+                                <option value="Basic">Basic</option>
+                                <option value="Standard">Standard</option>
+                                <option value="Enterprise">Enterprise</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Description</label>
+                        <textarea name="Description" class="form-control" rows="2"></textarea>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Monthly Price (₹) <span class="text-danger">*</span></label>
+                            <input name="MonthlyPrice" type="number" step="0.01" class="form-control" required />
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Yearly Price (₹) <span class="text-danger">*</span></label>
+                            <input name="YearlyPrice" type="number" step="0.01" class="form-control" required />
+                        </div>
+                    </div>
+
+                    <h6 class="mb-3">Limits</h6>
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Max Agents</label>
+                            <input name="MaxAgents" type="number" class="form-control" value="5" />
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Max Leads/Month</label>
+                            <input name="MaxLeadsPerMonth" type="number" class="form-control" value="1000" />
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Max Storage (GB)</label>
+                            <input name="MaxStorageGB" type="number" class="form-control" value="5" />
+                        </div>
+                    </div>
+
+                    <h6 class="mb-3">Features</h6>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-check mb-2">
+                                <input name="HasWhatsAppIntegration" type="checkbox" class="form-check-input" value="true" />
+                                <label class="form-check-label">WhatsApp Integration</label>
+                            </div>
+                            <div class="form-check mb-2">
+                                <input name="HasFacebookIntegration" type="checkbox" class="form-check-input" value="true" />
+                                <label class="form-check-label">Facebook Integration</label>
+                            </div>
+                            <div class="form-check mb-2">
+                                <input name="HasEmailIntegration" type="checkbox" class="form-check-input" value="true" />
+                                <label class="form-check-label">Email Integration</label>
+                            </div>
+                            <div class="form-check mb-2">
+                                <input name="HasCustomAPIAccess" type="checkbox" class="form-check-input" value="true" />
+                                <label class="form-check-label">Custom API Access</label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-check mb-2">
+                                <input name="HasAdvancedReports" type="checkbox" class="form-check-input" value="true" />
+                                <label class="form-check-label">Advanced Reports</label>
+                            </div>
+                            <div class="form-check mb-2">
+                                <input name="HasDataExport" type="checkbox" class="form-check-input" value="true" />
+                                <label class="form-check-label">Data Export</label>
+                            </div>
+                            <div class="form-check mb-2">
+                                <input name="HasPrioritySupport" type="checkbox" class="form-check-input" value="true" />
+                                <label class="form-check-label">Priority Support</label>
+                            </div>
+                            <div class="form-check mb-2">
+                                <input name="IsActive" type="checkbox" class="form-check-input" checked value="true" />
+                                <label class="form-check-label">Active</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Support Level</label>
+                            <select name="SupportLevel" class="form-select">
+                                <option value="Email" selected>Email</option>
+                                <option value="Chat">Chat</option>
+                                <option value="Phone">Phone</option>
+                                <option value="Dedicated">Dedicated</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Sort Order</label>
+                            <input name="SortOrder" type="number" class="form-control" value="1" />
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" form="createPlanForm" class="btn btn-success">Create Plan</button>
+            </div>
+        </div>
+    </div>
+</div>

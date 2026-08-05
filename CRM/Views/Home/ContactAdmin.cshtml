@@ -1,0 +1,221 @@
+@{
+    ViewData["Title"] = "Contact Administrator";
+    Layout = null;
+    var message = ViewBag.Message as string ?? "Your organization's subscription has expired or is inactive. Please contact your administrator to renew the subscription.";
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Subscription Required - Contact Administrator</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <style>
+        :root {
+            --gold: #D4A45A;
+            --gold-light: #FEF3C7;
+            --blue: #1A6FA8;
+            --blue-dark: #125082;
+            --body-bg: #F0F4F8;
+            --text-primary: #1A2332;
+            --text-muted: #6B7B8D;
+        }
+        html.dark-mode {
+            --body-bg: #111827;
+            --text-primary: #E8EDF2;
+            --text-muted: #8FA3B8;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--body-bg);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .ca-wrapper {
+            text-align: center;
+            padding: 40px 20px;
+            max-width: 560px;
+            width: 100%;
+        }
+        .ca-icon {
+            width: 100px;
+            height: 100px;
+            margin: 0 auto 28px;
+            background: linear-gradient(135deg, var(--gold-light), var(--gold));
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: float 3s infinite ease-in-out;
+        }
+        .ca-icon i {
+            font-size: 44px;
+            color: #991B1B;
+        }
+        @@keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-8px); }
+        }
+        .ca-title {
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+            color: var(--text-primary);
+        }
+        .ca-subtitle {
+            font-size: 0.95rem;
+            color: var(--text-muted);
+            line-height: 1.7;
+            margin-bottom: 28px;
+            padding: 0 10px;
+        }
+        .ca-card {
+            background: #FFFFFF;
+            border: 1px solid var(--gold-light);
+            border-radius: 16px;
+            padding: 28px 24px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+        }
+        html.dark-mode .ca-card {
+            background: #1E2A3A;
+            border-color: #2A3A4A;
+        }
+        .ca-card i {
+            color: var(--gold);
+            font-size: 1.3rem;
+            margin-bottom: 10px;
+        }
+        .ca-card h3 {
+            font-size: 1.05rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: var(--text-primary);
+        }
+        .ca-card p {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            line-height: 1.6;
+        }
+        .ca-contact-list {
+            list-style: none;
+            padding: 0;
+            margin: 16px 0 0;
+            text-align: left;
+        }
+        .ca-contact-list li {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 14px;
+            background: rgba(26,111,168,0.05);
+            border-radius: 10px;
+            margin-bottom: 8px;
+            font-size: 0.9rem;
+            color: var(--text-primary);
+        }
+        html.dark-mode .ca-contact-list li {
+            background: rgba(26,111,168,0.12);
+        }
+        .ca-contact-list li i {
+            width: 20px;
+            text-align: center;
+            color: var(--blue);
+            font-size: 1rem;
+            margin: 0;
+        }
+        .ca-status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 18px;
+            background: #FEF3C7;
+            color: #B45309;
+            border-radius: 20px;
+            font-size: 0.82rem;
+            font-weight: 600;
+            margin-bottom: 20px;
+        }
+        html.dark-mode .ca-status-badge {
+            background: rgba(212,164,90,0.15);
+            color: var(--gold-light);
+        }
+        .ca-logout-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 11px 24px;
+            background: transparent;
+            color: var(--text-muted);
+            border: 1.5px solid #B8C8D8;
+            border-radius: 10px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.2s;
+        }
+        .ca-logout-btn:hover {
+            border-color: var(--blue);
+            color: var(--blue);
+            transform: translateY(-1px);
+        }
+        .ca-footer {
+            margin-top: 28px;
+            font-size: 0.78rem;
+            color: var(--text-muted);
+        }
+    </style>
+</head>
+<body>
+    <div class="ca-wrapper">
+        <div class="ca-icon">
+            <i class="fa-solid fa-user-tie"></i>
+        </div>
+
+        <h1 class="ca-title">Subscription Required</h1>
+
+        <div class="ca-subtitle">
+            @message
+        </div>
+
+        <div class="ca-status-badge">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+            No Active Subscription
+        </div>
+
+        <div class="ca-card">
+            <i class="fa-solid fa-envelope"></i>
+            <h3>Contact Your Administrator</h3>
+            <p>Your organization needs an active subscription plan to access this platform. Please reach out to your company's administrator to upgrade or renew the subscription.</p>
+            <ul class="ca-contact-list">
+                <li>
+                    <i class="fa-solid fa-building"></i>
+                    <span>Ask your admin to visit <strong>Settings &gt; Subscription Plan</strong> to upgrade</span>
+                </li>
+                <li>
+                    <i class="fa-solid fa-envelope"></i>
+                    <span>Or send an email to your admin requesting plan renewal</span>
+                </li>
+                <li>
+                    <i class="fa-solid fa-headset"></i>
+                    <span>Contact support at <strong>support@@proptechit.com</strong> for assistance</span>
+                </li>
+            </ul>
+        </div>
+
+        <a href="/Account/Logout" class="ca-logout-btn">
+            <i class="fa-solid fa-right-from-bracket"></i> Sign Out
+        </a>
+
+        <div class="ca-footer">
+            &copy; @DateTime.UtcNow.Year PropTech CRM. All rights reserved.
+        </div>
+    </div>
+</body>
+</html>

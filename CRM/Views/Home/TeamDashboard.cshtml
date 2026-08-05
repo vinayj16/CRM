@@ -1,0 +1,298 @@
+@{
+    ViewData["Title"] = "Team Management Dashboard";
+}
+
+<style>
+    @@keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+    @@keyframes slideInLeft { from { opacity: 0; transform: translateX(-50px); } to { opacity: 1; transform: translateX(0); } }
+    @@keyframes bounce { 0%, 20%, 50%, 80%, 100% { transform: translateY(0); } 40% { transform: translateY(-10px); } 60% { transform: translateY(-5px); } }
+    @@keyframes progressFill { from { width: 0%; } to { width: var(--target-width); } }
+    
+    .dashboard-card {
+        background: white;
+        border-radius: 12px;
+        padding: 0.75rem 1rem;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        border: 1px solid rgba(0,0,0,0.05);
+        transition: all 0.3s;
+    }
+    .dashboard-card:hover { transform: translateY(-5px); box-shadow: 0 12px 40px rgba(0,0,0,0.15); }
+    .stat-card { min-height: 0; position: relative; }
+    .stat-number { font-size: 1.25rem; font-weight: 700; color: #1A6FA8; margin: 0; line-height: 1.1; }
+    .stat-label { color: #6B7B8D; font-size: 0.7rem; margin-top: 0.2rem; }
+    .stat-icon { font-size: 1.1rem; color: #1A6FA8; opacity: 0.8; position: absolute; right: 0.75rem; top: 0.75rem; }
+    .performance-card { min-height: 400px; }
+    .table-card { min-height: 320px; }
+    .table-responsive { max-height: 300px; overflow-y: auto; }
+    .table-responsive::-webkit-scrollbar { width: 4px; }
+    .table-responsive::-webkit-scrollbar-thumb { background: #6B7B8D; border-radius: 10px; }
+    .performance-bar { margin-bottom: 1.5rem; animation: slideInLeft 0.8s ease-out; }
+    .performance-bar-label { display: flex; justify-content: space-between; margin-bottom: 0.5rem; font-size: 0.9rem; }
+    .performance-bar-progress { height: 25px; border-radius: 8px; background: #E2E8F0; overflow: hidden; }
+    .performance-bar-fill { 
+        height: 100%; 
+        background: linear-gradient(90deg, #1A6FA8, #125082); 
+        display: flex; 
+        align-items: center; 
+        padding: 0 0.75rem; 
+        color: white; 
+        font-size: 0.85rem; 
+        font-weight: 600; 
+        animation: progressFill 2s ease-out;
+        width: 0%;
+    }
+    .dark-mode .dashboard-card { background: #1E2A3A !important; border-color: #2A3A4A !important; color: #E2E8F0 !important; }
+    .dark-mode .stat-label { color: #8FA3B8 !important; }
+    .dark-mode .stat-icon { color: #1A6FA8 !important; opacity: 0.8 !important; }
+    .dark-mode .performance-bar-progress { background: #2A3A4A !important; }
+    .animated-row { animation: slideInLeft 0.5s ease-out; }
+    .card-1 { animation-delay: 0.1s; }
+    .card-2 { animation-delay: 0.2s; }
+    .chart-1 { animation-delay: 0.3s; }
+    .chart-2 { animation-delay: 0.4s; }
+
+    @@media (max-width: 767px) {
+        .stat-card { min-height: 0; padding: 0.6rem 0.75rem; }
+        .stat-number { font-size: 1.1rem; }
+        .stat-icon { font-size: 1rem; top: 0.5rem; right: 0.5rem; }
+        .dashboard-card { padding: 0.7rem; }
+        .performance-card, .table-card { min-height: 0; }
+    }
+</style>
+
+<div class="content">
+    <!-- Hero Welcome Section -->
+    <div class="hero-welcome card mb-4 border-0 overflow-hidden" style="background:linear-gradient(135deg,#1A6FA8 0%,#D4A45A 100%);border-radius:16px;box-shadow:0 8px 32px rgba(26,111,168,0.15);">
+        <div class="card-body p-4">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="avatar-placeholder rounded-circle d-flex align-items-center justify-content-center" style="width:64px;height:64px;flex-shrink:0;background:rgba(255,255,255,0.25);">
+                            <i class="fa-solid fa-user text-white" style="font-size:1.8rem;"></i>
+                        </div>
+                        <div>
+                            <h2 class="text-white mb-1 fw-bold" style="font-size:1.8rem;">Welcome, @ViewBag.Username!</h2>
+                            <p class="text-white-50 mb-0"><i class="fa-solid fa-briefcase me-2"></i>@ViewBag.CompanyName</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4 text-md-end mt-3 mt-md-0">
+                    <div class="d-flex align-items-center justify-content-md-end gap-3">
+                        @if (!string.IsNullOrEmpty(ViewBag.CompanyLogo as string))
+                        {
+                            <div class="company-badge-hero d-flex align-items-center gap-2 rounded-3 px-3 py-2" style="background:rgba(255,255,255,0.15);">
+                                <img src="@ViewBag.CompanyLogo" style="height:36px;width:auto;max-width:100px;object-fit:contain;border-radius:4px;" alt="Logo" />
+                                <span class="text-white fw-semibold" style="font-size:0.95rem;">@ViewBag.CompanyName</span>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="company-badge-hero d-flex align-items-center gap-2 rounded-3 px-3 py-2" style="background:rgba(255,255,255,0.15);">
+                                <i class="fa-solid fa-building text-white" style="font-size:1.4rem;"></i>
+                                <span class="text-white fw-semibold" style="font-size:0.95rem;">@ViewBag.CompanyName</span>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <nav class="mb-3" aria-label="breadcrumb">
+        <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item"><a href="/home">Home</a></li>
+            <li class="breadcrumb-item active">Team Management</li>
+        </ol>
+    </nav>
+
+    <h1 class="h3 mb-3"><i class="fa-solid fa-users-gear me-2"></i>Team Management Dashboard</h1>
+
+    <!-- Stats Cards -->
+    <div class="row g-2 mb-3">
+        <div class="col-md-4">
+            <div class="dashboard-card stat-card card-1">
+                <i class="fa-solid fa-users stat-icon"></i>
+                <h2 class="stat-number" id="totalTeamMembers">0</h2>
+                <p class="stat-label">Total Team Members</p>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="dashboard-card stat-card card-2">
+                <i class="fa-solid fa-user-plus stat-icon"></i>
+                <h2 class="stat-number" id="newTeamMembers">0</h2>
+                <p class="stat-label">New Members (Last 7 Days)</p>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="dashboard-card stat-card card-3">
+                <i class="fa-solid fa-handshake stat-icon"></i>
+                <h2 class="stat-number" id="totalChannelPartners">0</h2>
+                <p class="stat-label">Total Channel Partners</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3">
+        <!-- Team Performance -->
+        <div class="col-lg-8">
+            <div class="dashboard-card performance-card chart-1">
+                <h5 class="mb-3"><i class="fa-solid fa-chart-bar me-2"></i>Team Performance</h5>
+                <div id="teamPerformanceContainer"></div>
+            </div>
+        </div>
+
+        <!-- Top Performers -->
+        <div class="col-lg-4">
+            <div class="dashboard-card table-card chart-2">
+                <h5 class="mb-3"><i class="fa-solid fa-trophy me-2"></i>Top Performers</h5>
+                <div class="table-responsive">
+                    <table class="table table-sm" id="topPerformersTable">
+                        <thead>
+                            <tr>
+                                <th>Rank</th>
+                                <th>Name</th>
+                                <th>Sales</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            loadTeamDashboardData();
+        });
+
+        function loadTeamDashboardData() {
+            fetch('/Home/GetTeamDashboardData')
+                .then(response => response.json())
+                .then(data => {
+                    updateStats(data);
+                    renderTeamPerformance(data.teamPerformance);
+                    renderTopPerformers(data.topPerformers);
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    // Fallback with sample data
+                    const sampleData = {
+                        totalTeamMembers: 15,
+                        newTeamMembers: 3,
+                        totalChannelPartners: 7,
+                        teamPerformance: [
+                            {username: 'John Doe', bookingsCount: 25, leadsCount: 45},
+                            {username: 'Jane Smith', bookingsCount: 22, leadsCount: 38},
+                            {username: 'Mike Johnson', bookingsCount: 18, leadsCount: 32}
+                        ],
+                        topPerformers: [
+                            {username: 'John Doe', bookingsCount: 25},
+                            {username: 'Jane Smith', bookingsCount: 22},
+                            {username: 'Mike Johnson', bookingsCount: 18}
+                        ]
+                    };
+                    updateStats(sampleData);
+                    renderTeamPerformance(sampleData.teamPerformance);
+                    renderTopPerformers(sampleData.topPerformers);
+                });
+        }
+
+        function updateStats(data) {
+            animateNumber('totalTeamMembers', data.totalTeamMembers);
+            animateNumber('newTeamMembers', data.newTeamMembers);
+            animateNumber('totalChannelPartners', data.totalChannelPartners || 0);
+        }
+
+        function animateNumber(elementId, targetValue, prefix = '') {
+            const element = document.getElementById(elementId);
+            const duration = 2000;
+            const startTime = performance.now();
+            const startValue = 0;
+
+            function updateNumber(currentTime) {
+                const elapsed = currentTime - startTime;
+                const progress = Math.min(elapsed / duration, 1);
+                const easeOutQuart = 1 - Math.pow(1 - progress, 4);
+                const currentValue = Math.floor(startValue + (targetValue - startValue) * easeOutQuart);
+                
+                element.textContent = prefix + currentValue;
+                
+                if (progress < 1) {
+                    requestAnimationFrame(updateNumber);
+                }
+            }
+            
+            requestAnimationFrame(updateNumber);
+        }
+
+        function renderTeamPerformance(data) {
+            const container = document.getElementById('teamPerformanceContainer');
+            if (data.length === 0) {
+                container.innerHTML = '<p class="text-muted text-center">No team members found</p>';
+                return;
+            }
+
+            const maxBookings = Math.max(...data.map(d => d.bookingsCount), 1);
+            
+            container.innerHTML = '';
+            
+            data.forEach((member, index) => {
+                const percentage = (member.bookingsCount / maxBookings * 100).toFixed(0);
+                
+                setTimeout(() => {
+                    const performanceBar = document.createElement('div');
+                    performanceBar.className = 'performance-bar';
+                    performanceBar.style.animationDelay = `${index * 0.2}s`;
+                    performanceBar.innerHTML = `
+                        <div class="performance-bar-label">
+                            <span><strong>${member.username}</strong></span>
+                            <span>${member.bookingsCount} Sales | ${member.leadsCount} Leads</span>
+                        </div>
+                        <div class="performance-bar-progress">
+                            <div class="performance-bar-fill" style="--target-width: ${percentage}%">
+                                ${percentage}%
+                            </div>
+                        </div>
+                    `;
+                    container.appendChild(performanceBar);
+                    
+                    // Animate the progress bar fill
+                    setTimeout(() => {
+                        const fillElement = performanceBar.querySelector('.performance-bar-fill');
+                        fillElement.style.width = percentage + '%';
+                    }, 100);
+                }, index * 300);
+            });
+        }
+
+        function renderTopPerformers(data) {
+            const tbody = document.querySelector('#topPerformersTable tbody');
+            tbody.innerHTML = '';
+            
+            if (data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="3" class="text-center text-muted">No data available</td></tr>';
+                return;
+            }
+
+            const medals = ['<i class="fa-solid fa-trophy" style="color:#F59E0B"></i>', '<i class="fa-solid fa-medal" style="color:#B8C8D8"></i>', '<i class="fa-solid fa-medal" style="color:#B8883E"></i>', '4th', '5th'];
+            
+            data.forEach((performer, index) => {
+                setTimeout(() => {
+                    const row = document.createElement('tr');
+                    row.className = 'animated-row';
+                    row.innerHTML = `
+                        <td><span style="font-size: 1.2rem;">${medals[index] || (index + 1)}</span></td>
+                        <td><strong>${performer.username}</strong></td>
+                        <td><span class="badge bg-success">${performer.bookingsCount}</span></td>
+                    `;
+                    tbody.appendChild(row);
+                }, index * 200);
+            });
+        }
+    </script>
+}
+
+

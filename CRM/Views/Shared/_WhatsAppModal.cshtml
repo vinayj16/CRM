@@ -1,0 +1,347 @@
+<!-- WhatsApp Send Message Modal -->
+<div class="modal fade" id="whatsappModal" tabindex="-1" aria-labelledby="whatsappModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title" id="whatsappModalLabel">
+                    <i class="fab fa-whatsapp me-2"></i>Send WhatsApp Message
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="whatsappAlertContainer"></div>
+                
+                <form id="whatsappForm">
+                    <input type="hidden" id="whatsappLeadId" />
+                    <input type="hidden" id="whatsappMessageType" value="custom" />
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">To:</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fas fa-phone"></i></span>
+                            <input type="text" class="form-control" id="whatsappPhoneNumber" readonly>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="whatsappMessage" class="form-label fw-bold">Message:</label>
+                        <textarea class="form-control" id="whatsappMessage" rows="6" placeholder="Type your message here..."></textarea>
+                        <small class="text-muted">Tip: Use *bold*, _italic_, ~strikethrough~</small>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Quick Templates:</label>
+                        <div class="d-grid gap-2">
+                            <button type="button" class="btn btn-outline-primary btn-sm" onclick="loadTemplate('followup')">
+                                <i class="fas fa-calendar-check"></i> Follow-up Reminder
+                            </button>
+                            <button type="button" class="btn btn-outline-primary btn-sm" onclick="loadTemplate('sitevisit')">
+                                <i class="fas fa-map-marker-alt"></i> Site Visit Invitation
+                            </button>
+                            <button type="button" class="btn btn-outline-primary btn-sm" onclick="loadTemplate('thankyou')">
+                                <i class="fas fa-heart"></i> Thank You Message
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times"></i> Cancel
+                </button>
+                <button type="button" class="btn btn-success" onclick="sendWhatsAppMessage(this)">
+                    <i class="fab fa-whatsapp"></i> Send Message
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- WhatsApp History Modal -->
+<div class="modal fade" id="whatsappHistoryModal" tabindex="-1" aria-labelledby="whatsappHistoryModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title" id="whatsappHistoryModalLabel">
+                    <i class="fab fa-whatsapp me-2"></i>WhatsApp History
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="whatsappHistoryContent">
+                    <div class="text-center">
+                        <div class="spinner-border text-success" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let currentLeadData = {};
+
+    // Open WhatsApp modal with lead details
+    function openWhatsAppModal(leadId, leadName, phoneNumber, messageType = 'custom', prefilledMessage = '') {
+        // Check feature access first
+        if (window.FeatureGate) {
+            FeatureGate.requireFeature('whatsapp', 'WhatsApp Integration').then(function(hasAccess) {
+                if (!hasAccess) return;
+                showWhatsAppModal(leadId, leadName, phoneNumber, messageType, prefilledMessage);
+            });
+        } else {
+            showWhatsAppModal(leadId, leadName, phoneNumber, messageType, prefilledMessage);
+        }
+    }
+
+    function showWhatsAppModal(leadId, leadName, phoneNumber, messageType, prefilledMessage) {
+        currentLeadData = { leadId, leadName, phoneNumber };
+        
+        $('#whatsappLeadId').val(leadId);
+        $('#whatsappPhoneNumber').val(phoneNumber + ' (' + leadName + ')');
+        $('#whatsappMessageType').val(messageType);
+        $('#whatsappMessage').val(prefilledMessage);
+        $('#whatsappAlertContainer').html('');
+        
+        $('#whatsappModal').modal('show');
+    }
+
+    // Send WhatsApp message
+    function sendWhatsAppMessage(btn) {
+        // Check feature access first
+        if (window.FeatureGate) {
+            FeatureGate.requireFeature('whatsapp', 'WhatsApp Integration').then(function(hasAccess) {
+                if (!hasAccess) return;
+                doSendWhatsAppMessage(btn);
+            });
+        } else {
+            doSendWhatsAppMessage(btn);
+        }
+    }
+
+    function doSendWhatsAppMessage(btn) {
+        const leadId = $('#whatsappLeadId').val();
+        const message = $('#whatsappMessage').val();
+        const messageType = $('#whatsappMessageType').val();
+
+        if (!message.trim()) {
+            showWhatsAppAlert('Please enter a message', 'warning');
+            return;
+        }
+
+        // Disable send button
+        var sendBtn = btn || event.target;
+        sendBtn.disabled = true;
+        sendBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
+
+        $.ajax({
+            url: '/WhatsApp/SendMessage',
+            type: 'POST',
+            data: {
+                leadId: leadId,
+                message: message,
+                messageType: messageType
+            },
+            success: function(response) {
+                if (response.success) {
+                    showWhatsAppAlert(response.message, 'success');
+                    setTimeout(function() {
+                        $('#whatsappModal').modal('hide');
+                    }, 1500);
+                } else {
+                    showWhatsAppAlert(response.message, 'danger');
+                }
+            },
+            error: function(xhr, status, error) {
+                showWhatsAppAlert('Error sending message: ' + error, 'danger');
+            },
+            complete: function() {
+                sendBtn.disabled = false;
+                sendBtn.innerHTML = '<i class="fab fa-whatsapp"></i> Send Message';
+            }
+        });
+    }
+
+    // Load message templates
+    function loadTemplate(templateType) {
+        const leadName = currentLeadData.leadName || 'Customer';
+        let template = '';
+
+        switch(templateType) {
+            case 'followup':
+                template = `Hello ${leadName},\n\n` +
+                    `Hope you're doing well!\n\n` +
+                    `Just following up on your property inquiry. Our team is here to help you find your dream home.\n\n` +
+                    `Would you like to schedule a site visit or discuss any specific requirements?\n\n` +
+                    `Best Regards,\nProperty Team`;
+                break;
+
+            case 'sitevisit':
+                template = `Dear ${leadName},\n\n` +
+                    `We would love to show you our properties!\n\n` +
+                    `Are you available this weekend for a site visit? We have some excellent options matching your requirements.\n\n` +
+                    `Please let us know your preferred date and time.\n\n` +
+                    `Best Regards,\nProperty Team`;
+                break;
+
+            case 'thankyou':
+                template = `Dear ${leadName},\n\n` +
+                    `Thank you for choosing us!\n\n` +
+                    `We are excited to help you find your perfect property. Your satisfaction is our priority.\n\n` +
+                    `Feel free to reach out anytime with questions or concerns.\n\n` +
+                    `Warm Regards,\nProperty Team`;
+                break;
+        }
+
+        $('#whatsappMessage').val(template);
+    }
+
+    // Show alert in modal
+    function showWhatsAppAlert(message, type) {
+        const alert = `<div class="alert alert-${type} alert-dismissible fade show" role="alert">
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>`;
+        $('#whatsappAlertContainer').html(alert);
+    }
+
+    // Open WhatsApp history
+    function openWhatsAppHistory(leadId) {
+        $('#whatsappHistoryModal').modal('show');
+        
+        $.ajax({
+            url: '/WhatsApp/GetWhatsAppHistory',
+            type: 'GET',
+            data: { leadId: leadId },
+            success: function(logs) {
+                let html = '';
+                if (logs.length === 0) {
+                    html = '<div class="alert alert-info">No WhatsApp messages sent yet</div>';
+                } else {
+                    logs.forEach(function(log) {
+                        const statusClass = log.Status === 'Sent' ? 'success' : log.Status === 'Failed' ? 'danger' : 'secondary';
+                        html += `<div class="card mb-2">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between">
+                                    <span class="badge bg-${statusClass}">${log.Status}</span>
+                                    <small class="text-muted">${log.SentOn}</small>
+                                </div>
+                                <p class="mt-2 mb-0">${log.Message}</p>
+                            </div>
+                        </div>`;
+                    });
+                }
+                $('#whatsappHistoryContent').html(html);
+            },
+            error: function() {
+                $('#whatsappHistoryContent').html('<div class="alert alert-danger">Error loading history</div>');
+            }
+        });
+    }
+
+    // Quick send functions for different actions
+    function sendQuotationWhatsApp(quotationId) {
+        checkWhatsAppAccess(function() {
+            if (confirm('Send WhatsApp notification about this quotation?')) {
+                $.post('/WhatsApp/SendQuotationMessage', { quotationId: quotationId }, function(response) {
+                    if (response.success) {
+                        toastr.success(response.message);
+                    } else {
+                        toastr.error(response.message);
+                    }
+                });
+            }
+        });
+    }
+
+    function sendInvoiceWhatsApp(invoiceId) {
+        checkWhatsAppAccess(function() {
+            if (confirm('Send WhatsApp notification about this invoice?')) {
+                $.post('/WhatsApp/SendInvoiceMessage', { invoiceId: invoiceId }, function(response) {
+                    if (response.success) {
+                        toastr.success(response.message);
+                    } else {
+                        toastr.error(response.message);
+                    }
+                });
+            }
+        });
+    }
+
+    function sendSiteVisitWhatsApp(leadId, visitDate) {
+        checkWhatsAppAccess(function() {
+            if (confirm('Send WhatsApp notification about site visit?')) {
+                $.post('/WhatsApp/SendSiteVisitMessage', { leadId: leadId, visitDate: visitDate }, function(response) {
+                    if (response.success) {
+                        toastr.success(response.message);
+                    } else {
+                        toastr.error(response.message);
+                    }
+                });
+            }
+        });
+    }
+
+    function sendBookingWhatsApp(leadId, propertyName) {
+        checkWhatsAppAccess(function() {
+            if (confirm('Send WhatsApp booking confirmation?')) {
+                $.post('/WhatsApp/SendBookingMessage', { leadId: leadId, propertyName: propertyName }, function(response) {
+                    if (response.success) {
+                        toastr.success(response.message);
+                    } else {
+                        toastr.error(response.message);
+                    }
+                });
+            }
+        });
+    }
+
+    // Helper: check WhatsApp feature access, execute callback if allowed
+    function checkWhatsAppAccess(callback) {
+        if (window.FeatureGate) {
+            FeatureGate.requireFeature('whatsapp', 'WhatsApp Integration').then(function(hasAccess) {
+                if (hasAccess && callback) callback();
+            });
+        } else if (callback) {
+            callback();
+        }
+    }
+</script>
+
+<style>
+    .whatsapp-icon-btn {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        z-index: 10;
+        background: #16A34A;
+        color: white;
+        border: none;
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        transition: all 0.3s;
+    }
+
+    .whatsapp-icon-btn:hover {
+        background: #1A6FA8;
+        transform: scale(1.1);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+    }
+
+    .whatsapp-icon-btn i {
+        font-size: 20px;
+    }
+</style>
+
+
+

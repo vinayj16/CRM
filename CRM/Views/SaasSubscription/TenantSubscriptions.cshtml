@@ -1,0 +1,429 @@
+@model List<CRM.MasterDb.Models.TenantSubscriptionModel>
+
+@{
+	ViewData["Title"] = "Tenant Subscriptions Management";
+}
+
+<div class="container-fluid py-4">
+	<div class="page-hd"><i class="fa-solid fa-server"></i><h4>Tenant Subscriptions</h4></div>
+	<div class="row">
+		<div class="col-12">
+			<div class="card mb-4">
+				<div class="card-header pb-0">
+					<div class="d-flex justify-content-between align-items-center">
+						<h6 class="mb-0">Tenant Subscriptions</h6>
+						<span class="badge bg-info">Total: @ViewBag.TotalCount</span>
+					</div>
+				</div>
+				<div class="card-body px-0 pt-0 pb-2">
+					<div class="px-4 py-3 border-bottom">
+						<form method="get" id="filterForm" class="row g-3">
+							<div class="col-md-4">
+								<label class="form-label">Search</label>
+								<input type="text" name="search" class="form-control" placeholder="Company name, email, plan..." value="@ViewBag.Search">
+							</div>
+							<div class="col-md-3">
+								<label class="form-label">Status</label>
+								<select name="status" class="form-select">
+									<option value="">All Statuses</option>
+									<option value="Active" selected="@(ViewBag.Status == "Active")">Active</option>
+									<option value="Scheduled" selected="@(ViewBag.Status == "Scheduled")">Scheduled</option>
+									<option value="Expired" selected="@(ViewBag.Status == "Expired")">Expired</option>
+									<option value="Cancelled" selected="@(ViewBag.Status == "Cancelled")">Cancelled</option>
+								</select>
+							</div>
+							<div class="col-md-5">
+								<button type="submit" class="btn btn-primary">
+									<i class="fas fa-filter"></i> Filter
+								</button>
+								<a href="@Url.Action("TenantSubscriptions")" class="btn btn-secondary">
+									<i class="fas fa-redo"></i> Reset
+								</a>
+							</div>
+						</form>
+					</div>
+
+					<div class="table-responsive p-0">
+						@if (Model != null && Model.Any())
+						{
+							<table class="table align-items-center mb-0">
+								<thead>
+									<tr>
+										<th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Partner</th>
+										<th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 ps-2">Current Plan</th>
+										<th class="text-center text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Amount</th>
+										<th class="text-center text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Billing</th>
+										<th class="text-center text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Period</th>
+										<th class="text-center text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Status</th>
+										<th class="text-center text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Actions</th>
+									</tr>
+								</thead>
+								<tbody>
+									@foreach (var subscription in Model)
+									{
+										<tr>
+											<td>
+												<div class="d-flex px-2 py-1">
+													<div class="d-flex flex-column justify-content-center">
+														<h6 class="mb-0 text-sm">@subscription.Tenant?.CompanyName</h6>
+														<p class="text-xs text-secondary mb-0">@subscription.Tenant?.CompanyName</p>
+													</div>
+												</div>
+											</td>
+											<td>
+												<p class="text-xs font-weight-bold mb-0">@subscription.Plan?.PlanName</p>
+												<p class="text-xs text-secondary mb-0">@subscription.PaymentMethod</p>
+											</td>
+											<td class="align-middle text-center">
+												<span class="text-secondary text-xs font-weight-bold">@subscription.Amount.ToString("N0")</span>
+											</td>
+											<td class="align-middle text-center">
+												<span class="badge badge-sm bg-gradient-info">@subscription.BillingCycle</span>
+											</td>
+											<td class="align-middle text-center">
+												<p class="text-xs mb-0">@subscription.StartDate.ToString("MMM dd, yyyy")</p>
+												<p class="text-xs mb-0">to</p>
+												<p class="text-xs mb-0">@subscription.EndDate.ToString("MMM dd, yyyy")</p>
+											</td>
+											<td class="align-middle text-center text-sm">
+												@switch (subscription.Status)
+												{
+													case "Active":
+														<span class="badge badge-sm bg-gradient-success">Active</span>
+														break;
+													case "Scheduled":
+														<span class="badge badge-sm bg-gradient-info">Scheduled</span>
+														break;
+													case "Expired":
+														<span class="badge badge-sm bg-gradient-secondary">Expired</span>
+														break;
+													case "Cancelled":
+														<span class="badge badge-sm bg-gradient-warning">Cancelled</span>
+														break;
+													default:
+														<span class="badge badge-sm bg-gradient-dark">@subscription.Status</span>
+														break;
+												}
+											</td>
+											<td class="align-middle text-center">
+												<button type="button" class="btn btn-link text-sm btn-primary mb-0" onclick="openChangePlanModal(@subscription.TenantId)">
+													<i class="fas fa-exchange-alt"></i> Change Plan
+												</button>
+											</td>
+										</tr>
+									}
+								</tbody>
+							</table>
+						}
+						else
+						{
+							<div class="text-center py-5">
+								<i class="fas fa-inbox fa-3x text-secondary mb-3"></i>
+								<p class="text-secondary">No subscriptions found</p>
+							</div>
+						}
+					</div>
+					@if (ViewBag.TotalPages > 1)
+					{
+						<div class="px-4 py-3 border-top">
+							<nav aria-label="Page navigation">
+								<ul class="pagination justify-content-center mb-0">
+									@if (ViewBag.CurrentPage > 1)
+									{
+										<li class="page-item">
+											<a class="page-link" href="?page=@(ViewBag.CurrentPage - 1)&search=@ViewBag.Search&status=@ViewBag.Status">
+												<i class="fas fa-chevron-left"></i>
+											</a>
+										</li>
+									}
+
+									@for (int i = 1; i <= ViewBag.TotalPages; i++)
+									{
+										<li class="page-item @(i == ViewBag.CurrentPage ? "active" : "")">
+											<a class="page-link" href="?page=@i&search=@ViewBag.Search&status=@ViewBag.Status">@i</a>
+										</li>
+									}
+
+									@if (ViewBag.CurrentPage < ViewBag.TotalPages)
+									{
+										<li class="page-item">
+											<a class="page-link" href="?page=@(ViewBag.CurrentPage + 1)&search=@ViewBag.Search&status=@ViewBag.Status">
+												<i class="fas fa-chevron-right"></i>
+											</a>
+										</li>
+									}
+								</ul>
+							</nav>
+						</div>
+					}
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+
+<div class="modal fade" id="changePlanModal" tabindex="-1" aria-hidden="true">
+	<div class="modal-dialog modal-lg">
+		<div class="modal-content">
+			<div class="modal-header">
+				<h5 class="modal-title">Change Partner Plan</h5>
+				<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+			</div>
+			<div class="modal-body">
+				<div class="alert alert-info" id="partnerInfo">
+					<strong id="partnerName"></strong><br>
+					<small id="partnerEmail"></small>
+				</div>
+
+				<div class="card mb-3" id="currentSubscriptionCard" style="display: none;">
+					<div class="card-header pb-0">
+						<h6 class="mb-0">Current Active Subscription</h6>
+					</div>
+					<div class="card-body">
+						<div class="row">
+							<div class="col-md-6">
+								<p class="text-sm mb-1"><strong>Plan:</strong> <span id="currentPlanName"></span></p>
+								<p class="text-sm mb-1"><strong>Amount:</strong> <span id="currentAmount"></span></p>
+							</div>
+							<div class="col-md-6">
+								<p class="text-sm mb-1"><strong>Billing:</strong> <span id="currentBilling"></span></p>
+								<p class="text-sm mb-1"><strong>Period:</strong> <span id="currentPeriod"></span></p>
+							</div>
+						</div>
+					</div>
+				</div>
+
+				<div class="alert alert-warning" id="scheduledAlert" style="display: none;">
+					<i class="fas fa-exclamation-triangle"></i>
+					<strong>Note:</strong> Partner has a scheduled subscription (<span id="scheduledPlanName"></span>) that will be cancelled.
+				</div>
+
+				<form id="changePlanForm">
+					<input type="hidden" id="modalTenantId" name="tenantId">
+
+					<div class="mb-3">
+						<label class="form-label">Select New Plan <span class="text-danger">*</span></label>
+						<select class="form-select" id="newPlanId" name="newPlanId" required>
+							<option value="">-- Select Plan --</option>
+						</select>
+					</div>
+
+					<div class="mb-3">
+						<label class="form-label">Billing Cycle <span class="text-danger">*</span></label>
+						<select class="form-select" id="billingCycle" name="billingCycle" required>
+							<option value="Monthly">Monthly</option>
+							<option value="Annual">Annual</option>
+						</select>
+					</div>
+
+					<div class="mb-3">
+						<label class="form-label">Reason for Change <span class="text-danger">*</span></label>
+						<textarea class="form-control" id="reason" name="reason" rows="3" placeholder="Enter reason for plan change..." required></textarea>
+					</div>
+
+					<div class="alert alert-warning">
+						<i class="fas fa-info-circle"></i>
+						<strong>Important:</strong> This will immediately activate the new plan and expire/cancel any existing subscriptions. No payment will be processed.
+					</div>
+				</form>
+			</div>
+			<div class="modal-footer">
+				<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+				<button type="button" class="btn btn-primary" onclick="submitChangePlan()">
+					<i class="fas fa-check"></i> Change Plan
+				</button>
+			</div>
+		</div>
+	</div>
+</div>
+</div>
+
+@section Scripts {
+	<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+	<script>
+		let changePlanModal;
+
+		document.addEventListener('DOMContentLoaded', function() {
+			changePlanModal = new bootstrap.Modal(document.getElementById('changePlanModal'));
+			loadPlans();
+		});
+
+		async function loadPlans() {
+			try {
+				const response = await fetch('/saassubscription/GetPlans');
+				const plans = await response.json();
+
+				const select = document.getElementById('newPlanId');
+				select.innerHTML = '<option value="">-- Select Plan --</option>';
+
+				plans.forEach(plan => {
+					const option = document.createElement('option');
+					option.value = plan.planId;
+					option.textContent = `${plan.planName} ($${plan.monthlyPrice}/mo, $${plan.yearlyPrice}/yr)`;
+					option.dataset.monthlyPrice = plan.monthlyPrice;
+					option.dataset.yearlyPrice = plan.yearlyPrice;
+					select.appendChild(option);
+				});
+			} catch (error) {
+				console.error('Error loading plans:', error);
+			}
+		}
+
+		async function openChangePlanModal(tenantId) {
+			 try {
+				 // Reset form
+				 document.getElementById('changePlanForm').reset();
+				 document.getElementById('modalTenantId').value = tenantId;
+
+				 // Load partner subscription data
+				 const response = await fetch(`/saassubscription/GetPartnerSubscription?tenantId=${tenantId}`);
+				 const data = await response.json();
+
+				 if (!data.success) {
+					 Swal.fire('Error', 'Failed to load partner data', 'error');
+					 return;
+				 }
+
+				 // Set partner info
+				 document.getElementById('partnerName').textContent = data.partner.companyName;
+				 document.getElementById('partnerEmail').textContent = data.partner.email;
+
+				 // Show current subscription if exists
+				if (data.currentSubscription) {
+					document.getElementById('currentSubscriptionCard').style.display = 'block';
+					document.getElementById('currentPlanName').textContent = data.currentSubscription.planName;
+					document.getElementById('currentAmount').textContent = data.currentSubscription.amount.toLocaleString();
+					document.getElementById('currentBilling').textContent = data.currentSubscription.billingCycle;
+					document.getElementById('currentPeriod').textContent =
+						`${data.currentSubscription.startDate} to ${data.currentSubscription.endDate}`;
+				} else {
+					document.getElementById('currentSubscriptionCard').style.display = 'none';
+				}
+
+				// Show scheduled subscription alert if exists
+				if (data.scheduledSubscription) {
+					document.getElementById('scheduledAlert').style.display = 'block';
+					document.getElementById('scheduledPlanName').textContent = data.scheduledSubscription.planName;
+				} else {
+					document.getElementById('scheduledAlert').style.display = 'none';
+				}
+
+				changePlanModal.show();
+			} catch (error) {
+				console.error('Error opening modal:', error);
+				Swal.fire('Error', 'Failed to open change plan dialog', 'error');
+			}
+		}
+
+		async function submitChangePlan() {
+			const form = document.getElementById('changePlanForm');
+
+			if (!form.checkValidity()) {
+				form.reportValidity();
+				return;
+			}
+
+			const tenantId = document.getElementById('modalTenantId').value;
+			const newPlanId = document.getElementById('newPlanId').value;
+			const billingCycle = document.getElementById('billingCycle').value;
+			const reason = document.getElementById('reason').value;
+		const partnerName = document.getElementById('partnerName').textContent;
+
+					// Confirm action
+					const result = await Swal.fire({
+						title: 'Confirm Plan Change',
+						html: `Are you sure you want to change the plan for <strong>${partnerName}</strong>?<br><br>This action will:<br>` +
+							  `• Immediately activate the new plan<br>` +
+							  `• Expire current active subscription<br>` +
+							  `• Cancel any scheduled subscriptions<br>` +
+							  `• No payment will be processed`,
+						icon: 'warning',
+						showCancelButton: true,
+						confirmButtonText: 'Yes, Change Plan',
+						cancelButtonText: 'Cancel'
+					});
+
+					if (!result.isConfirmed) return;
+
+					try {
+						const response = await fetch('/saassubscription/AdminChangePlan', {
+							method: 'POST',
+							headers: {
+								'Content-Type': 'application/json',
+							},
+							body: JSON.stringify({
+								tenantId: parseInt(tenantId),
+								newPlanId: parseInt(newPlanId),
+								billingCycle: billingCycle,
+								reason: reason
+							})
+						});
+
+						const data = await response.json();
+
+						if (data.success) {
+							Swal.fire({
+								title: 'Success!',
+								text: data.message,
+								icon: 'success'
+							}).then(() => {
+								changePlanModal.hide();
+								window.location.reload();
+							});
+					   } else {
+					Swal.fire('Error', data.message, 'error');
+				}
+			} catch (error) {
+				console.error('Error changing plan:', error);
+				Swal.fire('Error', 'Failed to change plan. Please try again.', 'error');
+			}
+		}
+	</script>
+}
+
+<style>
+	table th {
+		font-size: 0.65rem;
+		padding: 0.75rem 0.5rem;
+	}
+
+	table td {
+		padding: 0.75rem 0.5rem;
+		font-size: 0.875rem;
+	}
+
+	.badge {
+		padding: 0.35em 0.65em;
+	}
+
+	.modal-body .card {
+		border: 1px solid rgba(0,0,0,0.125);
+	}
+
+	.form-label {
+		font-weight: 600;
+		margin-bottom: 0.5rem;
+	}
+
+	/* Dark mode support */
+	[data-bs-theme="dark"] .card {
+		background-color: #111827;
+		border-color: #1E2A3A;
+	}
+
+	[data-bs-theme="dark"] .modal-content {
+		background-color: #111827;
+		border-color: #1E2A3A;
+	}
+
+	[data-bs-theme="dark"] .table {
+		color: #FFFFFF;
+	}
+
+	[data-bs-theme="dark"] .form-control,
+	[data-bs-theme="dark"] .form-select {
+		background-color: #1E2A3A;
+		border-color: #2A3A4A;
+		color: #FFFFFF;
+	}
+</style>

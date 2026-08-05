@@ -1,0 +1,309 @@
+@model List<CRM.MasterDb.Models.SaasPaymentTransactionModel>
+@{
+    ViewData["Title"] = "Pending Refunds";
+    var totalRefundAmount = ViewBag.TotalRefundAmount as decimal? ?? 0;
+}
+
+<div class="content">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-1"><i class="fa-solid fa-money-bill-transfer me-2"></i>Pending Refunds</h2>
+            <p class="text-muted">Cancelled subscriptions requiring refund processing</p>
+        </div>
+        <div class="text-end">
+            <div class="badge bg-danger" style="font-size: 1.2rem; padding: 0.5rem 1rem;">
+                Total: ₹@totalRefundAmount.ToString("N0")
+            </div>
+        </div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-12">
+                    <label class="form-label">Search Partner</label>
+                    <input type="text" class="form-control" name="search" value="@ViewBag.Search" placeholder="Company name or contact person">
+                </div>
+                <div class="col-12">
+                    <div class="mobile-button-row">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fa-solid fa-search me-2"></i>Search
+                        </button>
+                        <a href="/saassubscription/PendingRefunds" class="btn btn-secondary">
+                            <i class="fa-solid fa-redo me-2"></i>Reset
+                        </a>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+@if (Model != null && Model.Any())
+{
+        <div class="card">
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Partner</th>
+                                <th>Plan</th>
+                                <th>Billing</th>
+                                <th>Amount</th>
+                                <th>Cancelled On</th>
+                                <th>Payment Date</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var transaction in Model)
+                            {
+                                <tr>
+                                    <td>
+                                        <strong>@transaction.Tenant?.CompanyName</strong><br>
+                                        <small class="text-muted">@transaction.Tenant?.CompanyName</small><br>
+                                        <small class="text-muted">@transaction.Tenant?.CompanyName</small>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-primary">@transaction.PlanName</span>
+                                    </td>
+                                    <td>@transaction.BillingCycle</td>
+                                    <td>
+                                        <strong class="text-danger">₹@transaction.Amount.ToString("N0")</strong>
+                                    </td>
+                                    <td>
+                                        @transaction.TransactionDate.ToString("MMM dd, yyyy")<br>
+                                        <small class="text-muted">@transaction.TransactionDate.ToString("hh:mm tt")</small>
+                                    </td>
+                                    <td>
+                                        @if (transaction.CompletedDate.HasValue)
+                                        {
+                                            @transaction.CompletedDate?.ToString("MMM dd, yyyy")
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">N/A</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        @if (ViewBag.IsAdmin == true)
+                                        {
+                                            <button class="btn btn-success btn-sm"
+                                                    onclick="markRefundProcessed(@transaction.TransactionId, '@transaction.Tenant?.CompanyName', @transaction.Amount)">
+                                                <i class="fa-solid fa-check me-1"></i>Mark Processed
+                                            </button>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-warning">Pending Admin Review</span>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        @if (ViewBag.TotalPages > 1)
+        {
+            <nav class="mt-4">
+                <ul class="pagination justify-content-center">
+                    @for (int i = 1; i <= ViewBag.TotalPages; i++)
+                    {
+                        <li class="page-item @(i == ViewBag.CurrentPage ? "active" : "")">
+                            <a class="page-link" href="?page=@i&search=@ViewBag.Search">@i</a>
+                        </li>
+                    }
+                </ul>
+            </nav>
+        }
+    }
+   </div>
+    }
+    else
+    {
+        <div class="alert alert-success">
+            <i class="fa-solid fa-check-circle me-2"></i>
+            <strong>All caught up!</strong> No pending refunds at the moment.
+        </div>
+    }
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        /* Mobile responsive styles */
+        @@media (max-width: 768px) {
+            .mobile-button-row {
+                display: flex !important;
+                gap: 0.5rem;
+                width: 100%;
+            }
+
+            .mobile-button-row .btn {
+                flex: 1;
+                font-size: 0.9rem;
+            }
+        }
+
+        /* Dark mode support for SweetAlert modals */
+        [data-bs-theme="dark"] .swal2-popup,
+        .dark-mode .swal2-popup {
+            background: var(--bs-dark) !important;
+            color: #FFFFFF !important;
+        }
+
+        [data-bs-theme="dark"] .swal2-title,
+        .dark-mode .swal2-title {
+            color: #FFFFFF !important;
+        }
+
+        [data-bs-theme="dark"] .swal2-confirm,
+        [data-bs-theme="dark"] .swal2-cancel,
+        .dark-mode .swal2-confirm,
+        .dark-mode .swal2-cancel {
+            color: #FFFFFF !important;
+        }
+
+        [data-bs-theme="dark"] .swal2-actions .swal2-confirm,
+        [data-bs-theme="dark"] .swal2-actions .swal2-cancel,
+        .dark-mode .swal2-actions .swal2-confirm,
+        .dark-mode .swal2-actions .swal2-cancel {
+            color: #FFFFFF !important;
+            font-weight: 600 !important;
+        }
+
+        [data-bs-theme="dark"] .swal2-actions button,
+        .dark-mode .swal2-actions button {
+            color: #FFFFFF !important;
+        }
+    </style>
+    <script>
+        function markRefundProcessed(transactionId, companyName, amount) {
+            // First, get refund details
+            fetch(`/saassubscription/GetRefundDetails?transactionId=${transactionId}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showRefundModal(data.refundDetails);
+                    } else {
+                        Swal.fire('Error', data.message, 'error');
+                    }
+                })
+                .catch(error => {
+                    Swal.fire('Error', 'Failed to load refund details', 'error');
+                });
+        }
+
+        function showRefundModal(details) {
+              let paymentInfo = '';
+              let refundMethod = '';
+
+              if (details.originalPayment && details.canProcessRazorpayRefund) {
+                  const cardInfo = details.originalPayment.cardNetwork && details.originalPayment.cardLast4
+                      ? `${details.originalPayment.cardNetwork} **** ${details.originalPayment.cardLast4}`
+                      : 'Card';
+                  const cardType = details.originalPayment.cardType ? ` (${details.originalPayment.cardType})` : '';
+                  const bankInfo = details.originalPayment.bankName ? ` - ${details.originalPayment.bankName}` : '';
+
+                  paymentInfo = `
+                      <div class="alert alert-info">
+                          <h6><i class="fas fa-credit-card"></i> Original Payment Details</h6>
+                          <p><strong>Payment Method: </strong>${cardInfo}${cardType}${bankInfo}</p>
+                          <p><strong>Payment Date: </strong>${details.originalPayment.paymentDate}</p>
+                          <p><strong>Original Amount: </strong>₹${details.originalPayment.amount}</p>
+                          <p><strong>Payment ID: </strong>${details.originalPayment.razorpayPaymentId}</p>
+                      </div>
+                  `;
+                  refundMethod = '<p class="text-success"><i class="fas fa-check-circle"></i> Refund will be processed automatically to the original payment method.</p>';
+              } else {
+                  paymentInfo = `
+                      <div class="alert alert-warning">
+                          <h6><i class="fas fa-exclamation-triangle"></i> No Razorpay Payment Found</h6>
+                          <p>Original payment method not available for automatic refund.</p>
+                      </div>
+                  `;
+                  refundMethod = '<p class="text-warning"><i class="fas fa-hand-paper"></i> Manual refund required - Admin will need to transfer amount directly.</p>';
+              }
+
+              Swal.fire({
+                  title: 'Process Refund',
+                  html: `
+                      <div style="text-align: left;">
+                          <div class="mb-3">
+                              <h5>Refund Summary</h5>
+                              <p><strong>Partner: </strong>${details.partnerName}</p>
+                              <p><strong>Email: </strong>${details.partnerEmail}</p>
+                              <p><strong>Plan: </strong>${details.planName} (${details.billingCycle})</p>
+                              <p><strong>Cancelled: </strong>${details.cancelledDate}</p>
+                              <p><strong>Refund Amount: </strong><span class="text-danger fw-bold">₹${details.refundAmount}</span></p>
+                          </div>
+                  `${paymentInfo}
+                        ${refundMethod}
+
+                        <hr>
+
+                        <label class="form-label">Refund Notes (Optional)</label>
+                        <textarea id="refundNotes" class="form-control" rows="3" placeholder="Add any notes about the refund process..."></textarea>
+                    </div>
+                `,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#15803D',
+                cancelButtonColor: '#6B7B8D',
+                confirmButtonText: details.canProcessRazorpayRefund ? 'Process Razorpay Refund' : 'Mark as Manual Refund',
+                cancelButtonText: 'Cancel',
+                width: '600px',
+                preConfirm: () => {
+                    return document.getElementById('refundNotes').value;
+                }
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    const notes = result.value || '';
+                    processRefund(details.transactionId, notes);
+                }
+            });
+        }
+
+        function processRefund(transactionId, refundNotes) {
+            fetch('/saassubscription/MarkRefundProcessed', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: `transactionId=${transactionId}&refundNotes=${encodeURIComponent(refundNotes)}`
+            })
+            .then(response => response.json())
+            .then(data => {
+              if (data.success) {
+                    Swal.fire({
+                        title: 'Success!',
+                        text: data.message,
+                        icon: 'success',
+                        confirmButtonColor: '#15803D'
+                    }).then(() => {
+                        location.reload();
+                    });
+                } else {
+                    Swal.fire({
+                        title: 'Error',
+                        text: data.message,
+                        icon: 'error',
+                        confirmButtonColor: '#DC2626'
+                    });
+                }
+            })
+            .catch(error => {
+                Swal.fire({
+                    title: 'Error',
+                    text: 'Failed to process refund',
+                    icon: 'error',
+                    confirmButtonColor: '#DC2626'
+                });
+            });
+        }
+    </script>
+}

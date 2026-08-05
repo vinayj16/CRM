@@ -1,0 +1,31 @@
+@model int
+
+@{
+    var partnerId = Model;
+    var buttonText = ViewBag.ButtonText as string ?? "Upgrade";
+    var buttonClass = ViewBag.ButtonClass as string ?? "btn btn-primary";
+    var buttonSize = ViewBag.ButtonSize as string ?? "";
+    var showIcon = ViewBag.ShowIcon as bool? ?? true;
+}
+
+<button type="button" class="@buttonClass @buttonSize" onclick="openUpgradeModal(@partnerId)">
+    @if (showIcon)
+    {
+        <i class="fa-solid fa-rocket me-1"></i>
+    }
+    @buttonText
+</button>
+
+@section Scripts {
+    <script>
+        // Ensure the upgrade modal function is available
+        if (typeof openUpgradeModal === 'undefined') {
+            function openUpgradeModal(partnerId) {
+                // If upgrade modal is not loaded, redirect to manage subscriptions
+                window.location.href = '/Subscription/ManagePartnerSubscriptions';
+            }
+        }
+    </script>
+}
+
+

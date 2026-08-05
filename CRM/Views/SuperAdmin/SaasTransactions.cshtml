@@ -1,0 +1,547 @@
+@model List<CRM.MasterDb.Models.SaasPaymentTransactionModel>
+@{
+	ViewData["Title"] = "SaaS Transactions";
+}
+
+<style>
+	.sa-container { max-width: 100%; padding: 0; }
+
+	.sa-container h1, .sa-container .h1 {
+    font-size: 1.5rem !important;
+    font-weight: 700 !important;
+    margin-bottom: 1px !important;
+}
+	/* ── Header ── */
+	.sa-header {
+		background: linear-gradient(135deg, #1A6FA8 0%, #0F4C75 100%);
+		color: white;
+		padding: 0.65rem 1rem;
+		border-radius: 9px;
+		margin-bottom: 0.75rem;
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 0.75rem;
+		flex-wrap: wrap;
+	}
+	.sa-header h1 {
+		font-size: 1rem;
+		font-weight: 700;
+		margin: 0;
+		display: flex;
+		align-items: center;
+		gap: 7px;
+	}
+	.sa-count-badge {
+		background: rgba(255,255,255,0.18);
+		color: #FFFFFF;
+		font-size: 0.72rem;
+		font-weight: 600;
+		padding: 3px 10px;
+		border-radius: 20px;
+		white-space: nowrap;
+	}
+
+	/* ── Card ── */
+	.sa-card {
+		background: #FFFFFF;
+		border-radius: 9px;
+		border: 1px solid #E2E8F0;
+		box-shadow: 0 2px 8px rgba(26,111,168,0.07);
+		overflow: hidden;
+	}
+
+	/* ── Table ── */
+	.table-responsive { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+	table.tx-table {
+		width: 100%;
+		border-collapse: collapse;
+		font-size: 0.78rem;
+		color: #1E2A3A;
+	}
+	.tx-table thead tr {
+		/* background: linear-gradient(90deg, #F0F4F8, #E8EDF2); */
+		border-bottom: 2px solid #D4A45A;
+	}
+	.tx-table thead th {
+		padding: 0.48rem 0.75rem;
+		font-size: 0.67rem;
+		font-weight: 700;
+		text-transform: uppercase;
+		letter-spacing: 0.5px;
+		color: #1A6FA8 !important;
+		white-space: nowrap;
+	}
+	.tx-table tbody tr {
+		border-bottom: 1px solid #F0F4F8;
+		transition: background .12s;
+	}
+	.tx-table tbody tr:last-child { border-bottom: none; }
+	.tx-table tbody tr:hover { background: #FFFFFF; }
+	.tx-table td {
+		padding: 0.45rem 0.75rem;
+		vertical-align: middle;
+	}
+
+	/* ── Cell helpers ── */
+	.cell-date    { font-size: 0.72rem; color: #6B7B8D; white-space: nowrap; }
+	.cell-tenant  { font-weight: 600; color: #1E2A3A; font-size: 0.78rem; }
+	.cell-plan    { font-size: 0.74rem; color: #6B7B8D; }
+	.cell-amount  { font-weight: 700; color: #1A6FA8; white-space: nowrap; }
+	.cell-ref     { font-size: 0.68rem; color: #8FA3B8; max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: block; }
+
+	/* ── Badges ── */
+	.tx-badge {
+		display: inline-flex;
+		align-items: center;
+		gap: 3px;
+		padding: 2px 7px;
+		border-radius: 20px;
+		font-size: 0.66rem;
+		font-weight: 700;
+		white-space: nowrap;
+	}
+	.tx-badge::before {
+		content: '';
+		width: 4px; height: 4px;
+		border-radius: 50%;
+		background: currentColor;
+		display: inline-block;
+		flex-shrink: 0;
+	}
+	.badge-success  { background: rgba(22,163,74,0.12);  color: #15803D; }
+	.badge-pending  { background: rgba(212,164,90,0.15); color: #B45309; }
+	.badge-failed   { background: rgba(220,38,38,0.11);  color: #DC2626; }
+	.badge-info     { background: rgba(26,111,168,0.10); color: #1A6FA8; }
+	.badge-secondary{ background: #F0F4F8; color: #6B7B8D; }
+
+	/* ── Action btn ── */
+	.btn-refund {
+		height: 24px;
+		padding: 0 0.6rem;
+		border-radius: 5px;
+		font-size: 0.7rem;
+		font-weight: 600;
+		border: 1.5px solid #16A34A;
+		background: #FFFFFF;
+		color: #16A34A;
+		cursor: pointer;
+		display: inline-flex;
+		align-items: center;
+		gap: 4px;
+		transition: background .13s;
+		white-space: nowrap;
+	}
+	.btn-refund:hover { background: #F0F4F8; }
+
+	/* ── Pagination ── */
+	#paginationContainer {
+		padding: 0.55rem 0.85rem;
+		border-top: 1px solid #F0F4F8;
+		font-size: 0.74rem;
+		color: #8FA3B8;
+		background: #FFFFFF;
+	}
+	.page-link {
+		font-size: 0.72rem !important;
+		padding: 0.22rem 0.55rem !important;
+		color: #1A6FA8;
+		border-color: #E2E8F0;
+	}
+	.page-item.active .page-link {
+		background: #1A6FA8;
+		border-color: #1A6FA8;
+		color: #FFFFFF;
+	}
+
+	/* ── Empty state ── */
+	.tx-empty { text-align: center; padding: 2.5rem 1rem; color: #8FA3B8; }
+	.tx-empty i { font-size: 2rem; color: #D4A45A; opacity: 0.4; display: block; margin-bottom: 0.5rem; }
+	.tx-empty p { font-size: 0.8rem; margin: 4px 0 0; }
+
+	/* ── Refund modal ── */
+	.refund-modal-dialog { max-width: 340px !important; width: auto !important; }
+	.refund-modal-header {
+		background: linear-gradient(135deg, #1A6FA8, #0F4C75);
+		color: #FFFFFF;
+		padding: 0.6rem 0.9rem;
+	}
+	.refund-modal-header .btn-close { filter: invert(1); }
+	.refund-form-lbl { font-size: 0.72rem; font-weight: 600; color: #1A6FA8; margin-bottom: 3px; display: block; }
+	.refund-form-ctrl {
+		height: 30px;
+		font-size: 0.76rem;
+		border: 1.5px solid #E2E8F0;
+		border-radius: 6px;
+		padding: 0 0.5rem;
+		width: 100%;
+		background: #FFFFFF;
+		color: #1E2A3A;
+	}
+	.refund-alert {
+		background: #FEE2E2;
+		border: 1px solid #E8C27E;
+		border-radius: 6px;
+		padding: 0.45rem 0.65rem;
+		font-size: 0.72rem;
+		color: #B45309;
+		display: flex;
+		align-items: center;
+		gap: 6px;
+		margin-top: 0.5rem;
+	}
+	.btn-confirm-refund {
+		background: linear-gradient(135deg, #1A6FA8, #0F4C75);
+		color: #FFFFFF;
+		border: none;
+		border-radius: 6px;
+		padding: 0.35rem 0.9rem;
+		font-size: 0.78rem;
+		font-weight: 600;
+		cursor: pointer;
+		transition: opacity .15s;
+	}
+	.btn-confirm-refund:hover { opacity: 0.88; }
+
+	/* ── Responsive ── */
+	@@media (max-width: 768px) {
+		.tx-table thead th:nth-child(7),
+		.tx-table td:nth-child(7),
+		.tx-table thead th:nth-child(8),
+		.tx-table td:nth-child(8) { display: none; }
+	}
+	@@media (max-width: 540px) {
+		.tx-table thead th:nth-child(4),
+		.tx-table td:nth-child(4) { display: none; }
+		.sa-header h1 { font-size: 0.9rem; }
+	}
+
+	/* Dark mode */
+	.dark-mode .sa-card,
+	[data-bs-theme="dark"] .sa-card { background: #1A2332; border-color: #2A3A4A; }
+	.dark-mode .tx-table tbody tr:hover,
+	[data-bs-theme="dark"] .tx-table tbody tr:hover { background: #1E2A3A; }
+	.dark-mode .cell-tenant,
+	[data-bs-theme="dark"] .cell-tenant { color: #E2E8F0; }
+	.dark-mode .tx-table,
+	[data-bs-theme="dark"] .tx-table { color: #B8C8D8; }
+	.dark-mode .tx-table td,
+	[data-bs-theme="dark"] .tx-table td { color: #B8C8D8; }
+	.dark-mode .tx-table thead th,
+	[data-bs-theme="dark"] .tx-table thead th { color: #B8C8D8 !important; }
+	.dark-mode .cell-date,
+	[data-bs-theme="dark"] .cell-date { color: #8FA3B8; }
+	.dark-mode .cell-plan,
+	[data-bs-theme="dark"] .cell-plan { color: #8FA3B8; }
+	.dark-mode .cell-amount,
+	[data-bs-theme="dark"] .cell-amount { color: #B8C8D8; }
+	.dark-mode .cell-ref,
+	[data-bs-theme="dark"] .cell-ref { color: #8FA3B8; }
+	.dark-mode .tx-table tbody tr,
+	[data-bs-theme="dark"] .tx-table tbody tr { border-bottom-color: #2A3A4A; }
+	.dark-mode .btn-refund,
+	[data-bs-theme="dark"] .btn-refund { background: #1A2332; border-color: #16A34A; color: #16A34A; }
+	.dark-mode .btn-refund:hover,
+	[data-bs-theme="dark"] .btn-refund:hover { background: rgba(22,163,74,0.12); }
+	.dark-mode .sa-header h1,
+	[data-bs-theme="dark"] .sa-header h1 { color: #FFFFFF; }
+	.dark-mode .tx-empty h5,
+	[data-bs-theme="dark"] .tx-empty h5 { color: #B8C8D8; }
+	.dark-mode .tx-empty p,
+	[data-bs-theme="dark"] .tx-empty p { color: #8FA3B8; }
+	.dark-mode .refund-form-ctrl,
+	[data-bs-theme="dark"] .refund-form-ctrl { background: #1E2A3A; border-color: #2A3A4A; color: #B8C8D8; }
+	.dark-mode .refund-alert,
+	[data-bs-theme="dark"] .refund-alert { background: rgba(212,164,90,0.12); border-color: rgba(212,164,90,0.3); color: #F59E0B; }
+	.dark-mode #paginationContainer,
+	[data-bs-theme="dark"] #paginationContainer { background: #1A2332; border-color: #2A3A4A; }
+	.dark-mode .page-link,
+	[data-bs-theme="dark"] .page-link { background: #1E2A3A; border-color: #2A3A4A; color: #B8C8D8; }
+	.dark-mode .page-item.active .page-link,
+	[data-bs-theme="dark"] .page-item.active .page-link { background: #1A6FA8; border-color: #1A6FA8; color: #FFFFFF; }
+	.dark-mode .page-item.disabled .page-link,
+	[data-bs-theme="dark"] .page-item.disabled .page-link { background: #1A2332; color: #6B7B8D; }
+	.dark-mode .refund-modal-dialog .modal-content,
+	[data-bs-theme="dark"] .refund-modal-dialog .modal-content { background: #1A2332; }
+	.dark-mode .refund-modal-footer,
+	[data-bs-theme="dark"] .refund-modal-footer { background: #1A2332; border-color: #2A3A4A; }
+	.dark-mode .modal-footer .btn-secondary,
+	[data-bs-theme="dark"] .modal-footer .btn-secondary { background: #2A3A4A; border-color: #2A3A4A; color: #B8C8D8; }
+</style>
+
+<div class="sa-container">
+
+	<!-- Breadcrumb -->
+	<nav class="mb-3" aria-label="breadcrumb">
+		<ol class="breadcrumb mb-0" style="font-size:.76rem;background:transparent;padding:0;">
+			<li class="breadcrumb-item"><a href="/SuperAdmin/Dashboard" style="color:var(--blue);text-decoration:none;">Dashboard</a></li>
+			<li class="breadcrumb-item active" style="color:var(--text-muted)">SaaS Transactions</li>
+		</ol>
+	</nav>
+
+	<!-- Header -->
+	<div class="sa-header">
+		<h1><i class="fa-solid fa-receipt"></i> SaaS Transactions</h1>
+		<span class="sa-count-badge">@Model.Count transactions</span>
+	</div>
+
+	<!-- Card -->
+	<div class="sa-card">
+		@if (Model.Any())
+		{
+			<div class="table-responsive">
+				<table class="tx-table">
+					<thead>
+						<tr>
+							<th>Date</th>
+							<th>Tenant</th>
+							<th>Plan</th>
+							<th>Type</th>
+							<th>Amount</th>
+							<th>Status</th>
+							<th>Method</th>
+							<th>Reference</th>
+							<th>Refund</th>
+							<th>Action</th>
+						</tr>
+					</thead>
+					<tbody>
+						@foreach (var t in Model)
+						{
+							<tr>
+								<td><span class="cell-date">@t.TransactionDate.ToString("dd/MM/yy HH:mm")</span></td>
+								<td><span class="cell-tenant">@(t.Tenant?.CompanyName ?? "N/A")</span></td>
+								<td><span class="cell-plan">@(t.PlanName ?? "-")</span></td>
+								<td><span class="tx-badge badge-info">@t.TransactionType</span></td>
+								<td><span class="cell-amount">Rs.@t.Amount.ToString("N2")</span></td>
+								<td>
+									@if (t.Status == "Success")
+									{
+										<span class="tx-badge badge-success">Success</span>
+									}
+									else if (t.Status == "Pending")
+									{
+										<span class="tx-badge badge-pending">Pending</span>
+									}
+									else if (t.Status == "Failed")
+									{
+										<span class="tx-badge badge-failed">Failed</span>
+									}
+									else
+									{
+										<span class="tx-badge badge-secondary">@t.Status</span>
+									}
+								</td>
+								<td><span class="cell-plan">@(t.PaymentMethod ?? "-")</span></td>
+								<td><span class="cell-ref">@(t.RazorpayPaymentId ?? t.TransactionReference ?? "-")</span></td>
+								<td>
+									@if (t.RefundStatus == "Pending")
+									{
+										<span class="tx-badge badge-pending">Pending</span>
+									}
+									else if (t.RefundStatus == "Refunded")
+									{
+										<span class="tx-badge badge-success">Refunded</span>
+									}
+									else if (t.RefundStatus == "Failed")
+									{
+										<span class="tx-badge badge-failed">Failed</span>
+									}
+									else
+									{
+										<span class="cell-plan">-</span>
+									}
+								</td>
+								<td>
+									@if (t.TransactionType == "Cancellation"
+										&& (t.RefundStatus == null || t.RefundStatus == "Pending"))
+									{
+										<button class="btn-refund"
+												onclick="showRefundModal(@t.TransactionId, '@(t.Tenant?.CompanyName)', '@t.Amount')">
+											<i class="fa-solid fa-rotate-left" style="font-size:9px"></i> Refund
+										</button>
+									}
+									else if (t.RefundStatus == "Refunded")
+									{
+										<span class="tx-badge badge-success">Done</span>
+									}
+									else
+									{
+										<span class="cell-plan">-</span>
+									}
+								</td>
+							</tr>
+						}
+					</tbody>
+				</table>
+			</div>
+
+			<div id="paginationContainer" class="d-flex justify-content-between align-items-center" style="display:none !important;">
+				<div>
+					Showing <span id="startRecord">1</span>–<span id="endRecord">10</span> of <span id="totalRecords">0</span>
+				</div>
+				<nav>
+					<ul class="pagination pagination-sm mb-0" id="pagination"></ul>
+				</nav>
+			</div>
+		}
+		else
+		{
+			<div class="tx-empty">
+				<i class="fa-solid fa-receipt"></i>
+				<h5 style="font-size:.9rem;margin:0 0 3px;color:#1E2A3A">No Transactions Yet</h5>
+				<p>Transactions will appear here when tenants make payments.</p>
+			</div>
+		}
+	</div>
+
+	<!-- Refund Modal -->
+	<div class="modal fade" id="refundModal" tabindex="-1">
+		<div class="modal-dialog modal-dialog-centered refund-modal-dialog">
+			<div class="modal-content" style="border-radius:9px;overflow:hidden;border:none">
+
+				<div class="refund-modal-header d-flex align-items-center justify-content-between">
+					<h6 class="mb-0" style="font-size:.88rem;font-weight:700;color:#FFFFFF">
+						<i class="fa-solid fa-rotate-left me-1"></i> Process Refund
+					</h6>
+					<button type="button" class="btn-close refund-modal-header" data-bs-dismiss="modal" style="filter:invert(1);opacity:.8"></button>
+				</div>
+
+				<div class="modal-body" style="padding:.75rem .9rem">
+					<input type="hidden" id="refundTransactionId" />
+
+					<div class="mb-2">
+						<label class="refund-form-lbl">Tenant</label>
+						<input type="text" id="refundTenant" class="refund-form-ctrl" readonly />
+					</div>
+					<div class="mb-2">
+						<label class="refund-form-lbl">Amount</label>
+						<input type="text" id="refundAmount" class="refund-form-ctrl" readonly />
+					</div>
+					<div class="refund-alert">
+						<i class="fa-solid fa-info-circle" style="flex-shrink:0"></i>
+						Refund will be sent to the original Razorpay payment method.
+					</div>
+				</div>
+
+				<div class="modal-footer py-2 px-3" style="gap:.4rem">
+					<button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+					<button class="btn-confirm-refund" onclick="processRefund()">
+						<i class="fa-solid fa-check me-1"></i> Confirm Refund
+					</button>
+				</div>
+
+			</div>
+		</div>
+	</div>
+
+</div>
+
+<script>
+	document.addEventListener('DOMContentLoaded', function () {
+		const rowsPerPage = 10;
+		const tableBody = document.querySelector('table tbody');
+
+		if (!tableBody) return;
+
+		const rows = Array.from(tableBody.querySelectorAll('tr'));
+		const totalRows = rows.length;
+
+		if (totalRows === 0) return;
+
+		const paginationContainer = document.getElementById('paginationContainer');
+		const pagination = document.getElementById('pagination');
+		const startRecord = document.getElementById('startRecord');
+		const endRecord = document.getElementById('endRecord');
+		const totalRecords = document.getElementById('totalRecords');
+
+		let currentPage = 1;
+		const totalPages = Math.ceil(totalRows / rowsPerPage);
+
+		totalRecords.textContent = totalRows;
+
+		function showPage(page) {
+			currentPage = page;
+			const start = (page - 1) * rowsPerPage;
+			const end = start + rowsPerPage;
+			rows.forEach(function(row, index) {
+				row.style.display = (index >= start && index < end) ? '' : 'none';
+			});
+			startRecord.textContent = start + 1;
+			endRecord.textContent = Math.min(end, totalRows);
+			renderPagination();
+		}
+
+		function renderPagination() {
+			pagination.innerHTML = '';
+
+			const prevLi = document.createElement('li');
+			prevLi.className = 'page-item' + (currentPage === 1 ? ' disabled' : '');
+			prevLi.innerHTML = '<a class="page-link" href="javascript:void(0)">Prev</a>';
+			prevLi.addEventListener('click', function () {
+				if (currentPage > 1) showPage(currentPage - 1);
+			});
+			pagination.appendChild(prevLi);
+
+			const maxVisiblePages = 5;
+			let startPage = Math.max(1, currentPage - 2);
+			let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+			if ((endPage - startPage + 1) < maxVisiblePages) {
+				startPage = Math.max(1, endPage - maxVisiblePages + 1);
+			}
+
+			for (let i = startPage; i <= endPage; i++) {
+				const li = document.createElement('li');
+				li.className = 'page-item' + (i === currentPage ? ' active' : '');
+				li.innerHTML = '<a class="page-link" href="javascript:void(0)">' + i + '</a>';
+				li.addEventListener('click', (function(p) {
+					return function() { showPage(p); };
+				})(i));
+				pagination.appendChild(li);
+			}
+
+			const nextLi = document.createElement('li');
+			nextLi.className = 'page-item' + (currentPage === totalPages ? ' disabled' : '');
+			nextLi.innerHTML = '<a class="page-link" href="javascript:void(0)">Next</a>';
+			nextLi.addEventListener('click', function () {
+				if (currentPage < totalPages) showPage(currentPage + 1);
+			});
+			pagination.appendChild(nextLi);
+		}
+
+		if (totalPages > 1) {
+			paginationContainer.style.display = 'flex';
+		}
+
+		showPage(1);
+	});
+</script>
+
+<script>
+	function showRefundModal(transactionId, tenantName, amount) {
+		document.getElementById("refundTransactionId").value = transactionId;
+		document.getElementById("refundTenant").value = tenantName;
+		document.getElementById("refundAmount").value = amount;
+		new bootstrap.Modal(document.getElementById("refundModal")).show();
+	}
+
+	async function processRefund() {
+		const transactionId = document.getElementById("refundTransactionId").value;
+		try {
+			const response = await fetch('/SuperAdmin/ProcessRefund', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+				body: `transactionId=${transactionId}`
+			});
+			const result = await response.json();
+			if (result.success) {
+				Swal.fire('Success', 'Refund processed successfully', 'success').then(() => { location.reload(); });
+			} else {
+				Swal.fire('Error', result.message, 'error');
+			}
+		} catch(err) {
+			Swal.fire('Error', err.message, 'error');
+		}
+	}
+</script>

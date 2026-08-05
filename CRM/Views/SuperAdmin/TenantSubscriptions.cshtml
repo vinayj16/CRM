@@ -1,0 +1,1013 @@
+@model List<CRM.MasterDb.Models.TenantSubscriptionModel>
+@using CRM.MasterDb.Models
+@{
+    ViewData["Title"] = "Manage Tenant Subscriptions";
+
+    var subscriptions = Model ?? new List<TenantSubscriptionModel>();
+    var tenants = ViewBag.Tenants as List<TenantModel> ?? new List<TenantModel>();
+
+    var displayRows = tenants.Any()
+        ? tenants.Select(t => new
+        {
+            Tenant = t,
+            Subscription = subscriptions
+                .Where(s => s.TenantId == t.TenantId)
+                .OrderByDescending(s => s.CreatedOn)
+                .FirstOrDefault()
+        }).ToList()
+        : subscriptions.Select(s => new
+        {
+            Tenant = s.Tenant,
+            Subscription = s
+        }).ToList();
+}
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+
+<style>
+    /* ─────────────────────────────────────────────
+       Color tokens — scoped so they never bleed out
+       and always inherit the global light/dark vars
+    ───────────────────────────────────────────── */
+    .ts-scope {
+        --gold:       #D4A45A;
+        --gold-light: #E8C27E;
+        --gold-dark:  #B8883E;
+        --gold-pale:  #F0F4F8;
+        --blue:       #1A6FA8;
+        --blue-light: #2589C9;
+        --blue-dark:  #125082;
+        --blue-pale:  #F0F4F8;
+
+        /* inherit from global :root tokens */
+        --ts-bg:     var(--body-bg,      #F0F4F8);
+        --ts-card:   var(--card-bg,      #FFFFFF);
+        --ts-text:   var(--text-primary, #1A2332);
+        --ts-muted:  var(--text-muted,   #6B7B8D);
+        --ts-border: var(--border-color, #E2E8F0);
+        --ts-radius: 7px;
+        --shadow-sm: 0 1px 3px rgba(26,111,168,0.07);
+        --shadow:    0 2px 10px rgba(26,111,168,0.09);
+    }
+
+    /* dark-mode: just repoint the ts-* tokens — no hex duplication */
+    html.dark-mode .ts-scope,
+    [data-bs-theme="dark"] .ts-scope {
+        --gold-pale:  #111827;
+        --blue-pale:  #0F1C2E;
+        --ts-bg:     var(--body-bg,      #111827);
+        --ts-card:   var(--card-bg,      #1E2A3A);
+        --ts-text:   var(--text-primary, #E8EDF2);
+        --ts-muted:  var(--text-muted,   #8FA3B8);
+        --ts-border: var(--border-color, #2A3A4A);
+    }
+
+    /* ── Layout ── */
+    .ts-wrapper {
+        background: var(--ts-bg);
+        min-height: 100vh;
+        padding: 0.85rem;
+        font-family: 'Segoe UI', system-ui, sans-serif;
+        box-sizing: border-box;
+        /* fix horizontal overflow */
+        overflow-x: hidden;
+        width: 100%;
+    }
+
+    .ts-card {
+        background: var(--ts-card);
+        border-radius: var(--ts-radius);
+        border: 1px solid var(--ts-border);
+        box-shadow: var(--shadow);
+        overflow: hidden;
+        /* prevent card itself from overflowing */
+        max-width: 100%;
+    }
+
+    /* ── Header ── */
+    .ts-header {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.6rem 1rem;
+        border-bottom: 2px solid var(--gold);
+        background: linear-gradient(90deg, var(--blue) 0%, var(--blue-dark) 100%);
+    }
+
+    .ts-header-icon {
+        width: 24px; height: 24px;
+        background: var(--gold);
+        border-radius: 5px;
+        display: flex; align-items: center; justify-content: center;
+        flex-shrink: 0;
+    }
+
+    .ts-header-icon svg { width: 13px; height: 13px; fill: #FFFFFF; }
+
+    .ts-header h5 {
+        margin: 0;
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: #FFFFFF;
+        letter-spacing: 0.2px;
+    }
+
+    /* ── Filters ── */
+    .ts-filters {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.4rem;
+        align-items: center;
+        padding: 0.6rem 1rem;
+        background: var(--gold-pale);
+        border-bottom: 1px solid var(--ts-border);
+    }
+
+    .ts-filters .form-control,
+    .ts-filters .form-select {
+        font-size: 0.775rem;
+        height: 29px;
+        padding: 0 0.5rem;
+        border: 1px solid var(--ts-border);
+        border-radius: 5px;
+        background: var(--ts-card);
+        color: var(--ts-text);
+        box-shadow: none;
+        min-width: 0;
+    }
+    /* Dark mode - use subtle text colors instead of blue override */
+    html.dark-mode .ts-scope p,
+    html.dark-mode .ts-scope span,
+    html.dark-mode .ts-scope div,
+    html.dark-mode .ts-scope td,
+    html.dark-mode .ts-scope th,
+    html.dark-mode .ts-scope label {
+        color: var(--ts-text) !important;
+    }
+    .ts-filters .form-control:focus,
+    .ts-filters .form-select:focus {
+        border-color: var(--blue);
+        box-shadow: 0 0 0 2px rgba(26,111,168,0.13);
+        outline: none;
+    }
+  .su-header-title {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: #6B7B8D !important;
+    letter-spacing: 0.2px;
+}
+    .ts-filters .fi-search { flex: 1 1 140px; max-width: 180px; }
+    .ts-filters .fi-plan   { flex: 1 1 110px; max-width: 140px; }
+    .ts-filters .fi-bill   { flex: 1 1 100px; max-width: 130px; }
+    .ts-filters .fi-date   { flex: 1 1 105px; max-width: 125px; position: relative; }
+
+    /* flatpickr uses altInput — style both the hidden + visible input */
+    .ts-filters .fi-date .flatpickr-input,
+    .ts-filters .fi-date input[type="text"] {
+        cursor: pointer !important;
+        background: var(--ts-card) !important;
+        color: var(--ts-text) !important;
+    }
+
+    .ts-filters .fi-date::after {
+        content: '';
+        position: absolute;
+        right: 0.45rem; top: 50%;
+        transform: translateY(-50%);
+        width: 12px; height: 12px;
+        background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%231a6fa8' stroke-width='2'%3E%3Crect x='3' y='4' width='18' height='18' rx='2'/%3E%3Cline x1='16' y1='2' x2='16' y2='6'/%3E%3Cline x1='8' y1='2' x2='8' y2='6'/%3E%3Cline x1='3' y1='10' x2='21' y2='10'/%3E%3C/svg%3E") no-repeat center;
+        pointer-events: none;
+    }
+
+    .btn-filter {
+        height: 29px;
+        padding: 0 0.85rem;
+        font-size: 0.775rem;
+        font-weight: 600;
+        border: none;
+        border-radius: 5px;
+        background: var(--blue);
+        color: #FFFFFF;
+        cursor: pointer;
+        white-space: nowrap;
+        transition: background 0.15s;
+        flex-shrink: 0;
+    }
+
+    .btn-filter:hover { background: var(--blue-light); }
+
+    /* ── Table ── */
+    .ts-table-wrap {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        /* prevent table from pushing page wide */
+        max-width: 100%;
+    }
+
+    .ts-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.79rem;
+        table-layout: fixed;
+        /* minimum so columns don't collapse to nothing */
+        min-width: 560px;
+    }
+
+    .ts-table thead tr { background: var(--blue-pale); }
+
+    .ts-table thead th {
+        padding: 0.42rem 0.75rem;
+        font-size: 0.69rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+        color: var(--blue);
+        border-bottom: 2px solid var(--ts-border);
+        white-space: nowrap;
+    }
+
+    .ts-table th:nth-child(1), .ts-table td:nth-child(1) { width: 18%; }
+    .ts-table th:nth-child(2), .ts-table td:nth-child(2) { width: 13%; }
+    .ts-table th:nth-child(3), .ts-table td:nth-child(3) { width: 11%; }
+    .ts-table th:nth-child(4), .ts-table td:nth-child(4) { width: 11%; }
+    .ts-table th:nth-child(5), .ts-table td:nth-child(5) { width: 13%; }
+    .ts-table th:nth-child(6), .ts-table td:nth-child(6) { width: 15%; }
+    .ts-table th:nth-child(7), .ts-table td:nth-child(7) { width: 19%; text-align: right; }
+
+    .ts-table tbody tr {
+        border-bottom: 1px solid var(--ts-border);
+        transition: background 0.1s;
+    }
+
+    .ts-table tbody tr:last-child { border-bottom: none; }
+    .ts-table tbody tr:hover { background: var(--blue-pale); }
+
+    .ts-table tbody td {
+        padding: 0.42rem 0.75rem;
+        color: var(--ts-text);
+        vertical-align: middle;
+    }
+
+    .ts-table tbody tr:nth-child(even) { background: var(--ts-bg); }
+    .ts-table tbody tr:nth-child(even):hover { background: var(--blue-pale); }
+
+    /* dark table tweaks */
+    html.dark-mode .ts-scope .ts-table tbody tr:hover,
+    [data-bs-theme="dark"] .ts-scope .ts-table tbody tr:hover { background: rgba(26,111,168,0.15); }
+
+    html.dark-mode .ts-scope .ts-table tbody tr:nth-child(even),
+    [data-bs-theme="dark"] .ts-scope .ts-table tbody tr:nth-child(even) { background: rgba(255,255,255,0.03); }
+
+    html.dark-mode .ts-scope .ts-table thead th,
+    [data-bs-theme="dark"] .ts-scope .ts-table thead th { color: #B8C8D8; }
+
+    html.dark-mode .ts-scope .ts-filters,
+    [data-bs-theme="dark"] .ts-scope .ts-filters { background: rgba(212,164,90,0.07); }
+
+    /* ── Cell helpers ── */
+    .td-tenant { font-weight: 600; color: var(--blue) !important; }
+
+    html.dark-mode .ts-scope .td-tenant,
+    [data-bs-theme="dark"] .ts-scope .td-tenant { color: var(--gold-light) !important; }
+
+    .td-amount { font-weight: 600; color: #16A34A !important; }
+    .td-amount.zero { color: var(--ts-muted) !important; font-weight: 400; }
+
+    .badge-plan {
+        display: inline-block;
+        padding: 1px 7px;
+        border-radius: 20px;
+        font-size: 0.69rem;
+        font-weight: 600;
+        background: var(--gold-pale);
+        color: #B45309;
+        border: 1px solid var(--gold-light);
+    }
+
+    html.dark-mode .ts-scope .badge-plan,
+    [data-bs-theme="dark"] .ts-scope .badge-plan {
+        background: #111827;
+        color: var(--gold-light);
+        border-color: var(--gold-dark);
+    }
+
+    .badge-billing {
+        display: inline-block;
+        padding: 1px 7px;
+        border-radius: 20px;
+        font-size: 0.69rem;
+        font-weight: 600;
+        background: var(--blue-pale);
+        color: var(--blue);
+        border: 1px solid #B8C8D8;
+    }
+
+    html.dark-mode .ts-scope .badge-billing,
+    [data-bs-theme="dark"] .ts-scope .badge-billing { color: #B8C8D8; }
+
+    .tag-expired {
+        display: inline-block; margin-top: 1px;
+        font-size: 0.65rem; font-weight: 600;
+        color: #DC2626; background: #B8C8D8;
+        border: 1px solid #FEE2E2; border-radius: 3px; padding: 0 4px;
+    }
+
+    .tag-expiring {
+        display: inline-block; margin-top: 1px;
+        font-size: 0.65rem; font-weight: 600;
+        color: #F59E0B; background: #FFFFFF;
+        border: 1px solid #E8C27E; border-radius: 3px; padding: 0 4px;
+    }
+
+    /* ── Action buttons ── */
+    .td-actions {
+        text-align: right;
+        white-space: nowrap;
+        padding-right: 0.85rem !important;
+    }
+
+    .btn-assign, .btn-upgrade {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.22rem;
+        height: 24px;
+        padding: 0 0.55rem;
+        font-size: 0.70rem;
+        font-weight: 600;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: all 0.15s;
+        white-space: nowrap;
+        letter-spacing: 0.1px;
+    }
+
+    .btn-assign {
+        background: linear-gradient(135deg, var(--gold) 0%, var(--gold-light) 100%);
+        color: #FFFFFF;
+        box-shadow: 0 1px 3px rgba(212,164,90,0.35);
+    }
+
+    .btn-assign:hover {
+        background: linear-gradient(135deg, var(--gold-dark) 0%, var(--gold) 100%);
+        transform: translateY(-1px);
+        box-shadow: 0 2px 6px rgba(212,164,90,0.4);
+    }
+
+    .btn-upgrade {
+        background: linear-gradient(135deg, var(--blue) 0%, var(--blue-light) 100%);
+        color: #FFFFFF;
+        box-shadow: 0 1px 3px rgba(26,111,168,0.3);
+    }
+
+    .btn-upgrade:hover {
+        background: linear-gradient(135deg, var(--blue-dark) 0%, var(--blue) 100%);
+        transform: translateY(-1px);
+        box-shadow: 0 2px 6px rgba(26,111,168,0.38);
+    }
+
+    .btn-assign svg, .btn-upgrade svg { width: 9px; height: 9px; flex-shrink: 0; }
+
+    /* ── Empty state ── */
+    .ts-empty {
+        text-align: center;
+        padding: 2rem 1rem;
+        color: var(--ts-muted);
+        font-size: 0.82rem;
+    }
+
+    .ts-empty svg {
+        width: 30px; height: 30px;
+        stroke: var(--ts-muted);
+        margin-bottom: 0.4rem;
+    }
+
+    /* ── Pagination ── */
+    .ts-pagination {
+        display: flex;
+        justify-content: center;
+        padding: 0.6rem 1rem;
+        gap: 0.25rem;
+        border-top: 1px solid var(--ts-border);
+    }
+
+    .ts-pagination a, .ts-pagination span {
+        display: inline-flex;
+        align-items: center; justify-content: center;
+        min-width: 26px; height: 26px;
+        padding: 0 0.35rem;
+        border-radius: 4px;
+        font-size: 0.75rem; font-weight: 500;
+        text-decoration: none;
+        color: var(--blue);
+        border: 1px solid var(--ts-border);
+        background: var(--ts-card);
+        transition: all 0.12s;
+    }
+
+    .ts-pagination a:hover { background: var(--blue); color: #FFFFFF; border-color: var(--blue); }
+
+    .ts-pagination span.active {
+        background: var(--blue);
+        color: #FFFFFF;
+        border-color: var(--blue);
+        font-weight: 700;
+    }
+    /* ── Mobile cards ── */
+    .mobile-cards { display: none; }
+
+    .sub-card {
+        background: var(--ts-card);
+        border: 1px solid var(--ts-border);
+        border-radius: var(--ts-radius);
+        padding: 0.7rem 0.85rem;
+        margin: 0.4rem;
+        box-shadow: var(--shadow-sm);
+    }
+
+    .sub-card-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 0.35rem;
+    }
+
+    .sub-card-name   { font-weight: 700; font-size: 0.85rem; color: var(--blue); }
+    .sub-card-amount { font-weight: 700; font-size: 0.85rem; color: #16A34A; }
+
+    .sub-card-row {
+        display: flex;
+        gap: 0.6rem;
+        font-size: 0.75rem;
+        color: var(--ts-muted);
+        margin-bottom: 0.5rem;
+    }
+
+    .sub-card-row span { flex: 1; }
+
+    .sub-card-label {
+        display: block;
+        font-size: 0.64rem;
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+        color: var(--ts-muted);
+        margin-bottom: 1px;
+    }
+
+    /* ── Flatpickr theme overrides ── */
+    .flatpickr-calendar {
+        font-size: 0.78rem !important;
+        border-radius: var(--ts-radius) !important;
+        box-shadow: var(--shadow) !important;
+        border: 1px solid var(--ts-border) !important;
+    }
+
+    .flatpickr-day.selected, .flatpickr-day.selected:hover {
+        background: var(--blue) !important;
+        border-color: var(--blue) !important;
+    }
+
+    .flatpickr-day:hover {
+        background: var(--blue-pale) !important;
+        border-color: var(--blue-pale) !important;
+    }
+
+    .flatpickr-months .flatpickr-month {
+        background: var(--blue) !important;
+        color: #FFFFFF !important;
+        border-radius: 5px 5px 0 0;
+    }
+
+    .flatpickr-weekdays { background: var(--blue-pale) !important; }
+    .flatpickr-weekday  { color: var(--blue) !important; font-weight: 700 !important; }
+
+    /* ── Compact modal theme (applies to _SaaSUpgradeModal when inside ts-scope) ── */
+    /* If your modal is outside .ts-scope, add class saas-compact to its .modal-dialog */
+    .saas-compact.modal-dialog,
+    .ts-scope .modal-dialog { max-width: 390px; }
+
+    .saas-compact .modal-content,
+    .ts-scope .modal-content {
+        border-radius: 10px;
+        border: 1px solid var(--ts-border);
+        background: var(--ts-card);
+        box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+        overflow: hidden;
+    }
+
+    .saas-compact .modal-header,
+    .ts-scope .modal-header {
+        padding: 0.6rem 1rem;
+        background: linear-gradient(90deg, var(--blue) 0%, var(--blue-dark) 100%);
+        border-bottom: 2px solid var(--gold);
+    }
+
+    .saas-compact .modal-title,
+    .ts-scope .modal-title {
+        font-size: 0.83rem;
+        font-weight: 700;
+        color: #FFFFFF;
+        letter-spacing: 0.2px;
+    }
+
+    .saas-compact .modal-header .btn-close,
+    .ts-scope .modal-header .btn-close { filter: invert(1); opacity: 0.8; }
+
+    .saas-compact .modal-body,
+    .ts-scope .modal-body {
+        padding: 0.8rem 1rem;
+        font-size: 0.80rem;
+        color: var(--ts-text);
+    }
+
+    .saas-compact .modal-footer,
+    .ts-scope .modal-footer {
+        padding: 0.5rem 1rem;
+        border-top: 1px solid var(--ts-border);
+        background: var(--ts-bg);
+        gap: 0.4rem;
+    }
+
+    .saas-compact .form-label,
+    .ts-scope .modal-body .form-label {
+        font-size: 0.71rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+        color: var(--ts-muted);
+        margin-bottom: 3px;
+    }
+
+    .saas-compact .form-control,
+    .saas-compact .form-select,
+    .ts-scope .modal-body .form-control,
+    .ts-scope .modal-body .form-select {
+        font-size: 0.79rem;
+        height: 30px;
+        padding: 0 0.55rem;
+        border: 1px solid var(--ts-border);
+        border-radius: 5px;
+        background: var(--ts-card);
+        color: var(--ts-text);
+    }
+
+    .saas-compact .form-control:focus,
+    .saas-compact .form-select:focus,
+    .ts-scope .modal-body .form-control:focus,
+    .ts-scope .modal-body .form-select:focus {
+        border-color: var(--blue);
+        box-shadow: 0 0 0 2px rgba(26,111,168,0.13);
+        outline: none;
+    }
+
+    .saas-compact .mb-3,
+    .ts-scope .modal-body .mb-3 { margin-bottom: 0.6rem !important; }
+
+    /* compact primary button */
+    .ts-scope .modal-footer .btn-primary,
+    .saas-compact .modal-footer .btn-primary {
+        height: 28px;
+        padding: 0 0.9rem;
+        font-size: 0.76rem;
+        font-weight: 700;
+        border: none;
+        border-radius: 5px;
+        background: linear-gradient(135deg, var(--gold) 0%, var(--gold-light) 100%);
+        color: #FFFFFF;
+        transition: all 0.15s;
+        line-height: 1;
+    }
+
+    .ts-scope .modal-footer .btn-primary:hover,
+    .saas-compact .modal-footer .btn-primary:hover {
+        background: linear-gradient(135deg, var(--gold-dark) 0%, var(--gold) 100%);
+        transform: translateY(-1px);
+        box-shadow: 0 2px 6px rgba(212,164,90,0.38);
+    }
+
+    /* compact secondary / cancel button */
+    .ts-scope .modal-footer .btn-secondary,
+    .saas-compact .modal-footer .btn-secondary {
+        height: 28px;
+        padding: 0 0.75rem;
+        font-size: 0.76rem;
+        font-weight: 600;
+        border: 1px solid var(--ts-border);
+        border-radius: 5px;
+        background: transparent;
+        color: var(--ts-muted);
+        transition: all 0.15s;
+        line-height: 1;
+    }
+
+    .ts-scope .modal-footer .btn-secondary:hover,
+    .saas-compact .modal-footer .btn-secondary:hover {
+        background: var(--ts-bg);
+        color: var(--ts-text);
+    }
+
+    /* ── Responsive ── */
+    @@media (max-width: 768px) {
+        .ts-wrapper { padding: 0.5rem; }
+        .ts-table-wrap { display: none; }
+        .mobile-cards { display: block; }
+        .ts-filters { padding: 0.5rem 0.75rem; }
+        .ts-filters .fi-search { max-width: 100%; flex-basis: 100%; }
+        .ts-filters .fi-date { flex: 1 1 85px; }
+    }
+
+    @@media (max-width: 480px) {
+        .ts-filters .fi-plan,
+        .ts-filters .fi-bill { flex-basis: calc(50% - 0.2rem); max-width: none; }
+    }
+</style>
+
+<div class="ts-scope">
+<div class="ts-wrapper">
+    <!-- Breadcrumb -->
+    <nav class="mb-3" aria-label="breadcrumb" style="font-size:.76rem;">
+        <ol class="breadcrumb mb-0" style="background:transparent;padding:0;">
+            <li class="breadcrumb-item"><a href="/SuperAdmin/Dashboard" style="color:var(--blue);text-decoration:none;">Dashboard</a></li>
+            <li class="breadcrumb-item active" style="color:var(--text-muted)">Tenant Subscriptions</li>
+        </ol>
+    </nav>
+
+    <div class="ts-card">
+
+        <!-- Header -->
+        <div class="ts-header">
+            <div class="ts-header-icon">
+                <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z"/></svg>
+            </div>
+            <h5>Tenant Subscriptions</h5>
+        </div>
+
+        <!-- Filters -->
+        <form method="get" class="ts-filters" id="filterForm">
+            <div class="fi-search">
+                <input type="text" class="form-control" name="search" id="searchInput"
+                       value="@ViewBag.Search" placeholder="&#15803D; Search tenant…">
+            </div>
+
+            <div class="fi-plan">
+                <select class="form-select" name="plan" onchange="this.form.submit()">
+                    <option value="">All Plans</option>
+                    @if (ViewBag.Plans != null)
+                    {
+                        foreach (var plan in ViewBag.Plans)
+                        {
+                            <option value="@plan.PlanId"
+                                    selected="@(ViewBag.SelectedPlan == plan.PlanId.ToString() ? "selected" : null)">
+                                @plan.PlanName
+                            </option>
+                        }
+                    }
+                </select>
+            </div>
+
+            <div class="fi-bill">
+                <select class="form-select" name="billing" onchange="this.form.submit()">
+                    <option value="">All Billing</option>
+                    <option value="Monthly" selected="@(ViewBag.SelectedBilling == "Monthly" ? "selected" : null)">Monthly</option>
+                    <option value="Annual"  selected="@(ViewBag.SelectedBilling == "Annual"  ? "selected" : null)">Annual</option>
+                </select>
+            </div>
+
+            <div class="fi-date">
+                <input type="text" class="form-control" id="fromDate" name="fromDate"
+                       value="@ViewBag.FromDate" placeholder="From date" readonly="readonly">
+            </div>
+
+            <div class="fi-date">
+                <input type="text" class="form-control" id="toDate" name="toDate"
+                       value="@ViewBag.ToDate" placeholder="To date" readonly="readonly">
+            </div>
+
+            <button type="submit" class="btn-filter">Filter</button>
+        </form>
+
+        <!-- Desktop Table -->
+        <div class="ts-table-wrap">
+            <table class="ts-table">
+                <thead>
+                    <tr>
+                        <th>Tenant</th>
+                        <th>Plan</th>
+                        <th>Billing</th>
+                        <th>Amount</th>
+                        <th>Start Date</th>
+                        <th>End Date</th>
+                        <th style="text-align:right; padding-right:0.85rem;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (displayRows.Any())
+                    {
+                        foreach (var row in displayRows)
+                        {
+                            var tenant = row.Tenant;
+                            var subscription = row.Subscription;
+
+                            <tr>
+                                <td class="td-tenant">@tenant?.CompanyName</td>
+
+                                <td>
+                                    @if (subscription?.Plan != null)
+                                    {
+                                        <span class="badge-plan">@subscription.Plan.PlanName</span>
+                                    }
+                                    else
+                                    {
+                                        <span style="color:var(--ts-muted)">—</span>
+                                    }
+                                </td>
+
+                                <td>
+                                    @if (!string.IsNullOrEmpty(subscription?.BillingCycle) && subscription.BillingCycle != "No Plan")
+                                    {
+                                        <span class="badge-billing">@subscription.BillingCycle</span>
+                                    }
+                                    else
+                                    {
+                                        <span style="color:var(--ts-muted)">—</span>
+                                    }
+                                </td>
+
+                                <td>
+                                    @if (subscription != null && subscription.Amount > 0)
+                                    {
+                                        <span class="td-amount">₹@subscription.Amount.ToString("N2")</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="td-amount zero">₹0.00</span>
+                                    }
+                                </td>
+
+                                <td>
+                                    @if (subscription != null && subscription.StartDate != DateTime.MinValue)
+                                    {
+                                        @subscription.StartDate.ToString("dd/MM/yyyy")
+                                    }
+                                    else
+                                    {
+                                        <span style="color:var(--ts-muted)">—</span>
+                                    }
+                                </td>
+
+                                <td>
+                                    @if (subscription != null && subscription.EndDate != DateTime.MinValue)
+                                    {
+                                        <div>@subscription.EndDate.ToString("dd/MM/yyyy")</div>
+                                        @if (subscription.Status == "Active" && subscription.EndDate <= DateTime.Now)
+                                        {
+                                            <span class="tag-expired">Expired</span>
+                                        }
+                                        else if (subscription.Status == "Active" && subscription.EndDate <= DateTime.Now.AddDays(7))
+                                        {
+                                            <span class="tag-expiring">Expiring Soon</span>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <span style="color:var(--ts-muted)">—</span>
+                                    }
+                                </td>
+
+                                <td class="td-actions">
+                                    @if (tenant != null)
+                                    {
+                                        if (subscription != null && subscription.Status == "Active" && subscription.EndDate > DateTime.Now)
+                                        {
+                                            <button class="btn-upgrade" onclick="openSaasUpgradeModal(@tenant.TenantId)">
+                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12l7-7 7 7M12 5v14"/></svg>
+                                                Upgrade
+                                            </button>
+                                        }
+                                        else
+                                        {
+                                            <button class="btn-assign" onclick="openSaasUpgradeModal(@tenant.TenantId)">
+                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                                                Assign Plan
+                                            </button>
+                                        }
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="7">
+                                <div class="ts-empty">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M8 12h8M12 8v8"/></svg>
+                                    <div>No tenants found</div>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Mobile Cards -->
+        <div class="mobile-cards">
+            @if (displayRows.Any())
+            {
+                foreach (var row in displayRows)
+                {
+                    var tenant = row.Tenant;
+                    var subscription = row.Subscription;
+
+                    <div class="sub-card">
+                        <div class="sub-card-top">
+                            <span class="sub-card-name">@tenant?.CompanyName</span>
+                            <span class="sub-card-amount">
+                                @if (subscription != null && subscription.Amount > 0)
+                                {
+                                    <span>₹@subscription.Amount.ToString("N2")</span>
+                                }
+                                else
+                                {
+                                    <span style="color:var(--ts-muted);font-weight:400">₹0.00</span>
+                                }
+                            </span>
+                        </div>
+
+                        <div class="sub-card-row">
+                            <span>
+                                <span class="sub-card-label">Plan</span>
+                                @if (subscription?.Plan != null)
+                                {
+                                    <span class="badge-plan">@subscription.Plan.PlanName</span>
+                                }
+                                else
+                                {
+                                    <span style="color:var(--ts-muted)">—</span>
+                                }
+                            </span>
+                            <span>
+                                <span class="sub-card-label">Billing</span>
+                                @if (!string.IsNullOrEmpty(subscription?.BillingCycle) && subscription.BillingCycle != "No Plan")
+                                {
+                                    <span class="badge-billing">@subscription.BillingCycle</span>
+                                }
+                                else
+                                {
+                                    <span style="color:var(--ts-muted)">—</span>
+                                }
+                            </span>
+                        </div>
+
+                        <div class="sub-card-row">
+                            <span>
+                                <span class="sub-card-label">Start Date</span>
+                                @if (subscription != null && subscription.StartDate != DateTime.MinValue)
+                                {
+                                    @subscription.StartDate.ToString("dd/MM/yyyy")
+                                }
+                                else
+                                {
+                                    <span style="color:var(--ts-muted)">—</span>
+                                }
+                            </span>
+                            <span>
+                                <span class="sub-card-label">End Date</span>
+                                @if (subscription != null && subscription.EndDate != DateTime.MinValue)
+                                {
+                                    <div>@subscription.EndDate.ToString("dd/MM/yyyy")</div>
+                                    @if (subscription.Status == "Active" && subscription.EndDate <= DateTime.Now)
+                                    {
+                                        <span class="tag-expired">Expired</span>
+                                    }
+                                    else if (subscription.Status == "Active" && subscription.EndDate <= DateTime.Now.AddDays(7))
+                                    {
+                                        <span class="tag-expiring">Expiring Soon</span>
+                                    }
+                                }
+                                else
+                                {
+                                    <span style="color:var(--ts-muted)">—</span>
+                                }
+                            </span>
+                        </div>
+
+                        <div>
+                            @if (tenant != null)
+                            {
+                                if (subscription != null && subscription.Status == "Active" && subscription.EndDate > DateTime.Now)
+                                {
+                                    <button class="btn-upgrade" style="width:100%;justify-content:center" onclick="openSaasUpgradeModal(@tenant.TenantId)">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12l7-7 7 7M12 5v14"/></svg>
+                                        Upgrade Plan
+                                    </button>
+                                }
+                                else
+                                {
+                                    <button class="btn-assign" style="width:100%;justify-content:center" onclick="openSaasUpgradeModal(@tenant.TenantId)">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                                        Assign Plan
+                                    </button>
+                                }
+                            }
+                        </div>
+                    </div>
+                }
+            }
+            else
+            {
+                <div class="ts-empty">
+                    <div>No tenants found</div>
+                </div>
+            }
+        </div>
+
+        <!-- Pagination -->
+        @if (ViewBag.TotalPages > 1)
+        {
+            <div class="ts-pagination">
+                @if (ViewBag.CurrentPage > 1)
+                {
+                    <a href="?page=@(ViewBag.CurrentPage - 1)&search=@ViewBag.Search&plan=@ViewBag.SelectedPlan&billing=@ViewBag.SelectedBilling&fromDate=@ViewBag.FromDate&toDate=@ViewBag.ToDate">‹</a>
+                }
+
+                @for (int i = Math.Max(1, ViewBag.CurrentPage - 2); i <= Math.Min(ViewBag.TotalPages, ViewBag.CurrentPage + 2); i++)
+                {
+                    if (i == ViewBag.CurrentPage)
+                    {
+                        <span class="active">@i</span>
+                    }
+                    else
+                    {
+                        <a href="?page=@i&search=@ViewBag.Search&plan=@ViewBag.SelectedPlan&billing=@ViewBag.SelectedBilling&fromDate=@ViewBag.FromDate&toDate=@ViewBag.ToDate">@i</a>
+                    }
+                }
+
+                @if (ViewBag.CurrentPage < ViewBag.TotalPages)
+                {
+                    <a href="?page=@(ViewBag.CurrentPage + 1)&search=@ViewBag.Search&plan=@ViewBag.SelectedPlan&billing=@ViewBag.SelectedBilling&fromDate=@ViewBag.FromDate&toDate=@ViewBag.ToDate">›</a>
+                }
+            </div>
+        }
+
+    </div>
+</div>
+</div>
+
+@Html.Partial("_UpgradeModal")
+@Html.Partial("_SaaSUpgradeModal")
+
+@* Load flatpickr AFTER DOM is ready - fixes calendar not opening *@
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script>
+    // ── Flatpickr - loaded after DOM, no altInput needed, readonly inputs ──
+    document.addEventListener('DOMContentLoaded', function () {
+
+        var fromPicker = flatpickr('#fromDate', {
+            dateFormat: 'Y-m-d',
+            altInput: true,
+            altFormat: 'd/m/Y',
+            allowInput: false,
+            disableMobile: false,
+            onChange: function (selectedDates, dateStr) {
+                clearTimeout(window._fpTimer);
+                window._fpTimer = setTimeout(function () {
+                    document.getElementById('filterForm').submit();
+                }, 600);
+            }
+        });
+
+        var toPicker = flatpickr('#toDate', {
+            dateFormat: 'Y-m-d',
+            altInput: true,
+            altFormat: 'd/m/Y',
+            allowInput: false,
+            disableMobile: false,
+            onChange: function (selectedDates, dateStr) {
+                clearTimeout(window._fpTimer);
+                window._fpTimer = setTimeout(function () {
+                    document.getElementById('filterForm').submit();
+                }, 600);
+            }
+        });
+
+        // Set existing values if present (from ViewBag)
+        var fromVal = '@ViewBag.FromDate';
+        var toVal   = '@ViewBag.ToDate';
+        if (fromVal) fromPicker.setDate(fromVal, false);
+        if (toVal)   toPicker.setDate(toVal, false);
+
+        // ── Search debounce ──
+        var _searchTimer;
+        var searchInput = document.getElementById('searchInput');
+        if (searchInput) {
+            searchInput.addEventListener('input', function () {
+                clearTimeout(_searchTimer);
+                _searchTimer = setTimeout(function () {
+                    document.getElementById('filterForm').submit();
+                }, 500);
+            });
+        }
+    });
+</script>

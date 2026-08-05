@@ -1,0 +1,433 @@
+@model List<CRM.Models.PartnerPayoutModel>
+@{
+    ViewData["Title"] = "Channel Partner Payouts";
+    var partners = ViewBag.Partners as List<CRM.Models.ChannelPartnerModel> ?? new List<CRM.Models.ChannelPartnerModel>();
+    
+    // Helper function to convert abbreviated month to full month name
+    Func<string, string> getFullMonthName = (abbr) => {
+        var monthMap = new Dictionary<string, string> {
+            {"Jan", "January"}, {"Feb", "February"}, {"Mar", "March"}, {"Apr", "April"},
+            {"May", "May"}, {"Jun", "June"}, {"Jul", "July"}, {"Aug", "August"},
+            {"Sep", "September"}, {"Oct", "October"}, {"Nov", "November"}, {"Dec", "December"}
+        };
+        return monthMap.ContainsKey(abbr) ? monthMap[abbr] : abbr;
+    };
+}
+
+<style>
+    .payout-header {
+        background: linear-gradient(135deg, #F59E0B 0%, #DC2626 100%);
+        color: white;
+        padding: 2rem;
+        border-radius: 12px;
+        margin-bottom: 2rem;
+    }
+
+    .stats-card {
+        background: rgba(255, 255, 255, 0.15);
+        backdrop-filter: blur(10px);
+        border-radius: 10px;
+        padding: 1.5rem;
+        text-align: center;
+    }
+
+    .stats-number {
+        font-size: 2rem;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+    }
+
+    .filter-card {
+        background: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        margin-bottom: 2rem;
+    }
+
+    .payout-card {
+        background: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 1rem;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: visible !important;
+        z-index: 1;
+    }
+
+    .payout-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+        z-index: 99999 !important;
+    }
+    
+    .payout-card .dropdown {
+        position: static !important;
+    }
+
+    .payout-card .dropdown-menu {
+        z-index: 999999 !important;
+        position: absolute !important;
+    }
+    
+    .payout-card:has(.dropdown.show) {
+        z-index: 99999 !important;
+    }
+    
+    .payout-card.dropdown-active {
+        z-index: 99999 !important;
+    }
+    
+    .dropdown-menu.show {
+        z-index: 999999 !important;
+    }
+    
+    .dropdown-menu {
+        z-index: 999999 !important;
+    }
+    
+    .payout-card .dropdown.show .dropdown-menu {
+        z-index: 999999 !important;
+        position: absolute !important;
+        display: block !important;
+    }
+
+    .status-badge {
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+        font-weight: 600;
+        font-size: 0.875rem;
+    }
+
+    .status-pending { background-color: #FEF3C7; color: #B45309; }
+    .status-processed { background-color: #E2E8F0; color: #121F2E; }
+    .status-paid { background-color: #E2E8F0; color: #125082; }
+
+    .process-btn {
+        background: linear-gradient(135deg, #F59E0B 0%, #DC2626 100%);
+        border: none;
+        color: white;
+        padding: 0.75rem 2rem;
+        border-radius: 8px;
+        font-weight: 600;
+        box-shadow: 0 4px 12px rgba(245,158,11, 0.3);
+        transition: all 0.3s ease;
+    }
+
+    .process-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(245,158,11, 0.4);
+        color: white;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 4rem 2rem;
+    }
+
+    .empty-state i {
+        font-size: 5rem;
+        color: #E8EDF2;
+        margin-bottom: 1.5rem;
+    }
+</style>
+
+<div class="content">
+    <!-- Breadcrumb -->
+    <nav class="mb-3" aria-label="breadcrumb">
+        <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item"><a href="/home">Home</a></li>
+            <li class="breadcrumb-item active">Channel Partner Payouts</li>
+        </ol>
+    </nav>
+
+    <!-- Header with Stats -->
+    <div class="payout-header">
+        <div class="row align-items-center mb-4">
+            <div class="col-md-6">
+                <h2 class="mb-0"><i class="fa-solid fa-handshake me-2"></i>Channel Partner Payouts</h2>
+                <p class="mb-0 mt-2 opacity-75">Manage partner commissions and payouts</p>
+            </div>
+            <div class="col-md-6 text-md-end">
+                <button class="btn process-btn" onclick="processPayouts()">
+                    <i class="fa-solid fa-cogs me-2"></i>Process Payouts
+                </button>
+            </div>
+        </div>
+
+        <div class="row g-3">
+            <div class="col-md-3">
+                <div class="stats-card">
+                    <div class="stats-number">@ViewBag.TotalPartners</div>
+                    <div>Total Partners</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stats-card">
+                    <div class="stats-number">@ViewBag.TotalSales</div>
+                    <div>Total Sales</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stats-card">
+                    <div class="stats-number">₹@ViewBag.AverageCommission.ToString("N0")</div>
+                    <div>Avg Commission</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stats-card">
+                    <div class="stats-number">₹@ViewBag.TotalPayouts.ToString("N0")</div>
+                    <div>Total Payouts</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filter Section -->
+    <div class="filter-card">
+        <form method="get" action="/ChannelPartnerPayout/Index">
+            <div class="row g-3 align-items-end">
+                <div class="col-md-3">
+                    <label for="month" class="form-label">Month</label>
+                    <select class="form-select" name="month" id="month">
+                        <option value="Jan" selected="@(ViewBag.Month == "Jan")">January</option>
+                        <option value="Feb" selected="@(ViewBag.Month == "Feb")">February</option>
+                        <option value="Mar" selected="@(ViewBag.Month == "Mar")">March</option>
+                        <option value="Apr" selected="@(ViewBag.Month == "Apr")">April</option>
+                        <option value="May" selected="@(ViewBag.Month == "May")">May</option>
+                        <option value="Jun" selected="@(ViewBag.Month == "Jun")">June</option>
+                        <option value="Jul" selected="@(ViewBag.Month == "Jul")">July</option>
+                        <option value="Aug" selected="@(ViewBag.Month == "Aug")">August</option>
+                        <option value="Sep" selected="@(ViewBag.Month == "Sep")">September</option>
+                        <option value="Oct" selected="@(ViewBag.Month == "Oct")">October</option>
+                        <option value="Nov" selected="@(ViewBag.Month == "Nov")">November</option>
+                        <option value="Dec" selected="@(ViewBag.Month == "Dec")">December</option>
+                    </select>
+                </div>
+
+                <div class="col-md-2">
+                    <label for="year" class="form-label">Year</label>
+                    <select class="form-select" name="year" id="year">
+                        @for (int i = DateTime.Now.Year; i >= DateTime.Now.Year - 5; i--)
+                        {
+                            <option value="@i" selected="@(ViewBag.Year == i)">@i</option>
+                        }
+                    </select>
+                </div>
+
+                <div class="col-md-3">
+                    <label for="search" class="form-label">Search Partner</label>
+                    <input type="text" class="form-control" name="search" id="search" 
+                           placeholder="Search by company or contact..." value="@ViewBag.Search">
+                </div>
+
+                <div class="col-md-3">
+                    <label for="partnerId" class="form-label">Partner</label>
+                    <select class="form-select" name="partnerId" id="partnerId">
+                        <option value="">All Partners</option>
+                        @foreach (var partner in partners)
+                        {
+                            <option value="@partner.PartnerId" selected="@(ViewBag.PartnerId == partner.PartnerId)">@partner.CompanyName</option>
+                        }
+                    </select>
+                </div>
+
+                <div class="col-md-1">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="fa-solid fa-search"></i>
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- Payouts List -->
+    @if (Model.Any())
+    {
+        foreach (var payout in Model)
+        {
+            <div class="card payout-card">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-md-4">
+                            <h5 class="mb-2">
+                                <i class="fa-solid fa-building text-primary me-2"></i>
+                                @payout.Partner?.CompanyName
+                            </h5>
+                            <p class="mb-1 text-muted">
+                                <i class="fa-solid fa-user me-1"></i>
+                                @payout.Partner?.ContactPerson
+                            </p>
+                            <p class="mb-0 text-muted">
+                                <i class="fa-solid fa-calendar me-1"></i>
+                                @payout.Month @payout.Year
+                            </p>
+                        </div>
+
+                        <div class="col-md-2 text-center">
+                            <small class="text-muted d-block">Leads Given</small>
+                            <h5 class="mb-0">@payout.TotalLeads</h5>
+                        </div>
+
+                        <div class="col-md-2 text-center">
+                            <small class="text-muted d-block">Converted</small>
+                            <h5 class="text-success mb-0">@payout.ConvertedLeads</h5>
+                            <small class="text-muted">(@payout.TotalSales Sales)</small>
+                        </div>
+
+                        <div class="col-md-2 text-center">
+                            <small class="text-muted d-block">Commission/Sale</small>
+                            <h5 class="text-info mb-0">₹@payout.FixedCommissionPerSale.ToString("N0")</h5>
+                        </div>
+
+                        <div class="col-md-1 text-center">
+                            <small class="text-muted d-block">Total</small>
+                            <h4 class="text-success mb-0">₹@payout.TotalCommission.ToString("N0")</h4>
+                            <span class="status-badge status-@payout.Status.ToLower()">
+                                @payout.Status
+                            </span>
+                        </div>
+
+                        <div class="col-md-1 text-end">
+                            <div class="dropdown">
+                                <button class="btn btn-sm btn-outline-primary dropdown-toggle" 
+                                        type="button" data-bs-toggle="dropdown">
+                                    <i class="fa-solid fa-ellipsis-v"></i>
+                                </button>
+                                <ul class="dropdown-menu">
+                                    <li>
+                                        <a class="dropdown-item" href="/ChannelPartnerPayout/Details/@payout.PartnerId?month=@getFullMonthName(payout.Month)&year=@payout.Year">
+                                            <i class="fa-solid fa-eye me-2"></i>View Details
+                                        </a>
+                                    </li>
+                                    @if (payout.Status != "Paid")
+                                    {
+                                        <li>
+                                            <a class="dropdown-item" href="#" 
+                                               onclick="updateStatus(@payout.PayoutId, 'Paid')">
+                                                <i class="fa-solid fa-check me-2"></i>Mark as Paid
+                                            </a>
+                                        </li>
+                                    }
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    }
+    else
+    {
+        <div class="empty-state">
+            <i class="fa-solid fa-handshake"></i>
+            <h3>No Payouts Found</h3>
+            <p class="text-muted">Process payouts for the selected month to see results</p>
+            <button class="btn process-btn mt-3" onclick="processPayouts()">
+                <i class="fa-solid fa-cogs me-2"></i>Process Payouts
+            </button>
+        </div>
+    }
+</div>
+
+<script>
+    setTimeout(function() {
+        if (typeof $ === 'undefined') {
+            console.log('jQuery not loaded yet');
+            return;
+        }
+        
+        // Handle dropdown z-index
+        $('.payout-card .dropdown').on('show.bs.dropdown', function () {
+            $('.payout-card').removeClass('dropdown-active').css('z-index', '1');
+            $(this).closest('.payout-card').addClass('dropdown-active').css('z-index', '99999');
+        });
+
+        $('.payout-card .dropdown').on('hide.bs.dropdown', function () {
+            $(this).closest('.payout-card').removeClass('dropdown-active').css('z-index', '1');
+        });
+    }, 1000);
+    
+    function processPayouts() {
+        const month = document.getElementById('month').value || '@ViewBag.Month';
+        const year = document.getElementById('year').value || '@ViewBag.Year';
+        
+        Swal.fire({
+            title: 'Process Payouts?',
+            text: `Process partner payouts for ${month} ${year}?`,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#F59E0B',
+            cancelButtonColor: '#6B7B8D',
+            confirmButtonText: 'Yes, process!'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                $.ajax({
+                    url: '/AgentPayout/ProcessPayouts',
+                    type: 'POST',
+                    data: { month, year },
+                    success: function (response) {
+                        if (response.success) {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Success!',
+                                text: response.message,
+                                timer: 2000,
+                                showConfirmButton: false
+                            }).then(() => location.reload());
+                        } else {
+                            Swal.fire('Error', response.message, 'error');
+                        }
+                    },
+                    error: function () {
+                        Swal.fire('Error', 'Failed to process payouts', 'error');
+                    }
+                });
+            }
+        });
+    }
+
+    function updateStatus(payoutId, status) {
+        if (typeof $ === 'undefined') {
+            console.log('jQuery not available');
+            return;
+        }
+        Swal.fire({
+            title: 'Are you sure?',
+            text: `Mark this payout as ${status}?`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#F59E0B',
+            cancelButtonColor: '#6B7B8D',
+            confirmButtonText: 'Yes, update!'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                $.ajax({
+                    url: '/ChannelPartnerPayout/UpdateStatus',
+                    type: 'POST',
+                    data: { payoutId, status },
+                    success: function (response) {
+                        if (response.success) {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Success!',
+                                text: response.message,
+                                timer: 2000,
+                                showConfirmButton: false
+                            }).then(() => location.reload());
+                        } else {
+                            Swal.fire('Error', response.message, 'error');
+                        }
+                    },
+                    error: function () {
+                        Swal.fire('Error', 'Failed to update status', 'error');
+                    }
+                });
+            }
+        });
+    }
+</script>
+
+

@@ -1,0 +1,234 @@
+@{
+    ViewData["Title"] = "Compose Email - Super Admin";
+    var tenants = ViewBag.Tenants as List<CRM.MasterDb.Models.TenantModel> ?? new();
+    var tenantUsers = ViewBag.TenantUsers as List<object> ?? new();
+    var templates = ViewBag.Templates as List<CRM.Models.EmailTemplateModel> ?? new();
+}
+<style>
+    .ce-container { max-width: 900px; margin: 0 auto; padding: 10px; }
+    .ce-header { margin-bottom: 24px; }
+    .ce-header h2 { font-size: 1.5rem; font-weight: 600; margin: 0; display: flex; align-items: center; gap: 10px; color: var(--text-primary); }
+    .ce-card { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 12px; padding: 24px; }
+    .ce-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+    @@media (max-width: 600px) { .ce-row { grid-template-columns: 1fr; } }
+    .ce-group { margin-bottom: 16px; }
+    .ce-group label { display: block; font-weight: 600; font-size: 0.85rem; margin-bottom: 6px; color: var(--text-primary); }
+    .ce-group input, .ce-group select, .ce-group textarea {
+        width: 100%; padding: 10px 12px; border: 1px solid var(--border-color);
+        border-radius: 8px; background: var(--body-bg); color: var(--text-primary);
+        font-size: 0.9rem; transition: border-color 0.2s;
+    }
+    .ce-group input:focus, .ce-group select:focus, .ce-group textarea:focus {
+        border-color: var(--blue); outline: none; box-shadow: 0 0 0 3px rgba(26,111,168,0.12);
+    }
+    .ce-group textarea { min-height: 200px; resize: vertical; }
+    .ce-actions { display: flex; gap: 12px; justify-content: flex-end; margin-top: 20px; }
+    .ce-btn { padding: 10px 24px; border: none; border-radius: 8px; font-size: 0.9rem; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+    .ce-btn-primary { background: linear-gradient(135deg, var(--blue), var(--blue-light)); color: #FFFFFF; }
+    .ce-btn-primary:hover { background: linear-gradient(135deg, var(--blue-dark), var(--blue)); }
+    .ce-btn-secondary { background: var(--border-color); color: var(--text-primary); }
+    .ce-btn-secondary:hover { background: #B8C8D8; }
+    .ce-preview { margin-top: 20px; border: 1px solid var(--border-color); border-radius: 8px; padding: 16px; background: var(--card-bg); display: none; }
+    .ce-preview.show { display: block; }
+    .ce-preview iframe { width: 100%; min-height: 300px; border: none; border-radius: 4px; }
+</style>
+
+<div class="ce-container">
+    <nav class="mb-3" aria-label="breadcrumb">
+        <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item"><a href="/SuperAdmin/Dashboard">Dashboard</a></li>
+            <li class="breadcrumb-item active">Compose Email</li>
+        </ol>
+    </nav>
+
+    <div class="ce-header">
+        <h2><i class="fa-solid fa-pen-to-square" style="color:var(--blue);"></i> Compose Email</h2>
+        <p style="color:var(--text-muted);margin:4px 0 0 0;font-size:0.9rem;">
+            Send emails to tenants and their team members
+        </p>
+    </div>
+
+    <div class="ce-card">
+        <form id="composeForm">
+            @Html.AntiForgeryToken()
+            <div class="ce-row">
+                <div class="ce-group">
+                    <label>Select Tenant</label>
+                    <select id="tenantSelect" onchange="loadTenantUsers()">
+                        <option value="">-- Select Tenant --</option>
+                        @foreach (var t in tenants)
+                        {
+                            <option value="@t.TenantId">@t.CompanyName (@t.Subdomain)</option>
+                        }
+                    </select>
+                </div>
+                <div class="ce-group">
+                    <label>Select Recipient <span class="text-danger">*</span></label>
+                    <select id="recipientSelect" required>
+                        <option value="">-- Select Recipient --</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="ce-row">
+                <div class="ce-group">
+                    <label>Email Template (Optional)</label>
+                    <select id="templateSelect" onchange="loadTemplate()">
+                        @{
+                            var opts = "<option value=''>-- No Template --</option>";
+                            for (int t = 0; t < templates.Count; t++)
+                            {
+                                opts += "<option value='" + t + "'>" + System.Text.Encodings.Web.HtmlEncoder.Default.Encode(templates[t].TemplateName ?? "") + "</option>";
+                            }
+                        }
+                        @Html.Raw(opts)
+                    </select>
+                </div>
+                <div class="ce-group">
+                    <label>Recipient Name</label>
+                    <input type="text" id="recipientName" placeholder="e.g. John Doe" />
+                </div>
+            </div>
+
+            <div class="ce-group">
+                <label>Subject <span class="text-danger">*</span></label>
+                <input type="text" id="subject" required placeholder="Email subject line..." />
+            </div>
+
+            <div class="ce-group">
+                <label>Email Body (HTML) <span class="text-danger">*</span></label>
+                <textarea id="body" required placeholder="Write your email content in HTML..."></textarea>
+                <div style="font-size:0.75rem;color:var(--text-muted);margin-top:4px;">
+                    You can use HTML tags for formatting. Variables like {Name}, {CompanyName} will be replaced automatically if using a template.
+                </div>
+            </div>
+
+            <div class="ce-actions">
+                <button type="button" class="ce-btn ce-btn-secondary" onclick="clearForm()">Clear</button>
+                <button type="button" class="ce-btn ce-btn-secondary" onclick="previewEmail()">Preview</button>
+                <button type="submit" class="ce-btn ce-btn-primary">
+                    <i class="fa-solid fa-paper-plane me-1"></i> Send Email
+                </button>
+            </div>
+        </form>
+
+        <div class="ce-preview" id="previewArea">
+            <h4 style="margin:0 0 10px 0;font-size:0.95rem;">Preview</h4>
+            <div id="previewSubject" style="font-weight:600;margin-bottom:8px;padding:8px;background:var(--body-bg);border-radius:6px;"></div>
+            <iframe id="previewIframe"></iframe>
+        </div>
+    </div>
+</div>
+
+<script>
+    var tenantUsersMap = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(tenantUsers, new System.Text.Json.JsonSerializerOptions { PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase }));
+    var templatesData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(templates.Select(t => new { t.TemplateName, t.Subject, t.BodyHtml }), new System.Text.Json.JsonSerializerOptions { PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase }));
+
+    function loadTenantUsers() {
+        var tenantId = document.getElementById('tenantSelect').value;
+        var select = document.getElementById('recipientSelect');
+        select.innerHTML = '<option value="">-- Select Recipient --</option>';
+        if (!tenantId) return;
+        var count = 0;
+        tenantUsersMap.forEach(function(u) {
+            // Filter by tenant ID (or show all if tenantId is 0/unknown)
+            if (u.tenantId && u.tenantId.toString() !== tenantId) return;
+            select.innerHTML += '<option value="' + u.email + '" data-name="' + u.username + '" data-role="' + u.role + '">' + u.username + ' (' + u.email + ') - ' + u.role + '</option>';
+            count++;
+        });
+        if (count === 0) {
+            select.innerHTML = '<option value="">-- No users for this tenant --</option>';
+        }
+    }
+
+    document.getElementById('recipientSelect').addEventListener('change', function() {
+        var opt = this.options[this.selectedIndex];
+        if (opt && opt.value) {
+            document.getElementById('recipientName').value = opt.getAttribute('data-name') || '';
+        }
+    });
+
+    function loadTemplate() {
+        var idx = parseInt(document.getElementById('templateSelect').value) || -1;
+        if (idx >= 0 && templatesData[idx]) {
+            var tpl = templatesData[idx];
+            document.getElementById('subject').value = tpl.subject || '';
+            document.getElementById('body').value = tpl.bodyHtml || '';
+        } else {
+            document.getElementById('subject').value = '';
+            document.getElementById('body').value = '';
+        }
+    }
+
+    function previewEmail() {
+        var subject = document.getElementById('subject').value;
+        var body = document.getElementById('body').value;
+        document.getElementById('previewSubject').textContent = 'Subject: ' + (subject || '(no subject)');
+        var iframe = document.getElementById('previewIframe');
+        iframe.srcdoc = body || '<p style="color:#8FA3B8;">(empty body)</p>';
+        document.getElementById('previewArea').classList.add('show');
+    }
+
+    document.getElementById('composeForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        var btn = this.querySelector('button[type="submit"]');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Sending...';
+
+        var formData = new FormData();
+        var token = document.querySelector('input[name="__RequestVerificationToken"]');
+        if (token) formData.append('__RequestVerificationToken', token.value);
+        formData.append('toEmail', document.getElementById('recipientSelect').value);
+        formData.append('toName', document.getElementById('recipientName').value);
+        formData.append('subject', document.getElementById('subject').value);
+        formData.append('body', document.getElementById('body').value);
+        formData.append('tenantId', document.getElementById('tenantSelect').value || '');
+        formData.append('templateName', document.getElementById('templateSelect').value || '');
+
+        try {
+            var resp = await fetch('/SuperAdmin/SendEmail', {
+                method: 'POST',
+                headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                body: formData
+            });
+            var result = await resp.json();
+            if (result.success) {
+                showToast('Email sent successfully!', 'success');
+                this.reset();
+                document.getElementById('recipientSelect').innerHTML = '<option value="">-- Select Recipient --</option>';
+                document.getElementById('previewArea').classList.remove('show');
+            } else {
+                showToast('Error: ' + result.message, 'error');
+            }
+        } catch (err) {
+            showToast('Failed to send email: ' + err.message, 'error');
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Send Email';
+        }
+    });
+
+    function clearForm() {
+        document.getElementById('composeForm').reset();
+        var sel = document.getElementById('recipientSelect');
+        sel.innerHTML = '<option value="">-- Select Recipient --</option>';
+        document.getElementById('previewArea').classList.remove('show');
+    }
+
+    function showToast(message, type) {
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                icon: type === 'success' ? 'success' : 'error',
+                title: type === 'success' ? 'Success' : 'Error',
+                text: message,
+                toast: true,
+                position: 'top-end',
+                showConfirmButton: false,
+                timer: 4000,
+                timerProgressBar: true
+            });
+        } else {
+            showToast(message, 'error');
+        }
+    }
+</script>

@@ -1,0 +1,314 @@
+@model CRM.Models.LeadModel
+@{
+    var executives = ViewBag.Executives as IEnumerable<dynamic>;
+    string executiveName = "Unassigned";
+    var displayedExecutiveId = Model.ExecutiveId ?? 0;
+    
+    if (displayedExecutiveId > 0 && executives != null)
+    {
+        foreach (var e in executives)
+        {
+            try
+            {
+                int eId = Convert.ToInt32(e.UserId);
+                if (eId == displayedExecutiveId)
+                {
+                    executiveName = (string)(e.FullName ?? e.Username ?? "Unassigned");
+                    break;
+                }
+            }
+            catch { }
+        }
+    }
+}
+
+<style>
+    :root {
+        --brand-primary: #1A6FA8;
+        --brand-primary-dark: #125082;
+        --brand-primary-light: rgba(26,111,168, 0.08);
+        --brand-accent: #D4A45A;
+        --brand-accent-dark: #B8883E;
+        --brand-accent-light: rgba(212,164,90, 0.12);
+        --ink-900: #1E2A3A;
+        --ink-600: #6B7B8D;
+        --ink-400: #8FA3B8;
+        --surface: #FFFFFF;
+        --surface-muted: #F0F4F8;
+        --border-soft: rgba(26,111,168, 0.12);
+        --danger: #DC2626;
+        --success: #16A34A;
+        --radius-lg: 10px;
+        --radius-md: 8px;
+        --radius-sm: 6px;
+    }
+    .card {
+        border: none;
+        border-radius: var(--radius-md);
+        box-shadow: 0 2px 8px rgba(26,111,168, 0.05);
+        transition: all 0.2s ease;
+        background: var(--surface);
+        border: 1px solid var(--border-soft);
+        margin-bottom: 0.65rem;
+    }
+    .card-body {
+        padding: 0.95rem 1rem;
+    }
+    .card-body h4 {
+        font-size: 0.9rem;
+        font-weight: 700;
+        color: var(--ink-900);
+        margin-bottom: 0.5rem;
+        padding-bottom: 0.4rem;
+        border-bottom: 1px solid var(--border-soft);
+    }
+    .card-body h5 {
+        font-size: 0.7rem;
+        font-weight: 600;
+        color: var(--ink-600);
+        text-transform: uppercase;
+        letter-spacing: 0.35px;
+    }
+    .info-row {
+        margin-bottom: 0.55rem;
+        padding-bottom: 0.55rem;
+        border-bottom: 1px dashed rgba(26,111,168, 0.12);
+    }
+    .info-row-last,
+    .info-row:last-child {
+        margin-bottom: 0;
+        padding-bottom: 0;
+        border-bottom: none;
+    }
+    .info-icon {
+        min-width: 15px;
+        text-align: center;
+        color: var(--brand-accent-dark);
+        font-size: 0.78rem;
+    }
+    .info-value {
+        padding-left: 22px;
+        font-size: 0.8125rem;
+    }
+    .avatar-name {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        background: var(--brand-primary-light) !important;
+        color: var(--brand-primary) !important;
+    }
+    .badge-phoenix-success { background-color: rgba(22,163,74, 0.12); color: var(--success); font-weight: 600; padding: 0.2rem 0.5rem; font-size: 0.68rem; border-radius: 9px; }
+    .badge-phoenix-danger { background-color: rgba(220,38,38, 0.1); color: var(--danger); font-weight: 600; padding: 0.2rem 0.5rem; font-size: 0.68rem; border-radius: 9px; }
+    .badge-phoenix-warning { background-color: var(--brand-accent-light); color: var(--brand-accent-dark); font-weight: 600; padding: 0.2rem 0.5rem; font-size: 0.68rem; border-radius: 9px; }
+    .badge-phoenix-info { background-color: rgba(26,111,168, 0.1); color: var(--brand-primary); font-weight: 600; padding: 0.2rem 0.5rem; font-size: 0.68rem; border-radius: 9px; }
+    .badge-phoenix-primary { background-color: rgba(26,111,168, 0.12); color: var(--brand-primary); font-weight: 600; padding: 0.2rem 0.5rem; font-size: 0.68rem; border-radius: 9px; }
+    .badge-phoenix-secondary { background-color: rgba(107,123,141, 0.1); color: var(--ink-600); font-weight: 600; padding: 0.2rem 0.5rem; font-size: 0.68rem; border-radius: 9px; }
+    .profile-name { font-size: 1.05rem; color: var(--ink-900); font-weight: 700; }
+    .followup-card { border-left: 3px solid var(--brand-accent) !important; background: var(--brand-accent-light); }
+    .dark-mode .card { background: #1A2332 !important; border-color: #2A3A4A !important; color: #E2E8F0 !important; }
+    .dark-mode .card-body h4, .dark-mode .card-body h5 { color: #E2E8F0 !important; }
+    .dark-mode .text-body-secondary { color: #8FA3B8 !important; }
+    .dark-mode .info-row { border-bottom-color: rgba(212,164,90, 0.15); }
+</style>
+
+<!-- Lead Profile Card -->
+<div class="card mb-3">
+    <div class="card-body">
+        <div class="d-flex align-items-center gap-3">
+            <div class="avatar" style="flex-shrink: 0;">
+                <div class="avatar-name rounded-circle" style="width: 54px; height: 54px; display: flex; align-items: center; justify-content: center;">
+                    <span class="fs-5 fw-bold">@(Model.Name?.Substring(0, 1).ToUpper() ?? "?")</span>
+                </div>
+            </div>
+            <div class="flex-1" style="min-width: 0;">
+                <h3 class="fw-bolder mb-1 profile-name">@Model.Name</h3>
+                <div class="d-flex flex-wrap align-items-center gap-2">
+                    <span class="badge badge-phoenix-@(Model.Status == "Active" ? "success" : Model.Status == "Hot" ? "danger" : Model.Status == "Warm" ? "warning" : Model.Status == "Cold" ? "info" : "secondary")">@Model.Status</span>
+                    <span class="badge badge-phoenix-@(Model.Stage == "New" ? "primary" : Model.Stage == "Qualified" ? "success" : Model.Stage == "Negotiation" ? "warning" : Model.Stage == "Closed" ? "success" : "secondary")">@Model.Stage</span>
+                    @if (!string.IsNullOrEmpty(Model.Rating))
+                    {
+                        <span class="badge" style="background-color: var(--brand-accent-light); color: var(--brand-accent-dark); font-weight:600; padding:0.2rem 0.5rem; font-size:0.68rem; border-radius:9px;">@Model.Rating</span>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Contact Information Card -->
+<div class="card mb-3">
+    <div class="card-body">
+        <h4>Contact Information</h4>
+        <div class="info-row">
+            <div class="d-flex align-items-center mb-1">
+                <span class="me-2 fa-solid fa-envelope info-icon"></span>
+                <h5 class="mb-0">Email</h5>
+            </div>
+            <p class="mb-0 text-body-secondary info-value">@(Model.Email ?? "Not provided")</p>
+        </div>
+        <div class="info-row">
+            <div class="d-flex align-items-center mb-1">
+                <span class="me-2 fa-solid fa-phone info-icon"></span>
+                <h5 class="mb-0">Phone</h5>
+            </div>
+            <p class="mb-0 text-body-secondary info-value">@Model.Contact</p>
+        </div>
+        @if (!string.IsNullOrEmpty(Model.GroupName))
+        {
+            <div class="info-row">
+                <div class="d-flex align-items-center mb-1">
+                    <span class="me-2 fa-solid fa-users info-icon"></span>
+                    <h5 class="mb-0">Group Name</h5>
+                </div>
+                <p class="mb-0 text-body-secondary info-value">@Model.GroupName</p>
+            </div>
+        }
+        <div class="info-row">
+            <div class="d-flex align-items-center mb-1">
+                <span class="me-2 fa-solid fa-user-tie info-icon"></span>
+                <h5 class="mb-0">Assigned Executive</h5>
+            </div>
+            <p class="mb-0 text-body-secondary fw-semibold info-value">@executiveName</p>
+        </div>
+        @if (!string.IsNullOrEmpty(Model.Source))
+        {
+            <div class="info-row">
+                <div class="d-flex align-items-center mb-1">
+                    <span class="me-2 fa-solid fa-bullseye info-icon"></span>
+                    <h5 class="mb-0">Lead Source</h5>
+                </div>
+                <p class="mb-0 text-body-secondary info-value">@Model.Source</p>
+            </div>
+        }
+        <div class="info-row">
+            <div class="d-flex align-items-center mb-1">
+                <span class="me-2 fa-solid fa-clock info-icon"></span>
+                <h5 class="mb-0">Created On</h5>
+            </div>
+            <p class="mb-0 text-body-secondary info-value">@Model.CreatedOn.ToString("MMMM dd, yyyy hh:mm tt")</p>
+        </div>
+        @if (Model.ModifiedOn.HasValue)
+        {
+            <div class="info-row info-row-last">
+                <div class="d-flex align-items-center mb-1">
+                    <span class="me-2 fa-solid fa-pen info-icon"></span>
+                    <h5 class="mb-0">Last Modified</h5>
+                </div>
+                <p class="mb-0 text-body-secondary info-value">@Model.ModifiedOn.Value.ToString("MMMM dd, yyyy hh:mm tt")</p>
+            </div>
+        }
+    </div>
+</div>
+
+<!-- Property Requirements Card -->
+<div class="card mb-3">
+    <div class="card-body">
+        <h4>Property Requirements</h4>
+        @if (!string.IsNullOrEmpty(Model.PreferredLocation))
+        {
+            <div class="info-row">
+                <div class="d-flex align-items-center mb-1">
+                    <span class="me-2 fa-solid fa-location-dot info-icon"></span>
+                    <h5 class="mb-0">Preferred Location</h5>
+                </div>
+                <p class="mb-0 text-body-secondary info-value">@Model.PreferredLocation</p>
+            </div>
+        }
+        @if (!string.IsNullOrEmpty(Model.Type))
+        {
+            <div class="info-row">
+                <div class="d-flex align-items-center mb-1">
+                    <span class="me-2 fa-solid fa-tag info-icon"></span>
+                    <h5 class="mb-0">Type</h5>
+                </div>
+                <p class="mb-0 text-body-secondary info-value">@Model.Type</p>
+            </div>
+        }
+        @if (!string.IsNullOrEmpty(Model.PropertyType))
+        {
+            <div class="info-row">
+                <div class="d-flex align-items-center mb-1">
+                    <span class="me-2 fa-solid fa-building info-icon"></span>
+                    <h5 class="mb-0">Property Type</h5>
+                </div>
+                <p class="mb-0 text-body-secondary info-value">@Model.PropertyType</p>
+            </div>
+        }
+        @if (!string.IsNullOrEmpty(Model.BHK))
+        {
+            <div class="info-row">
+                <div class="d-flex align-items-center mb-1">
+                    <span class="me-2 fa-solid fa-home info-icon"></span>
+                    <h5 class="mb-0">BHK</h5>
+                </div>
+                <p class="mb-0 text-body-secondary info-value">@Model.BHK</p>
+            </div>
+        }
+        @if (!string.IsNullOrEmpty(Model.Sqft))
+        {
+            <div class="info-row">
+                <div class="d-flex align-items-center mb-1">
+                    <span class="me-2 fa-solid fa-ruler-combined info-icon"></span>
+                    <h5 class="mb-0">Square Feet</h5>
+                </div>
+                <p class="mb-0 text-body-secondary info-value">@Model.Sqft sq.ft</p>
+            </div>
+        }
+        @if (!string.IsNullOrEmpty(Model.Facing))
+        {
+            <div class="info-row">
+                <div class="d-flex align-items-center mb-1">
+                    <span class="me-2 fa-solid fa-compass info-icon"></span>
+                    <h5 class="mb-0">Facing</h5>
+                </div>
+                <p class="mb-0 text-body-secondary info-value">@Model.Facing</p>
+            </div>
+        }
+        @if (!string.IsNullOrEmpty(Model.Requirement))
+        {
+            <div class="info-row info-row-last">
+                <div class="d-flex align-items-center mb-1">
+                    <span class="me-2 fa-solid fa-list-check info-icon"></span>
+                    <h5 class="mb-0">Requirements</h5>
+                </div>
+                <p class="mb-0 text-body-secondary info-value">@Model.Requirement</p>
+            </div>
+        }
+    </div>
+</div>
+
+<!-- Next Follow-up Card -->
+@if (Model.FollowUpDate.HasValue)
+{
+    var daysRemaining = (Model.FollowUpDate.Value.Date - CRM.Helpers.IndianTime.Today).Days;
+    <div class="card mb-3 followup-card">
+        <div class="card-body">
+            <div class="d-flex align-items-center mb-2">
+                <span class="me-2 fa-solid fa-calendar-check fs-5" style="color: var(--brand-accent-dark);"></span>
+                <h5 class="mb-0" style="color: var(--brand-primary-dark); font-weight: 700;">Next Follow-up</h5>
+            </div>
+            <p class="mb-1 fw-semibold fs-7">@Model.FollowUpDate.Value.ToString("MMMM dd, yyyy")</p>
+            <p class="mb-2 text-body-tertiary fs-9">
+                @if (daysRemaining == 0)
+                {
+                    <span class="text-danger fw-bold">Today</span>
+                }
+                else if (daysRemaining == 1)
+                {
+                    <span class="text-warning fw-bold">Tomorrow</span>
+                }
+                else if (daysRemaining < 0)
+                {
+                    <span class="text-danger fw-bold">@Math.Abs(daysRemaining) days overdue</span>
+                }
+                else
+                {
+                    <span>@daysRemaining days remaining</span>
+                }
+            </p>
+        </div>
+    </div>
+}

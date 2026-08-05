@@ -1,0 +1,549 @@
+@model List<CRM.Models.BookingModel>
+@inject CRM.Services.ViewPermissionService _viewPermissionService
+@{
+    ViewData["Title"] = "Bookings";
+    var leads       = ViewBag.Leads       as List<CRM.Models.LeadModel>         ?? new List<CRM.Models.LeadModel>();
+    var properties  = ViewBag.Properties  as List<CRM.Models.PropertyModel>     ?? new List<CRM.Models.PropertyModel>();
+    var flats       = ViewBag.Flats       as List<CRM.Models.PropertyFlatModel> ?? new List<CRM.Models.PropertyFlatModel>();
+    var quotations  = ViewBag.Quotations  as List<CRM.Models.QuotationModel>    ?? new List<CRM.Models.QuotationModel>();
+}
+
+<style>
+/* =============================================
+   BOOKINGS — COMPACT DESIGN
+   #D4A45A (gold)  ·  #1A6FA8 (blue)
+   ============================================= */
+:root{
+    --bg:#D4A45A; --bgl:rgba(212,164,90,.14); --bgd:#B8883E;
+    --bb:#1A6FA8; --bbl:rgba(26,111,168,.10); --bbd:#125082;
+    --bbor:rgba(26,111,168,.14);
+    --btx:#1E2A3A; --bmu:#6B7B8D;
+    --bbg:#F0F4F8; --bcb:#FFFFFF;
+    --br:9px; --brs:5px;
+    --bsh:0 1px 5px rgba(26,111,168,.08);
+    --bshh:0 3px 12px rgba(26,111,168,.14);
+}
+.breadcrumb-item, .breadcrumb-item a {
+    color: #E8EDF2 !important;
+}
+.breadcrumb-item.active {
+    color: #E2E8F0 !important;
+}
+.breadcrumb {
+    padding:  0px !important;
+    margin-bottom: 0px !important;
+    font-size: 0.9rem !important;
+    background-color: transparent !important;
+}
+/* ── Header ── */
+.bk-hdr{
+    background:linear-gradient(135deg,var(--bb) 0%,var(--bbd) 100%);
+    border-radius:var(--br);padding:12px 16px;margin-bottom:9px;
+    box-shadow:0 2px 10px rgba(26,111,168,.22);position:relative;overflow:hidden;
+}
+.bk-hdr::before{content:'';position:absolute;inset:0;
+    background:radial-gradient(circle at 82% 50%,rgba(212,164,90,.18) 0%,transparent 55%);pointer-events:none;}
+.bk-hdr-ic{width:34px;height:34px;flex-shrink:0;border-radius:7px;
+    background:rgba(212,164,90,.22);display:flex;align-items:center;justify-content:center;
+    color:rgba(232,194,126,.9);font-size:.95rem;}
+.bk-title{font-size:.88rem;font-weight:700;color:#FFFFFF;line-height:1.2;}
+.bk-sub{font-size:.67rem;color:rgba(255,255,255,.58);}
+.bk-bc{font-size:.64rem;margin-bottom:2px;}
+.bk-bc .breadcrumb{background:none;padding:0;margin:0;}
+.bk-bc .breadcrumb-item a{color:rgba(255,255,255,.55);text-decoration:none;}
+.bk-bc .breadcrumb-item.active{color:rgba(255,255,255,.8);}
+.bk-bc .breadcrumb-item+.breadcrumb-item::before{color:rgba(255,255,255,.35);}
+
+/* stats strip */
+.bk-stats{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;}
+.bk-stat{
+    flex:1;min-width:110px;
+    background:rgba(255,255,255,.13);
+    border:1px solid rgba(255,255,255,.18);
+    border-radius:var(--brs);padding:7px 10px;text-align:center;
+    backdrop-filter:blur(8px);transition:background .15s;
+}
+.bk-stat:hover{background:rgba(255,255,255,.22);}
+.bk-stat-n{font-size:1.1rem;font-weight:800;color:#FFFFFF;line-height:1.1;margin-bottom:1px;}
+.bk-stat-l{font-size:.62rem;color:rgba(255,255,255,.72);white-space:nowrap;}
+
+/* new booking btn */
+.bk-new-btn{
+    background:linear-gradient(135deg,var(--bg) 0%,var(--bgd) 100%);
+    color:#FFFFFF;border:none;border-radius:var(--brs);
+    padding:5px 14px;font-size:.74rem;font-weight:700;
+    display:inline-flex;align-items:center;gap:4px;cursor:pointer;
+    box-shadow:0 2px 7px rgba(212,164,90,.3);transition:all .15s;
+    text-decoration:none;
+}
+.bk-new-btn:hover{box-shadow:0 3px 12px rgba(212,164,90,.42);color:#FFFFFF;transform:translateY(-1px);}
+
+/* ── Filter ── */
+.bk-filt{
+    background:var(--bcb);border:1px solid var(--bbor);
+    border-radius:var(--br);padding:8px 12px;
+    margin-bottom:8px;box-shadow:var(--bsh);
+}
+.bk-inp,.bk-sel{
+    display:block;width:100%;padding:5px 8px;
+    font-size:.74rem;color:var(--btx);background:#FFFFFF;
+    border:1.5px solid var(--bbor);border-radius:var(--brs);
+    outline:none;transition:border-color .14s,box-shadow .14s;line-height:1.4;
+}
+.bk-inp:focus,.bk-sel:focus{border-color:var(--bb);box-shadow:0 0 0 2px var(--bbl);}
+.bk-lbl{font-size:.66rem;font-weight:700;color:var(--btx);display:block;margin-bottom:2px;}
+
+/* ── Booking Cards ── */
+.booking-card{
+    background:var(--bcb);border:1px solid var(--bbor);
+    border-radius:var(--br);padding:8px 11px;margin-bottom:5px;
+    box-shadow:var(--bsh);transition:transform .14s,box-shadow .14s;
+    position:relative;overflow:visible!important;z-index:1;
+}
+.booking-card:hover{transform:translateY(-1px);box-shadow:var(--bshh);}
+.booking-card:has(.dropdown.show){z-index:9999!important;}
+.booking-card .dropdown{position:static!important;}
+.booking-card .dropdown-menu{z-index:10000!important;position:absolute!important;font-size:.76rem;}
+
+/* booking number */
+.bk-num{font-size:.8rem;font-weight:700;color:var(--bb);display:flex;align-items:center;gap:4px;margin-bottom:3px;}
+.bk-meta{font-size:.69rem;color:var(--bmu);display:flex;align-items:center;gap:3px;margin-bottom:2px;}
+.bk-meta strong{color:var(--btx);}
+
+/* amounts */
+.bk-total{font-size:.95rem;font-weight:800;color:var(--bb);}
+.bk-paid{
+    display:inline-block;margin-top:2px;
+    padding:1px 7px;border-radius:9px;font-size:.62rem;font-weight:700;
+    background:rgba(22,163,74,.12);color:#16A34A;border:1px solid rgba(22,163,74,.2);
+}
+
+/* status badges */
+.status-badge{padding:2px 8px;border-radius:10px;font-size:.62rem;font-weight:700;display:inline-block;}
+.status-pending  {background:rgba(245,158,11,.12);color:#B45309;border:1px solid rgba(245,158,11,.22);}
+.status-confirmed{background:rgba(22,163,74,.12);color:#16A34A;border:1px solid rgba(22,163,74,.22);}
+.status-cancelled{background:rgba(220,38,38,.12);color:#DC2626;border:1px solid rgba(220,38,38,.2);}
+.status-completed{background:rgba(26,111,168,.12);color:var(--bb);border:1px solid rgba(26,111,168,.2);}
+
+/* payment type */
+.bk-pt-badge{padding:1px 7px;border-radius:9px;font-size:.62rem;font-weight:700;display:inline-block;}
+.payment-full{background:rgba(22,163,74,.1);color:#16A34A;border:1px solid rgba(22,163,74,.18);}
+.payment-emi {background:rgba(26,111,168,.1);color:var(--bb);border:1px solid rgba(26,111,168,.18);}
+
+/* action btn */
+.bk-act-btn{
+    background:var(--bbl);color:var(--bb);
+    border:1px solid rgba(26,111,168,.2);border-radius:var(--brs);
+    padding:3px 7px;font-size:.68rem;cursor:pointer;transition:all .14s;
+}
+.bk-act-btn:hover{background:var(--bb);color:#FFFFFF;}
+
+/* ── Pagination ── */
+.bk-pg{
+    background:var(--bcb);border:1px solid var(--bbor);
+    border-radius:var(--br);padding:6px 12px;margin-top:6px;
+    box-shadow:var(--bsh);display:flex;align-items:center;
+    justify-content:space-between;flex-wrap:wrap;gap:6px;
+}
+.bk-pg-info{font-size:.69rem;color:var(--bmu);}
+.bk-pg-ctrls{display:flex;gap:3px;align-items:center;flex-wrap:wrap;}
+.pagination-btn{
+    padding:3px 8px;border:1px solid var(--bbor);background:#FFFFFF;
+    color:var(--bmu);border-radius:var(--brs);cursor:pointer;
+    font-size:.69rem;transition:all .14s;
+}
+.pagination-btn:hover:not(:disabled){background:var(--bbl);border-color:var(--bb);color:var(--bb);}
+.pagination-btn:disabled{opacity:.45;cursor:not-allowed;}
+.pagination-btn.active{background:var(--bb);border-color:var(--bb);color:#FFFFFF;}
+
+/* ── Empty ── */
+.empty-state{
+    text-align:center;padding:36px 20px;background:var(--bcb);
+    border-radius:var(--br);border:1px dashed var(--bbor);
+}
+.empty-state i{font-size:2.8rem;color:#E2E8F0;display:block;margin-bottom:10px;}
+.empty-state h3{font-size:.88rem;font-weight:700;color:var(--btx);margin-bottom:3px;}
+.empty-state p{font-size:.72rem;color:var(--bmu);margin-bottom:10px;}
+
+/* ── Dark Mode ── */
+html.dark-mode{
+    --btx:#E2E8F0; --bmu:#8FA3B8;
+    --bbg:#121F2E; --bcb:#1E2A3A;
+    --bbor:rgba(26,111,168,.22);
+    --bsh:0 1px 5px rgba(0,0,0,.28); --bshh:0 3px 12px rgba(0,0,0,.42);
+}
+html.dark-mode .booking-card,
+html.dark-mode .bk-filt,
+html.dark-mode .bk-pg,
+html.dark-mode .empty-state{background:#1E2A3A;border-color:rgba(26,111,168,.22);}
+html.dark-mode .bk-inp,html.dark-mode .bk-sel{background:#1E2A3A;color:var(--btx);border-color:rgba(26,111,168,.25);}
+html.dark-mode .bk-lbl{color:var(--btx);}
+html.dark-mode .pagination-btn{background:#1E2A3A;border-color:rgba(26,111,168,.22);color:var(--bmu);}
+html.dark-mode .pagination-btn:hover:not(:disabled){background:rgba(26,111,168,.2);}
+html.dark-mode .pagination-btn.active{background:var(--bb);color:#FFFFFF;}
+html.dark-mode .bk-stat{background:rgba(255,255,255,.1);}
+html.dark-mode .status-pending  {background:rgba(245,158,11,.18);}
+html.dark-mode .status-confirmed{background:rgba(22,163,74,.18);}
+html.dark-mode .status-cancelled{background:rgba(220,38,38,.18);}
+html.dark-mode .status-completed{background:rgba(26,111,168,.18);}
+html.dark-mode .bk-paid{background:rgba(22,163,74,.18);}
+html.dark-mode .dropdown-menu{background:#1E2A3A!important;border-color:rgba(26,111,168,.25)!important;}
+html.dark-mode .dropdown-item{color:var(--btx)!important;}
+html.dark-mode .dropdown-item:hover{background:rgba(26,111,168,.18)!important;}
+
+/* ── Mobile ── */
+.booking-card .row{display:flex;}
+.booking-card .mobile-layout{display:none!important;}
+
+@@media(max-width:768px){
+    .booking-card .row{display:none!important;}
+    .booking-card .mobile-layout{display:block!important;}
+    .booking-card{padding:7px 9px;}
+    .bk-stats{gap:5px;}
+    .bk-stat{min-width:90px;padding:5px 7px;}
+    .bk-stat-n{font-size:.95rem;}
+    .bk-pg{flex-direction:column;text-align:center;}
+    .bk-pg-ctrls{justify-content:center;}
+}
+@@media(max-width:575px){
+    .bk-hdr{padding:9px 11px;}
+    .bk-title{font-size:.8rem;}
+}
+</style>
+
+<div class="content">
+
+<!-- ── Header ── -->
+<div class="bk-hdr">
+    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
+        <div class="d-flex align-items-center gap-2">
+            <div class="bk-hdr-ic"><i class="fa-solid fa-handshake"></i></div>
+            <div>
+                <nav class="bk-bc" aria-label="breadcrumb">
+                    <ol class="breadcrumb mb-0">
+                        <li class="breadcrumb-item"><a href="/Home">Home</a></li>
+                        <li class="breadcrumb-item active">Bookings</li>
+                    </ol>
+                </nav>
+                <div class="bk-title">Property Bookings</div>
+                <div class="bk-sub">Manage all property bookings and payments</div>
+            </div>
+        </div>
+        @{
+            var canCreate = _viewPermissionService.HasPermission("Bookings","Index","Create");
+        }
+        @if (canCreate)
+        {
+            <a href="/Bookings/Create" class="bk-new-btn">
+                <i class="fa-solid fa-plus"></i>New Booking
+            </a>
+        }
+    </div>
+    <!-- Stats strip -->
+    <div class="bk-stats">
+        <div class="bk-stat">
+            <div class="bk-stat-n">@Model.Count</div>
+            <div class="bk-stat-l">Total Bookings</div>
+        </div>
+        <div class="bk-stat">
+            <div class="bk-stat-n">@Model.Count(b => b.Status == "Confirmed")</div>
+            <div class="bk-stat-l">Confirmed</div>
+        </div>
+        <div class="bk-stat">
+            <div class="bk-stat-n">@Model.Count(b => b.PaymentType == "EMI")</div>
+            <div class="bk-stat-l">EMI Plans</div>
+        </div>
+        <div class="bk-stat">
+            <div class="bk-stat-n indian-currency" id="totalBookedAmount" data-amount="@Model.Sum(b => b.BookingAmount)">₹@Model.Sum(b => b.BookingAmount).ToString("N0")</div>
+            <div class="bk-stat-l">Total Commitments</div>
+        </div>
+    </div>
+</div>
+
+<!-- ── Filter ── -->
+<div class="bk-filt">
+    <div class="row g-2 align-items-end">
+        <div class="col-7 col-sm-8 col-md-5">
+            <label class="bk-lbl"><i class="fa-solid fa-search me-1" style="font-size:.58rem;"></i>Search</label>
+            <input type="text" class="bk-inp" id="searchInput" placeholder="Search bookings..." value="@ViewBag.SearchTerm">
+        </div>
+        <div class="col-5 col-sm-4 col-md-3">
+            <label class="bk-lbl">Status</label>
+            <select class="bk-sel" id="statusFilter">
+                <option value="">All Status</option>
+                <option value="Pending"   selected="@(ViewBag.StatusFilter == "Pending")">Pending</option>
+                <option value="Confirmed" selected="@(ViewBag.StatusFilter == "Confirmed")">Confirmed</option>
+                <option value="Completed" selected="@(ViewBag.StatusFilter == "Completed")">Completed</option>
+                <option value="Cancelled" selected="@(ViewBag.StatusFilter == "Cancelled")">Cancelled</option>
+            </select>
+        </div>
+    </div>
+</div>
+
+<!-- ── Booking Cards ── -->
+@if (Model.Any())
+{
+    foreach (var booking in Model)
+    {
+        var lead     = leads.FirstOrDefault(l => l.LeadId == booking.LeadId);
+        var property = properties.FirstOrDefault(p => p.PropertyId == booking.PropertyId);
+        var flat     = flats.FirstOrDefault(f => f.FlatId == booking.FlatId);
+        var paymentPlans = ViewBag.PaymentPlans as Dictionary<int, decimal> ?? new Dictionary<int, decimal>();
+        var paidAmount   = paymentPlans.ContainsKey(booking.BookingId) ? paymentPlans[booking.BookingId] : 0;
+
+        <div class="booking-card paginated-item">
+
+            <!-- Desktop row -->
+            <div class="row align-items-center g-0">
+                <!-- col 1: booking info -->
+                <div class="col-md-4">
+                    <div class="bk-num">
+                        <i class="fa-solid fa-file-contract" style="color:var(--bg);font-size:.7rem;"></i>
+                        @booking.BookingNumber
+                    </div>
+                    <div class="bk-meta"><i class="fa-solid fa-user"></i><strong>@lead?.Name</strong></div>
+                    <div class="bk-meta"><i class="fa-solid fa-building"></i>@property?.PropertyName</div>
+                    <div class="bk-meta"><i class="fa-solid fa-door-open"></i>@flat?.FlatName – @flat?.BHK</div>
+                </div>
+
+                <!-- col 2: date + payment type -->
+                <div class="col-md-3">
+                    <div class="bk-meta" style="margin-bottom:4px;">
+                        <i class="fa-solid fa-calendar"></i>
+                        <strong>@booking.BookingDate.ToString("dd MMM yyyy")</strong>
+                    </div>
+                    <span class="bk-pt-badge payment-@booking.PaymentType.ToLower()">@booking.PaymentType</span>
+                </div>
+
+                <!-- col 3: amounts -->
+                <div class="col-md-2 text-center">
+                    <div style="font-size:.6rem;color:var(--bmu);margin-bottom:1px;">Total Amount</div>
+                    <div class="bk-total indian-currency" data-amount="@booking.TotalAmount">₹@booking.TotalAmount.ToString("N0")</div>
+                    <span class="bk-paid indian-currency" data-amount="@paidAmount">Paid: ₹@paidAmount.ToString("N0")</span>
+                </div>
+
+                <!-- col 4: status -->
+                <div class="col-md-2 text-center">
+                    <span class="status-badge status-@booking.Status.ToLower()">@booking.Status</span>
+                </div>
+
+                <!-- col 5: actions -->
+                <div class="col-md-1 text-end">
+                    <div class="dropdown">
+                        <button class="bk-act-btn" type="button" data-bs-toggle="dropdown">
+                            <i class="fa-solid fa-ellipsis-vertical"></i>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                                <li><a class="dropdown-item" href="/bookingdetails/@IdObfuscator.Encode(booking.BookingId)"><i class="fa-solid fa-eye me-2"></i>View Details</a></li>
+                                <li><a class="dropdown-item" href="/bookingdetails/@IdObfuscator.Encode(booking.BookingId)"><i class="fa-solid fa-download me-2"></i>Download PDF</a></li>
+                            @{
+                                var canEdit   = _viewPermissionService.HasPermission("Bookings","Index","Edit");
+                                var canDelete = _viewPermissionService.HasPermission("Bookings","Index","Delete");
+                            }
+                            @if (canEdit && booking.Status != "Completed" && booking.Status != "Cancelled")
+                            {
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item text-danger" href="#" onclick="updateStatus(@booking.BookingId,'Cancelled')"><i class="fa-solid fa-times me-2"></i>Cancel Booking</a></li>
+                            }
+                            @if (canDelete && booking.Status == "Cancelled")
+                            {
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item text-danger" href="#" onclick="deleteBooking(@booking.BookingId)"><i class="fa-solid fa-trash me-2"></i>Delete</a></li>
+                            }
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Mobile layout -->
+            <div class="mobile-layout">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <div class="bk-num"><i class="fa-solid fa-file-contract" style="color:var(--bg);font-size:.68rem;"></i>@booking.BookingNumber</div>
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="status-badge status-@booking.Status.ToLower()">@booking.Status</span>
+                        <div class="dropdown">
+                            <button class="bk-act-btn" type="button" data-bs-toggle="dropdown">
+                                <i class="fa-solid fa-ellipsis-vertical"></i>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li><a class="dropdown-item" href="/bookingdetails/@IdObfuscator.Encode(booking.BookingId)"><i class="fa-solid fa-eye me-2"></i>View Details</a></li>
+                                <li><a class="dropdown-item" href="/bookingdetails/@IdObfuscator.Encode(booking.BookingId)"><i class="fa-solid fa-download me-2"></i>Download PDF</a></li>
+                                @if (canEdit && booking.Status != "Completed" && booking.Status != "Cancelled")
+                                {
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><a class="dropdown-item text-danger" href="#" onclick="updateStatus(@booking.BookingId,'Cancelled')"><i class="fa-solid fa-times me-2"></i>Cancel Booking</a></li>
+                                }
+                                @if (canDelete && booking.Status == "Cancelled")
+                                {
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><a class="dropdown-item text-danger" href="#" onclick="deleteBooking(@booking.BookingId)"><i class="fa-solid fa-trash me-2"></i>Delete</a></li>
+                                }
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                <div class="bk-meta" style="font-size:.74rem;color:var(--btx);font-weight:700;">@lead?.Name</div>
+                <div class="bk-meta">@property?.PropertyName</div>
+                <div class="bk-meta">@flat?.FlatName – @flat?.BHK</div>
+                <div class="d-flex justify-content-between align-items-end mt-2">
+                    <div>
+                        <div class="bk-meta"><i class="fa-solid fa-calendar"></i>@booking.BookingDate.ToString("dd MMM yyyy")</div>
+                        <span class="bk-pt-badge payment-@booking.PaymentType.ToLower()">@booking.PaymentType</span>
+                    </div>
+                    <div class="text-end">
+                        <div class="bk-total indian-currency" data-amount="@booking.TotalAmount">₹@booking.TotalAmount.ToString("N0")</div>
+                        <span class="bk-paid indian-currency" data-amount="@paidAmount">Paid: ₹@paidAmount.ToString("N0")</span>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    }
+
+    <!-- Pagination -->
+    <div class="bk-pg" id="paginationContainer" style="display:none;">
+        <div class="bk-pg-info" id="paginationInfo">Showing 1–10 of @Model.Count bookings</div>
+        <div class="bk-pg-ctrls" id="paginationCtrls">
+            <button class="pagination-btn" id="prevBtn" onclick="changePage(-1)">
+                <i class="fa-solid fa-chevron-left"></i> Prev
+            </button>
+            <div id="pageNumbers" style="display:flex;gap:3px;"></div>
+            <button class="pagination-btn" id="nextBtn" onclick="changePage(1)">
+                Next <i class="fa-solid fa-chevron-right"></i>
+            </button>
+        </div>
+    </div>
+}
+else
+{
+    <div class="empty-state">
+        <i class="fa-solid fa-handshake"></i>
+        <h3>No Bookings Found</h3>
+        <p class="text-muted">Start by creating your first property booking</p>
+        @if (canCreate)
+        {
+            <a href="/Bookings/Create" class="bk-new-btn mt-2 d-inline-flex">
+                <i class="fa-solid fa-plus"></i>Create Booking
+            </a>
+        }
+    </div>
+}
+
+</div>
+
+@section Scripts {
+<script>
+function formatIndianCurrency(amount){
+    var num=parseFloat(amount);if(isNaN(num))return amount;
+    var numStr=Math.floor(num).toString();
+    var lastThree=numStr.substring(numStr.length-3);
+    var otherNumbers=numStr.substring(0,numStr.length-3);
+    if(otherNumbers!='')lastThree=','+lastThree;
+    return '₹'+otherNumbers.replace(/\B(?=(\d{2})+(?!\d))/g,",")+lastThree;
+}
+
+let currentPage=1, pageSize=10, filteredItems=[];
+
+$(document).ready(function(){
+    /* format currency */
+    $('.indian-currency').each(function(){
+        var amount=$(this).data('amount');
+        var prefix=$(this).text().includes('Paid:')? 'Paid: ':'';
+        $(this).text(prefix+formatIndianCurrency(amount));
+    });
+    var totalAmount=$('#totalBookedAmount').data('amount');
+    if(totalAmount)$('#totalBookedAmount').text(formatIndianCurrency(totalAmount));
+
+    /* init pagination */
+    filteredItems=Array.from(document.querySelectorAll('.paginated-item'));
+    updatePagination();
+
+    function applyFilters(){
+        var search=$('#searchInput').val().toLowerCase();
+        var status=$('#statusFilter').val();
+        filteredItems=[];
+        $('.booking-card').each(function(){
+            var card=$(this);
+            var cardText=card.text().toLowerCase();
+            var cardStatus=card.find('.status-badge').first().text().trim();
+            var matchesSearch=!search||cardText.includes(search);
+            var matchesStatus=!status||cardStatus===status;
+            if(matchesSearch&&matchesStatus)filteredItems.push(card.closest('.paginated-item')[0]);
+        });
+        currentPage=1;updatePagination();
+    }
+    $('#searchInput').on('input',applyFilters);
+    $('#statusFilter').on('change',applyFilters);
+    applyFilters();
+
+    /* dropdown z-index */
+    $('.booking-card .dropdown').on('show.bs.dropdown',function(){
+        $(this).closest('.booking-card').css('z-index','9999');
+    });
+    $('.booking-card .dropdown').on('hide.bs.dropdown',function(){
+        $(this).closest('.booking-card').css('z-index','1');
+    });
+});
+
+function updatePagination(){
+    const totalPages=Math.ceil(filteredItems.length/pageSize);
+    const startIndex=(currentPage-1)*pageSize;
+    const endIndex=Math.min(startIndex+pageSize,filteredItems.length);
+    $('.paginated-item').hide();
+    for(let i=startIndex;i<endIndex;i++){if(filteredItems[i])$(filteredItems[i]).show();}
+    const start=filteredItems.length>0?startIndex+1:0;
+    $('#paginationInfo').text(`Showing ${start}–${endIndex} of ${filteredItems.length} bookings`);
+    updatePageNumbers(totalPages);
+    $('#prevBtn').prop('disabled',currentPage===1);
+    $('#nextBtn').prop('disabled',currentPage===totalPages||totalPages===0);
+    if(filteredItems.length>0){$('#paginationContainer').show();$('.empty-state').hide();}
+    else{$('#paginationContainer').hide();$('.empty-state').show();}
+}
+function updatePageNumbers(totalPages){
+    const pg=$('#pageNumbers');pg.empty();
+    if(totalPages<=1)return;
+    const max=5;let sp=Math.max(1,currentPage-Math.floor(max/2));let ep=Math.min(totalPages,sp+max-1);
+    if(ep-sp+1<max)sp=Math.max(1,ep-max+1);
+    for(let i=sp;i<=ep;i++){
+        $('<button></button>').addClass('pagination-btn').addClass(i===currentPage?'active':'').text(i)
+            .on('click',(function(p){return function(){goToPage(p);};})(i)).appendTo(pg);
+    }
+}
+function changePage(direction){
+    const tp=Math.ceil(filteredItems.length/pageSize);
+    const np=currentPage+direction;
+    if(np>=1&&np<=tp){currentPage=np;updatePagination();}
+}
+function goToPage(page){currentPage=page;updatePagination();}
+
+/* status + delete (backend unchanged) */
+function updateStatus(bookingId,status){
+    Swal.fire({title:'Are you sure?',text:`Change status to ${status}?`,icon:'warning',
+        showCancelButton:true,confirmButtonColor:'#1A6FA8',cancelButtonColor:'#6B7B8D',
+        confirmButtonText:'Yes, update it!'}).then(result=>{
+        if(result.isConfirmed){
+            $.ajax({url:'/Bookings/UpdateStatus',type:'POST',data:{bookingId,status},
+                success:function(r){
+                    if(r.success){Swal.fire({icon:'success',title:'Success!',text:r.message,timer:2000,showConfirmButton:false}).then(()=>location.reload());}
+                    else Swal.fire('Error',r.message,'error');
+                },error:function(){Swal.fire('Error','Failed to update status','error');}
+            });
+        }
+    });
+}
+function deleteBooking(bookingId){
+    Swal.fire({title:'Are you sure?',text:"You won't be able to revert this!",icon:'warning',
+        showCancelButton:true,confirmButtonColor:'#DC2626',cancelButtonColor:'#6B7B8D',
+        confirmButtonText:'Yes, delete it!'}).then(result=>{
+        if(result.isConfirmed){
+            $.ajax({url:'/Bookings/Delete/'+bookingId,type:'POST',
+                success:function(r){
+                    if(r.success){Swal.fire({icon:'success',title:'Deleted!',text:r.message,timer:2000,showConfirmButton:false}).then(()=>location.reload());}
+                    else Swal.fire('Error',r.message,'error');
+                },error:function(){Swal.fire('Error','Failed to delete booking','error');}
+            });
+        }
+    });
+}
+</script>
+}

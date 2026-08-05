@@ -1,0 +1,875 @@
+@{
+    ViewData["Title"] = "Agent Attendance Overview";
+    var agentStats = ViewBag.AgentStats as List<dynamic>;
+    var currentMonth = ViewBag.CurrentMonth as DateTime?;
+    var workingDays = ViewBag.WorkingDays as int?;
+}
+
+<style>
+/* ===== ULTRA COMPACT DESIGN — #1A6FA8 + #D4A45A theme ===== */
+
+/* HEADER */
+.modern-header {
+    background: linear-gradient(120deg, #1A6FA8 0%, #125082 55%, #B8883E 100%);
+    border-radius: 10px;
+    overflow: hidden;
+    position: relative;
+    box-shadow: 0 3px 12px rgba(26,111,168,0.2);
+    margin-bottom: 10px !important;
+}
+.modern-header::before {
+    content: '';
+    position: absolute;
+    top: -20px; right: -20px;
+    width: 100px; height: 100px;
+    border-radius: 50%;
+    background: rgba(212,164,90,0.18);
+    pointer-events: none;
+}
+.header-content {
+    position: relative;
+    z-index: 2;
+    padding: 10px 14px !important;
+    color: white;
+}
+.header-title {
+    font-size: 1rem !important;
+    font-weight: 700;
+    margin-bottom: 1px !important;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    text-shadow: none;
+}
+.header-subtitle {
+    font-size: 0.72rem !important;
+    opacity: 0.82;
+    margin-bottom: 8px !important;
+    font-weight: 400;
+}
+
+/* STATS GRID — compact cards */
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
+    margin-top: 0 !important;
+}
+.stats-card {
+    background: rgba(255,255,255,0.12);
+    border: 1px solid rgba(255,255,255,0.18);
+    border-radius: 7px;
+    padding: 6px 8px;
+    text-align: center;
+    transition: background 0.2s;
+}
+.stats-card:hover {
+    background: rgba(255,255,255,0.2);
+    transform: translateY(-1px);
+}
+.stats-number {
+    font-size: 1.1rem !important;
+    font-weight: 800;
+    margin-bottom: 0 !important;
+    line-height: 1.2;
+    text-shadow: none;
+}
+.stats-label {
+    font-size: 0.6rem !important;
+    opacity: 0.85;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* FILTER CARD */
+.filter-card {
+    background: #FFFFFF;
+    border-radius: 8px;
+    padding: 10px 12px !important;
+    margin-bottom: 8px !important;
+    box-shadow: 0 1px 6px rgba(26,111,168,0.08);
+    border: 1px solid #E2E8F0;
+    position: relative;
+    z-index: 5;
+}
+.filter-card .row.g-3 {
+    --bs-gutter-y: 0.4rem !important;
+    --bs-gutter-x: 0.6rem !important;
+}
+.filter-card .row.mt-3 {
+    margin-top: 0.4rem !important;
+}
+.filter-card .form-label {
+    font-size: 0.68rem !important;
+    font-weight: 700;
+    color: #1A6FA8;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    margin-bottom: 2px !important;
+}
+.filter-card .form-control,
+.filter-card .form-select {
+    height: 30px !important;
+    padding: 0 8px !important;
+    font-size: 0.8rem !important;
+    border: 1.5px solid #E2E8F0;
+    border-radius: 6px;
+    transition: border-color 0.18s, box-shadow 0.18s;
+    line-height: 30px;
+}
+.filter-card .form-control:focus,
+.filter-card .form-select:focus {
+    border-color: #1A6FA8;
+    box-shadow: 0 0 0 2px rgba(26,111,168,0.13);
+    outline: none;
+}
+.filter-card .form-control.is-valid  { border-color: #16A34A !important; }
+.filter-card .form-control.is-invalid { border-color: #DC2626 !important; }
+.filter-card .valid-feedback   { color: #16A34A; font-size: 0.65rem; margin-top: 1px; display: block; }
+.filter-card .invalid-feedback { color: #DC2626; font-size: 0.65rem; margin-top: 1px; display: block; }
+
+.filter-card .input-group {
+    height: 30px;
+}
+.filter-card .input-group .form-control {
+    border-start-start-radius: 0 !important;
+    border-end-start-radius: 0 !important;
+}
+
+.btn-outline-primary {
+    height: 30px !important;
+    padding: 0 12px !important;
+    font-size: 0.76rem !important;
+    font-weight: 600;
+    border: 1.5px solid #1A6FA8;
+    border-radius: 6px;
+    color: #1A6FA8;
+    background: #FFFFFF;
+    transition: all 0.18s;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    line-height: 1;
+}
+.btn-outline-primary:hover {
+    background: #1A6FA8;
+    color: #FFFFFF;
+    border-color: #1A6FA8;
+}
+
+/* AGENT CARDS */
+.agent-card {
+    background: #FFFFFF;
+    border-radius: 8px;
+    padding: 9px 12px !important;
+    margin-bottom: 6px !important;
+    box-shadow: 0 1px 5px rgba(26,111,168,0.07);
+    border: 1px solid #E2E8F0;
+    transition: all 0.2s;
+    cursor: pointer;
+    position: relative;
+    z-index: 1;
+}
+.agent-card::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 3px;
+    border-radius: 8px 0 0 8px;
+    background: linear-gradient(180deg, #1A6FA8, #D4A45A);
+}
+.agent-card:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 14px rgba(26,111,168,0.13);
+    border-color: rgba(26,111,168,0.3);
+}
+
+/* Avatar compact */
+.agent-card .rounded-circle {
+    width: 36px !important;
+    height: 36px !important;
+    font-size: 1rem !important;
+    border: 2px solid #E8EDF2 !important;
+    flex-shrink: 0;
+}
+.agent-card img.rounded-circle {
+    width: 36px !important;
+    height: 36px !important;
+}
+
+.agent-card .d-flex.align-items-center.mb-2 {
+    margin-bottom: 3px !important;
+    gap: 8px !important;
+}
+.agent-card .me-3 {
+    margin-right: 8px !important;
+}
+
+.agent-name {
+    font-size: 0.85rem !important;
+    font-weight: 700;
+    color: #1A6FA8;
+    text-decoration: none;
+    margin-bottom: 1px !important;
+    display: block;
+    line-height: 1.2;
+}
+.agent-name:hover { color: #125082; text-decoration: none; }
+
+.agent-info {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    color: #6B7B8D;
+    font-size: 0.72rem !important;
+    margin-bottom: 0 !important;
+}
+.agent-info i { font-size: 0.68rem; }
+
+.role-badge {
+    padding: 1px 6px !important;
+    border-radius: 4px;
+    font-weight: 700;
+    font-size: 0.62rem !important;
+    background: #E8EDF2;
+    color: #1A6FA8;
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+}
+
+/* Attendance section compact */
+.agent-card .col-md-4 .d-flex.justify-content-between {
+    margin-bottom: 3px !important;
+}
+.agent-card .col-md-4 span[style*="font-weight: 600"] {
+    font-size: 0.72rem !important;
+    color: #6B7B8D !important;
+}
+.agent-card .col-md-4 span[style*="font-size: 1.1rem"] {
+    font-size: 0.92rem !important;
+}
+
+.progress {
+    height: 5px !important;
+    border-radius: 10px;
+    background-color: #E8EDF2;
+    margin-bottom: 5px !important;
+}
+.progress-bar { border-radius: 10px; }
+
+.agent-card .row.g-2 {
+    --bs-gutter-y: 0 !important;
+    --bs-gutter-x: 0.3rem !important;
+}
+.agent-card .row.g-2 > div > div:first-child {
+    font-size: 0.62rem !important;
+    color: #8FA3B8;
+    margin-bottom: 0 !important;
+}
+.agent-card .row.g-2 > div > div:last-child {
+    font-size: 0.85rem !important;
+    font-weight: 700;
+}
+
+/* Performance badge */
+.attendance-badge {
+    padding: 2px 8px !important;
+    border-radius: 20px;
+    font-weight: 700;
+    font-size: 0.65rem !important;
+    border: 1.5px solid transparent;
+    display: inline-block;
+    transition: all 0.2s;
+}
+.attendance-excellent { background: #DCFCE7; color: #15803D; border-color: #16A34A; }
+.attendance-good      { background: #E2E8F0; color: #1A6FA8; border-color: #2589C9; }
+.attendance-average   { background: #FEF3C7; color: #B45309; border-color: #F59E0B; }
+.attendance-poor      { background: #FEE2E2; color: #991B1B; border-color: #DC2626; }
+
+/* View Calendar link */
+.agent-card .d-flex.align-items-center.text-primary {
+    font-size: 0.75rem !important;
+    color: #D4A45A !important;
+    font-weight: 600;
+    gap: 3px;
+    justify-content: flex-end;
+}
+.agent-card .d-flex.align-items-center.text-primary i {
+    font-size: 0.72rem;
+}
+
+/* Col spacing in card */
+.agent-card .col-md-4 {
+    padding-top: 0;
+    padding-bottom: 0;
+}
+.agent-card .row.align-items-center {
+    --bs-gutter-x: 0.75rem;
+}
+
+/* EMPTY STATE */
+.empty-state {
+    text-align: center;
+    padding: 28px 16px;
+    background: #FFFFFF;
+    border-radius: 8px;
+    box-shadow: 0 1px 5px rgba(26,111,168,0.07);
+    border: 1px solid #E2E8F0;
+}
+.empty-state i { font-size: 2rem; color: #B8C8D8; margin-bottom: 6px; display: block; }
+.empty-state h3 { color: #2A3A4A; font-size: 0.95rem; margin-bottom: 3px; }
+.empty-state p  { font-size: 0.78rem; color: #8FA3B8; margin: 0; }
+
+/* PAGINATION */
+.pagination-wrapper {
+    background: #FFFFFF;
+    border-radius: 8px;
+    padding: 8px 12px !important;
+    box-shadow: 0 1px 5px rgba(26,111,168,0.07);
+    border: 1px solid #E2E8F0;
+    margin-top: 8px !important;
+}
+.pagination-wrapper .text-muted {
+    font-size: 0.75rem;
+}
+.pagination .page-link {
+    color: #1A6FA8;
+    border: 1.5px solid #E2E8F0;
+    margin: 0 2px;
+    border-radius: 5px !important;
+    padding: 3px 9px !important;
+    font-weight: 600;
+    font-size: 0.76rem;
+    transition: all 0.15s;
+    line-height: 1.4;
+}
+.pagination .page-link:hover {
+    background: #E8EDF2;
+    border-color: #1A6FA8;
+    color: #1A6FA8;
+}
+.pagination .page-item.active .page-link {
+    background: #1A6FA8;
+    border-color: #1A6FA8;
+    color: #FFFFFF;
+}
+.pagination .page-item.disabled .page-link {
+    background: #FFFFFF;
+    border-color: #E2E8F0;
+    color: #B8C8D8;
+    cursor: not-allowed;
+}
+
+/* ===== DARK MODE ===== */
+.dark-mode .modern-header {
+    box-shadow: 0 3px 12px rgba(0,0,0,0.3);
+}
+.dark-mode .agent-card {
+    background: #1A2332 !important;
+    border-color: #2A3A4A !important;
+    box-shadow: 0 1px 5px rgba(0,0,0,0.2) !important;
+}
+.dark-mode .agent-card:hover {
+    box-shadow: 0 4px 14px rgba(0,0,0,0.3) !important;
+}
+.dark-mode .filter-card {
+    background: #1A2332 !important;
+    border-color: #2A3A4A !important;
+    box-shadow: 0 1px 6px rgba(0,0,0,0.2) !important;
+}
+.dark-mode .empty-state {
+    background: #1A2332 !important;
+    border-color: #2A3A4A !important;
+}
+.dark-mode .empty-state h3 { color: #B8C8D8 !important; }
+.dark-mode .pagination-wrapper {
+    background: #1A2332 !important;
+    border-color: #2A3A4A !important;
+}
+.dark-mode .form-control,
+.dark-mode .form-select {
+    background: #1E2A3A !important;
+    border-color: #2A3A4A !important;
+    color: #E2E8F0 !important;
+}
+.dark-mode .form-control:focus,
+.dark-mode .form-select:focus {
+    border-color: #1A6FA8 !important;
+    box-shadow: 0 0 0 2px rgba(26,111,168,0.2) !important;
+}
+.dark-mode .form-control::placeholder { color: #6B7B8D !important; }
+.dark-mode .form-label { color: #8FA3B8 !important; }
+.dark-mode .text-muted { color: #8FA3B8 !important; }
+.dark-mode .agent-name { color: #8FA3B8 !important; }
+.dark-mode .agent-name:hover { color: #8FA3B8 !important; }
+.dark-mode .agent-info { color: #8FA3B8 !important; }
+.dark-mode .role-badge { background: #2A3A4A !important; color: #8FA3B8 !important; }
+.dark-mode .pagination .page-link {
+    background: #1E2A3A !important;
+    border-color: #2A3A4A !important;
+    color: #8FA3B8 !important;
+}
+.dark-mode .pagination .page-link:hover {
+    background: #2A3A4A !important;
+    border-color: #1A6FA8 !important;
+}
+.dark-mode .pagination .page-item.active .page-link {
+    background: #1A6FA8 !important;
+    border-color: #1A6FA8 !important;
+    color: #FFFFFF !important;
+}
+.dark-mode .pagination .page-item.disabled .page-link {
+    background: #121F2E !important;
+    border-color: #2A3A4A !important;
+    color: #2A3A4A !important;
+}
+.dark-mode .btn-outline-primary {
+    color: #8FA3B8 !important;
+    border-color: #1A6FA8 !important;
+    background: transparent !important;
+}
+.dark-mode .btn-outline-primary:hover {
+    background: #1A6FA8 !important;
+    color: #FFFFFF !important;
+}
+.dark-mode .agent-card .d-flex.align-items-center.text-primary {
+    color: #B8883E !important;
+}
+.dark-mode .agent-card span[style*="color: #6B7B8D"] {
+    color: #8FA3B8 !important;
+}
+
+/* RESPONSIVE */
+@@media (max-width: 768px) {
+    .stats-grid { grid-template-columns: repeat(2, 1fr); }
+    .header-title { font-size: 0.9rem !important; }
+    .agent-card { padding: 8px 10px !important; }
+    .filter-card .row.g-3 { row-gap: 6px !important; }
+}
+@@media (max-width: 480px) {
+    .stats-grid { grid-template-columns: repeat(2, 1fr); gap: 5px; }
+    .header-content { padding: 8px 10px !important; }
+}
+</style>
+
+<div class="container-fluid p-0">
+    <!-- Modern Header with Gradient -->
+    <div class="modern-header mb-4">
+        <div class="header-content p-4">
+            <h1 class="header-title">
+                <i class="fa-solid fa-calendar-check me-2"></i>Agent Attendance Overview
+            </h1>
+            <p class="header-subtitle">
+                @(currentMonth.HasValue ? currentMonth.Value.ToString("MMMM yyyy") : DateTime.Now.ToString("MMMM yyyy")) - Monitor agent attendance and performance
+            </p>
+
+            <!-- Stats Grid -->
+            <div class="stats-grid">
+                <div class="stats-card">
+                    <div class="stats-number">@(agentStats?.Count ?? 0)</div>
+                    <div class="stats-label">Total Agents</div>
+                </div>
+                <div class="stats-card">
+                    <div class="stats-number">@(workingDays ?? 0)</div>
+                    <div class="stats-label">Working Days</div>
+                </div>
+                <div class="stats-card">
+                    <div class="stats-number">
+                        @{
+                            var avgAttendance = agentStats?.Any() == true ? agentStats.Average(a => (double)a.AttendancePercentage) : 0;
+                        }
+                        @avgAttendance.ToString("F1")%
+                    </div>
+                    <div class="stats-label">Avg Attendance</div>
+                </div>
+                <div class="stats-card">
+                    <div class="stats-number">@(currentMonth.HasValue ? currentMonth.Value.ToString("MMM") : DateTime.Now.ToString("MMM"))</div>
+                    <div class="stats-label">Current Month</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filter Section -->
+    <div class="filter-card" onclick="event.stopPropagation();">
+        <div class="row g-3">
+            <div class="col-md-3">
+                <label for="searchInput" class="form-label fw-semibold">Search</label>
+                <div class="input-group">
+                    <input type="text" id="searchInput" class="form-control border-start-0 ps-0" placeholder="Search by name, email...">
+                </div>
+            </div>
+            <div class="col-md-3">
+                <label for="roleFilter" class="form-label fw-semibold">Role</label>
+                <select id="roleFilter" class="form-select">
+                    <option value=""><i class="fa-solid fa-search"></i> All Roles</option>
+                    <option value="Agent"><i class="fa-solid fa-user"></i> Agent</option>
+                    <option value="Sales"><i class="fa-solid fa-briefcase"></i> Sales</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label for="attendanceFilter" class="form-label fw-semibold">Performance</label>
+                <select id="attendanceFilter" class="form-select">
+                    <option value=""><i class="fa-solid fa-search"></i> All Performance</option>
+                    <option value="excellent">Excellent (90%+)</option>
+                    <option value="good">Good (75-89%)</option>
+                    <option value="average">Average (60-74%)</option>
+                    <option value="poor">Poor (&lt;60%)</option>
+                </select>
+            </div>
+              <div class="col-md-3">
+                <button type="button" class="btn btn-outline-primary" id="clearFilters">
+                    <i class="fa-solid fa-refresh me-1"></i>Clear Filters
+                </button>
+            </div>
+        @* </div>
+        <div class="row mt-3">
+            <div class="col-md-6">
+                <button type="button" class="btn btn-outline-primary" id="clearFilters">
+                    <i class="fa-solid fa-refresh me-1"></i>Clear Filters
+                </button>
+            </div>
+        </div> *@
+    </div>
+
+    <!-- Agent Cards - Full Width -->
+    <div id="agentCardsContainer">
+        @if (agentStats != null && agentStats.Any())
+        {
+            foreach (var stat in agentStats)
+            {
+                var agent = stat.Agent;
+                var percentage = (double)stat.AttendancePercentage;
+                var progressColor = percentage >= 90 ? "#16A34A" : percentage >= 75 ? "#2589C9" : percentage >= 60 ? "#F59E0B" : "#DC2626";
+                var performanceBadge = percentage >= 90 ? "Excellent" : percentage >= 75 ? "Good" : percentage >= 60 ? "Average" : "Poor";
+                var badgeClass = percentage >= 90 ? "attendance-excellent" : percentage >= 75 ? "attendance-good" : percentage >= 60 ? "attendance-average" : "attendance-poor";
+                var performanceClass = percentage >= 90 ? "excellent" : percentage >= 75 ? "good" : percentage >= 60 ? "average" : "poor";
+                
+                <div class="agent-card agent-card-wrapper" 
+                     data-name="@agent.Username.ToLower()" 
+                     data-email="@(agent.Email?.ToLower() ?? "")"
+                     data-role="@agent.Role" 
+                     data-attendance="@percentage"
+                     data-performance="@performanceClass"
+                     @* data-agent-id="@agent.UserId"> *@
+                         data-agent-id="@IdObfuscator.Encode(agent.UserId)">
+                    <div class="row align-items-center">
+                        <!-- Column 1: Agent Info -->
+                        <div class="col-md-4">
+                            <div class="d-flex align-items-center mb-2">
+                                @if (!string.IsNullOrEmpty(stat.ProfileImage))
+                                {
+                                    <img src="@stat.ProfileImage" alt="@agent.Username" class="rounded-circle me-3" style="width: 50px; height: 50px; object-fit: cover; border: 2px solid #E8EDF2;">
+                                }
+                                else
+                                {
+                                    <div class="rounded-circle me-3 d-flex align-items-center justify-content-center" style="width: 50px; height: 50px; background: linear-gradient(135deg, #1A6FA8 0%, #125082 100%); color: white; font-weight: 600; font-size: 1.3rem; border: 2px solid #E8EDF2;">
+                                        @agent.Username.Substring(0, 1).ToUpper()
+                                    </div>
+                                }
+                                <div>
+                                    <div class="agent-name mb-1">@agent.Username</div>
+                                    <span class="role-badge">
+                                        <i class="fas fa-user-tag me-1"></i>@agent.Role
+                                    </span>
+                                </div>
+                            </div>
+                            @if (!string.IsNullOrEmpty(agent.Email))
+                            {
+                                <div class="agent-info">
+                                    <i class="fas fa-envelope"></i>
+                                    <span>@agent.Email</span>
+                                </div>
+                            }
+                        </div>
+
+                        <!-- Column 2: Attendance Progress -->
+                        <div class="col-md-4">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span style="font-weight: 600; color: #6B7B8D; font-size: 0.875rem;">Attendance Rate</span>
+                                <span style="font-weight: 700; font-size: 1.1rem; color: @progressColor;">@percentage.ToString("F1")%</span>
+                            </div>
+                            <div class="progress mb-2" style="height: 10px;">
+                                <div class="progress-bar" role="progressbar" style="width: @(percentage)%; background-color: @progressColor;" aria-valuenow="@percentage" aria-valuemin="0" aria-valuemax="100"></div>
+                            </div>
+                            <div class="row g-2 text-center">
+                                <div class="col-4">
+                                    <div style="font-size: 0.75rem; color: #6B7B8D; margin-bottom: 2px;">Present</div>
+                                    <div style="font-size: 1.1rem; font-weight: 700; color: #16A34A;">@stat.PresentDays</div>
+                                </div>
+                                <div class="col-4">
+                                    <div style="font-size: 0.75rem; color: #6B7B8D; margin-bottom: 2px;">Absent</div>
+                                    <div style="font-size: 1.1rem; font-weight: 700; color: #DC2626;">@stat.AbsentDays</div>
+                                </div>
+                                <div class="col-4">
+                                    <div style="font-size: 0.75rem; color: #6B7B8D; margin-bottom: 2px;">Total</div>
+                                    <div style="font-size: 1.1rem; font-weight: 700; color: #2589C9;">@stat.WorkingDays</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Column 3: Performance Badge & Action -->
+                        <div class="col-md-4">
+                            <div class="d-flex align-items-center justify-content-between">
+                                <div>
+                                    <span class="attendance-badge @badgeClass">
+                                        @performanceBadge
+                                    </span>
+                                </div>
+                                <div class="text-end">
+                                    <div class="d-flex align-items-center text-primary" style="font-weight: 500; font-size: 0.9rem;">
+                                        <i class="fas fa-calendar-alt me-2"></i>
+                                        View Calendar
+                                        <i class="fas fa-arrow-right ms-2"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        }
+        else
+        {
+            <div class="empty-state">
+                <i class="fas fa-users"></i>
+                <h3>No Agents Found</h3>
+                <p class="text-muted">There are no agents or sales users to display.</p>
+            </div>
+        }
+    </div>
+
+    <!-- Pagination -->
+    <div class="pagination-wrapper mt-4" id="paginationWrapper" style="display: none;">
+        <div class="row align-items-center">
+            <div class="col-md-6">
+                <p class="text-muted mb-0">Showing <span id="showingStart">0</span> to <span id="showingEnd">0</span> of <span id="totalRecords">0</span> entries</p>
+            </div>
+            <div class="col-md-6">
+                <nav>
+                    <ul class="pagination justify-content-end mb-0" id="pagination">
+                        <!-- Pagination will be generated by JavaScript -->
+                    </ul>
+                </nav>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            console.log('Initializing Agent List...');
+            
+            let allCards = [];
+            let filteredCards = [];
+        let currentPage = 1;
+        const pageSize = 10;
+
+        // Store original cards HTML
+        function initializeCards() {
+            allCards = [];
+            $('.agent-card-wrapper').each(function() {
+                const $card = $(this);
+                allCards.push({
+                    html: $card[0].outerHTML,
+                    name: $card.data('name') || '',
+                    email: $card.data('email') || '',
+                    role: $card.data('role') || '',
+                    performance: $card.data('performance') || ''
+                });
+            });
+            console.log('Total cards found:', allCards.length);
+            filteredCards = [...allCards];
+            // Don't call renderPage() on initial load - keep server-rendered cards
+            updatePaginationInfo();
+            if (filteredCards.length > pageSize) {
+                renderPagination();
+                $('#paginationWrapper').show();
+            }
+        }
+
+        // Filter cards
+        function filterCards() {
+            const searchTerm = $('#searchInput').val().toLowerCase().trim();
+            const roleFilter = $('#roleFilter').val();
+            const attendanceFilter = $('#attendanceFilter').val();
+
+            console.log('Filtering:', { searchTerm, roleFilter, attendanceFilter });
+
+            filteredCards = allCards.filter(card => {
+                const matchesSearch = !searchTerm || 
+                    card.name.includes(searchTerm) || 
+                    card.email.includes(searchTerm);
+                const matchesRole = !roleFilter || card.role.toLowerCase() === roleFilter.toLowerCase();
+                const matchesAttendance = !attendanceFilter || card.performance.toLowerCase() === attendanceFilter.toLowerCase();
+
+                return matchesSearch && matchesRole && matchesAttendance;
+            });
+
+            console.log('Filtered cards:', filteredCards.length);
+            currentPage = 1;
+            renderPage();
+        }
+
+        // Render current page
+        function renderPage() {
+            const container = $('#agentCardsContainer');
+            container.empty();
+
+            if (filteredCards.length === 0) {
+                container.html(`
+                    <div class="empty-state">
+                        <i class="fas fa-users"></i>
+                        <h3>No Agents Found</h3>
+                        <p class="text-muted">No agents match your current filters.</p>
+                    </div>
+                `);
+                $('#paginationWrapper').hide();
+                return;
+            }
+
+            const start = (currentPage - 1) * pageSize;
+            const end = start + pageSize;
+            const pageCards = filteredCards.slice(start, end);
+
+            pageCards.forEach(card => {
+                const $card = $(card.html);
+                $card.removeAttr('onclick');
+                container.append($card);
+            });
+
+            updatePaginationInfo();
+            renderPagination();
+            
+            if (filteredCards.length > pageSize) {
+                $('#paginationWrapper').show();
+            } else {
+                $('#paginationWrapper').hide();
+            }
+        }
+
+        // Update pagination info
+        function updatePaginationInfo() {
+            const start = (currentPage - 1) * pageSize + 1;
+            const end = Math.min(currentPage * pageSize, filteredCards.length);
+            $('#showingStart').text(start);
+            $('#showingEnd').text(end);
+            $('#totalRecords').text(filteredCards.length);
+        }
+
+        // Render pagination buttons
+        function renderPagination() {
+            const totalPages = Math.ceil(filteredCards.length / pageSize);
+            const pagination = $('#pagination');
+            pagination.empty();
+
+            if (totalPages <= 1) return;
+
+            // Previous button
+            pagination.append(`
+                <li class="page-item ${currentPage === 1 ? 'disabled' : ''}">
+                    <a class="page-link" href="#" data-page="${currentPage - 1}">
+                        <i class="fas fa-chevron-left"></i>
+                    </a>
+                </li>
+            `);
+
+            // Page numbers
+            let startPage = Math.max(1, currentPage - 2);
+            let endPage = Math.min(totalPages, currentPage + 2);
+
+            if (startPage > 1) {
+                pagination.append(`<li class="page-item"><a class="page-link" href="#" data-page="1">1</a></li>`);
+                if (startPage > 2) {
+                    pagination.append(`<li class="page-item disabled"><span class="page-link">...</span></li>`);
+                }
+            }
+
+            for (let i = startPage; i <= endPage; i++) {
+                pagination.append(`
+                    <li class="page-item ${i === currentPage ? 'active' : ''}">
+                        <a class="page-link" href="#" data-page="${i}">${i}</a>
+                    </li>
+                `);
+            }
+
+            if (endPage < totalPages) {
+                if (endPage < totalPages - 1) {
+                    pagination.append(`<li class="page-item disabled"><span class="page-link">...</span></li>`);
+                }
+                pagination.append(`<li class="page-item"><a class="page-link" href="#" data-page="${totalPages}">${totalPages}</a></li>`);
+            }
+
+            // Next button
+            pagination.append(`
+                <li class="page-item ${currentPage === totalPages ? 'disabled' : ''}">
+                    <a class="page-link" href="#" data-page="${currentPage + 1}">
+                        <i class="fas fa-chevron-right"></i>
+                    </a>
+                </li>
+            `);
+
+            // Attach click handlers
+            pagination.find('a.page-link').off('click').on('click', function(e) {
+                e.preventDefault();
+                const page = parseInt($(this).data('page'));
+                if (page && page !== currentPage && page >= 1 && page <= totalPages) {
+                    currentPage = page;
+                    renderPage();
+                    $('html, body').animate({ scrollTop: $('#agentCardsContainer').offset().top - 100 }, 300);
+                }
+            });
+        }
+
+        // Event handlers
+        $('#searchInput').on('keyup', function() {
+            console.log('Search input changed:', $(this).val());
+            filterCards();
+        });
+        
+        $('#roleFilter').on('change', function() {
+            console.log('Role filter changed:', $(this).val());
+            filterCards();
+        });
+        
+        $('#attendanceFilter').on('change', function() {
+            console.log('Attendance filter changed:', $(this).val());
+            filterCards();
+        });
+
+        $('#clearFilters').on('click', function() {
+            console.log('Clearing filters');
+            $('#searchInput').val('');
+            $('#roleFilter').val('');
+            $('#attendanceFilter').val('');
+            filterCards();
+        });
+
+        // Event delegation for agent card clicks
+        // $(document).on('click', '.agent-card-wrapper', function(e) {
+        //     const agentId = $(this).data('agent-id');
+        //     if (agentId) {
+        //         window.location.href = '/Attendance/Calendar?agentId=' + agentId;
+        //     }
+        // });
+                        // Fix: Bind delegation directly to the persistent container element
+                $('#agentCardsContainer').off('click', '.agent-card-wrapper').on('click', '.agent-card-wrapper', function (e) {
+                    // Prevent routing if clicking on explicit action links or secondary buttons inside the card
+                    if ($(e.target).closest('a, button').length) {
+                        return;
+                    }
+
+                    const agentId = $(this).attr('data-agent-id') || $(this).data('agent-id');
+                    console.log("Card clicked! Navigating to agent:", agentId);
+
+                    if (agentId) {
+                        window.location.href = '/attendance/calendar?agentId=' + encodeURIComponent(agentId);
+                    }
+                });
+        // Initialize on page load
+        initializeCards();
+        });
+    </script>
+}

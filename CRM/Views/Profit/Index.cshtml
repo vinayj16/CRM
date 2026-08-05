@@ -1,0 +1,678 @@
+@model CRM.ViewModels.ExpenseRevenueProfitViewModel
+@{
+    ViewData["Title"] = "Profit";
+}
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+
+<style>
+    :root {
+        --gold: #D4A45A;
+        --gold-light: #E8C27E;
+        --gold-dark: #B8883E;
+        --gold-muted: rgba(212,164,90,0.12);
+        --blue: #1A6FA8;
+        --blue-light: #2589C9;
+        --blue-dark: #125082;
+        --blue-muted: rgba(26,111,168,0.10);
+        --bg: #F0F4F8;
+        --surface: #FFFFFF;
+        --border: rgba(0,0,0,0.07);
+        --text: #1A2332;
+        --text-muted: #6B7B8D;
+        --success: #16A34A;
+        --danger: #DC2626;
+        --radius: 10px;
+        --radius-sm: 6px;
+        --shadow: 0 2px 10px rgba(26,111,168,0.08);
+        --shadow-md: 0 4px 20px rgba(26,111,168,0.12);
+    }
+
+    .dark-mode {
+        --bg: #111827;
+        --surface: #162436;
+        --border: rgba(255,255,255,0.07);
+        --text: #E8EDF2;
+        --text-muted: #8FA3B8;
+        --shadow: 0 2px 10px rgba(0,0,0,0.3);
+        --shadow-md: 0 4px 20px rgba(0,0,0,0.4);
+        --gold-muted: rgba(212,164,90,0.08);
+        --blue-muted: rgba(26,111,168,0.12);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    .profit-page {
+        font-family: 'DM Sans', sans-serif;
+        color: var(--text);
+        padding: 0.75rem;
+        max-width: 1400px;
+        margin: 0 auto;
+    }
+
+    /* ── Breadcrumb ── */
+    .bc { display: flex; align-items: center; gap: 0.35rem; font-size: 0.78rem; color: var(--text-muted); margin-bottom: 0.75rem; }
+    .bc a { color: var(--blue); text-decoration: none; font-weight: 500; }
+    .bc a:hover { color: var(--gold); }
+    .bc-sep { opacity: 0.4; }
+
+    /* ── Hero Header ── */
+    .profit-hero {
+        background: linear-gradient(135deg, var(--blue) 0%, #0F4C75 100%);
+        border-radius: var(--radius);
+        padding: 1.1rem 1.25rem;
+        margin-bottom: 0.75rem;
+        position: relative;
+        overflow: hidden;
+    }
+    .profit-hero::before {
+        content: '';
+        position: absolute;
+        top: -40px; right: -40px;
+        width: 160px; height: 160px;
+        background: radial-gradient(circle, rgba(212,164,90,0.18) 0%, transparent 70%);
+        border-radius: 50%;
+    }
+    .profit-hero::after {
+        content: '';
+        position: absolute;
+        bottom: -30px; left: 30%;
+        width: 100px; height: 100px;
+        background: radial-gradient(circle, rgba(212,164,90,0.1) 0%, transparent 70%);
+        border-radius: 50%;
+    }
+
+    .hero-top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 0.85rem;
+        position: relative; z-index: 1;
+    }
+    .hero-title {
+        font-family: 'Playfair Display', serif;
+        font-size: 1.2rem;
+        color: #FFFFFF;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    .hero-title i { color: var(--gold); font-size: 1rem; }
+    .hero-subtitle { color: rgba(255,255,255,0.6); font-size: 0.72rem; margin-top: 0.15rem; }
+    .hero-badge {
+        padding: 0.3rem 0.85rem;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 700;
+        letter-spacing: 0.3px;
+    }
+    .hero-badge.profit { background: rgba(22,163,74,0.25); color: #8FA3B8; border: 1px solid rgba(143,163,184,0.3); }
+    .hero-badge.loss { background: rgba(220,38,38,0.25); color: #E8C27E; border: 1px solid rgba(232,194,126,0.3); }
+
+    /* ── Stats Grid ── */
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 0.6rem;
+        position: relative; z-index: 1;
+    }
+    .stat-box {
+        background: rgba(255,255,255,0.09);
+        border: 1px solid rgba(255,255,255,0.12);
+        border-radius: var(--radius-sm);
+        padding: 0.65rem 0.85rem;
+        text-align: center;
+        backdrop-filter: blur(6px);
+        transition: background 0.2s;
+    }
+    .stat-box:hover { background: rgba(255,255,255,0.14); }
+    .stat-val {
+        font-size: 1.05rem;
+        font-weight: 700;
+        color: #FFFFFF;
+        line-height: 1.2;
+        margin-bottom: 0.2rem;
+    }
+    .stat-label {
+        font-size: 0.68rem;
+        color: rgba(255,255,255,0.6);
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    .stat-box.highlight .stat-val { color: var(--gold-light); }
+
+    /* ── Filter Bar ── */
+    .filter-bar {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 0.75rem 1rem;
+        margin-bottom: 0.75rem;
+        box-shadow: var(--shadow);
+        display: flex;
+        align-items: flex-end;
+        gap: 0.6rem;
+        flex-wrap: wrap;
+    }
+    .filter-group { display: flex; flex-direction: column; gap: 0.25rem; flex: 1; min-width: 130px; }
+    .filter-label { font-size: 0.7rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+    .form-control, .form-select {
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        padding: 0.38rem 0.65rem;
+        font-size: 0.8rem;
+        font-family: 'DM Sans', sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        transition: border-color 0.2s, box-shadow 0.2s;
+        width: 100%;
+        height: 34px;
+    }
+    .dark-mode .form-control, .dark-mode .form-select {
+        background: #1E2A3A;
+        border-color: rgba(255,255,255,0.1);
+    }
+    .form-control:focus, .form-select:focus {
+        outline: none;
+        border-color: var(--blue);
+        box-shadow: 0 0 0 3px rgba(26,111,168,0.12);
+    }
+    .custom-date-row { display: flex; gap: 0.4rem; }
+    .custom-date-row .form-control { flex: 1; }
+
+    .btn-export {
+        background: linear-gradient(135deg, var(--gold) 0%, var(--gold-dark) 100%);
+        color: #FFFFFF;
+        border: none;
+        border-radius: var(--radius-sm);
+        padding: 0 1.1rem;
+        height: 34px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        font-family: 'DM Sans', sans-serif;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        white-space: nowrap;
+        transition: opacity 0.2s, transform 0.15s;
+        box-shadow: 0 2px 8px rgba(212,164,90,0.3);
+        align-self: flex-end;
+    }
+    .btn-export:hover { opacity: 0.9; transform: translateY(-1px); }
+    .btn-export:active { transform: translateY(0); }
+
+    /* ── Breakdown Columns ── */
+    .breakdown-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.75rem;
+    }
+    .breakdown-col {}
+    .col-header {
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        font-size: 0.82rem;
+        font-weight: 700;
+        color: var(--text);
+        margin-bottom: 0.5rem;
+        padding-bottom: 0.4rem;
+        border-bottom: 2px solid var(--border);
+    }
+    .col-header i { font-size: 0.85rem; }
+    .col-header.expense-header { border-color: rgba(220,38,38,0.25); }
+    .col-header.expense-header i { color: var(--danger); }
+    .col-header.revenue-header { border-color: rgba(22,163,74,0.25); }
+    .col-header.revenue-header i { color: var(--success); }
+
+    /* ── Cards ── */
+    .breakdown-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        padding: 0.6rem 0.85rem;
+        margin-bottom: 0.45rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.5rem;
+        transition: box-shadow 0.2s, transform 0.2s, border-color 0.2s;
+        box-shadow: var(--shadow);
+    }
+    .expense-card { border-left: 3px solid rgba(220,38,38,0.4); }
+    .revenue-card { border-left: 3px solid rgba(22,163,74,0.4); }
+    .breakdown-card:hover {
+        transform: translateY(-1px);
+        box-shadow: var(--shadow-md);
+    }
+    .expense-card:hover { border-left-color: var(--danger); }
+    .revenue-card:hover { border-left-color: var(--success); }
+
+    .card-left { display: flex; flex-direction: column; gap: 0.2rem; min-width: 0; }
+    .card-top { display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap; }
+    .type-badge {
+        padding: 0.15rem 0.55rem;
+        border-radius: 20px;
+        font-size: 0.68rem;
+        font-weight: 700;
+        letter-spacing: 0.3px;
+        white-space: nowrap;
+    }
+    .badge-expense { background: rgba(220,38,38,0.1); color: var(--danger); }
+    .badge-revenue { background: rgba(22,163,74,0.1); color: var(--success); }
+    .card-desc {
+        font-size: 0.75rem;
+        color: var(--text-muted);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 160px;
+    }
+    .card-date { font-size: 0.68rem; color: var(--text-muted); display: flex; align-items: center; gap: 0.25rem; }
+    .card-date i { font-size: 0.6rem; }
+    .card-amount {
+        font-size: 0.9rem;
+        font-weight: 700;
+        white-space: nowrap;
+        flex-shrink: 0;
+    }
+    .amount-expense { color: var(--danger); }
+    .amount-revenue { color: var(--success); }
+
+    /* ── Empty State ── */
+    .empty-state {
+        text-align: center;
+        padding: 2rem 1rem;
+        color: var(--text-muted);
+    }
+    .empty-state i { font-size: 2rem; opacity: 0.3; display: block; margin-bottom: 0.5rem; }
+    .empty-state p { font-size: 0.8rem; }
+
+    /* ── Validation Feedback ── */
+    .field-error { font-size: 0.68rem; color: var(--danger); margin-top: 0.2rem; display: none; }
+    .field-error.show { display: block; }
+    .form-control.is-invalid { border-color: var(--danger) !important; box-shadow: 0 0 0 3px rgba(220,38,38,0.1) !important; }
+    .form-control.is-valid { border-color: var(--success) !important; box-shadow: 0 0 0 3px rgba(22,163,74,0.1) !important; }
+
+    /* ── Flatpickr Overrides ── */
+    .flatpickr-calendar { font-family: 'DM Sans', sans-serif; font-size: 0.8rem; border-radius: var(--radius); box-shadow: var(--shadow-md); border: 1px solid var(--border); }
+    .flatpickr-day.selected { background: var(--blue); border-color: var(--blue); }
+    .flatpickr-day.selected:hover { background: var(--blue-dark); }
+
+    /* ── Dark Mode ── */
+    .dark-mode .breakdown-card { background: #1E2A3A; border-color: rgba(255,255,255,0.07); }
+    .dark-mode .filter-bar { background: #1E2A3A; border-color: rgba(255,255,255,0.07); }
+    .dark-mode .col-header { color: #B8C8D8; }
+    .dark-mode .flatpickr-calendar { background: #1E2A3A; color: var(--text); }
+    .dark-mode .flatpickr-months, .dark-mode .flatpickr-weekdays { background: #1E2A3A; }
+    .dark-mode .flatpickr-day { color: var(--text); }
+    .dark-mode .flatpickr-day:hover { background: rgba(26,111,168,0.2); }
+
+    /* ── Responsive ── */
+    @@media (max-width: 768px) {
+        .breakdown-grid { grid-template-columns: 1fr; }
+        .stats-grid { grid-template-columns: repeat(3, 1fr); }
+        .stat-val { font-size: 0.85rem; }
+        .filter-bar { flex-direction: column; }
+        .btn-export { width: 100%; justify-content: center; }
+        .hero-top { flex-direction: column; align-items: flex-start; gap: 0.4rem; }
+    }
+
+    @@media (max-width: 480px) {
+        .stats-grid { grid-template-columns: 1fr; }
+        .breakdown-card { flex-direction: column; align-items: flex-start; gap: 0.3rem; }
+        .card-amount { align-self: flex-end; }
+    }
+</style>
+
+<div class="profit-page">
+
+    <!-- Breadcrumb -->
+    <nav class="bc">
+        <a href="/Home"><i class="fa-solid fa-house" style="font-size:0.7rem"></i> Home</a>
+        <span class="bc-sep">/</span>
+        <span>Profit</span>
+    </nav>
+
+    <!-- Hero Header -->
+    <div class="profit-hero">
+        <div class="hero-top">
+            <div>
+                <div class="hero-title">
+                    <i class="fa-solid fa-chart-line"></i>
+                    Profit Overview
+                </div>
+                <div class="hero-subtitle">Summary of profit, revenue & expenses</div>
+            </div>
+            @if (Model.Profit >= 0)
+            {
+                <span class="hero-badge profit"><i class="fa-solid fa-arrow-trend-up me-1"></i>Profit: ₹@Model.Profit.ToString("N0")</span>
+            }
+            else
+            {
+                <span class="hero-badge loss"><i class="fa-solid fa-arrow-trend-down me-1"></i>Loss: ₹@Math.Abs(Model.Profit).ToString("N0")</span>
+            }
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-box">
+                <div class="stat-val">₹@Model.TotalExpenses.ToString("N0")</div>
+                <div class="stat-label">Total Expenses</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-val">₹@Model.TotalRevenue.ToString("N0")</div>
+                <div class="stat-label">Total Revenue</div>
+            </div>
+            <div class="stat-box highlight">
+                @if (Model.Profit >= 0)
+                {
+                    <div class="stat-val">₹@Model.Profit.ToString("N0")</div>
+                    <div class="stat-label">Net Profit</div>
+                }
+                else
+                {
+                    <div class="stat-val" style="color:#E8C27E">₹@Math.Abs(Model.Profit).ToString("N0")</div>
+                    <div class="stat-label">Net Loss</div>
+                }
+            </div>
+        </div>
+    </div>
+
+    <!-- Filter Bar -->
+    <div class="filter-bar">
+        <div class="filter-group" style="max-width:160px">
+            <label class="filter-label">Date Range</label>
+            <select class="form-select" id="dateRangeFilter">
+                <option value="all">All Time</option>
+                <option value="today">Today</option>
+                <option value="thisWeek">This Week</option>
+                <option value="thisMonth">This Month</option>
+                <option value="last3Months">Last 3 Months</option>
+                <option value="custom">Custom Range</option>
+            </select>
+        </div>
+
+        <div class="filter-group" id="customDateRange" style="display:none; max-width:260px">
+            <label class="filter-label">Custom Range</label>
+            <div class="custom-date-row">
+                <div style="flex:1">
+                    <input type="text" class="form-control" id="startDate" placeholder="Start date" readonly>
+                    <div class="field-error" id="startDateError">Please select a start date.</div>
+                </div>
+                <div style="flex:1">
+                    <input type="text" class="form-control" id="endDate" placeholder="End date" readonly>
+                    <div class="field-error" id="endDateError">Please select a valid end date.</div>
+                </div>
+            </div>
+        </div>
+
+        <button class="btn-export" type="button" onclick="exportData()">
+            <i class="fa-solid fa-file-excel"></i> Export Excel
+        </button>
+    </div>
+
+    <!-- Breakdown Grid -->
+    <div class="breakdown-grid">
+        <!-- Expenses -->
+        <div class="breakdown-col">
+            <div class="col-header expense-header">
+                <i class="fa-solid fa-money-bill-wave"></i>
+                Expenses Breakdown
+            </div>
+            @if (Model.Expenses != null && Model.Expenses.Any())
+            {
+                foreach (var expense in Model.Expenses)
+                {
+                    <div class="breakdown-card expense-card" data-date="@expense.Date.ToString("MMM dd, yyyy")">
+                        <div class="card-left">
+                            <div class="card-top">
+                                <span class="type-badge badge-expense">@expense.Type</span>
+                                <span class="card-desc">@expense.Description</span>
+                            </div>
+                            <div class="card-date">
+                                <i class="fa-solid fa-calendar"></i>
+                                @expense.Date.ToString("MMM dd, yyyy")
+                            </div>
+                        </div>
+                        <div class="card-amount amount-expense">₹@expense.Amount.ToString("N0")</div>
+                    </div>
+                }
+            }
+            else
+            {
+                <div class="empty-state">
+                    <i class="fa-solid fa-money-bill-wave"></i>
+                    <p>No Expenses Found</p>
+                </div>
+            }
+        </div>
+
+        <!-- Revenue -->
+        <div class="breakdown-col">
+            <div class="col-header revenue-header">
+                <i class="fa-solid fa-coins"></i>
+                Revenue Breakdown
+            </div>
+            @if (Model.Revenues != null && Model.Revenues.Any())
+            {
+                foreach (var revenue in Model.Revenues)
+                {
+                    <div class="breakdown-card revenue-card" data-date="@revenue.Date.ToString("MMM dd, yyyy")">
+                        <div class="card-left">
+                            <div class="card-top">
+                                <span class="type-badge badge-revenue">@revenue.Type</span>
+                                <span class="card-desc">@revenue.Description</span>
+                            </div>
+                            <div class="card-date">
+                                <i class="fa-solid fa-calendar"></i>
+                                @revenue.Date.ToString("MMM dd, yyyy")
+                            </div>
+                        </div>
+                        <div class="card-amount amount-revenue">₹@revenue.Amount.ToString("N0")</div>
+                    </div>
+                }
+            }
+            else
+            {
+                <div class="empty-state">
+                    <i class="fa-solid fa-coins"></i>
+                    <p>No Revenue Found</p>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script>
+$(document).ready(function () {
+
+    /* ── Flatpickr init ── */
+    const fpStart = flatpickr('#startDate', {
+        dateFormat: 'Y-m-d',
+        altInput: true,
+        altFormat: 'M d, Y',
+        disableMobile: true,
+        onChange: function(selectedDates) {
+            if (selectedDates.length) {
+                fpEnd.set('minDate', selectedDates[0]);
+                validateDate('startDate', 'startDateError', true);
+                applyFilters();
+            }
+        }
+    });
+
+    const fpEnd = flatpickr('#endDate', {
+        dateFormat: 'Y-m-d',
+        altInput: true,
+        altFormat: 'M d, Y',
+        disableMobile: true,
+        onChange: function(selectedDates) {
+            if (selectedDates.length) {
+                validateDate('endDate', 'endDateError', true);
+                applyFilters();
+            }
+        }
+    });
+
+    /* ── Validation ── */
+    function validateDate(inputId, errorId, silent) {
+        var val = document.getElementById(inputId).value;
+        var err = document.getElementById(errorId);
+        var input = document.getElementById(inputId);
+        if (!val) {
+            if (!silent) {
+                input.classList.add('is-invalid');
+                input.classList.remove('is-valid');
+                err.classList.add('show');
+            }
+            return false;
+        }
+        input.classList.remove('is-invalid');
+        input.classList.add('is-valid');
+        err.classList.remove('show');
+        return true;
+    }
+
+    function validateCustomRange() {
+        if ($('#dateRangeFilter').val() !== 'custom') return true;
+        var startOk = validateDate('startDate', 'startDateError', false);
+        var endOk   = validateDate('endDate',   'endDateError',   false);
+        if (startOk && endOk) {
+            var s = new Date($('#startDate').val());
+            var e = new Date($('#endDate').val());
+            if (e < s) {
+                $('#endDate').addClass('is-invalid').removeClass('is-valid');
+                $('#endDateError').text('End date must be after start date.').addClass('show');
+                return false;
+            }
+        }
+        return startOk && endOk;
+    }
+
+    /* ── Date helpers ── */
+    function getDateRange(range) {
+        const now = new Date();
+        const pad = d => d.toISOString().split('T')[0];
+        const startOfWeek = new Date(now); startOfWeek.setDate(now.getDate() - now.getDay());
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+        const last3 = new Date(now.getFullYear(), now.getMonth() - 3, 1);
+        switch (range) {
+            case 'today':       return { start: pad(now), end: pad(now) };
+            case 'thisWeek':    return { start: pad(startOfWeek), end: pad(now) };
+            case 'thisMonth':   return { start: pad(startOfMonth), end: pad(now) };
+            case 'last3Months': return { start: pad(last3), end: pad(now) };
+            default:            return null;
+        }
+    }
+
+    function toISO(dateText) {
+        var d = new Date(dateText);
+        return isNaN(d) ? null : d.toISOString().split('T')[0];
+    }
+
+    /* ── Stats update ── */
+    function updateStats() {
+        var totalExp = 0, totalRev = 0;
+        $('.expense-card:visible').each(function () {
+            totalExp += parseFloat($(this).find('.amount-expense').text().replace('₹','').replace(/,/g,'')) || 0;
+        });
+        $('.revenue-card:visible').each(function () {
+            totalRev += parseFloat($(this).find('.amount-revenue').text().replace('₹','').replace(/,/g,'')) || 0;
+        });
+        var profit = totalRev - totalExp;
+        var fmt = n => '₹' + n.toLocaleString('en-IN');
+
+        $('.stat-box').eq(0).find('.stat-val').text(fmt(totalExp));
+        $('.stat-box').eq(1).find('.stat-val').text(fmt(totalRev));
+
+        var valEl   = $('.stat-box').eq(2).find('.stat-val');
+        var labelEl = $('.stat-box').eq(2).find('.stat-label');
+        var badge   = $('.hero-badge');
+
+        if (profit >= 0) {
+            valEl.css('color','').text(fmt(profit));
+            labelEl.text('Net Profit');
+            badge.removeClass('loss').addClass('profit').html('<i class="fa-solid fa-arrow-trend-up me-1"></i>Profit: ' + fmt(profit));
+        } else {
+            valEl.css('color','#E8C27E').text(fmt(Math.abs(profit)));
+            labelEl.text('Net Loss');
+            badge.removeClass('profit').addClass('loss').html('<i class="fa-solid fa-arrow-trend-down me-1"></i>Loss: ' + fmt(Math.abs(profit)));
+        }
+    }
+
+    /* ── Apply filters ── */
+    function applyFilters() {
+        var range = $('#dateRangeFilter').val();
+        var filter = null;
+
+        if (range === 'custom') {
+            var s = $('#startDate').val();
+            var e = $('#endDate').val();
+            if (s && e) filter = { start: s, end: e };
+        } else if (range !== 'all') {
+            filter = getDateRange(range);
+        }
+
+        $('.breakdown-card').each(function () {
+            var iso = toISO($(this).attr('data-date'));
+            var show = !filter || !iso || (iso >= filter.start && iso <= filter.end);
+            $(this)[show ? 'show' : 'hide']();
+        });
+
+        updateStats();
+    }
+
+    /* ── Events ── */
+    $('#dateRangeFilter').on('change', function () {
+        if ($(this).val() === 'custom') {
+            $('#customDateRange').slideDown(150);
+        } else {
+            $('#customDateRange').slideUp(150);
+            // clear validation states
+            ['startDate','endDate'].forEach(id => {
+                $('#'+id).removeClass('is-invalid is-valid');
+            });
+            $('#startDateError, #endDateError').removeClass('show');
+            applyFilters();
+        }
+    });
+
+    applyFilters();
+});
+
+/* ── Export ── */
+function exportData() {
+    var rows = [];
+    $('.expense-card:visible').each(function () {
+        rows.push({
+            Category:    'Expense',
+            Type:        $(this).find('.type-badge').text().trim(),
+            Description: $(this).find('.card-desc').text().trim(),
+            Amount:      $(this).find('.amount-expense').text().replace('₹','').replace(/,/g,'').trim(),
+            Date:        $(this).attr('data-date')
+        });
+    });
+    $('.revenue-card:visible').each(function () {
+        rows.push({
+            Category:    'Revenue',
+            Type:        $(this).find('.type-badge').text().trim(),
+            Description: $(this).find('.card-desc').text().trim(),
+            Amount:      $(this).find('.amount-revenue').text().replace('₹','').replace(/,/g,'').trim(),
+            Date:        $(this).attr('data-date')
+        });
+    });
+    if (!rows.length) { Swal.fire('No Data', 'No data to export', 'info'); return; }
+    var ws = XLSX.utils.json_to_sheet(rows);
+    var wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Profit_Analysis');
+    XLSX.writeFile(wb, 'Profit_Report_' + new Date().toISOString().split('T')[0] + '.xlsx');
+}
+</script>
+}

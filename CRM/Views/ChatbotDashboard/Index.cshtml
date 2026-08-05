@@ -1,0 +1,462 @@
+@model CRM.Controllers.ChatbotDashboardViewModel
+@{
+    ViewData["Title"] = "Chatbot Dashboard";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+@section Scripts {
+<script>
+    // Gate this page behind the "customapi" feature
+    if (window.FeatureGate) {
+        FeatureGate.requireFeature('customapi', 'Custom API Access').then(function(hasAccess) {
+            if (!hasAccess) {
+                // Disable page content if access denied
+                document.querySelectorAll('.btn, .btn-sm, a').forEach(function(el) {
+                    el.style.pointerEvents = 'none';
+                    el.style.opacity = '0.5';
+                });
+            }
+        });
+    }
+</script>
+}
+
+<div class="container-fluid">
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            @TempData["Error"]
+            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+            </button>
+        </div>
+    }
+    <!-- Page Header -->
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800">
+            Chatbot Dashboard 
+            <small class="text-muted">(@ViewBag.CurrentUserRole)</small>
+        </h1>
+        <div class="d-flex">
+            <button class="btn btn-primary btn-sm" onclick="refreshDashboard()">
+                <i class="fas fa-sync-alt"></i> Refresh
+            </button>
+            <div class="ml-2">
+                <span class="badge badge-success" id="connectionStatus">Connected</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="row">
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-primary shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Active Conversations</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">@Model.Stats.TotalActiveConversations</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-comments fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-warning shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">Unassigned</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">@Model.Stats.UnassignedConversationsCount</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-user-clock fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Member Logins Today</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">@Model.Stats.MemberLoginCount</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-sign-in-alt fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-info shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Online Agents</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">@Model.Stats.OnlineAgentsCount</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-users fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-danger shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">Unread Notifications</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">@Model.Stats.UnreadNotificationsCount</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-bell fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Active Conversations -->
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow">
+                <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        @(ViewBag.CanViewAllConversations ? "All Active Conversations" : "My Active Conversations")
+                    </h6>
+                    @if (Model.UnassignedConversations.Any())
+                    {
+                        <a href="#" class="btn btn-sm btn-outline-primary" onclick="loadUnassignedConversations()">
+                            <i class="fas fa-user-plus"></i> Pick Up Unassigned (@Model.UnassignedConversations.Count)
+                        </a>
+                    }
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-bordered" id="activeConversationsTable">
+                            <thead>
+                                <tr>
+                                    <th>Conversation ID</th>
+                                    @if (ViewBag.CanViewAllConversations)
+                                    {
+                                        <th>Assigned Agent</th>
+                                    }
+                                    <th>Status</th>
+                                    <th>Priority</th>
+                                    <th>Last Activity</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var conversation in Model.MyActiveConversations)
+                                {
+                                    <tr>
+                                        <td>@conversation.ConversationId</td>
+                                        @if (ViewBag.CanViewAllConversations)
+                                        {
+                                            <td>
+                                                @{
+                                                    var assignedAgentName = "";
+                                                    if (conversation.AssignedAt != default && ViewBag.CanViewAllConversations)
+                                                    {
+                                                        // For now, show a placeholder - in real implementation, you'd get the agent name from the assignment
+                                                        assignedAgentName = "Agent " + conversation.ConversationId.Substring(0,  Math.Min(4, conversation.ConversationId.Length));
+                                                    }
+                                                    else
+                                                    {
+                                                        assignedAgentName = "Agent Unknown";
+                                                    }
+                                                    }
+                                                }
+                                                @assignedAgentName
+                                            </td>
+                                        }
+                                        <td>
+                                            <span class="badge badge-@(conversation.Status == "Assigned" ? "primary" : conversation.Status == "InProgress" ? "info" : "secondary")">
+                                                @conversation.Status
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <span class="badge badge-@(conversation.Priority == "High" ? "danger" : conversation.Priority == "Normal" ? "warning" : "info")">
+                                                @conversation.Priority
+                                            </span>
+                                        </td>
+                                        <td>@conversation.LastAgentActivityAt?.ToString("MMM dd, HH:mm")</td>
+                                        <td>
+                                            <a href="@Url.Action("Conversation", "ChatbotDashboard", new { conversationId = conversation.ConversationId })" class="btn btn-sm btn-primary">
+                                                <i class="fas fa-eye"></i> View
+                                            </a>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                    @if (!Model.MyActiveConversations.Any())
+                    {
+                        <div class="text-center py-3">
+                            <p class="text-muted">
+                                @(ViewBag.CanViewAllConversations ? "No active conversations in the system" : "No active conversations assigned to you")
+                                @if (ViewBag.CanAssignLeads && Model.UnassignedConversations.Any())
+                                {
+                                    <text> - <a href="#" onclick="loadUnassignedConversations()">Pick up unassigned conversations</a></text>
+                                }
+                            </p>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- Online Agents -->
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Online Agents</h6>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-bordered" id="onlineAgentsTable">
+                            <thead>
+                                <tr>
+                                    <th>Agent Name</th>
+                                    <th>Status</th>
+                                    <th>Current Chats</th>
+                                    <th>Max Chats</th>
+                                    <th>Avg Response Time</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var agent in Model.OnlineAgents)
+                                {
+                                    <tr>
+                                        <td>@agent.AgentName</td>
+                                        <td>
+                                            <span class="badge badge-@(agent.CurrentStatus == "Online" ? "success" : agent.CurrentStatus == "Busy" ? "warning" : "secondary")">
+                                                @agent.CurrentStatus
+                                            </span>
+                                        </td>
+                                        <td>@agent.CurrentChatCount/@agent.MaxConcurrentChats</td>
+                                        <td>@agent.MaxConcurrentChats</td>
+                                        <td>@(agent.AverageResponseTime?.ToString("F1") ?? "N/A")s</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                    @if (!Model.OnlineAgents.Any())
+                    {
+                        <div class="text-center py-3">
+                            <p class="text-muted">No agents online</p>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        @if (ViewBag.CanViewAllConversations)
+        {
+            <div class="col-xl-4 col-lg-5">
+                <div class="card shadow mb-4">
+                    <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                        <h6 class="m-0 font-weight-bold text-primary">Recent Messages</h6>
+                    </div>
+                    <div class="card-body">
+                        @if (Model.RecentMessages.Any())
+                        {
+                            <div class="list-group list-group-flush">
+                                @foreach (var message in Model.RecentMessages.Take(10))
+                                {
+                                    <div class="list-group-item">
+                                        <div class="d-flex w-100 justify-content-between">
+                                            <h6 class="mb-1">@message.SenderName</h6>
+                                            <small class="text-muted">@message.SentAt.ToString("HH:mm")</small>
+                                        </div>
+                                        <p class="mb-1 text-truncate">@message.MessageText</p>
+                                        <small class="text-muted">Conversation: @message.ConversationId</small>
+                                    </div>
+                                }
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="text-center py-3">
+                                <p class="text-muted">No recent messages</p>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        }
+
+        @if (ViewBag.CanViewAllConversations)
+        {
+            <div class="col-xl-4 col-lg-5">
+                <div class="card shadow mb-4">
+                    <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                        <h6 class="m-0 font-weight-bold text-primary">Online Agents</h6>
+                        <span class="badge badge-success">@Model.Stats.OnlineAgentsCount Online</span>
+                    </div>
+                    <div class="card-body">
+                        @if (Model.OnlineAgents.Any())
+                        {
+                            <div class="list-group list-group-flush">
+                                @foreach (var agent in Model.OnlineAgents)
+                                {
+                                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <h6 class="mb-0">@agent.AgentName</h6>
+                                            <small class="text-muted">@agent.CurrentStatus - @agent.CurrentChatCount active chats</small>
+                                        </div>
+                                        <span class="badge badge-@(agent.CurrentStatus == "Online" ? "success" : "warning")">
+                                            @agent.CurrentStatus
+                                        </span>
+                                    </div>
+                                }
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="text-center py-3">
+                                <p class="text-muted">No agents online</p>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        }
+
+        <!-- Notifications -->
+        <div class="col-lg-4 mb-4">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Notifications</h6>
+                </div>
+                <div class="card-body">
+                    <div id="notificationsContainer">
+                        @foreach (var notification in Model.UnreadNotifications.Take(5))
+                        {
+                            <div class="border-bottom pb-2 mb-2">
+                                <div class="d-flex justify-content-between">
+                                    <strong class="text-@(notification.Type == "NewMessage" ? "primary" : notification.Type == "Assignment" ? "info" : "warning")">
+                                        @notification.Title
+                                    </strong>
+                                    <small class="text-muted">@notification.CreatedAt.ToString("HH:mm")</small>
+                                </div>
+                                <div class="small">@notification.Message</div>
+                                @if (!string.IsNullOrEmpty(notification.ActionUrl))
+                                {
+                                    <a href="@notification.ActionUrl" class="btn btn-sm btn-outline-primary mt-1">View</a>
+                                }
+                            </div>
+                        }
+                    </div>
+                    @if (!Model.UnreadNotifications.Any())
+                    {
+                        <div class="text-center py-3">
+                            <p class="text-muted">No unread notifications</p>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Agent Assignment Modal -->
+<div class="modal fade" id="assignModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Assign Conversation to Agent</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="assignForm">
+                    <input type="hidden" id="sessionGuid" name="sessionGuid" />
+                    <div class="form-group">
+                        <label for="agentSelect">Select Agent</label>
+                        <select class="form-control" id="agentSelect" name="agentId" required>
+                            <option value="">-- Select Agent --</option>
+                            @foreach (var agent in Model.OnlineAgents)
+                            {
+                                <option value="@agent.AgentId">@agent.AgentName (@agent.CurrentStatus)</option>
+                            }
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="assignToAgent()">Assign</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+
+        function getCurrentUserId() {
+            return @ViewBag.CurrentUserId;
+        }
+
+        function addRecentMessage(messageData) {
+            const container = document.getElementById("recentMessagesContainer");
+            if (!container) return;
+        }
+
+        function updateAgentStatus(agentData) {
+        }
+
+        function getStatusBadgeClass(status) {
+            switch (status) {
+                case "Online": return "success";
+                case "Busy": return "warning";
+                case "Away": return "info";
+                default: return "secondary";
+            }
+        }
+
+        function showNotification(title, message) {
+            Swal.fire(title, message, 'info');
+        }
+
+        function refreshDashboard() {
+            location.reload();
+        }
+
+        function assignConversationToMe(conversationId) {
+            Swal.fire('Assign', 'Assigning conversation: ' + conversationId, 'info');
+        }
+
+        function loadUnassignedConversations() {
+        }
+
+        function showAssignModal(conversationId) {
+        }
+
+        function assignToAgent() {
+        }
+
+    </script>
+}
+

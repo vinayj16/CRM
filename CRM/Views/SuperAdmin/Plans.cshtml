@@ -1,0 +1,1159 @@
+@model IEnumerable<CRM.MasterDb.Models.SaasSubscriptionPlanModel>
+@{
+    ViewData["Title"] = "Subscription Plans";
+}
+
+<style>
+    .sp-page {
+        padding: 0.5rem;
+    }
+
+    .sp-page p {
+        font-size: 0.95rem !important;
+        line-height: 1.6 !important;
+        margin-bottom: 1px !important;
+    }
+
+    /* ── Header ── */
+    .sp-header {
+        background: linear-gradient(135deg, #1A6FA8 0%, #2589C9 100%);
+        border-radius: 9px;
+        padding: 0.65rem 1rem;
+        margin-bottom: 0.75rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+    }
+
+    .sp-header-left {
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+    }
+
+    .sp-header-icon {
+        width: 32px;
+        height: 32px;
+        background: rgba(255,255,255,0.18);
+        border-radius: 7px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+
+    .sp-header-title {
+        font-size: 1rem;
+        font-weight: 700;
+        color: #FFFFFF;
+        margin: 0;
+    }
+
+    .sp-header-sub {
+        font-size: 0.72rem;
+        color: rgba(255,255,255,0.78);
+        margin: 0;
+    }
+
+    .sp-btn-create {
+        background: #FFFFFF;
+        color: #1A6FA8;
+        border: none;
+        border-radius: 7px;
+        padding: 0.38rem 0.85rem;
+        font-size: 0.78rem;
+        font-weight: 600;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        white-space: nowrap;
+        text-decoration: none;
+        transition: opacity .15s;
+    }
+
+        .sp-btn-create:hover {
+            opacity: 0.88;
+            color: #1A6FA8;
+            text-decoration: none;
+        }
+
+    /* ── Plans Grid ── */
+    .sp-plans-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+        gap: 0.6rem;
+    }
+
+    /* ── Plan Card ── */
+    .sp-plan-card {
+        background: var(--bs-body-bg, white);
+        border: 1px solid var(--bs-border-color, rgba(0, 0, 0, 0.125));
+        border-radius: 9px;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        transition: transform .18s, box-shadow .18s;
+    }
+
+        .sp-plan-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 14px rgba(0,0,0,0.1);
+        }
+
+    .sp-plan-top {
+        padding: 0.6rem 0.8rem 0.45rem;
+    }
+
+    .sp-badge-row {
+        display: flex;
+        align-items: center;
+        gap: 0.3rem;
+        flex-wrap: wrap;
+        margin-bottom: 0.3rem;
+    }
+
+    .sp-type-badge {
+        font-size: 0.6rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+        padding: 0.13rem 0.45rem;
+        border-radius: 20px;
+    }
+
+        .sp-type-badge.basic {
+            background: #E2E8F0;
+            color: #1A6FA8;
+        }
+
+        .sp-type-badge.standard {
+            background: #DCFCE7;
+            color: #15803D;
+        }
+
+        .sp-type-badge.enterprise {
+            background: #FEF3C7;
+            color: #B45309;
+        }
+
+        .sp-type-badge.premium {
+            background: #F0F4F8;
+            color: #6B7B8D;
+        }
+
+        .sp-type-badge.ultimate {
+            background: #FEE2E2;
+            color: #991B1B;
+        }
+
+    [data-bs-theme="dark"] .sp-type-badge,
+    html.dark-mode .sp-type-badge {
+        color: #FFFFFF !important;
+        border: none !important;
+    }
+
+        [data-bs-theme="dark"] .sp-type-badge.basic, html.dark-mode .sp-type-badge.basic {
+            background: #2589C9 !important;
+        }
+
+        [data-bs-theme="dark"] .sp-type-badge.standard, html.dark-mode .sp-type-badge.standard {
+            background: #16A34A !important;
+        }
+
+        [data-bs-theme="dark"] .sp-type-badge.enterprise, html.dark-mode .sp-type-badge.enterprise {
+            background: #F59E0B !important;
+        }
+
+        [data-bs-theme="dark"] .sp-type-badge.premium, html.dark-mode .sp-type-badge.premium {
+            background: #6B7B8D !important;
+        }
+
+        [data-bs-theme="dark"] .sp-type-badge.ultimate, html.dark-mode .sp-type-badge.ultimate {
+            background: #DC2626 !important;
+        }
+
+    .sp-status-badge {
+        font-size: 0.6rem;
+        padding: 0.13rem 0.4rem;
+        border-radius: 20px;
+        font-weight: 600;
+    }
+
+        .sp-status-badge.active {
+            background: #DCFCE7;
+            color: #15803D;
+        }
+
+        .sp-status-badge.inactive {
+            background: var(--bs-secondary-bg, #E8EDF2);
+            color: var(--bs-secondary-color, #6B7B8D);
+        }
+
+    [data-bs-theme="dark"] .sp-status-badge.active, html.dark-mode .sp-status-badge.active {
+        background: #1E2A3A;
+        color: #B8C8D8;
+    }
+
+    [data-bs-theme="dark"] .sp-status-badge.inactive, html.dark-mode .sp-status-badge.inactive {
+        background: #2A3A4A;
+        color: var(--bs-secondary-color, #6B7B8D);
+    }
+
+    .sp-plan-name {
+        font-size: 0.88rem;
+        font-weight: 700;
+        margin: 0 0 0.12rem;
+        color: var(--bs-body-color, #1E2A3A);
+    }
+
+    .sp-plan-desc {
+        font-size: 0.7rem;
+        color: var(--bs-secondary-color, #6B7B8D);
+        margin: 0;
+        line-height: 1.3;
+    }
+
+    /* ── Price Row ── */
+    .sp-price-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        background: var(--bs-tertiary-bg, #FFFFFF);
+        border-top: 2px solid #1A6FA8;
+        border-bottom: 1px solid var(--bs-border-color, rgba(0, 0, 0, 0.125));
+    }
+
+    .sp-price-cell {
+        text-align: center;
+        padding: 0.38rem 0.4rem;
+    }
+
+        .sp-price-cell:first-child {
+            border-right: 1px solid var(--bs-border-color, rgba(0, 0, 0, 0.125));
+        }
+
+    .sp-price-lbl {
+        font-size: 0.58rem;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+        color: var(--bs-secondary-color, #6B7B8D);
+        margin-bottom: 1px;
+    }
+
+    .sp-price-val {
+        font-size: 0.92rem;
+        font-weight: 700;
+        color: #1A6FA8;
+    }
+
+        .sp-price-val small {
+            font-size: 0.62rem;
+            font-weight: 400;
+            color: var(--bs-secondary-color, #6B7B8D);
+        }
+
+    /* ── Plan Body ── */
+    .sp-plan-body {
+        padding: 0.5rem 0.8rem;
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 0.35rem;
+    }
+
+    .sp-section-lbl {
+        font-size: 0.6rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+        color: #1A6FA8;
+        margin-bottom: 0.15rem;
+        border-bottom: 1px solid var(--bs-border-color, rgba(0, 0, 0, 0.125));
+        padding-bottom: 2px;
+    }
+
+    .sp-feat-list {
+        display: flex;
+        flex-direction: column;
+        gap: 0.12rem;
+    }
+
+    .sp-feat-item {
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+        font-size: 0.72rem;
+        color: var(--bs-body-color, #1E2A3A);
+    }
+
+        .sp-feat-item i {
+            font-size: 11px;
+            width: 13px;
+            text-align: center;
+        }
+
+    .sp-feat-on {
+        color: #16A34A;
+    }
+
+    .sp-feat-warn {
+        color: #F59E0B;
+    }
+
+    /* ── Actions ── */
+    .sp-plan-actions {
+        padding: 0.45rem 0.8rem;
+        border-top: 1px solid var(--bs-border-color, rgba(0, 0, 0, 0.125));
+        display: flex;
+        gap: 0.4rem;
+        background: var(--bs-tertiary-bg, #FFFFFF);
+    }
+
+    .sp-btn-action {
+        flex: 1;
+        border-radius: 6px;
+        padding: 0.25rem 0.4rem;
+        font-size: 0.7rem;
+        font-weight: 600;
+        cursor: pointer;
+        border: 1.5px solid var(--bs-border-color, rgba(0, 0, 0, 0.125));
+        background: transparent;
+        color: var(--bs-body-color, #1E2A3A);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.28rem;
+        transition: background .13s, color .13s, border-color .13s;
+    }
+
+    .sp-btn-edit:hover {
+        background: var(--bs-body-bg, #FFFFFF);
+        color: #1A6FA8;
+        border-color: #1A6FA8;
+    }
+
+    .sp-btn-deact {
+        color: #DC2626;
+        border-color: #E8C27E;
+    }
+
+        .sp-btn-deact:hover {
+            background: rgba(220,38,38,0.07);
+            color: #DC2626;
+        }
+
+    .sp-btn-activ {
+        color: #16A34A;
+        border-color: #B8C8D8;
+    }
+
+        .sp-btn-activ:hover {
+            background: rgba(22,163,74,0.07);
+            color: #16A34A;
+        }
+
+    [data-bs-theme="dark"] .sp-btn-deact, html.dark-mode .sp-btn-deact {
+        color: #E8C27E;
+        border-color: rgba(232,194,126,0.35);
+    }
+
+    [data-bs-theme="dark"] .sp-btn-activ, html.dark-mode .sp-btn-activ {
+        color: #8FA3B8;
+        border-color: rgba(143,163,184,0.35);
+    }
+
+    /* ── Stats Cards ── */
+    .sp-stats { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+    .sp-stat-card { flex: 1; min-width: 120px; background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 10px; padding: 6px 10px; display: flex; align-items: center; gap: 8px; transition: transform .18s, box-shadow .18s; }
+    .sp-stat-card:hover { transform: translateY(-2px); box-shadow: 0 4px 14px rgba(26,111,168,0.10); }
+    .sp-stat-icon { width: 26px; height: 26px; border-radius: 7px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 12px; color: #FFFFFF; }
+    .sp-stat-icon.teal { background: linear-gradient(135deg, #1A6FA8, #2589C9); }
+    .sp-stat-icon.green { background: linear-gradient(135deg, #16A34A, #2589C9); }
+    .sp-stat-icon.gray { background: linear-gradient(135deg, #6B7B8D, #8FA3B8); }
+    .sp-stat-num { font-size: 1.05rem; font-weight: 700; color: var(--text-primary); line-height: 1.1; }
+    .sp-stat-lbl { font-size: 0.62rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.4px; }
+    html.dark-mode .sp-stat-card:hover { box-shadow: 0 4px 14px rgba(26,111,168,0.25); }
+
+    /* ── Empty ── */
+    .sp-empty {
+        text-align: center;
+        padding: 3rem 2rem;
+        background: var(--bs-body-bg, white);
+        border-radius: 9px;
+        border: 1px solid var(--bs-border-color, rgba(0, 0, 0, 0.125));
+    }
+
+        .sp-empty i {
+            font-size: 2.8rem;
+            color: var(--bs-secondary-color, #E2E8F0);
+        }
+
+    /* ── Modal & Form Structural Styling ── */
+    @@media (min-width: 992px) {
+        #spCreateModal .modal-dialog {
+            max-width: 1100px !important;
+        }
+    }
+
+    @@media (max-width: 991px) {
+        #spCreateModal .modal-dialog {
+            margin: 0.5rem;
+            max-width: calc(100% - 1rem);
+        }
+
+        .modal-footer {
+            flex-wrap: nowrap;
+        }
+
+            .modal-footer .btn {
+                flex: 1;
+            }
+    }
+
+    .sp-modal-body {
+        padding: 0.65rem 0.9rem;
+        background: var(--bs-body-bg);
+    }
+
+    .sp-form-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 0.45rem;
+    }
+
+    @@media (max-width: 767px) {
+        .sp-form-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .sp-plans-grid {
+            grid-template-columns: 1fr 1fr;
+        }
+    }
+
+    @@media (max-width: 480px) {
+        .sp-plans-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    .sp-form-full {
+        grid-column: 1 / -1;
+    }
+
+    .sp-form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.18rem;
+    }
+
+    .sp-form-lbl {
+        font-size: 0.7rem;
+        font-weight: 600;
+        color: var(--bs-body-color, #1E2A3A);
+    }
+
+    .sp-section-sep {
+        font-size: 0.7rem;
+        font-weight: 700;
+        color: #1A6FA8;
+        margin: 0.55rem 0 0.3rem;
+        display: flex;
+        align-items: center;
+        gap: 0.45rem;
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+    }
+
+        .sp-section-sep::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: var(--bs-border-color, rgba(0, 0, 0, 0.125));
+        }
+
+    /* Dark Mode SweetAlert overrides */
+    [data-bs-theme="dark"] .swal2-popup, html.dark-mode .swal2-popup {
+        background-color: var(--bs-body-bg, #1E2A3A) !important;
+        color: var(--bs-body-color, #FFFFFF) !important;
+    }
+
+    [data-bs-theme="dark"] .swal2-title, html.dark-mode .swal2-title,
+    [data-bs-theme="dark"] .swal2-html-container, html.dark-mode .swal2-html-container {
+        color: var(--bs-body-color, #FFFFFF) !important;
+    }
+</style>
+
+<div class="sp-page content">
+    <nav aria-label="breadcrumb" class="mb-2">
+        <ol class="breadcrumb mb-0" style="font-size:.76rem">
+            <li class="breadcrumb-item"><a href="/SuperAdmin/Dashboard">SuperAdmin</a></li>
+            <li class="breadcrumb-item active">Subscription Plans</li>
+        </ol>
+    </nav>
+
+    <div class="sp-header">
+        <div class="sp-header-left">
+            <div class="sp-header-icon">
+                <i class="fa-solid fa-layer-group" style="font-size:1rem;color:#FFFFFF"></i>
+            </div>
+            <div>
+                <p class="sp-header-title">Subscription Plans</p>
+                <p class="sp-header-sub">Create and manage pricing plans for your tenants</p>
+            </div>
+        </div>
+        <button type="button" class="sp-btn-create" data-bs-toggle="modal" data-bs-target="#spCreateModal">
+            <i class="fa-solid fa-plus"></i> Create New Plan
+        </button>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="sp-stats">
+        <div class="sp-stat-card">
+            <div class="sp-stat-icon teal"><i class="fa-solid fa-layer-group"></i></div>
+            <div>
+                <div class="sp-stat-num">@Model.Count()</div>
+                <div class="sp-stat-lbl">Total Plans</div>
+            </div>
+        </div>
+        <div class="sp-stat-card">
+            <div class="sp-stat-icon green"><i class="fa-solid fa-check-circle"></i></div>
+            <div>
+                <div class="sp-stat-num">@Model.Count(p => p.IsActive)</div>
+                <div class="sp-stat-lbl">Active</div>
+            </div>
+        </div>
+        <div class="sp-stat-card">
+            <div class="sp-stat-icon gray"><i class="fa-solid fa-pause-circle"></i></div>
+            <div>
+                <div class="sp-stat-num">@Model.Count(p => !p.IsActive)</div>
+                <div class="sp-stat-lbl">Inactive</div>
+            </div>
+        </div>
+    </div>
+
+    <div id="spPlansContainer">
+        @if (Model != null && Model.Any())
+        {
+            <div class="sp-plans-grid">
+                @foreach (var plan in Model)
+                {
+                    var hasIntegrations = plan.HasWhatsAppIntegration || plan.HasFacebookIntegration || plan.HasEmailIntegration || plan.HasCustomAPIAccess || plan.HasImpersonation;
+                    var hasReports = plan.HasAdvancedReports || plan.HasCustomBranding || plan.HasPrioritySupport;
+                    var hasCoreFeatures = plan.HasLeadScoring || plan.HasQuotationManagement || plan.HasSiteVisitManagement || plan.HasDocumentManagement || plan.HasInventoryManagement || plan.HasInvoiceAutomation;
+                    var hasAdvancedFeatures = plan.HasWorkflowAutomation || plan.HasCustomerPortal || plan.HasAIScoring || plan.HasAIChatbot || plan.HasMobileApp || plan.HasTwoFactorAuth || plan.HasCallIntegration || plan.HasSmsIntegration;
+
+                    <div class="sp-plan-card">
+                        <div class="sp-plan-top">
+                            <div class="sp-badge-row">
+                                <span class="sp-type-badge @plan.PlanType.ToLower()">@plan.PlanType</span>
+                                @if (plan.IsActive)
+                                {
+                                    <span class="sp-status-badge active">Active</span>
+                                }
+                                else
+                                {
+                                    <span class="sp-status-badge inactive">Inactive</span>
+                                }
+                            </div>
+                            <p class="sp-plan-name">@plan.PlanName</p>
+                            @if (!string.IsNullOrEmpty(plan.Description))
+                            {
+                                <p class="sp-plan-desc">@plan.Description</p>
+                            }
+                        </div>
+
+                        <div class="sp-price-row">
+                            <div class="sp-price-cell">
+                                <div class="sp-price-lbl">Monthly</div>
+                                <div class="sp-price-val"><small>Rs. </small>@plan.MonthlyPrice.ToString("N0")</div>
+                            </div>
+                            <div class="sp-price-cell">
+                                <div class="sp-price-lbl">Annual</div>
+                                <div class="sp-price-val"><small>Rs. </small>@plan.YearlyPrice.ToString("N0")</div>
+                            </div>
+                        </div>
+
+                        <div class="sp-plan-body">
+                            <div>
+                                <div class="sp-section-lbl">Limits</div>
+                                <div class="sp-feat-list">
+                                    <div class="sp-feat-item">
+                                        <i class="fa-solid fa-users @(plan.MaxAgents == -1 ? "sp-feat-on" : "sp-feat-warn")"></i>
+                                        <span>@(plan.MaxAgents == -1 ? "Unlimited" : plan.MaxAgents.ToString()) Agents</span>
+                                    </div>
+                                    <div class="sp-feat-item">
+                                        <i class="fa-solid fa-handshake @(plan.MaxPartners == -1 ? "sp-feat-on" : "sp-feat-warn")"></i>
+                                        <span>@(plan.MaxPartners == -1 ? "Unlimited" : plan.MaxPartners.ToString()) Partners</span>
+                                    </div>
+                                    <div class="sp-feat-item">
+                                        <i class="fa-solid fa-chart-line @(plan.MaxLeadsPerMonth == -1 ? "sp-feat-on" : "sp-feat-warn")"></i>
+                                        <span>@(plan.MaxLeadsPerMonth == -1 ? "Unlimited" : plan.MaxLeadsPerMonth.ToString()) Leads/Mo</span>
+                                    </div>
+                                    @if (plan.MaxSiteVisitsPerMonth > 0)
+                                    {
+                                        <div class="sp-feat-item"><i class="fa-solid fa-calendar-check sp-feat-warn"></i><span>@plan.MaxSiteVisitsPerMonth Site Visits/Mo</span></div>
+                                    }
+                                    @if (plan.MaxDocuments > 0)
+                                    {
+                                        <div class="sp-feat-item"><i class="fa-solid fa-file sp-feat-warn"></i><span>@plan.MaxDocuments Documents</span></div>
+                                    }
+                                    @if (plan.MaxProperties > 0)
+                                    {
+                                        <div class="sp-feat-item"><i class="fa-solid fa-building sp-feat-warn"></i><span>@plan.MaxProperties Properties</span></div>
+                                    }
+                                    @if (plan.MaxQuotationsPerMonth > 0)
+                                    {
+                                        <div class="sp-feat-item"><i class="fa-solid fa-file-invoice sp-feat-warn"></i><span>@plan.MaxQuotationsPerMonth Quotations/Mo</span></div>
+                                    }
+                                    @if (plan.MaxEmailCampaigns > 0)
+                                    {
+                                        <div class="sp-feat-item"><i class="fa-solid fa-envelope sp-feat-warn"></i><span>@plan.MaxEmailCampaigns Campaigns/Mo</span></div>
+                                    }
+                                </div>
+                            </div>
+
+                            @if (hasCoreFeatures)
+                            {
+                                <div>
+                                    <div class="sp-section-lbl">Core Features</div>
+                                    <div class="sp-feat-list">
+                                        @if (plan.HasLeadScoring) { <div class="sp-feat-item"><i class="fa-solid fa-star sp-feat-on"></i><span>Lead Scoring</span></div> }
+                                        @if (plan.HasQuotationManagement) { <div class="sp-feat-item"><i class="fa-solid fa-file-invoice sp-feat-on"></i><span>Quotation Management</span></div> }
+                                        @if (plan.HasSiteVisitManagement) { <div class="sp-feat-item"><i class="fa-solid fa-calendar-check sp-feat-on"></i><span>Site Visit Management</span></div> }
+                                        @if (plan.HasDocumentManagement) { <div class="sp-feat-item"><i class="fa-solid fa-folder-open sp-feat-on"></i><span>Document Management</span></div> }
+                                        @if (plan.HasInventoryManagement) { <div class="sp-feat-item"><i class="fa-solid fa-warehouse sp-feat-on"></i><span>Inventory Management</span></div> }
+                                        @if (plan.HasInvoiceAutomation) { <div class="sp-feat-item"><i class="fa-solid fa-file-invoice-dollar sp-feat-on"></i><span>Invoice Automation</span></div> }
+                                        @if (plan.HasCampaignManagement) { <div class="sp-feat-item"><i class="fa-solid fa-bullhorn sp-feat-on"></i><span>Campaign Management</span></div> }
+                                        @if (plan.HasLegalManagement) { <div class="sp-feat-item"><i class="fa-solid fa-gavel sp-feat-on"></i><span>Legal Management</span></div> }
+                                    </div>
+                                </div>
+                            }
+
+                            @if (hasAdvancedFeatures)
+                            {
+                                <div>
+                                    <div class="sp-section-lbl">Advanced</div>
+                                    <div class="sp-feat-list">
+                                        @if (plan.HasWorkflowAutomation) { <div class="sp-feat-item"><i class="fa-solid fa-diagram-project sp-feat-on"></i><span>Workflow Automation</span></div> }
+                                        @if (plan.HasCustomerPortal) { <div class="sp-feat-item"><i class="fa-solid fa-user-lock sp-feat-on"></i><span>Customer Portal</span></div> }
+                                        @if (plan.HasAIScoring) { <div class="sp-feat-item"><i class="fa-solid fa-brain sp-feat-on"></i><span>AI Scoring</span></div> }
+                                        @if (plan.HasAIChatbot) { <div class="sp-feat-item"><i class="fa-solid fa-robot sp-feat-on"></i><span>AI Chatbot</span></div> }
+                                        @if (plan.HasMobileApp) { <div class="sp-feat-item"><i class="fa-solid fa-mobile-screen sp-feat-on"></i><span>Mobile App</span></div> }
+                                        @if (plan.HasTwoFactorAuth) { <div class="sp-feat-item"><i class="fa-solid fa-shield-halved sp-feat-on"></i><span>Two-Factor Auth</span></div> }
+                                        @if (plan.HasCallIntegration) { <div class="sp-feat-item"><i class="fa-solid fa-phone sp-feat-on"></i><span>Call Integration</span></div> }
+                                        @if (plan.HasSmsIntegration) { <div class="sp-feat-item"><i class="fa-solid fa-message sp-feat-on"></i><span>SMS Integration</span></div> }
+                                    </div>
+                                </div>
+                            }
+
+                            @if (hasIntegrations)
+                            {
+                                <div>
+                                    <div class="sp-section-lbl">Integrations</div>
+                                    <div class="sp-feat-list">
+                                        @if (plan.HasWhatsAppIntegration)
+                                        {
+                                            <div class="sp-feat-item"><i class="fa-brands fa-whatsapp sp-feat-on"></i><span>WhatsApp</span></div>
+                                        }
+                                        @if (plan.HasFacebookIntegration)
+                                        {
+                                            <div class="sp-feat-item"><i class="fa-brands fa-facebook sp-feat-on"></i><span>Facebook</span></div>
+                                        }
+                                        @if (plan.HasEmailIntegration)
+                                        {
+                                            <div class="sp-feat-item"><i class="fa-solid fa-envelope sp-feat-on"></i><span>Email Integration</span></div>
+                                        }
+                                        @if (plan.HasCustomAPIAccess)
+                                        {
+                                            <div class="sp-feat-item"><i class="fa-solid fa-code sp-feat-on"></i><span>Custom API</span></div>
+                                        }
+                                        @if (plan.HasImpersonation)
+                                        {
+                                            <div class="sp-feat-item"><i class="fa-solid fa-user-secret sp-feat-on"></i><span>Impersonation</span></div>
+                                        }
+                                    </div>
+                                </div>
+                            }
+
+                            @if (hasReports)
+                            {
+                                <div>
+                                    <div class="sp-section-lbl">Reports &amp; Support</div>
+                                    <div class="sp-feat-list">
+                                        @if (plan.HasAdvancedReports)
+                                        {
+                                            <div class="sp-feat-item"><i class="fa-solid fa-chart-bar sp-feat-on"></i><span>Advanced Dashboard</span></div>
+                                        }
+                                        @if (plan.HasCustomBranding)
+                                        {
+                                            <div class="sp-feat-item"><i class="fa-solid fa-palette sp-feat-on"></i><span>Custom Branding</span></div>
+                                        }
+                                        @if (plan.HasPrioritySupport)
+                                        {
+                                            <div class="sp-feat-item"><i class="fa-solid fa-headset sp-feat-on"></i><span>@plan.SupportLevel Support</span></div>
+                                        }
+                                    </div>
+                                </div>
+                            }
+                        </div>
+
+                        <div class="sp-plan-actions">
+                            <button type="button" class="sp-btn-action sp-btn-edit" onclick="editPlan(@plan.PlanId)">
+                                <i class="fa-solid fa-pencil"></i> Edit
+                            </button>
+                            <button type="button"
+                                    class="sp-btn-action @(plan.IsActive ? "sp-btn-deact" : "sp-btn-activ")"
+                                    onclick="togglePlanStatus(@plan.PlanId, @plan.IsActive.ToString().ToLower())">
+                                <i class="fa-solid fa-@(plan.IsActive ? "pause" : "play")"></i>
+                                @(plan.IsActive ? "Deactivate" : "Activate")
+                            </button>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="sp-empty">
+                <i class="fa-solid fa-layer-group d-block mb-3"></i>
+                <h5 style="font-size:.95rem;margin:0 0 4px;color:var(--bs-body-color)">No Subscription Plans</h5>
+                <p style="color:var(--bs-secondary-color)" class="small mb-3">Create your first subscription plan to get started</p>
+                <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#spCreateModal">
+                    <i class="fa-solid fa-plus me-1"></i> Create Plan
+                </button>
+            </div>
+        }
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<div class="modal fade" id="spCreateModal" tabindex="-1" aria-labelledby="spModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <form id="spPlanForm" method="post" novalidate>
+                @Html.AntiForgeryToken()
+                <input type="hidden" id="spEditPlanId" value="" />
+
+                <div class="modal-header py-2 px-3">
+                    <h6 class="modal-title mb-0" id="spModalLabel" style="color:var(--bs-body-color)">Create Subscription Plan</h6>
+                    <button type="button" class="btn-close btn-sm" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+
+                <div class="modal-body sp-modal-body">
+                    <div class="sp-form-grid">
+                        <div class="sp-form-group">
+                            <label class="sp-form-lbl">Plan Name <span class="text-danger">*</span></label>
+                            <input name="PlanName" class="form-control form-control-sm" required placeholder="e.g. Starter" />
+                            <div class="invalid-feedback" style="font-size:0.65rem">Please enter plan name</div>
+                        </div>
+                        <div class="sp-form-group">
+                            <label class="sp-form-lbl">Plan Type <span class="text-danger">*</span></label>
+                            <select name="PlanType" class="form-select form-select-sm" required>
+                                <option value="">Select type</option>
+                                <option value="Basic">Basic</option>
+                                <option value="Standard">Standard</option>
+                                <option value="Enterprise">Enterprise</option>
+                                <option value="Premium">Premium</option>
+                                <option value="Ultimate">Ultimate</option>
+                            </select>
+                            <div class="invalid-feedback" style="font-size:0.65rem">Please select plan type</div>
+                        </div>
+                        <div class="sp-form-group">
+                            <label class="sp-form-lbl">Support Level <span class="text-danger">*</span></label>
+                            <select name="SupportLevel" class="form-select form-select-sm" required>
+                                <option value="">Select level</option>
+                                <option value="Email">Email</option>
+                                <option value="Chat">Chat</option>
+                                <option value="Phone">Phone</option>
+                                <option value="Dedicated">Dedicated</option>
+                            </select>
+                            <div class="invalid-feedback" style="font-size:0.65rem">Please select support level</div>
+                        </div>
+                        <div class="sp-form-group">
+                            <label class="sp-form-lbl">Monthly Price (Rs.) <span class="text-danger">*</span></label>
+                            <input name="MonthlyPrice" type="number" step="0.01" min="0" class="form-control form-control-sm" required placeholder="499" />
+                            <div class="invalid-feedback" style="font-size:0.65rem">Please enter monthly price</div>
+                        </div>
+                        <div class="sp-form-group">
+                            <label class="sp-form-lbl">Annual Price (Rs.) <span class="text-danger">*</span></label>
+                            <input name="YearlyPrice" type="number" step="0.01" min="0" class="form-control form-control-sm" required placeholder="4990" />
+                            <div class="invalid-feedback" style="font-size:0.65rem">Please enter yearly price</div>
+                        </div>
+                        <div class="sp-form-group">
+                            <label class="sp-form-lbl">Sort Order <span class="text-danger">*</span></label>
+                            <input name="SortOrder" type="number" class="form-control form-control-sm" value="0" required />
+                            <div class="invalid-feedback" style="font-size:0.65rem">Please enter sort order</div>
+                        </div>
+                        <div class="sp-form-group sp-form-full">
+                            <label class="sp-form-lbl">Description <span class="text-danger">*</span></label>
+                            <textarea name="Description" class="form-control form-control-sm" rows="2" required placeholder="Brief plan description..."></textarea>
+                            <div class="invalid-feedback" style="font-size:0.65rem">Please enter description</div>
+                        </div>
+                    </div>
+
+                    <div class="sp-section-sep">Limits</div>
+                    <div class="sp-form-grid">
+                        <div class="sp-form-group">
+                            <label class="sp-form-lbl">Max Agents <span class="text-danger">*</span></label>
+                            <input name="MaxAgents" type="number" class="form-control form-control-sm" value="2" required />
+                            <div class="invalid-feedback" style="font-size:0.65rem">Please enter max agents</div>
+                        </div>
+                        <div class="sp-form-group">
+                            <label class="sp-form-lbl">Max Partners <span class="text-danger">*</span></label>
+                            <input name="MaxPartners" type="number" class="form-control form-control-sm" value="0" required />
+                            <div class="invalid-feedback" style="font-size:0.65rem">Please enter max partners</div>
+                        </div>
+                        <div class="sp-form-group">
+                            <label class="sp-form-lbl">Max Leads/Month <span class="text-danger">*</span></label>
+                            <input name="MaxLeadsPerMonth" type="number" class="form-control form-control-sm" value="500" required />
+                            <div class="invalid-feedback" style="font-size:0.65rem">Please enter max leads</div>
+                        </div>
+                        <div class="sp-form-group">
+                            <label class="sp-form-lbl">Show on Landing Page</label>
+                            <select name="ShowOnLandingPage" class="form-select form-select-sm">
+                                <option value="true">Yes</option>
+                                <option value="false">No</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <input type="hidden" name="MaxStorageGB" value="1000" />
+                    <input type="hidden" name="HasCustomReports" value="false" />
+                    <input type="hidden" name="HasPhoneSupport" value="false" />
+                    <input type="hidden" name="HasDedicatedManager" value="false" />
+
+                    <div class="sp-section-sep">Core Features</div>
+                    <div class="d-flex flex-wrap gap-3 mt-1">
+                        <div class="form-check">
+                            <input name="HasWhatsAppIntegration" id="chkWhatsApp" type="checkbox" class="form-check-input" value="true" />
+                            <label class="form-check-label small" for="chkWhatsApp">WhatsApp</label>
+                        </div>
+                        <div class="form-check">
+                            <input name="HasFacebookIntegration" id="chkFacebook" type="checkbox" class="form-check-input" value="true" />
+                            <label class="form-check-label small" for="chkFacebook">Facebook</label>
+                        </div>
+                        <div class="form-check">
+                            <input name="HasEmailIntegration" id="chkEmail" type="checkbox" class="form-check-input" value="true" />
+                            <label class="form-check-label small" for="chkEmail">Email Integration</label>
+                        </div>
+                        <div class="form-check">
+                            <input name="HasCustomAPIAccess" id="chkAPI" type="checkbox" class="form-check-input" value="true" />
+                            <label class="form-check-label small" for="chkAPI">Custom API</label>
+                        </div>
+                        <div class="form-check">
+                            <input name="HasAdvancedReports" id="chkReports" type="checkbox" class="form-check-input" value="true" />
+                            <label class="form-check-label small" for="chkReports">Advanced Dashboard</label>
+                        </div>
+                        <div class="form-check">
+                            <input name="HasImpersonation" id="chkImpersonate" type="checkbox" class="form-check-input" value="true" />
+                            <label class="form-check-label small" for="chkImpersonate">Impersonation</label>
+                        </div>
+                        <div class="form-check">
+                            <input name="HasCustomBranding" id="chkBranding" type="checkbox" class="form-check-input" value="true" />
+                            <label class="form-check-label small" for="chkBranding">Custom Branding</label>
+                        </div>
+                        <div class="form-check">
+                            <input name="HasLeadScoring" id="chkLeadScoring" type="checkbox" class="form-check-input" value="true" />
+                            <label class="form-check-label small" for="chkLeadScoring">Lead Scoring</label>
+                        </div>
+                        <div class="form-check">
+                            <input name="HasQuotationManagement" id="chkQuotationMgmt" type="checkbox" class="form-check-input" value="true" />
+                            <label class="form-check-label small" for="chkQuotationMgmt">Quotation Management</label>
+                        </div>
+                        <div class="form-check">
+                            <input name="HasSiteVisitManagement" id="chkSiteVisit" type="checkbox" class="form-check-input" value="true" />
+                            <label class="form-check-label small" for="chkSiteVisit">Site Visit Management</label>
+                        </div>
+                        <div class="form-check">
+                            <input name="HasDocumentManagement" id="chkDocMgmt" type="checkbox" class="form-check-input" value="true" />
+                            <label class="form-check-label small" for="chkDocMgmt">Document Management</label>
+                        </div>
+                        <div class="form-check">
+                            <input name="HasInventoryManagement" id="chkInventory" type="checkbox" class="form-check-input" value="true" />
+                            <label class="form-check-label small" for="chkInventory">Inventory Management</label>
+                        </div>
+                        <div class="form-check">
+                            <input name="HasInvoiceAutomation" id="chkInvoiceAuto" type="checkbox" class="form-check-input" value="true" />
+                            <label class="form-check-label small" for="chkInvoiceAuto">Invoice Automation</label>
+                        </div>
+                        <div class="form-check">
+                            <input name="HasCampaignManagement" id="chkCampaign" type="checkbox" class="form-check-input" value="true" />
+                            <label class="form-check-label small" for="chkCampaign">Campaign Management</label>
+                        </div>
+                        <div class="form-check">
+                            <input name="HasLegalManagement" id="chkLegal" type="checkbox" class="form-check-input" value="true" />
+                            <label class="form-check-label small" for="chkLegal">Legal Management</label>
+                        </div>
+                    </div>
+
+                    <div class="sp-section-sep">Advanced Features</div>
+                    <div class="d-flex flex-wrap gap-3 mt-1">
+                        <div class="form-check">
+                            <input name="HasWorkflowAutomation" id="chkWorkflow" type="checkbox" class="form-check-input" value="true" />
+                            <label class="form-check-label small" for="chkWorkflow">Workflow Automation</label>
+                        </div>
+                        <div class="form-check">
+                            <input name="HasCustomerPortal" id="chkPortal" type="checkbox" class="form-check-input" value="true" />
+                            <label class="form-check-label small" for="chkPortal">Customer Portal</label>
+                        </div>
+                        <div class="form-check">
+                            <input name="HasAIScoring" id="chkAIScore" type="checkbox" class="form-check-input" value="true" />
+                            <label class="form-check-label small" for="chkAIScore">AI Scoring</label>
+                        </div>
+                        <div class="form-check">
+                            <input name="HasAIChatbot" id="chkAIChat" type="checkbox" class="form-check-input" value="true" />
+                            <label class="form-check-label small" for="chkAIChat">AI Chatbot</label>
+                        </div>
+                        <div class="form-check">
+                            <input name="HasMobileApp" id="chkMobile" type="checkbox" class="form-check-input" value="true" />
+                            <label class="form-check-label small" for="chkMobile">Mobile App</label>
+                        </div>
+                        <div class="form-check">
+                            <input name="HasTwoFactorAuth" id="chk2FA" type="checkbox" class="form-check-input" value="true" />
+                            <label class="form-check-label small" for="chk2FA">Two-Factor Auth</label>
+                        </div>
+                        <div class="form-check">
+                            <input name="HasCallIntegration" id="chkCall" type="checkbox" class="form-check-input" value="true" />
+                            <label class="form-check-label small" for="chkCall">Call Integration</label>
+                        </div>
+                        <div class="form-check">
+                            <input name="HasSmsIntegration" id="chkSMS" type="checkbox" class="form-check-input" value="true" />
+                            <label class="form-check-label small" for="chkSMS">SMS Integration</label>
+                        </div>
+                        <div class="form-check">
+                            <input name="HasMultiLanguage" id="chkLang" type="checkbox" class="form-check-input" value="true" />
+                            <label class="form-check-label small" for="chkLang">Multi-Language</label>
+                        </div>
+                        <div class="form-check">
+                            <input name="HasGpsTracking" id="chkGPS" type="checkbox" class="form-check-input" value="true" />
+                            <label class="form-check-label small" for="chkGPS">GPS Tracking</label>
+                        </div>
+                    </div>
+
+                    <div class="sp-section-sep">Additional Limits</div>
+                    <div class="sp-form-grid">
+                        <div class="sp-form-group">
+                            <label class="sp-form-lbl">Max Site Visits/Month</label>
+                            <input name="MaxSiteVisitsPerMonth" type="number" class="form-control form-control-sm" value="0" min="0" />
+                        </div>
+                        <div class="sp-form-group">
+                            <label class="sp-form-lbl">Max Documents</label>
+                            <input name="MaxDocuments" type="number" class="form-control form-control-sm" value="0" min="0" />
+                        </div>
+                        <div class="sp-form-group">
+                            <label class="sp-form-lbl">Max Properties</label>
+                            <input name="MaxProperties" type="number" class="form-control form-control-sm" value="0" min="0" />
+                        </div>
+                        <div class="sp-form-group">
+                            <label class="sp-form-lbl">Max Quotations/Month</label>
+                            <input name="MaxQuotationsPerMonth" type="number" class="form-control form-control-sm" value="0" min="0" />
+                        </div>
+                        <div class="sp-form-group">
+                            <label class="sp-form-lbl">Max Email Campaigns</label>
+                            <input name="MaxEmailCampaigns" type="number" class="form-control form-control-sm" value="0" min="0" />
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-footer py-2 px-3">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary btn-sm" id="spSubmitBtn">Create Plan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function togglePlanStatus(planId, isActive) {
+        if (isActive) {
+        fetch('/SuperAdmin/GetPlan?id=' + planId)
+        .then(r => r.json())
+        .then(data => {
+        if (data.hasActiveSubscribers) {
+        Swal.fire({
+        title: 'Cannot Deactivate Plan',
+        html: 'This plan has <strong>' + data.count + '</strong> active subscribers.',
+        icon: 'error',
+        confirmButtonText: 'Create New Plan',
+        showCancelButton: true,
+        cancelButtonText: 'Cancel'
+        }).then(r => { if (r.isConfirmed) window.location.href = '/SuperAdmin/CreatePlan'; });
+        } else {
+        Swal.fire({
+        title: 'Deactivate Plan?',
+        text: 'Are you sure you want to deactivate this plan?',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Yes, Deactivate',
+        cancelButtonText: 'Cancel',
+        confirmButtonColor: '#DC2626'
+        }).then(r => { if (r.isConfirmed) submitToggleForm(planId, false); });
+        }
+        })
+        .catch(() => Swal.fire('Error', 'Failed to check active subscribers', 'error'));
+        } else {
+        Swal.fire({
+        title: 'Activate Plan?',
+        text: 'Are you sure you want to activate this plan?',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Yes, Activate',
+        cancelButtonText: 'Cancel',
+        confirmButtonColor: '#15803D'
+        }).then(r => { if (r.isConfirmed) submitToggleForm(planId, true); });
+        }
+        }
+
+        function submitToggleForm(planId, isActive) {
+        const token = document.querySelector('input[name="__RequestVerificationToken"]');
+        const formData = new FormData();
+        if (token) formData.append('__RequestVerificationToken', token.value);
+        formData.append('planId', planId);
+        formData.append('isActive', isActive.toString());
+
+        fetch('/SuperAdmin/TogglePlanStatus', {
+            method: 'POST',
+            headers: { 'X-Requested-With': 'XMLHttpRequest' },
+            body: formData
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                Swal.fire({ icon: 'success', title: 'Success', text: data.message, timer: 1500, showConfirmButton: false });
+                setTimeout(() => location.reload(), 1500);
+            } else {
+                Swal.fire({ icon: 'error', title: 'Error', text: data.message });
+            }
+        })
+        .catch(() => Swal.fire({ icon: 'error', title: 'Error', text: 'Failed to toggle plan status' }));
+        }
+
+        function editPlan(planId) {
+        function setChk(name, val) {
+            const el = form.querySelector('[name="' + name + '"][type="checkbox"]');
+            if (el) el.checked = val;
+        }
+        function setVal(name, val) {
+            const el = form.querySelector('[name="' + name + '"]');
+            if (el) el.value = val;
+        }
+
+        fetch('/SuperAdmin/GetPlan?id=' + planId)
+        .then(r => r.json())
+        .then(data => {
+        if (!data.success) { Swal.fire('Error', 'Plan not found', 'error'); return; }
+        const p = data.plan;
+        const form = document.getElementById('spPlanForm');
+        document.getElementById('spEditPlanId').value = p.planId;
+        document.getElementById('spModalLabel').textContent = 'Edit Plan: ' + p.planName;
+        document.getElementById('spSubmitBtn').textContent = 'Update Plan';
+
+        form.querySelector('[name="PlanName"]').value = p.planName;
+        form.querySelector('[name="PlanType"]').value = p.planType;
+        form.querySelector('[name="MonthlyPrice"]').value = p.monthlyPrice;
+        form.querySelector('[name="YearlyPrice"]').value = p.yearlyPrice;
+        form.querySelector('[name="SupportLevel"]').value = p.supportLevel;
+        form.querySelector('[name="SortOrder"]').value = p.sortOrder;
+        form.querySelector('[name="Description"]').value = p.description || '';
+        form.querySelector('[name="MaxAgents"]').value = p.maxAgents;
+        form.querySelector('[name="MaxPartners"]').value = p.maxPartners;
+        form.querySelector('[name="MaxLeadsPerMonth"]').value = p.maxLeadsPerMonth;
+        form.querySelector('[name="ShowOnLandingPage"]').value = (p.showOnLandingPage === null || p.showOnLandingPage === true) ? "true" : "false";
+
+        // Legacy integrations
+        form.querySelector('[name="HasWhatsAppIntegration"][type="checkbox"]').checked = p.hasWhatsAppIntegration;
+        form.querySelector('[name="HasFacebookIntegration"][type="checkbox"]').checked = p.hasFacebookIntegration;
+        form.querySelector('[name="HasEmailIntegration"][type="checkbox"]').checked = p.hasEmailIntegration;
+        form.querySelector('[name="HasCustomAPIAccess"][type="checkbox"]').checked = p.hasCustomAPIAccess;
+        if (form.querySelector('[name="HasImpersonation"][type="checkbox"]'))
+        form.querySelector('[name="HasImpersonation"][type="checkbox"]').checked = p.hasImpersonation;
+        if (form.querySelector('[name="HasCustomBranding"][type="checkbox"]'))
+        form.querySelector('[name="HasCustomBranding"][type="checkbox"]').checked = p.hasCustomBranding;
+        if (form.querySelector('[name="HasAdvancedReports"][type="checkbox"]'))
+        form.querySelector('[name="HasAdvancedReports"][type="checkbox"]').checked = p.hasAdvancedReports;
+
+        // Core features
+        setChk('HasLeadScoring', p.hasLeadScoring);
+        setChk('HasQuotationManagement', p.hasQuotationManagement);
+        setChk('HasSiteVisitManagement', p.hasSiteVisitManagement);
+        setChk('HasDocumentManagement', p.hasDocumentManagement);
+        setChk('HasInventoryManagement', p.hasInventoryManagement);
+        setChk('HasInvoiceAutomation', p.hasInvoiceAutomation);
+        setChk('HasCampaignManagement', p.hasCampaignManagement);
+        setChk('HasLegalManagement', p.hasLegalManagement);
+
+        // Advanced features
+        setChk('HasWorkflowAutomation', p.hasWorkflowAutomation);
+        setChk('HasCustomerPortal', p.hasCustomerPortal);
+        setChk('HasAIScoring', p.hasAIScoring);
+        setChk('HasAIChatbot', p.hasAIChatbot);
+        setChk('HasMobileApp', p.hasMobileApp);
+        setChk('HasTwoFactorAuth', p.hasTwoFactorAuth);
+        setChk('HasCallIntegration', p.hasCallIntegration);
+        setChk('HasSmsIntegration', p.hasSmsIntegration);
+        setChk('HasMultiLanguage', p.hasMultiLanguage);
+        setChk('HasGpsTracking', p.hasGpsTracking);
+
+        // Limitchk fields
+        setVal('MaxSiteVisitsPerMonth', p.maxSiteVisitsPerMonth);
+        setVal('MaxDocuments', p.maxDocuments);
+        setVal('MaxProperties', p.maxProperties);
+        setVal('MaxQuotationsPerMonth', p.maxQuotationsPerMonth);
+        setVal('MaxEmailCampaigns', p.maxEmailCampaigns);
+
+        new bootstrap.Modal(document.getElementById('spCreateModal')).show();
+        })
+        .catch(() => Swal.fire('Error', 'Failed to load plan', 'error'));
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+        const form = document.getElementById('spPlanForm');
+        const modal = document.getElementById('spCreateModal');
+
+        form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        if (!this.checkValidity()) {
+        e.stopPropagation();
+        this.classList.add('was-validated');
+        return;
+        }
+        const formData = new FormData(this);
+        const isEdit = document.getElementById('spEditPlanId').value !== '';
+        const url = isEdit ? '/SuperAdmin/UpdatePlan' : '/SuperAdmin/CreatePlan';
+        if (isEdit) formData.append('PlanId', document.getElementById('spEditPlanId').value);
+
+        fetch(url, {
+        method: 'POST',
+        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+        body: formData
+        })
+        .then(r => r.json())
+        .then(data => {
+        if (data.success) {
+        showToast(data.message || (isEdit ? 'Plan updated!' : 'Plan created!'), 'success');
+        modal.querySelector('.btn-close').click();
+        location.reload();
+        } else {
+        const errors = data.errors || ['An error occurred'];
+        showToast(errors.join(', '), 'error');
+        }
+        })
+        .catch(() => showToast('An error occurred', 'error'));
+        });
+
+        modal.addEventListener('hidden.bs.modal', function () {
+        document.getElementById('spEditPlanId').value = '';
+        document.getElementById('spModalLabel').textContent = 'Create Subscription Plan';
+        document.getElementById('spSubmitBtn').textContent = 'Create Plan';
+        form.reset();
+        form.classList.remove('was-validated');
+        });
+        });
+    </script>
+}

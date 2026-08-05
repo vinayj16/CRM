@@ -1,0 +1,451 @@
+@model CRM.Models.QuotationModel
+@{
+    ViewData["Title"] = "Quotation Details";
+    var lead     = ViewBag.Lead     as CRM.Models.LeadModel;
+    var property = ViewBag.Property as CRM.Models.PropertyModel;
+    var flat     = ViewBag.Flat     as CRM.Models.PropertyFlatModel;
+    var items    = ViewBag.Items    as List<CRM.Models.QuotationItemModel> ?? new List<CRM.Models.QuotationItemModel>();
+
+    var companyName    = ViewBag.CompanyName?.ToString()    ?? "Company Name";
+    var companyAddress = ViewBag.CompanyAddress?.ToString() ?? "Company Address";
+    var companyPhone   = ViewBag.CompanyPhone?.ToString()   ?? "Phone";
+    var companyEmail   = ViewBag.CompanyEmail?.ToString()   ?? "Email";
+    var companyGst     = ViewBag.CompanyGST?.ToString()     ?? "GST Number";
+}
+
+<style>
+    @@import url('https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&family=JetBrains+Mono:wght@500;600&display=swap');
+
+    :root {
+        --gold:       #D4A45A;
+        --gold-light: #E8C27E;
+        --gold-dark:  #B8883E;
+        --blue:       #1A6FA8;
+        --blue-light: #2589C9;
+        --blue-dark:  #125082;
+        --bg:         #F0F4F8;
+        --surface:    #FFFFFF;
+        --border:     #E2E8F0;
+        --text:       #1E2A3A;
+        --muted:      #6B7B8D;
+        --success:    #16A34A;
+        --danger:     #DC2626;
+        --warn:       #F59E0B;
+        --r:  8px;
+        --rs: 5px;
+        --sh: 0 1px 3px rgba(26,111,168,.08), 0 2px 8px rgba(26,111,168,.05);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; }
+    body, .content { font-family: 'DM Sans', sans-serif; }
+    .content { background: var(--bg); min-height: 100vh; }
+
+    /* ── WRAPPER ── */
+    .qd-wrap { padding: .5rem .6rem; max-width: 960px; margin: 0 auto; }
+
+    /* ── ACTION BAR ── */
+    .qd-bar {
+        background: linear-gradient(118deg, #0F4C75 0%, var(--blue) 55%, var(--blue-light) 100%);
+        border-radius: var(--r); padding: .45rem .85rem;
+        display: flex; align-items: center; justify-content: space-between;
+        gap: .5rem; margin-bottom: .4rem; flex-wrap: wrap;
+    }
+    .qd-bar-left, .qd-bar-right { display: flex; align-items: center; gap: .35rem; flex-wrap: wrap; }
+
+    .qd-btn {
+        display: inline-flex; align-items: center; gap: .3rem;
+        padding: .28rem .7rem; font-size: .72rem; font-weight: 600;
+        border-radius: var(--rs); border: none; cursor: pointer;
+        text-decoration: none; transition: all .18s;
+        font-family: 'DM Sans', sans-serif; white-space: nowrap;
+    }
+    .qd-btn-light { background: rgba(255,255,255,.15); color: #FFFFFF; border: 1px solid rgba(255,255,255,.25); }
+    .qd-btn-light:hover { background: rgba(255,255,255,.28); color: #FFFFFF; }
+    .qd-btn-gold  { background: linear-gradient(135deg,var(--gold-dark),var(--gold)); color: #FFFFFF; box-shadow: 0 2px 8px rgba(212,164,90,.35); }
+    .qd-btn-gold:hover { transform: translateY(-1px); box-shadow: 0 3px 12px rgba(212,164,90,.45); color: #FFFFFF; }
+    .qd-btn-warn  { background: #F59E0B; color: #FFFFFF; }
+    .qd-btn-warn:hover { background: #F59E0B; color: #FFFFFF; }
+
+    /* ── CARD SHELL ── */
+    .qd-card {
+        background: var(--surface); border: 1px solid var(--border);
+        border-radius: var(--r); box-shadow: var(--sh); overflow: hidden;
+    }
+
+    /* ── DOCUMENT ── */
+    .qd-doc { padding: 1.4rem 1.6rem; }
+
+    /* Company header */
+    .qd-co {
+        display: flex; align-items: flex-start;
+        justify-content: space-between; gap: 1rem;
+        padding-bottom: .85rem; border-bottom: 2px solid var(--blue); margin-bottom: .9rem;
+    }
+    .qd-co-name { font-size: 1.15rem; font-weight: 800; color: var(--blue); line-height: 1.15; margin: 0 0 .18rem; }
+    .qd-co-addr { font-size: .68rem; color: var(--muted); line-height: 1.5; }
+    .qd-co-addr strong { color: var(--text); }
+    .qd-co-badge {
+        flex-shrink: 0;
+        background: linear-gradient(135deg,var(--blue-dark),var(--blue-light));
+        color: #FFFFFF; border-radius: var(--rs); padding: .3rem .75rem; text-align: center;
+    }
+    .qd-co-badge-num { font-family: 'JetBrains Mono', monospace; font-size: .78rem; font-weight: 700; letter-spacing: .3px; }
+    .qd-co-badge-label { font-size: .55rem; opacity: .8; text-transform: uppercase; letter-spacing: .6px; }
+
+    /* Meta row */
+    .qd-meta-row { display: flex; gap: .5rem; margin-bottom: .85rem; flex-wrap: wrap; }
+    .qd-meta-box {
+        flex: 1; min-width: 140px; background: #F0F4F8;
+        border: 1px solid var(--border); border-radius: var(--rs); padding: .45rem .65rem;
+    }
+    .qd-meta-box-title {
+        font-size: .56rem; font-weight: 700; text-transform: uppercase; letter-spacing: .6px;
+        color: var(--blue); margin-bottom: .28rem; display: flex; align-items: center; gap: .25rem;
+    }
+    .qd-meta-box-title i { color: var(--gold-dark); }
+    .qd-meta-row-line { font-size: .72rem; color: var(--text); line-height: 1.55; }
+    .qd-meta-row-line strong { color: var(--text); }
+    .qd-meta-row-line span  { color: var(--muted); }
+
+    /* Status badge */
+    .qd-status {
+        display: inline-block; padding: .18rem .65rem; border-radius: 20px;
+        font-weight: 700; font-size: .62rem; text-transform: uppercase; letter-spacing: .5px;
+    }
+    .qd-status.st-draft    { background:#F0F4F8; color:#2A3A4A; }
+    .qd-status.st-sent     { background:#E2E8F0; color:#1A6FA8; }
+    .qd-status.st-accepted { background:#DCFCE7; color:#15803D; }
+    .qd-status.st-rejected { background:#FEE2E2; color:#991B1B; }
+    .qd-status.st-expired  { background:#FEF3C7; color:#B45309; }
+
+    /* Section heading */
+    .qd-sec-title {
+        font-size: .65rem; font-weight: 700; text-transform: uppercase; letter-spacing: .7px;
+        color: var(--blue); display: flex; align-items: center; gap: .28rem; margin-bottom: .45rem;
+    }
+    .qd-sec-title i { color: var(--gold-dark); font-size: .6rem; }
+
+    /* Items table */
+    .qd-table { width: 100%; border-collapse: collapse; margin-bottom: .9rem; font-size: .75rem; }
+    .qd-table thead tr { background: linear-gradient(135deg,var(--blue-dark),var(--blue)); }
+    .qd-table thead th {
+        color: #FFFFFF; padding: .42rem .55rem;
+        font-size: .63rem; font-weight: 600; text-transform: uppercase; letter-spacing: .4px;
+    }
+    .qd-table tbody tr:nth-child(even) { background: #FFFFFF; }
+    .qd-table tbody td {
+        padding: .38rem .55rem; border-bottom: 1px solid var(--border);
+        color: var(--text); vertical-align: middle;
+    }
+    .qd-table tbody tr:last-child td { border-bottom: none; }
+    .qd-table .te { text-align: right; }
+
+    /* Totals */
+    .qd-totals { margin-left: auto; width: 280px; max-width: 100%; margin-bottom: .9rem; }
+    .qd-t-row {
+        display: flex; justify-content: space-between; align-items: center;
+        padding: .3rem .5rem; border-bottom: 1px solid var(--border);
+        font-size: .75rem; color: var(--text);
+    }
+    .qd-t-row:last-child { border-bottom: none; }
+    .qd-t-grand {
+        background: linear-gradient(135deg,var(--blue-dark),var(--blue-light));
+        color: #FFFFFF; border-radius: var(--rs); padding: .45rem .65rem;
+        font-size: .88rem; font-weight: 800;
+        display: flex; justify-content: space-between; align-items: center;
+        margin-top: .3rem; border-bottom: none;
+    }
+
+    /* Notes */
+    .qd-notes {
+        background: #FFFFFF; border: 1px solid rgba(212,164,90,.25);
+        border-left: 3px solid var(--gold); border-radius: var(--rs);
+        padding: .5rem .65rem; font-size: .72rem; color: var(--text); margin-bottom: .85rem;
+    }
+    .qd-notes-title { font-size: .6rem; font-weight: 700; text-transform: uppercase; letter-spacing: .6px; color: var(--gold-dark); margin-bottom: .2rem; }
+
+    /* Terms */
+    .qd-terms { border-top: 1.5px solid var(--border); padding-top: .65rem; margin-bottom: .75rem; }
+    .qd-terms ul { padding-left: 1.1rem; margin: 0; }
+    .qd-terms li { font-size: .68rem; color: var(--muted); margin-bottom: .22rem; line-height: 1.45; }
+
+    /* Footer */
+    .qd-footer {
+        text-align: center; font-size: .65rem; color: var(--muted);
+        border-top: 1px dashed var(--border); padding-top: .55rem;
+    }
+
+    /* ── DARK MODE ── */
+    [data-bs-theme="dark"], .dark-mode {
+        --bg: #0D1724; --surface: #162436; --border: #2A3A4A; --text: #E2E8F0; --muted: #8FA3B8;
+    }
+    .dark-mode .qd-card     { background: #162436 !important; border-color: #2A3A4A !important; }
+    .dark-mode .qd-meta-box { background: #1E2A3A !important; border-color: #2A3A4A !important; }
+    .dark-mode .qd-table tbody tr:nth-child(even) { background: #1E2A3A !important; }
+    .dark-mode .qd-table tbody td { color: var(--text) !important; border-color: #2A3A4A !important; }
+    .dark-mode .qd-t-row    { color: var(--text) !important; border-color: #2A3A4A !important; }
+    .dark-mode .qd-notes    { background: #0D1A24 !important; color: var(--text) !important; }
+    .dark-mode .qd-terms    { border-color: #2A3A4A !important; }
+    .dark-mode .qd-terms li { color: #8FA3B8 !important; }
+    .dark-mode .qd-footer   { border-color: #2A3A4A !important; color: #8FA3B8 !important; }
+    .dark-mode .qd-status.st-accepted { background: #2A3A4A !important; color: #DCFCE7 !important; }
+
+    /* ── RESPONSIVE ── */
+    @@media (max-width: 640px) {
+        .qd-doc  { padding: .9rem 1rem; }
+        .qd-co   { flex-direction: column; gap: .5rem; }
+        .qd-co-badge { align-self: flex-start; }
+        .qd-meta-box { min-width: 100%; }
+        .qd-totals { width: 100%; }
+        .qd-table { font-size: .68rem; }
+        .qd-table thead th, .qd-table tbody td { padding: .28rem .35rem; }
+        .qd-bar { padding: .4rem .6rem; }
+        .qd-btn { font-size: .68rem; padding: .25rem .55rem; }
+    }
+
+    /* ══════════════════════════════════════════════
+       PRINT  —  hide entire shell, show only doc
+    ══════════════════════════════════════════════ */
+    @@media print {
+        @@page { size: A4 portrait; margin: 8mm; }
+
+        /* ── Hide ALL application chrome ── */
+        #sidebar,
+        .sidebar,
+        nav.navbar,
+        .navbar,
+        .navbar-bg,
+        .sidebar-toggle,
+        #navbar-skeleton,
+        .global-search-container,
+        .global-search-overlay,
+        .offcanvas,
+        .modal-backdrop,
+        .qd-bar,
+        .no-print { display: none !important; visibility: hidden !important; }
+
+        /* ── Reset layout wrappers ── */
+        html, body,
+        .wrapper,
+        .main,
+        main.content,
+        .content {
+            margin: 0 !important; padding: 0 !important;
+            width: 100% !important; max-width: 100% !important;
+            background: #FFFFFF !important; color: #000000 !important;
+            overflow: visible !important; height: auto !important;
+            float: none !important; position: static !important;
+        }
+
+        /* ── Push main area full-width (sidebar was beside it) ── */
+        .main { margin-left: 0 !important; }
+
+        /* ── Document card ── */
+        .qd-wrap { padding: 0 !important; max-width: 100% !important; margin: 0 !important; }
+        .qd-card { box-shadow: none !important; border: none !important; border-radius: 0 !important; }
+        .qd-doc  { padding: .3rem .4rem !important; }
+
+        /* ── Typography tightening ── */
+        .qd-co-name { font-size: .95rem !important; }
+        .qd-co-addr { font-size: .6rem !important; }
+        .qd-meta-row-line { font-size: .66rem !important; }
+        .qd-meta-box { background: #F0F4F8 !important; border: 1px solid #E2E8F0 !important; }
+
+        /* ── Table ── */
+        .qd-table { font-size: .65rem !important; }
+        .qd-table thead th,
+        .qd-table tbody td { padding: .25rem .35rem !important; }
+        .qd-table tbody td { color: #000000 !important; border-bottom: 1px solid #E2E8F0 !important; }
+        .qd-table tbody tr:nth-child(even) { background: #F0F4F8 !important; }
+
+        /* ── Totals ── */
+        .qd-totals { width: 260px !important; }
+        .qd-t-row  { font-size: .68rem !important; color: #000000 !important; border-color: #E2E8F0 !important; }
+        .qd-t-grand { font-size: .8rem !important; }
+
+        /* ── Notes / Terms / Footer ── */
+        .qd-notes  { background: #FFFFFF !important; color: #000000 !important; }
+        .qd-terms li { color: #2A3A4A !important; font-size: .62rem !important; }
+        .qd-terms   { border-color: #E2E8F0 !important; }
+        .qd-footer  { color: #6B7B8D !important; font-size: .6rem !important; border-color: #E2E8F0 !important; }
+
+        /* ── Force color printing ── */
+        * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+    }
+</style>
+
+<div class="content">
+<div class="qd-wrap">
+
+    <!-- ACTION BAR (hidden on print via CSS) -->
+    <div class="qd-bar no-print">
+        <div class="qd-bar-left">
+            <a href="/Quotations/Index" class="qd-btn qd-btn-light">
+                <i class="fa-solid fa-arrow-left"></i> Back
+            </a>
+        </div>
+        <div class="qd-bar-right">
+            <button class="qd-btn qd-btn-gold" onclick="triggerPrint()">
+                <i class="fa-solid fa-download"></i> Download PDF
+            </button>
+            @if (Model.Status == "Draft")
+            {
+                <a href="/Quotations/Edit/@Model.QuotationId" class="qd-btn qd-btn-warn">
+                    <i class="fa-solid fa-edit"></i> Edit
+                </a>
+            }
+        </div>
+    </div>
+
+    <!-- DOCUMENT CARD -->
+    <div class="qd-card">
+    <div class="qd-doc">
+
+        <!-- Company Header -->
+        <div class="qd-co">
+            <div>
+                <div class="qd-co-name">@companyName</div>
+                <div class="qd-co-addr">
+                    @companyAddress<br>
+                    <strong>Phone:</strong> @companyPhone &nbsp;|&nbsp;
+                    <strong>Email:</strong> @companyEmail<br>
+                    <strong>GST:</strong> @companyGst
+                </div>
+            </div>
+            <div class="qd-co-badge">
+                <div class="qd-co-badge-label">Quotation</div>
+                <div class="qd-co-badge-num">@Model.QuotationNumber</div>
+                <div style="margin-top:.3rem;">
+                    <span class="qd-status st-@Model.Status.ToLower()">@Model.Status</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Meta: Bill To | Property | Dates -->
+        <div class="qd-meta-row">
+            <div class="qd-meta-box">
+                <div class="qd-meta-box-title"><i class="fa-solid fa-user"></i> Bill To</div>
+                <div class="qd-meta-row-line">
+                    <strong>@lead?.Name</strong><br>
+                    <span>@lead?.Contact</span><br>
+                    <span>@lead?.Email</span>
+                </div>
+            </div>
+            <div class="qd-meta-box">
+                <div class="qd-meta-box-title"><i class="fa-solid fa-building"></i> Property</div>
+                <div class="qd-meta-row-line">
+                    <strong>@property?.PropertyName</strong><br>
+                    <span>@property?.Location</span>
+                    @if (flat != null)
+                    {
+                        <br><span>Flat: @flat.FlatName &nbsp;&middot;&nbsp; @flat.BHK</span>
+                        <br><span>Area: @flat.Area sq.ft &nbsp;&middot;&nbsp; Floor: @flat.FloorNumber</span>
+                    }
+                </div>
+            </div>
+            <div class="qd-meta-box" style="flex:0 0 auto;min-width:130px;">
+                <div class="qd-meta-box-title"><i class="fa-solid fa-calendar"></i> Dates</div>
+                <div class="qd-meta-row-line">
+                    <span>Issued:</span><br>
+                    <strong>@Model.QuotationDate.ToString("MMM dd, yyyy")</strong>
+                    @if (Model.ValidUntil.HasValue)
+                    {
+                        <br><span>Valid Until:</span><br>
+                        <strong>@Model.ValidUntil.Value.ToString("MMM dd, yyyy")</strong>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- Line Items -->
+        <div class="qd-sec-title"><i class="fa-solid fa-list"></i> Line Items</div>
+        <table class="qd-table">
+            <thead>
+                <tr>
+                    <th style="width:4%">#</th>
+                    <th style="width:36%">Description</th>
+                    <th style="width:14%">Type</th>
+                    <th class="te" style="width:8%">Qty</th>
+                    <th class="te" style="width:19%">Amount</th>
+                    <th class="te" style="width:19%">Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                @for (int i = 0; i < items.Count; i++)
+                {
+                    var item = items[i];
+                    <tr>
+                        <td>@(i + 1)</td>
+                        <td>@item.Description</td>
+                        <td>@item.ItemType</td>
+                        <td class="te">@item.Quantity</td>
+                        <td class="te">&#6B7B8D77;@item.Amount.ToString("N2")</td>
+                        <td class="te">&#6B7B8D77;@item.Total.ToString("N2")</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+
+        <!-- Totals -->
+        <div class="qd-totals">
+            <div class="qd-t-row">
+                <span>Subtotal</span>
+                <strong>&#6B7B8D77;@Model.BasePrice.ToString("N2")</strong>
+            </div>
+            @if (Model.DiscountAmount > 0)
+            {
+                <div class="qd-t-row">
+                    <span>Discount</span>
+                    <strong style="color:var(--success)">&#B8883E22; &#6B7B8D77;@Model.DiscountAmount.ToString("N2")</strong>
+                </div>
+            }
+            <div class="qd-t-row">
+                <span>GST (@((Model.TaxAmount / (Model.BasePrice - Model.DiscountAmount) * 100).ToString("N2"))%)</span>
+                <strong>&#6B7B8D77;@Model.TaxAmount.ToString("N2")</strong>
+            </div>
+            <div class="qd-t-grand">
+                <span>Grand Total</span>
+                <span>&#6B7B8D77;@Model.GrandTotal.ToString("N2")</span>
+            </div>
+        </div>
+
+        <!-- Notes -->
+        @if (!string.IsNullOrEmpty(Model.Notes))
+        {
+            <div class="qd-notes">
+                <div class="qd-notes-title"><i class="fa-solid fa-note-sticky"></i> Notes</div>
+                @Model.Notes
+            </div>
+        }
+
+        <!-- Terms -->
+        <div class="qd-terms">
+            <div class="qd-sec-title"><i class="fa-solid fa-file-contract"></i> Terms &amp; Conditions</div>
+            <ul>
+                <li>This quotation is valid for the period mentioned above.</li>
+                <li>Payment terms and conditions as per the payment plan.</li>
+                <li>All prices are inclusive of GST unless otherwise stated.</li>
+                <li>Property specifications are subject to change as per approved plans.</li>
+                <li>Booking will be confirmed only after receipt of booking amount.</li>
+                <li>This is a computer-generated quotation and does not require a signature.</li>
+            </ul>
+        </div>
+
+        <!-- Footer -->
+        <div class="qd-footer">
+            <div>Thank you for your interest in <strong>@companyName</strong></div>
+            <div>For queries: <strong>@companyPhone</strong> &nbsp;|&nbsp; <strong>@companyEmail</strong></div>
+        </div>
+
+    </div>
+    </div>
+
+</div>
+</div>
+
+<script>
+    function triggerPrint() {
+        // Brief delay so browser can apply @@media print CSS fully before dialog opens
+        setTimeout(function () { window.print(); }, 80);
+    }
+</script>

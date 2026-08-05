@@ -1,0 +1,2067 @@
+@{
+	ViewData["Title"] = "My Subscription Plan";
+	var currentSubscription = ViewBag.CurrentSubscription as CRM.MasterDb.Models.TenantSubscriptionModel;
+	var scheduledSubscription = ViewBag.ScheduledSubscription as CRM.MasterDb.Models.TenantSubscriptionModel;
+	var cancelledWithPendingRefund = ViewBag.CancelledWithPendingRefund as List<CRM.MasterDb.Models.TenantSubscriptionModel>;
+	var availablePlans = ViewBag.AvailablePlans as List<CRM.MasterDb.Models.SaasSubscriptionPlanModel>;
+	var tenantId = ViewBag.TenantId;
+	var razorpayKeyId = ViewBag.RazorpayKeyId as string;
+}
+
+<style>
+	.current-plan-section {
+		background: linear-gradient(135deg, #1A6FA8 0%, #1A6FA8 100%);
+		color: white;
+		padding: 1.5rem;
+		border-radius: 16px;
+		margin-bottom: 2rem;
+		position: relative;
+		overflow: hidden;
+	}
+
+		.current-plan-section::before {
+			content: '';
+			position: absolute;
+			top: 0;
+			left: 0;
+			right: 0;
+			bottom: 0;
+			background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse">...');
+			opacity: 0.3;
+		}
+
+	.current-plan-content {
+		position: relative;
+		z-index: 2;
+	}
+
+	/* Ensure white text is visible in both modes */
+	.current-plan-section h1,
+	.current-plan-section p,
+	.current-plan-section strong,
+	.current-plan-section .badge,
+	.current-plan-section h5,
+	.current-plan-section ul li {
+		color: white !important;
+	}
+
+	/* Days remaining box visibility */
+	.current-plan-section .badge,
+	.current-plan-section [style*="background: rgba(255, 255, 255, 0.2)"] {
+		color: white !important;
+	}
+
+		.current-plan-section [style*="background: rgba(255, 255, 255, 0.2)"] strong {
+			color: inherit !important;
+		}
+
+	/* Trial features box visibility */
+	.current-plan-section [style*="background: rgba(255, 255, 255, 0.15)"] {
+		color: white !important;
+	}
+
+		.current-plan-section [style*="background: rgba(255, 255, 255, 0.15)"] h5,
+		.current-plan-section [style*="background: rgba(255, 255, 255, 0.15)"] ul,
+		.current-plan-section [style*="background: rgba(255, 255, 255, 0.15)"] li {
+			color: white !important;
+		}
+
+	/* Dark mode overrides - ensure gradient stays */
+	[data-bs-theme="dark"] .current-plan-section,
+	.dark-mode .current-plan-section {
+		background: linear-gradient(135deg, #1A6FA8 0%, #125082 100%) !important;
+		color: white !important;
+	}
+
+		[data-bs-theme="dark"] .current-plan-section *,
+		.dark-mode .current-plan-section * {
+			color: white !important;
+		}
+
+	.plan-comparison {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+		gap: 1.5rem;
+		margin-top: 2rem;
+	}
+
+	.plan-comparison {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+		gap: 1.5rem;
+		margin-top: 2rem;
+	}
+
+	.plan-card {
+		background: var(--bs-body-bg, white);
+		border-radius: 16px;
+		padding: 0;
+		box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+		border: 2px solid var(--bs-border-color, transparent);
+		transition: all 0.3s ease;
+		position: relative;
+		overflow: hidden;
+	}
+
+	.feature-icon {
+		width: 20px;
+		height: 20px;
+		border-radius: 50%;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		font-size: 0.75rem;
+		flex-shrink: 0;
+	}
+
+	.feature-enabled {
+		background: #DCFCE7;
+		color: #15803D;
+	}
+
+	.feature-disabled {
+		background: #FEE2E2;
+		color: #991B1B;
+	}
+
+	.feature-limited {
+		background: #FEF3C7;
+		color: #B45309;
+	}
+
+	.plan-card.current {
+		border-color: #16A34A;
+		transform: scale(1.02);
+	}
+
+	.plan-card.current {
+		border-color: #16A34A;
+		transform: scale(1.02);
+	}
+
+	.plan-card.scheduled {
+		border-color: #2589C9;
+		transform: scale(1.02);
+	}
+
+	.plan-card.recommended {
+		border-color: #2589C9;
+		transform: translateY(-10px);
+	}
+
+		.plan-card.recommended::before {
+			content: 'RECOMMENDED';
+			position: absolute;
+			top: 0;
+			left: 0;
+			right: 0;
+			background: #2589C9;
+			color: white;
+			text-align: center;
+			padding: 0.5rem;
+			font-size: 0.75rem;
+			font-weight: 700;
+			letter-spacing: 1px;
+		}
+
+	.plan-card.current::before {
+		content: 'CURRENT PLAN';
+		position: absolute;
+		top: 0;
+		left: 0;
+		right: 0;
+		background: #16A34A;
+		color: white;
+		text-align: center;
+		padding: 0.5rem;
+		font-size: 0.75rem;
+		font-weight: 700;
+		letter-spacing: 1px;
+	}
+
+	@@media (max-width: 768px) {
+		.plan-card.current::before {
+			padding: 1rem 0.5rem;
+			font-size: 0.7rem;
+		}
+
+		.plan-card.current .card-body {
+			padding-top: 4rem !important;
+		}
+	}
+
+	.plan-card.scheduled::before {
+		content: 'SCHEDULED';
+		position: absolute;
+		top: 0;
+		left: 0;
+		right: 0;
+		background: #2589C9;
+		color: white;
+		text-align: center;
+		padding: 0.5rem;
+		font-size: 0.75rem;
+		font-weight: 700;
+		letter-spacing: 1px;
+	}
+
+	.plan-card.refund-pending {
+		border: 2px solid #F59E0B;
+		background: #F0F4F8;
+	}
+
+		.plan-card.refund-pending::before {
+			content: 'REFUND PENDING';
+			position: absolute;
+			top: 0;
+			left: 0;
+			right: 0;
+			background: #F59E0B;
+			color: white;
+			text-align: center;
+			padding: 0.5rem;
+			font-size: 0.75rem;
+			font-weight: 700;
+			letter-spacing: 1px;
+		}
+
+	}
+
+	/* Light mode text visibility for refund pending cards */
+	.plan-card.refund-pending .plan-name,
+	.plan-card.refund-pending .price-amount,
+	.plan-card.refund-pending .feature-item span,
+	.plan-card.refund-pending .feature-category h6 {
+		color: #1E2A3A !important;
+	}
+
+	.plan-card.refund-pending .plan-description,
+	.plan-card.refund-pending .price-period,
+	.plan-card.refund-pending .price-currency {
+		color: #2A3A4A !important;
+	}
+
+	.plan-card.refund-pending .alert-warning {
+		background: #FEF3C7 !important;
+		color: #B45309 !important;
+		border-color: #F59E0B !important;
+	}
+
+		.plan-card.refund-pending .alert-warning strong {
+			color: #991B1B !important;
+		}
+
+		.plan-card.refund-pending .alert-warning small {
+			color: #B45309 !important;
+		}
+
+	/* Dark mode support for refund-pending cards - AGGRESSIVE */
+	[data-bs-theme="dark"] .plan-card.refund-pending,
+	.dark-mode .plan-card.refund-pending {
+		border: 2px solid #F59E0B !important;
+		background: linear-gradient(135deg, #991B1B 0%, #1E2A3A 100%) !important;
+	}
+
+		[data-bs-theme="dark"] .plan-card.refund-pending::before,
+		.dark-mode .plan-card.refund-pending::before {
+			background: #F59E0B !important;
+			color: white !important;
+		}
+
+	background: #F59E0B !important;
+	color: white !important;
+	}
+	}
+
+	/* Dark mode support for refund alert - AGGRESSIVE */
+	[data-bs-theme="dark"] .plan-card.refund-pending .alert-warning,
+	.dark-mode .plan-card.refund-pending .alert-warning {
+		background: rgba(245,158,11, 0.3) !important;
+		color: #FFFFFF !important;
+		border-color: #F59E0B !important;
+	}
+
+		[data-bs-theme="dark"] .plan-card.refund-pending .alert-warning strong,
+		.dark-mode .plan-card.refund-pending .alert-warning strong {
+			color: #FFFFFF !important;
+			opacity: 1 !important;
+		}
+
+		[data-bs-theme="dark"] .plan-card.refund-pending .alert-warning small,
+		[data-bs-theme="dark"] .plan-card.refund-pending .alert-warning br,
+		.dark-mode .plan-card.refund-pending .alert-warning small {
+			color: #FFFFFF !important;
+			opacity: 1 !important;
+		}
+
+	/* Ensure text is visible in dark mode for refund pending cards - AGGRESSIVE */
+	[data-bs-theme="dark"] .plan-card.refund-pending .plan-name,
+	[data-bs-theme="dark"] .plan-card.refund-pending .price-amount,
+	[data-bs-theme="dark"] .plan-card.refund-pending .feature-item span,
+	.dark-mode .plan-card.refund-pending .plan-name,
+	.dark-mode .plan-card.refund-pending .price-amount,
+	.dark-mode .plan-card.refund-pending .feature-item span {
+		color: #FFFFFF !important;
+		opacity: 1 !important;
+	}
+
+	[data-bs-theme="dark"] .plan-card.refund-pending .plan-description,
+	[data-bs-theme="dark"] .plan-card.refund-pending .price-period,
+	[data-bs-theme="dark"] .plan-card.refund-pending .price-currency,
+	[data-bs-theme="dark"] .plan-card.refund-pending .feature-category,
+	.dark-mode .plan-card.refund-pending .plan-description,
+	.dark-mode .plan-card.refund-pending .price-period,
+	.dark-mode .plan-card.refund-pending .feature-category {
+		color: #E2E8F0 !important;
+		opacity: 1 !important;
+	}
+
+	}
+
+	[data-bs-theme="dark"] .plan-card.refund-pending .btn-select-plan,
+	.dark-mode .plan-card.refund-pending .btn-select-plan {
+		background: #2A3A4A !important;
+		color: #FFFFFF !important;
+		opacity: 1 !important;
+	}
+
+	[data-bs-theme="dark"] .plan-card.refund-pending .feature-icon,
+	.dark-mode .plan-card.refund-pending .feature-icon {
+		background: rgba(255, 255, 255, 0.1) !important;
+		color: #8FA3B8 !important;
+	}
+
+		[data-bs-theme="dark"] .plan-card.refund-pending .feature-icon.feature-enabled,
+		.dark-mode .plan-card.refund-pending .feature-icon.feature-enabled {
+			background: rgba(22,163,74, 0.2) !important;
+			color: #16A34A !important;
+		}
+
+	.plan-card:hover {
+		transform: translateY(-5px);
+		box-shadow: 0 12px 50px rgba(0, 0, 0, 0.15);
+	}
+
+	.plan-header {
+		text-align: center;
+		margin-bottom: 2rem;
+		padding-top: 1rem;
+	}
+
+	.plan-name {
+		font-size: 1.75rem;
+		font-weight: 800;
+		color: var(--bs-body-color, #1E2A3A);
+		margin-bottom: 0.5rem;
+	}
+
+	.plan-description {
+		color: var(--bs-secondary-color, #6B7B8D);
+		font-size: 0.95rem;
+		margin-bottom: 1.5rem;
+	}
+
+	.plan-pricing {
+		text-align: center;
+		margin-bottom: 2rem;
+	}
+
+	.pricing-toggle {
+		display: flex;
+		justify-content: center;
+		margin-bottom: 1.5rem;
+	}
+
+		.pricing-toggle button {
+			padding: 0.5rem 1.5rem;
+			border: 2px solid var(--bs-border-color, #E2E8F0);
+			background: var(--bs-body-bg, white);
+			color: var(--bs-secondary-color, #6B7B8D);
+			font-weight: 600;
+			transition: all 0.2s ease;
+		}
+
+			.pricing-toggle button:first-child {
+				border-radius: 25px 0 0 25px;
+				border-right: none;
+			}
+
+			.pricing-toggle button:last-child {
+				border-radius: 0 25px 25px 0;
+				border-left: none;
+			}
+
+			.pricing-toggle button.active {
+				background: #2589C9;
+				color: white;
+				border-color: #2589C9;
+			}
+
+	}
+
+	.price-display {
+		margin-bottom: 1rem;
+	}
+
+	.price-amount {
+		font-size: 3rem;
+		font-weight: 800;
+		color: var(--bs-body-color, #1E2A3A);
+		line-height: 1;
+	}
+
+	.price-currency {
+		font-size: 1.5rem;
+		color: var(--bs-secondary-color, #6B7B8D);
+		vertical-align: top;
+	}
+
+	.price-period {
+		font-size: 1rem;
+		color: var(--bs-secondary-color, #6B7B8D);
+		font-weight: 500;
+	}
+
+	.price-savings {
+		background: #DCFCE7;
+		color: #15803D;
+		padding: 0.25rem 0.75rem;
+		border-radius: 15px;
+		font-size: 0.75rem;
+		font-weight: 600;
+		display: inline-block;
+		margin-top: 0.5rem;
+	}
+
+	/* Dark mode override for price-savings */
+	[data-bs-theme="dark"] .price-savings,
+	.dark-mode .price-savings {
+		background: #1E2A3A !important;
+		color: #FFFFFF !important;
+	}
+
+	.plan-features {
+		margin-bottom: 2rem;
+	}
+
+	.feature-category {
+		margin-bottom: 1.5rem;
+	}
+
+		.feature-category h6 {
+			font-size: 0.875rem;
+			font-weight: 700;
+			color: var(--bs-body-color, #2A3A4A);
+			text-transform: uppercase;
+			letter-spacing: 0.5px;
+			margin-bottom: 0.75rem;
+			padding-bottom: 0.5rem;
+			border-bottom: 2px solid var(--bs-border-color, #F0F4F8);
+		}
+
+	.feature-item {
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
+		margin-bottom: 0.5rem;
+		font-size: 0.9rem;
+	}
+
+	.feature-icon {
+		width: 20px;
+		height: 20px;
+		border-radius: 50%;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		font-size: 0.75rem;
+		flex-shrink: 0;
+	}
+
+	.feature-enabled {
+		background: #DCFCE7;
+		color: #15803D;
+	}
+
+	.feature-disabled {
+		color: #15803D;
+	}
+
+	}
+
+	.feature-disabled {
+		background: #FEE2E2;
+		color: #991B1B;
+	}
+
+	.feature-limited {
+		background: #FEF3C7;
+		color: #B45309;
+	}
+
+	/* Aggressive dark mode override for feature-enabled */
+	[data-bs-theme="dark"] .feature-enabled,
+	.dark-mode .feature-enabled,
+	[data-bs-theme="dark"] .feature-item .feature-enabled,
+	.dark-mode .feature-item .feature-enabled,
+	[data-bs-theme="dark"] .plan-card .feature-enabled,
+	.dark-mode .plan-card .feature-enabled,
+	[data-bs-theme="dark"] .feature-icon .feature-enabled,
+	.dark-mode .feature-icon .feature-enabled,
+	body[data-bs-theme="dark"] .feature-enabled,
+	body.dark-mode .feature-enabled {
+		background: #0D1724 !important;
+		color: #E2E8F0 !important;
+		border: none !important;
+	}
+
+	/* Aggressive dark mode override for feature-limited */
+	[data-bs-theme="dark"] .feature-limited,
+	.dark-mode .feature-limited,
+	[data-bs-theme="dark"] .feature-item .feature-limited,
+	.dark-mode .feature-item .feature-limited,
+	[data-bs-theme="dark"] .plan-card .feature-limited,
+	.dark-mode .plan-card .feature-limited,
+	[data-bs-theme="dark"] .feature-icon .feature-limited,
+	.dark-mode .feature-icon .feature-limited,
+	body[data-bs-theme="dark"] .feature-limited,
+	body.dark-mode .feature-limited {
+		background: #0D1724 !important;
+		color: #E2E8F0 !important;
+		border: none !important;
+	}
+
+	}
+
+	/* Aggressive dark mode override for feature-disabled */
+	[data-bs-theme="dark"] .feature-disabled,
+	.dark-mode .feature-disabled,
+	[data-bs-theme="dark"] .feature-item .feature-disabled,
+	.dark-mode .feature-item .feature-disabled,
+	[data-bs-theme="dark"] .plan-card .feature-disabled,
+	.dark-mode .plan-card .feature-disabled,
+	[data-bs-theme="dark"] .feature-icon .feature-disabled,
+	.dark-mode .feature-icon .feature-disabled,
+	body[data-bs-theme="dark"] .feature-disabled,
+	body.dark-mode .feature-disabled {
+		background: #0D1724 !important;
+		color: #E2E8F0 !important;
+		border: none !important;
+	}
+
+	.plan-action {
+		text-align: center;
+	}
+
+	.btn-select-plan {
+		width: 100%;
+		padding: 1rem 2rem;
+		border-radius: 50px;
+		font-weight: 700;
+		font-size: 1rem;
+		border: none;
+		transition: all 0.3s ease;
+		text-transform: uppercase;
+		letter-spacing: 0.5px;
+	}
+
+	.btn-current {
+		background: #16A34A;
+		color: white;
+		cursor: default;
+	}
+
+	.btn-upgrade {
+		background: #2589C9;
+		color: white;
+	}
+
+	}
+
+	.btn-upgrade:hover {
+		background: #2589C9;
+		transform: translateY(-2px);
+		box-shadow: 0 8px 25px rgba(37,137,201, 0.3);
+	}
+
+	.btn-downgrade {
+		background: #B8883E;
+		color: white;
+	}
+
+		.btn-downgrade:hover {
+			background: #F59E0B;
+			transform: translateY(-2px);
+			box-shadow: 0 8px 25px rgba(245,158,11, 0.3);
+		}
+
+	.usage-stats {
+		background: rgba(255, 255, 255, 0.2);
+		backdrop-filter: blur(20px);
+		border: 1px solid rgba(255, 255, 255, 0.3);
+		border-radius: 16px;
+		padding: 1rem;
+		margin-top: 0;
+	}
+
+	.usage-item {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		margin-bottom: 0.75rem;
+	}
+
+		.usage-item:last-child {
+			margin-bottom: 0;
+		}
+
+	.usage-label {
+		font-weight: 600;
+		opacity: 0.9;
+		font-size: 0.9rem;
+	}
+
+	}
+
+	.usage-value {
+		font-weight: 700;
+		font-size: 1rem;
+	}
+
+	.usage-bar {
+		width: 100%;
+		height: 6px;
+		background: rgba(255, 255, 255, 0.3);
+		border-radius: 3px;
+		overflow: hidden;
+		margin-top: 0.25rem;
+	}
+
+	.usage-fill {
+		height: 100%;
+		background: rgba(255, 255, 255, 0.8);
+		border-radius: 4px;
+		transition: width 0.3s ease;
+	}
+
+	@@media (max-width: 768px) {
+		.plan-comparison {
+			grid-template-columns: 1fr;
+		}
+
+		.current-plan-section {
+			padding: 2rem 1.5rem;
+			min-height: 450px;
+		}
+
+			.current-plan-section .d-flex {
+				flex-direction: column !important;
+				gap: 1rem !important;
+			}
+
+			.current-plan-section .col-lg-8,
+			.current-plan-section .col-lg-4 {
+				width: 100% !important;
+				max-width: 100% !important;
+				flex: none !important;
+			}
+
+		.plan-card {
+			padding: 1.5rem;
+		}
+
+			.plan-card.current {
+				min-height: 320px;
+			}
+
+		.price-amount {
+			font-size: 2.5rem;
+		}
+
+		#paymentModal .modal-dialog,
+		.modal#paymentModal .modal-dialog,
+		[data-bs-theme="dark"] #paymentModal .modal-dialog,
+		.dark-mode #paymentModal .modal-dialog,
+		body #paymentModal .modal-dialog {
+			max-width: 95% !important;
+			width: 95% !important;
+			margin: 1rem !important;
+		}
+	}
+
+	/* Aggressive payment modal width override */
+	#paymentModal .modal-dialog,
+	.modal#paymentModal .modal-dialog,
+	[data-bs-theme="dark"] #paymentModal .modal-dialog,
+	.dark-mode #paymentModal .modal-dialog,
+	body #paymentModal .modal-dialog {
+		max-width: 50% !important;
+		width: 50% !important;
+	}
+
+	@@media (max-width: 768px) {
+		#paymentModal .modal-dialog, .modal#paymentModal .modal-dialog, [data-bs-theme="dark"] #paymentModal .modal-dialog,
+		.dark-mode #paymentModal .modal-dialog,
+		body #paymentModal .modal-dialog {
+			max-width: 95% !important;
+			width: 95% !important;
+			margin: 1rem !important;
+		}
+	}
+
+	}
+
+	.upgrade-type-card {
+		cursor: pointer;
+		border: 2px solid #E2E8F0;
+		transition: all 0.3s ease;
+	}
+
+		.upgrade-type-card:hover {
+			border-color: #2589C9;
+			transform: translateY(-2px);
+		}
+
+		.upgrade-type-card.selected {
+			border-color: #2589C9;
+			background-color: #E2E8F0;
+		}
+
+	.plan-card.selected {
+		border-color: #16A34A;
+		background-color: #DCFCE7;
+	}
+</style>
+
+@Html.AntiForgeryToken()
+
+<div class="content">
+	<nav class="mb-3" aria-label="breadcrumb">
+		<ol class="breadcrumb mb-0">
+			<li class="breadcrumb-item"><a href="/Home">Home</a></li>
+			<li class="breadcrumb-item active" aria-current="page">My Subscription Plan</li>
+		</ol>
+	</nav>
+
+	<div class="current-plan-section">
+		<div class="current-plan-content">
+			<div class="div class=" row align-items-center"">
+				<div class="col-lg-8">
+					<div class="d-flex align-items-center mb-2">
+						<div class="me-2">
+							@if (currentSubscription?.BillingCycle == "Trial")
+							{
+								<i class="fa-solid fa-gift" style="font-size: 2.5rem; opacity: 0.9;"></i>
+							}
+							else
+							{
+								<i class="fa-solid fa-crown" style="font-size: 2.5rem; opacity: 0.9;"></i>
+							}
+						</div>
+						<div>
+							@if (currentSubscription?.Plan != null)
+							{
+								@if (currentSubscription.BillingCycle == "Trial")
+								{
+									<div class="d-flex align-items-center gap-2 mb-2">
+										<h1 class="mb-0" style="font-size: 2rem; font-weight: 700; color: white;">@currentSubscription.Plan.PlanName</h1>
+										<span class="badge" style="background: linear-gradient(135deg, #16A34A 0%, #16A34A 100%); font-size: 0.75rem; padding: 0.35rem 0.75rem;">
+											<i class="fa-solid fa-sparkles me-1"></i>FREE TRIAL
+										</span>
+									</div>
+									var daysRemaining = Math.Max(0, (currentSubscription.EndDate - DateTime.Now).Days);
+									var trialColor = daysRemaining <= 2 ? "#FFFFFF" : (daysRemaining <= 5 ? "#FFFFFF" : "#FFFFFF");
+									<p class="mb-1" style="font-size: 0.95rem; opacity: 0.95; color: white;">
+										<i class="fa-solid fa-calendar-days me-1"></i>Trial expires on <strong style="color: white;">@currentSubscription.EndDate.ToString("MMMM dd, yyyy")</strong>
+									</p>
+									<div class="mt-1" style="background: rgba(255, 255, 255, 0.25); padding: 0.5rem 0.75rem; border-radius: 8px; display: inline-block;">
+										<i class="fa-solid fa-hourglass-half me-1" style="color: #F59E0B;"></i>
+										<strong style="font-size: 1rem; color: white;">@daysRemaining days remaining</strong> <span style="color: white;">in your trial</span>
+									</div>
+								}
+								else
+								{
+									<h1 class="mb-0" style="font-size: 2.5rem; font-weight: 700;">@currentSubscription.Plan.PlanName</h1>
+									<p class="mb-0" style="font-size: 1.1rem; opacity: 0.9;">
+										Active until @currentSubscription.EndDate.ToString("MMMM dd, yyyy") � @currentSubscription.BillingCycle billing
+									</p>
+								}
+							}
+							else
+							{
+								<h1 class="mb-0" style="font-size: 2.5rem; font-weight: 700;">No Active Plan</h1>
+								<p class="mb-0" style="font-size: 1.1rem; opacity: 0.9;">Choose a subscription plan to get started</p>
+							}
+						</div>
+					</div>
+				</div>
+				<div class="col-lg-4">
+					@if (currentSubscription?.Plan != null)
+					{
+						@if (currentSubscription.BillingCycle == "Trial")
+						{
+							<div style="background: rgba(255, 255, 255, 0.2); padding: 1rem; border-radius: 16px; border: 2px solid rgba(255, 255, 255, 0.4);">
+								<div class="text-center mb-2">
+									<i class="fa-solid fa-rocket" style="font-size: 2rem; opacity: 0.9; color: white;"></i>
+								</div>
+								<h5 class="text-center mb-2" style="font-weight: 700; font-size: 1rem; color: white;">Explore All Features</h5>
+								<ul class="list-unstyled mb-0" style="font-size: 0.85rem; color: white;">
+									<li class="mb-1" style="color: white;"><i class="fa-solid fa-check-circle me-1" style="color: #16A34A;"></i>Full access to @currentSubscription.Plan.PlanName features</li>
+									<li class="mb-1" style="color: white;"><i class="fa-solid fa-check-circle me-1" style="color: #16A34A;"></i>No payment required</li>
+									<li class="mb-1" style="color: white;"><i class="fa-solid fa-check-circle me-1" style="color: #16A34A;"></i>Up to @(currentSubscription.Plan.MaxAgents) team members</li>
+									<li class="mb-0" style="color: white;"><i class="fa-solid fa-check-circle me-1" style="color: #16A34A;"></i>Up to @(currentSubscription.Plan.MaxLeadsPerMonth) leads/mo</li>
+								</ul>
+							</div>
+						}
+						else
+						{
+							<div class="usage-stats">
+								<div class="usage-item">
+									<span class="usage-label">Agents Used</span>
+									<span class="usage-value">@currentSubscription.Amount / @(currentSubscription.Plan.MaxAgents == -1 ? "8" : currentSubscription.Plan.MaxAgents.ToString())</span>
+								</div>
+								@if (currentSubscription.Plan.MaxAgents > 0)
+								{
+									<div class="usage-bar">
+										<div class="usage-fill" style="width: @(Math.Min(100, ((double)currentSubscription.Amount * 100.0 / currentSubscription.Plan.MaxAgents)))%"></div>
+									</div>
+								}
+
+								<div class="usage-item mt-3">
+									<span class="usage-label">Monthly Leads</span>
+									<span class="usage-value">@currentSubscription.Amount / @(currentSubscription.Plan.MaxLeadsPerMonth == -1 ? "8" : currentSubscription.Plan.MaxLeadsPerMonth.ToString())</span>
+								</div>
+								@if (currentSubscription.Plan.MaxLeadsPerMonth > 0)
+								{
+									<div class="usage-bar">
+										<div class="usage-fill" style="width: @(Math.Min(100, ((double)currentSubscription.Amount * 100.0 / currentSubscription.Plan.MaxLeadsPerMonth)))%"></div>
+									</div>
+								}
+							</div>
+						}
+					}
+				</div>
+			</div>
+		</div>
+	</div>
+@if (scheduledSubscription != null)
+{
+		<div class="alert alert-info d-flex align-items-center mb-4" style="border-radius: 12px; border-left: 4px solid #2589C9; background: linear-gradient(135deg, #E2E8F0 0%">
+			<i class="fa-solid fa-calendar-check me-3" style="font-size: 2rem; color: #2589C9;"></i>
+			<div class="flex-grow-1">
+				<h5 class="mb-1" style="color: #1A6FA8; font-weight: 700;">
+					<i class="fa-solid fa-clock me-2"></i>Scheduled Plan Activates on @scheduledSubscription.StartDate.ToString("MMMM dd, yyyy")
+				</h5>
+				<p class="mb-0" style="color: #125082;">
+					Your <strong>@scheduledSubscription.Plan?.PlanName</strong> plan will automatically activate when your current plan expires.
+					Payment of <strong>?@scheduledSubscription.Amount.ToString("N0")</strong> has already been received.
+				</p>
+			</div>
+		</div>
+		<div class="d-flex gap-2">
+			@if (currentSubscription != null)
+			{
+				<button type="button" class="btn btn-sm btn-outline-primary" onclick="showScheduledPlanDetails()">
+					View Details
+				</button>
+			}
+			<button type="button" class="btn btn-sm btn-danger" onclick="cancelScheduledPlan()">
+				<i class="fa-solid fa-ban me-1"></i>Cancel Plan
+			</button>
+		</div>
+}
+
+	<div class="class=" mb-4">
+
+@if (currentSubscription != null)
+{
+
+			<div class="card mb-4">
+				<div class="card-header">
+					<h6 class="mb-0"><i class="fa-solid fa-crown me-2"></i>Current Subscription</h6>
+				</div>
+				<div class="card-body">
+					<div class="row">
+						<div class="col-md-3">
+							<strong>Plan:</strong> @currentSubscription.Plan?.PlanName
+						</div>
+						<div class="col-md-3">
+							<strong>Amount:</strong> ?@((currentSubscription.Amount > 0 ? currentSubscription.Amount : (currentSubscription.Plan != null ? (currentSubscription.BillingCycle?.ToLower() == "annual" ? currentSubscription.Plan.YearlyPrice : currentSubscription.Plan.MonthlyPrice) : 0)).ToString("N0"))
+						</div>
+						<div class="col-md-3">
+							<strong>Billing:</strong> @currentSubscription.BillingCycle
+						</div>
+						<div class="col-md-3">
+							<strong>Expires:</strong> @currentSubscription.EndDate.ToString("M/d/yyyy")
+						</div>
+					</div>
+					<div class="mt-2">
+						@{
+							var daysRemaining = Math.Max(0, (currentSubscription.EndDate - DateTime.Now).Days);
+						}
+						<span class="badge bg-warning">@daysRemaining days remaining</span>
+					</div>
+				</div>
+			</div>
+}
+
+		<div class="row mb-4">
+			<div class="col-12">
+				<h6 class="mb-3">Choose Upgrade Type:</h6>
+				<div class="row g-3">
+					<div class="col-md-4">
+						<div class="card h-100 upgrade-type-card selected" data-type="existing" onclick="selectUpgradeType('existing')">
+							<div class="card-body text-center">
+								<div class="upgrade-icon mb-3">
+									<i class="fa-solid fa-exchange-alt" style="font-size: 2.5rem; color: #2589C9;"></i>
+								</div>
+								<h6 class="card-title">Existing + Upgrade</h6>
+								<p class="card-text small text-muted">
+									Convert remaining amount to upgrade plan days. Starts immediately, existing plan stops.
+								</p>
+								<div class="upgrade-details" style="display: none;"></div>
+							</div>
+						</div>
+					</div>
+
+					<div class="col-md-4">
+						<div class="card h-100 upgrade-type-card" data-type="immediate" onclick="selectUpgradeType('immediate')">
+							<div class="card-body text-center">
+								<div class="upgrade-icon mb-3">
+									<i class="fa-solid fa-bolt" style="font-size: 2.5rem; color: #16A34A;"></i>
+								</div>
+								<h6 class="card-title">Immediate Upgrade</h6>
+								<p class="card-text small text-muted">
+									Full plan duration starts immediately. Remaining amount adjusted from price.
+								</p>
+								<div class="upgrade-details" style="display: none;"></div>
+							</div>
+						</div>
+					</div>
+
+					<div class="col-md-4">
+						<div class="card h-100 upgrade-type-card" data-type="scheduled" onclick="selectUpgradeType('scheduled')">
+							<div class="card-body text-center">
+								<div class="upgrade-icon mb-3">
+									<i class="fa-solid fa-calendar-plus" style="font-size: 2.5rem; color: #F59E0B;"></i>
+								</div>
+								<h6 class="card-title">Scheduled Plan</h6>
+								<p class="card-text small text-muted">
+									Starts after current plan expires. No remaining amount calculations.
+								</p>
+								<div class="upgrade-details" style="display: none;"></div>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+		<div class="row mb-4">
+			<div class="col-12">
+				<div id="upgradeTypeDetails" style="display: block;">
+					<div class="alert alert-info">
+						<strong>Day-based conversion:</strong><br>
+						Remaining amount � upgrade per-day rate = days<br>
+						+1 day if any remainder > 0
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<div id="planSelectionSection">
+			<h6 class="mb-4 pt-2">Select New Plan:</h6>
+			<div class="row g-4 pt-1" id="availablePlans">
+				@if (availablePlans != null)
+				{
+					@foreach (var plan in availablePlans)
+					{
+						var isCurrent = currentSubscription?.PlanId == plan.PlanId;
+						var isScheduled = scheduledSubscription?.PlanId == plan.PlanId;
+
+						<div class="col-md-6 col-lg-3">
+							<div class="card h-100 plan-card @(isCurrent ? "current-plan" : "") @(isScheduled ? "scheduled" : "")" data-plan-id="@plan.PlanId" onclick="selectPlan('@plan.PlanId')">
+								@if (isCurrent)
+								{
+									<div class="badge bg-primary current-plan-badge mb-2">Current Plan (@currentSubscription.BillingCycle)</div>
+								}
+								@if (isScheduled)
+								{
+									<div class="badge bg-info scheduled-plan-badge mb-2">Scheduled Plan (@scheduledSubscription.BillingCycle)</div>
+								}
+								<div class="card-body">
+									<h6 class="card-title">@plan.PlanName</h6>
+									<p class="card-text small text-muted">@plan.Description ?? "Perfect for small teams getting started with CRM"</p>
+
+									<div class="billing-toggle mb-3">
+										<button type="button" class="monthly-btn active" onclick="event.stopPropagation(); toggleBilling('@plan.PlanId', 'monthly')">Monthly</button>
+										<button type="button" class="annual-btn" onclick="event.stopPropagation(); toggleBilling('@plan.PlanId', 'annual')">Annual</button>
+									</div>
+
+									<div class="text-center mb-3">
+										<div class="monthly-price">
+											<h3 class="text-primary">@plan.MonthlyPrice.ToString("N0")</h3>
+											<small class="text-muted">per month</small>
+										</div>
+										<div class="annual-price" style="display: none;">
+											<h3 class="text-primary">@plan.YearlyPrice.ToString("N0")</h3>
+											<small class="text-muted">per year</small>
+											@{
+												var monthlySavings = (plan.MonthlyPrice * 12) - plan.YearlyPrice;
+												var savingsPercent = plan.MonthlyPrice > 0 ? Math.Round((monthlySavings / (plan.MonthlyPrice * 12)) * 100) : 0;
+											}
+											@if (monthlySavings > 0 && plan.MonthlyPrice > 0)
+											{
+												<div class="badge bg-success mt-1">Save @savingsPercent%</div>
+											}
+										</div>
+									</div>
+
+									<ul class="feature-list">
+										<li><i class="fa-solid fa-users text-primary"></i>@(plan.MaxAgents == -1 ? "Unlimited" : plan.MaxAgents.ToString()) Agents</li>
+										<li><i class="fa-solid fa-chart-line text-primary"></i>@(plan.MaxLeadsPerMonth == -1 ? "Unlimited" : plan.MaxLeadsPerMonth.ToString()) Leads</li>
+										<li><i class="fa-solid fa-database text-primary"></i>@(plan.MaxStorageGB == -1 ? "Unlimited" : plan.MaxStorageGB.ToString() + " GB") Storage</li>
+										<li><i class="fa-solid fa-bolt @(plan.HasWhatsAppIntegration ? "text-success" : "text-danger")"></i>WhatsApp Integration</li>
+										<li><i class="fa-solid fa-file-alt @(plan.HasAdvancedReports ? "text-success" : "text-danger")"></i>Advanced Reports</li>
+										<li><i class="fa-solid fa-headset text-primary"></i>@plan.SupportLevel Support</li>
+									</ul>
+								</div>
+							</div>
+						</div>
+					}
+				}
+			</div>
+		</div>
+
+		<div class="row mb-4">
+			<div class="col-12">
+				<div id="calculationResults" style="display: none;">
+					<div class="card">
+						<div class="card-header">
+							<h6 class="mb-0"><i class="fa-solid fa-calculator me-2"></i>Upgrade Calculation</h6>
+						</div>
+						<div class="card-body" id="calculationContent">
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<div class="modal fade" id="paymentModal" tabindex="-1" aria-labelledby="paymentModalLabel" aria-hidden="true">
+			<div class="modal-dialog modal-dialog-centered">
+				<div class="modal-content">
+					<div class="modal-header">
+						<h5 class="modal-title" id="paymentModalLabel">Confirm Plan Selection</h5>
+						<button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+					</div>
+					<div class="modal-body">
+						<div class="text-center mb-4">
+							<h4 id="selectedPlanName"></h4>
+							<div class="h2 text-primary" id="selectedPlanPrice"></div>
+							<div class="text-muted" id="selectedBillingCycle"></div>
+						</div>
+
+						<div class="alert alert-info">
+							<i class="fa-solid fa-info-circle me-2"></i>
+							Your subscription will be activated immediately after successful payment.
+						</div>
+
+						<div class="d-grid gap-2">
+							<button type="button" class="btn btn-primary btn-lg" id="proceedToPayment">
+								<i class="fa-solid fa-credit-card me-2"></i>Proceed to Payment
+							</button>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<div class="modal fade" id="upgradeModal" tabindex="-1" aria-labelledby="upgradeModalLabel" aria-hidden="true">
+			<div class="modal-dialog modal-xl">
+				<div class="modal-content">
+					<div class="modal-header">
+						<h5 class="modal-title" id="upgradeModalLabel">
+							<i class="fa-solid fa-rocket me-2"></i>Upgrade Partner Plan
+						</h5>
+						<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+					</div>
+					<div class="modal-body">
+						<div class="alert alert-info mb-4" id="partnerInfo" style="display: none;">
+							<div class="d-flex align-items-center">
+								<i class="fa-solid fa-building me-3" style="font-size: 2rem;"></i>
+								<div>
+									<h6 class="mb-1" id="partnerName"></h6>
+									<small class="text-muted" id="partnerEmail"></small>
+								</div>
+							</div>
+						</div>
+
+						<div class="card mb-4" id="currentSubscriptionCard" style="display: none;">
+							<div class="card-header">
+								<h6 class="mb-0"><i class="fa-solid fa-crown me-2"></i>Current Subscription</h6>
+							</div>
+							<div class="card-body">
+								<div class="row">
+									<div class="col-md-3">
+										<strong>Plan:</strong> <span id="currentPlanName"></span>
+									</div>
+									<div class="col-md-3">
+										<strong>Amount:</strong> ?<span id="currentAmount"></span>
+									</div>
+									<div class="col-md-3">
+										<strong>Billing:</strong> <span id="currentBilling"></span>
+									</div>
+									<div class="col-md-3">
+										<strong>Expires:</strong> <span id="currentExpiry"></span>
+									</div>
+								</div>
+								<div class="mt-2">
+									<span class="badge bg-warning" id="daysRemaining"></span>
+								</div>
+							</div>
+						</div>
+
+						<div class="row mb-4">
+							<div class="col-12">
+								<h6 class="mb-3">Choose Upgrade Type:</h6>
+								<div class="row g-3">
+									<div class="col-md-6">
+										<div class="card h-100 upgrade-type-card" data-type="existing">
+											<div class="card-body text-center">
+												<div class="upgrade-icon mb-3">
+													<i class="fa-solid fa-exchange-alt" style="font-size: 2.5rem; color: #2589C9;"></i>
+												</div>
+												<h6 class="card-title">Existing + Upgrade</h6>
+												<p class="card-text small text-muted">
+													Convert remaining amount to upgrade plan days.<br>
+													Starts immediately, existing plan stops.
+												</p>
+												<div class="upgrade-details" style="display: none;">
+													<div class="alert alert-info small">
+														<strong>Day-based conversion:</strong><br>
+														Remaining amount � upgrade per-day rate = days<br>
+														+1 day if any remainder > ?0
+													</div>
+												</div>
+											</div>
+										</div>
+									</div>
+								</div>
+							</div>
+
+							<div class="row mb-4">
+								<div class="col-md-4">
+									<div class="card h-100 upgrade-type-card" data-type="immediate">
+										<div class="card-body text-center">
+											<div class="upgrade-icon mb-3">
+												<i class="fa-solid fa-bolt" style="font-size: 2.5rem; color: #16A34A;"></i>
+											</div>
+											<h6 class="card-title">Immediate Upgrade</h6>
+											<p class="card-text small text-muted">
+												Full plan duration starts immediately.<br>
+												Remaining amount adjusted from price.
+											</p>
+											<div class="upgrade-details" style="display: none;">
+												<div class="alert alert-success small">
+													<strong>Full duration:</strong><br>
+													Monthly: 30 days | Annual: 365 days<br>
+													Credit applied from current plan
+												</div>
+											</div>
+										</div>
+									</div>
+								</div>
+
+								<div class="col-md-4">
+									<div class="card h-100 upgrade-type-card" data-type="scheduled">
+										<div class="card-body text-center">
+											<div class="upgrade-icon mb-3">
+												<i class="fa-solid fa-calendar-plus" style="font-size: 2.5rem; color: #F59E0B;"></i>
+											</div>
+											<h6 class="card-title">Scheduled Plan</h6>
+											<p class="card-text small text-muted">
+												Starts after current plan expires.<br>
+												No remaining amount calculations.
+											</p>
+											<div class="upgrade-details" style="display: none;">
+												<div class="alert alert-warning small">
+													<strong>Future activation:</strong><br>
+													Starts on current plan end date + 1 day<br>
+													Full plan duration applies
+												</div>
+											</div>
+										</div>
+									</div>
+								</div>
+							</div>
+						</div>
+
+						<div id="planSelectionSection" style="display: none;">
+							<h6 class="mb-3">Select New Plan:</h6>
+							<div class="row" id="availablePlans">
+							</div>
+						</div>
+
+						<div id="calculationResults" style="display: none;">
+							<div class="card">
+								<div class="card-header">
+									<h6 class="mb-0"><i class="fa-solid fa-calculator me-2"></i>Upgrade Calculation</h6>
+								</div>
+								<div class="card-body" id="calculationContent">
+								</div>
+							</div>
+						</div>
+
+						<div class="modal-footer">
+							<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+							<button type="button" class="btn btn-primary" id="sendPaymentLinkBtn" style="display: none;" onclick="sendPaymentLink()">
+								<i class="fa-solid fa-credit-card me-2"></i><span id="paymentBtnText">Pay Now</span>
+							</button>
+						</div>
+
+						<style>
+							.upgrade-type-card {
+								cursor: pointer;
+								transition: all 0.3s ease;
+								border: 2px solid transparent;
+							}
+
+								.upgrade-type-card:hover {
+									transform: translateY(-5px);
+									box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+								}
+
+								.upgrade-type-card.selected {
+									border-color: #2589C9 !important;
+									background: linear-gradient(135deg, #E2E8F0 0%, #E2E8F0 100%) !important;
+									transform: translateY(-2px);
+									box-shadow: 0 8px 25px rgba(37,137,201, 0.3) !important;
+								}
+
+							/* Dark mode support for upgrade cards */
+							[data-bs-theme="dark"] .upgrade-type-card,
+							.dark-mode .upgrade-type-card {
+								background: var(--bs-dark) !important;
+								border-color: var(--bs-border-color-translucent) !important;
+								color: #FFFFFF !important;
+							}
+
+								[data-bs-theme="dark"] .upgrade-type-card .card-title,
+								[data-bs-theme="dark"] .upgrade-type-card .card-text,
+								.dark-mode .upgrade-type-card .card-title,
+								.dark-mode .upgrade-type-card .card-text {
+									color: #FFFFFF !important;
+								}
+
+								[data-bs-theme="dark"] .upgrade-type-card.selected,
+								.dark-mode .upgrade-type-card.selected {
+									border-color: #2589C9 !important;
+									background: linear-gradient(135deg, #125082 0%, #1A6FA8 100%) !important;
+									color: #FFFFFF !important;
+								}
+
+									[data-bs-theme="dark"] .upgrade-type-card.selected .card-title,
+									[data-bs-theme="dark"] .upgrade-type-card.selected .card-text,
+									.dark-mode .upgrade-type-card.selected .card-title,
+									.dark-mode .upgrade-type-card.selected .card-text {
+										color: #FFFFFF !important;
+									}
+
+							/* Dark mode support for SweetAlert modals */
+							[data-bs-theme="dark"] .swal2-popup,
+							.dark-mode .swal2-popup {
+								background: var(--bs-dark) !important;
+								color: #FFFFFF !important;
+							}
+
+							[data-bs-theme="dark"] .swal2-title,
+							.dark-mode .swal2-title {
+								color: #FFFFFF !important;
+							}
+
+							[data-bs-theme="dark"] .swal2-html-container,
+							[data-bs-theme="dark"] .swal2-html-container *,
+							.dark-mode .swal2-html-container,
+							.dark-mode .swal2-html-container * {
+								color: #FFFFFF !important;
+							}
+
+								[data-bs-theme="dark"] .swal2-html-container strong,
+								.dark-mode .swal2-html-container strong {
+									color: #FFFFFF !important;
+								}
+
+								[data-bs-theme="dark"] .swal2-html-container p,
+								[data-bs-theme="dark"] .swal2-html-container h6,
+								.dark-mode .swal2-html-container p,
+								.dark-mode .swal2-html-container h6 {
+									color: #FFFFFF !important;
+								}
+
+							[data-bs-theme="dark"] .swal2-confirm,
+							.dark-mode .swal2-confirm {
+								color: #FFFFFF !important;
+								background-color: #2589C9 !important;
+								border-color: #2589C9 !important;
+							}
+
+							[data-bs-theme="dark"] .swal2-cancel,
+							.dark-mode .swal2-cancel {
+								color: #FFFFFF !important;
+								background-color: #6B7B8D !important;
+								border-color: #6B7B8D !important;
+							}
+
+							/* Force button text visibility with highest specificity */
+							[data-bs-theme="dark"] .swal2-actions .swal2-confirm,
+							[data-bs-theme="dark"] .swal2-actions .swal2-cancel,
+							.dark-mode .swal2-actions .swal2-confirm,
+							.dark-mode .swal2-actions .swal2-cancel {
+								color: #FFFFFF !important;
+								font-weight: 600 !important;
+							}
+
+							[data-bs-theme="dark"] .swal2-actions button,
+							.dark-mode .swal2-actions button {
+								color: #FFFFFF !important;
+							}
+
+							.plan-card {
+								cursor: pointer;
+								transition: all 0.3s ease;
+								border: 2px solid transparent;
+							}
+
+								.plan-card:hover {
+									transform: translateY(-3px);
+									box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+								}
+
+								.plan-card.selected {
+									border-color: #16A34A !important;
+									background: linear-gradient(135deg, #DCFCE7 0%, #B8C8D8 100%) !important;
+								}
+
+								.plan-card.current-plan {
+									border-color: var(--bs-primary, #2589C9) !important;
+									background: var(--bs-primary-bg-subtle,#F59E0B11) !important;
+								}
+
+							/* Dark mode support for current plan card - show in green */
+							[data-bs-theme="dark"] .plan-card.current-plan,
+							.dark-mode .plan-card.current-plan {
+								border-color: #16A34A !important;
+								background: #15803D !important;
+								color: #FFFFFF !important;
+							}
+
+								[data-bs-theme="dark"] .plan-card.current-plan .card-title,
+								[data-bs-theme="dark"] .plan-card.current-plan .card-text,
+								[data-bs-theme="dark"] .plan-card.current-plan h5,
+								[data-bs-theme="dark"] .plan-card.current-plan p,
+								.dark-mode .plan-card.current-plan .card-title,
+								.dark-mode .plan-card.current-plan .card-text,
+								.dark-mode .plan-card.current-plan h5,
+								.dark-mode .plan-card.current-plan p {
+									color: #FFFFFF !important;
+								}
+
+								[data-bs-theme="dark"] .plan-card.current-plan *,
+								.dark-mode .plan-card.current-plan * {
+									color: #FFFFFF !important;
+								}
+
+							.billing-toggle {
+								display: flex;
+								justify-content: center;
+								margin-bottom: 1rem;
+							}
+
+								.billing-toggle button {
+									padding: 0.5rem 1rem;
+									border: 2px solid #E2E8F0;
+									background: white;
+									color: #6B7B8D;
+									font-weight: 600;
+									transition: all 0.2s ease;
+								}
+
+									.billing-toggle button:first-child {
+										border-radius: 25px 0 0 25px;
+										border-right: none;
+									}
+
+									.billing-toggle button:last-child {
+										border-radius: 0 25px 25px 0;
+										border-left: none;
+									}
+
+									.billing-toggle button.active {
+										background: #2589C9;
+										color: white;
+										border-color: #2589C9;
+									}
+
+							/* Dark mode support for billing toggle */
+							[data-bs-theme="dark"] .billing-toggle button,
+							.dark-mode .billing-toggle button {
+								background: #2A3A4A !important;
+								color: #FFFFFF !important;
+								border-color: #6B7B8D !important;
+							}
+
+								[data-bs-theme="dark"] .billing-toggle button.active,
+								.dark-mode .billing-toggle button.active {
+									background: #2589C9 !important;
+									color: #FFFFFF !important;
+									border-color: #2589C9 !important;
+								}
+
+								/* Force text visibility with highest specificity */
+								.dark-mode .billing-toggle button:not(.active) {
+									background: #2A3A4A !important;
+									color: #FFFFFF !important;
+									border-color: #6B7B8D !important;
+								}
+
+							.feature-list {
+								list-style: none;
+								padding: 0;
+							}
+
+								.feature-list li {
+									padding: 0.25rem 0;
+									font-size: 0.875rem;
+								}
+
+									.feature-list li i {
+										width: 16px;
+										margin-right: 0.5rem;
+									}
+
+							/* Compact SweetAlert modal - fit to screen without scrolling */
+							.swal2-popup {
+								max-height: 85vh !important;
+							}
+
+							.swal2-html-container {
+								max-height: 55vh !important;
+								overflow-y: auto !important;
+								padding: 0.5rem 1rem !important;
+							}
+
+								.swal2-html-container h6 {
+									font-size: 13px !important;
+									margin-bottom: 8px !important;
+								}
+
+								.swal2-html-container p {
+									margin: 3px 0 !important;
+									font-size: 12px !important;
+								}
+
+								.swal2-html-container hr {
+									margin: 8px 0 !important;
+								}
+
+								.swal2-html-container > div {
+									padding: 10px !important;
+									margin-bottom: 2px !important;
+								}
+
+							.swal2-title {
+								margin-bottom: 2px !important;
+								padding-bottom: 2px !important;
+							}
+
+							.swal2-actions {
+								margin-top: 5px !important;
+								padding-top: 5px !important;
+							}
+
+							/* Hide SweetAlert icon */
+							.swal2-icon {
+								display: none !important;
+							}
+						</style>
+@section Scripts {
+							<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+							<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+	@{
+		var jsCurrentPlanId = currentSubscription?.PlanId ?? 0;
+		var jsCurrentBilling = currentSubscription?.BillingCycle?.ToLower() ?? "monthly";
+		var jsCurrentExpiry = currentSubscription?.EndDate.ToString("MMMM dd, yyyy") ?? "";
+		var jsScheduledPlanId = scheduledSubscription?.PlanId ?? 0;
+		var jsScheduledPlanName = scheduledSubscription?.Plan?.PlanName ?? "N/A";
+		var jsScheduledBilling = scheduledSubscription?.BillingCycle ?? "N/A";
+		var jsScheduledAmount = scheduledSubscription?.Amount ?? 0;
+		var jsScheduledStartDate = scheduledSubscription?.StartDate.ToString("MMMM dd, yyyy") ?? "N/A";
+		var jsScheduledStatus = scheduledSubscription?.Status ?? "N/A";
+		var jsScheduledSubscriptionId = scheduledSubscription?.SubscriptionId ?? 0;
+	}
+
+							<script>
+								window.selectedPlanId = null;
+								window.selectedBillingCycle = '@jsCurrentBilling';
+
+								document.addEventListener('DOMContentLoaded', function () {
+									toggleBilling('@jsCurrentBilling');
+
+									const defaultSelectedCard = document.querySelector('.upgrade-type-card.selected');
+									if (defaultSelectedCard) {
+										selectUpgradeType(defaultSelectedCard.dataset.type);
+									}
+								});
+
+								function toggleBilling(planIdOrCycle, cycle) {
+									if (cycle) {
+										const planId = planIdOrCycle;
+										const card = document.querySelector(`[data-plan-id="${planId}"]`);
+										if (!card) return;
+
+										const monthlyBtn = card.querySelector('.monthly-btn');
+										const annualBtn = card.querySelector('.annual-btn');
+										const monthlyPrice = card.querySelector('.monthly-price');
+										const annualPrice = card.querySelector('.annual-price');
+
+										if (!monthlyBtn || !annualBtn || !monthlyPrice || !annualPrice) return;
+
+										monthlyBtn.classList.toggle('active', cycle === 'monthly');
+										annualBtn.classList.toggle('active', cycle === 'annual');
+										monthlyPrice.style.display = cycle === 'monthly' ? 'block' : 'none';
+										annualPrice.style.display = cycle === 'annual' ? 'block' : 'none';
+
+										const currentPlanId = '@jsCurrentPlanId';
+										const currentBilling = '@jsCurrentBilling';
+
+										if (planId == currentPlanId) {
+											const currentPlanBadge = card.querySelector('.current-plan-badge');
+
+											if (cycle === currentBilling) {
+												card.classList.add('current-plan');
+												card.classList.add('current');
+												if (currentPlanBadge) currentPlanBadge.style.display = 'block';
+											} else {
+												card.classList.remove('current-plan');
+												card.classList.remove('current');
+												if (currentPlanBadge) currentPlanBadge.style.display = 'none';
+											}
+										}
+										const scheduledPlanId = '@jsScheduledPlanId';
+										const scheduledBilling = '@jsScheduledBilling'.toLowerCase();
+
+										if (planId == scheduledPlanId) {
+											const scheduledPlanBadge = card.querySelector('.scheduled-plan-badge');
+
+											if (cycle === scheduledBilling) {
+												card.classList.add('scheduled');
+
+												if (scheduledPlanBadge)
+													scheduledPlanBadge.style.display = 'block';
+											} else {
+												card.classList.remove('scheduled');
+
+												if (scheduledPlanBadge)
+													scheduledPlanBadge.style.display = 'none';
+											}
+										}
+
+										if (window.selectedPlanId == planId) {
+											window.selectedBillingCycle = cycle;
+										}
+
+										return;
+									}
+
+									const globalCycle = planIdOrCycle;
+									window.selectedBillingCycle = globalCycle;
+
+																	// ADD THIS
+								document.querySelectorAll('.plan-card').forEach(card => {
+									const monthlyBtn = card.querySelector('.monthly-btn');
+									const annualBtn = card.querySelector('.annual-btn');
+
+									if (!monthlyBtn || !annualBtn) return;
+
+									monthlyBtn.classList.toggle('active', globalCycle === 'monthly');
+									annualBtn.classList.toggle('active', globalCycle === 'annual');
+								});
+
+									document.querySelectorAll('.monthly-price').forEach(el => {
+										el.style.display = globalCycle === 'monthly' ? 'block' : 'none';
+									});
+
+									document.querySelectorAll('.annual-price').forEach(el => {
+										el.style.display = globalCycle === 'annual' ? 'block' : 'none';
+									});
+
+									updateCurrentPlanButtons(globalCycle);
+								}
+
+								function updateCurrentPlanButtons(cycle) {
+									const currentBilling = '@jsCurrentBilling';
+									const currentPlanId = '@jsCurrentPlanId';
+
+								const scheduledPlanId = '@jsScheduledPlanId';
+								const scheduledBilling = '@jsScheduledBilling';
+
+									document.querySelectorAll('.plan-card').forEach(card => {
+										const planId = card.getAttribute('data-plan-id');
+										const currentPlanBadge = card.querySelector('.current-plan-badge');
+
+										card.classList.remove('current');
+
+										if (planId == currentPlanId && currentBilling === cycle) {
+											card.classList.add('current');
+											card.classList.add('current-plan');
+											if (currentPlanBadge) currentPlanBadge.style.display = 'block';
+										} else if (planId == currentPlanId) {
+											card.classList.remove('current-plan');
+											if (currentPlanBadge) currentPlanBadge.style.display = 'none';
+										}
+
+								// Scheduled Plan
+								const scheduledPlanBadge = card.querySelector('.scheduled-plan-badge');
+
+								card.classList.remove('scheduled');
+
+								if (planId == scheduledPlanId && scheduledBilling === cycle) {
+									card.classList.add('scheduled');
+
+									if (scheduledPlanBadge)
+										scheduledPlanBadge.style.display = 'block';
+								}
+								else if (planId == scheduledPlanId) {
+
+									if (scheduledPlanBadge)
+										scheduledPlanBadge.style.display = 'none';
+								}
+									});
+								}
+
+								function selectUpgradeType(type) {
+									document.querySelectorAll('.upgrade-type-card').forEach(card => {
+										card.classList.remove('selected');
+										const details = card.querySelector('.upgrade-details');
+										if (details) details.style.display = 'none';
+									});
+
+									const selectedCard = document.querySelector(`[data-type="${type}"]`);
+									if (selectedCard) {
+										selectedCard.classList.add('selected');
+										const details = selectedCard.querySelector('.upgrade-details');
+										if (details) details.style.display = 'block';
+									}
+
+									const upgradeTypeDetails = document.getElementById('upgradeTypeDetails');
+									if (!upgradeTypeDetails) return;
+
+									const alertDiv = upgradeTypeDetails.querySelector('.alert');
+									if (!alertDiv) return;
+
+									if (type === 'existing') {
+										alertDiv.className = 'alert alert-info';
+										alertDiv.innerHTML = '<strong>Day-based conversion:</strong><br>Remaining amount � upgrade per-day rate = days<br>+1 day if any remainder > 0';
+									}
+
+									if (type === 'immediate') {
+										alertDiv.className = 'alert alert-success';
+										alertDiv.innerHTML = '<strong>Full duration:</strong><br>Monthly: 30 days | Annual: 365 days<br>Remaining amount credit applied from current plan';
+									}
+
+									if (type === 'scheduled') {
+										alertDiv.className = 'alert alert-warning';
+										alertDiv.innerHTML = '<strong>Future activation:</strong><br>Starts on current plan end date + 1 day<br>Full plan duration applies';
+									}
+								}
+
+								function selectPlan(planId) {
+								const currentPlanId = '@jsCurrentPlanId';
+								const currentBilling = '@jsCurrentBilling';
+
+								const scheduledPlanId = '@jsScheduledPlanId';
+								const scheduledBilling = '@jsScheduledBilling'.toLowerCase();
+
+								const planCard = document.querySelector(`[data-plan-id="${planId}"]`);
+								if (!planCard) return;
+
+								const annualBtn = planCard.querySelector('.annual-btn');
+								const selectedBilling =
+									annualBtn && annualBtn.classList.contains('active')
+										? 'annual'
+										: 'monthly';
+
+								if (
+									planId == scheduledPlanId &&
+									selectedBilling === scheduledBilling &&
+									scheduledPlanId != 0
+								) {
+									Swal.fire({
+										title: 'Plan Already Scheduled',
+										html: `
+											<div class="text-center">
+												<i class="fa-solid fa-calendar-check text-info" style="font-size: 3rem;"></i>
+												<h5 class="mt-3">This plan is already scheduled</h5>
+												<p class="text-muted">
+													Your <strong>@jsScheduledPlanName</strong> plan will activate on
+													<strong>@jsScheduledStartDate</strong>
+												</p>
+											</div>
+										`,
+										icon: 'info',
+										confirmButtonColor: '#2589C9',
+										confirmButtonText: 'OK'
+									});
+									return;
+								}
+
+									
+
+									if (planId == currentPlanId && selectedBilling === currentBilling) {
+										Swal.fire({
+											title: 'Current Active Plan',
+											html: `
+												<div class="text-center">
+													<i class="fa-solid fa-crown text-primary" style="font-size: 3rem;"></i>
+													<h5 class="mt-3">This is your current active plan</h5>
+													<p class="text-muted">Your plan expires on <strong>@jsCurrentExpiry</strong></p>
+												</div>
+											`,
+											icon: 'info',
+											confirmButtonColor: '#2589C9',
+											confirmButtonText: 'OK'
+										});
+										return;
+									}
+
+									window.selectedPlanId = planId;
+									window.selectedBillingCycle = selectedBilling;
+
+									const selectedUpgradeCard = document.querySelector('.upgrade-type-card.selected');
+									if (!selectedUpgradeCard) {
+										Swal.fire({
+											title: 'Select Upgrade Type',
+											text: 'Please select an upgrade type first.',
+											icon: 'warning',
+											confirmButtonColor: '#F59E0B'
+										});
+										return;
+									}
+
+									calculateUpgrade(planId, selectedBilling, selectedUpgradeCard.dataset.type);
+								}
+
+								function calculateUpgrade(planId, billingCycle, upgradeType) {
+									fetch('/saassubscription/CalculateUpgrade', {
+										method: 'POST',
+										headers: {
+											'Content-Type': 'application/x-www-form-urlencoded'
+										},
+										body: new URLSearchParams({
+											tenantId: '@tenantId',
+											newPlanId: planId,
+											billingCycle: billingCycle,
+											upgradeType: upgradeType
+										})
+									})
+									.then(response => response.json())
+									.then(data => {
+										if (data.success) {
+											displayCalculationResults(data);
+										} else {
+											Swal.fire('Calculation Error', data.message, 'error');
+										}
+									})
+									.catch(() => {
+										Swal.fire('Error', 'Failed to calculate upgrade', 'error');
+									});
+								}
+
+								function displayCalculationResults(data) {
+									const calc = data.calculation || {};
+
+									if (data.insufficientAmount) {
+										Swal.fire({
+											title: 'Insufficient Amount',
+											html: `
+												<div style="text-align: left; font-size: 14px;">
+													<p><strong>Current Plan:</strong> ${calc.currentPlan || 'N/A'}</p>
+													<p><strong>Remaining Amount:</strong> ?${(calc.remainingAmount || 0).toLocaleString()}</p>
+													<p><strong>Required for 1 day:</strong> ?${(calc.requiredAmount || 0).toLocaleString()}</p>
+													<p><strong>Shortfall:</strong> ?${(calc.shortfall || 0).toLocaleString()}</p>
+													<p class="text-danger"><strong>Your remaining amount is not sufficient for this upgrade.</strong></p>
+												</div>
+											`,
+											icon: 'error',
+											confirmButtonText: 'Choose Different Option',
+											confirmButtonColor: '#DC2626'
+										});
+										return;
+									}
+
+									let content = '';
+
+									if (data.upgradeType === 'existing') {
+										content = `
+											<div style="text-align: left; font-size: 14px;">
+												<p><strong>Current Plan:</strong> ${calc.currentPlan || 'N/A'}</p>
+												<p><strong>Remaining Days:</strong> ${calc.remainingDays || 0}</p>
+												<p><strong>Remaining Amount:</strong> ?${(calc.remainingAmount || 0).toLocaleString()}</p>
+												<hr>
+												<p><strong>New Plan:</strong> ${calc.newPlan || 'N/A'}</p>
+												<p><strong>Per-day Rate:</strong> ?${(calc.upgradePerDayRate || 0).toLocaleString()}</p>
+												<p><strong>You will get:</strong> ${calc.convertedDays || 0} days</p>
+												<p class="text-success"><strong>No additional payment required.</strong></p>
+											</div>
+										`;
+									}
+
+									if (data.upgradeType === 'immediate') {
+										content = `
+											<div style="text-align: left; font-size: 14px;">
+												<p><strong>New Plan:</strong> ${calc.newPlan || 'N/A'}</p>
+												<p><strong>New Plan Cost:</strong> ?${(calc.newAmount || 0).toLocaleString()}</p>
+												<p><strong>Credit From Current Plan:</strong> -?${(calc.creditAmount || 0).toLocaleString()}</p>
+												<hr>
+												<p><strong>My Referral Amount:</strong> ?${(calc.rewardPoints || 0).toLocaleString()}</p>
+
+												<p><strong>Amount to Pay:</strong> ?${(calc.adjustedAmount || 0).toLocaleString()}</p>
+												<p><strong>Start Date:</strong> ${calc.startDate ? new Date(calc.startDate).toLocaleDateString() : 'Immediate'}</p>
+												<p><strong>End Date:</strong> ${calc.endDate ? new Date(calc.endDate).toLocaleDateString() : 'N/A'}</p>
+											</div>
+										`;
+									}
+
+									if (data.upgradeType === 'scheduled') {
+										content = `
+											<div style="text-align: left; font-size: 14px;">
+												<p><strong>Plan:</strong> ${calc.newPlan || 'N/A'}</p>
+												<p><strong>My Referral Amount:</strong> ?${(calc.rewardPoints || 0).toLocaleString()}</p>
+
+												<p><strong>Amount to Pay:</strong> ?${(calc.paymentRequired || 0).toLocaleString()}</p>
+												<p><strong>Activation Date:</strong> ${calc.startDate ? new Date(calc.startDate).toLocaleDateString() : 'N/A'}</p>
+												<p class="text-info">Plan will activate automatically after your current plan expires.</p>
+											</div>
+										`;
+									}
+
+									const requiresPayment = data.upgradeType === 'scheduled' || ((calc.adjustedAmount || 0) > 0);
+
+									Swal.fire({
+										title: 'Upgrade Calculation',
+										html: content,
+										showCancelButton: true,
+										confirmButtonText: requiresPayment ? 'Proceed to Payment' : 'Activate Now',
+										cancelButtonText: 'Cancel',
+										confirmButtonColor: '#2589C9',
+										cancelButtonColor: '#6B7B8D',
+										width: '550px'
+									}).then(result => {
+										if (!result.isConfirmed) return;
+
+										if (requiresPayment) {
+											initiateRazorpayPayment(data);
+										} else {
+											activateUpgrade(data);
+										}
+									});
+								}
+
+								function initiateRazorpayPayment(data) {
+									const selectedUpgradeCard = document.querySelector('.upgrade-type-card.selected');
+									const upgradeType = selectedUpgradeCard ? selectedUpgradeCard.dataset.type : 'immediate';
+
+									fetch('/saassubscription/SelectPlan', {
+										method: 'POST',
+										headers: {
+											'Content-Type': 'application/x-www-form-urlencoded'
+										},
+										body: new URLSearchParams({
+											planId: window.selectedPlanId,
+											billingCycle: window.selectedBillingCycle,
+											upgradeType: upgradeType
+										})
+									})
+									.then(response => response.json())
+									.then(orderData => {
+										if (!orderData.success) {
+											Swal.fire('Error', orderData.message || 'Failed to create payment order.', 'error');
+											return;
+										}
+										const options = {
+											key: '@razorpayKeyId',
+											amount: orderData.amount,
+											currency: 'INR',
+											name: 'CRM Upgrade',
+											description: `Upgrade to ${data.calculation.newPlan}`,
+											order_id: orderData.orderId,
+											handler: function (response) {
+												handlePaymentSuccess(response);
+											},
+											modal: {
+												ondismiss: function () {
+													Swal.fire('Payment Cancelled', 'Your upgrade was not processed.', 'info');
+												}
+											}
+										};
+
+										const rzp = new Razorpay(options);
+										rzp.open();
+									})
+									.catch(() => {
+										Swal.fire('Error', 'Failed to create payment order.', 'error');
+									});
+								}
+
+								function handlePaymentSuccess(paymentResponse) {
+									const selectedUpgradeCard = document.querySelector('.upgrade-type-card.selected');
+									const upgradeType = selectedUpgradeCard ? selectedUpgradeCard.dataset.type : 'immediate';
+
+										fetch('/SaasSubscription/ConfirmPayment', {
+										method: 'POST',
+										headers: {
+											'Content-Type': 'application/x-www-form-urlencoded'
+										},
+										body: new URLSearchParams({
+											razorpayPaymentId: paymentResponse.razorpay_payment_id,
+											razorpayOrderId: paymentResponse.razorpay_order_id,
+											razorpaySignature: paymentResponse.razorpay_signature,
+											planId: window.selectedPlanId,
+											billingCycle: window.selectedBillingCycle,
+											upgradeType: upgradeType
+										})
+									})
+									.then(response => response.json())
+									.then(data => {
+										if (data.success) {
+											Swal.fire('Success!', data.message || 'Your plan has been activated successfully.', 'success')
+												.then(() => location.reload());
+										} else {
+											Swal.fire('Error', data.message || 'Payment processing failed.', 'error');
+										}
+									})
+									.catch(() => {
+										Swal.fire('Error', 'Failed to process payment.', 'error');
+									});
+								}
+
+								function activateUpgrade(data) {
+									fetch('/saassubscription/CalculateUpgrade', {
+										method: 'POST',
+										headers: {
+											'Content-Type': 'application/x-www-form-urlencoded'
+										},
+										body: new URLSearchParams({
+											tenantId: '@tenantId',
+											newPlanId: window.selectedPlanId,
+											billingCycle: window.selectedBillingCycle,
+											upgradeType: data.upgradeType,
+											activateNow: 'true'
+										})
+									})
+									.then(response => response.json()) // only once
+									.then(res => {
+
+										if (res.success) {
+											Swal.fire({
+												title: 'Success!',
+												text: res.message || 'Plan activated successfully.',
+												icon: 'success',
+												confirmButtonColor: '#2589C9'
+											}).then(() => {
+												location.reload();
+											});
+
+										} else {
+											Swal.fire({
+												title: 'Error',
+												text: res.message || 'Activation failed.',
+												icon: 'error'
+											});
+										}
+									})
+									.catch(err => {
+										console.error("Error:", err);
+
+										Swal.fire({
+											title: 'Error',
+											text: 'Something went wrong!',
+											icon: 'error'
+										});
+									});
+								}
+
+								function cancelScheduledPlan() {
+									Swal.fire({
+										title: 'Cancel Scheduled Plan',
+										html: `
+											<div class="text-start">
+												<p><strong>Scheduled Plan:</strong> @jsScheduledPlanName</p>
+												<p><strong>Activation Date:</strong> @jsScheduledStartDate</p>
+												<p><strong>Amount Paid:</strong> ?@jsScheduledAmount.ToString("N0")</p>
+												<hr>
+												<p class="text-danger">
+													<i class="fa-solid fa-exclamation-triangle me-2"></i>
+													<strong>Full Refund:</strong> The scheduled plan will be cancelled and refund will be processed within 5-7 business days.
+												</p>
+											</div>
+										`,
+										icon: 'warning',
+										showCancelButton: true,
+										confirmButtonText: 'Cancel & Refund',
+										cancelButtonText: 'Keep Scheduled Plan',
+										confirmButtonColor: '#DC2626'
+									}).then(result => {
+										if (!result.isConfirmed) return;
+
+										fetch('/saassubscription/CancelScheduledPlan', {
+											method: 'POST',
+											headers: {
+												'Content-Type': 'application/x-www-form-urlencoded'
+											},
+											body: new URLSearchParams({
+												subscriptionId: '@jsScheduledSubscriptionId'
+											})
+										})
+										.then(response => response.json())
+										.then(data => {
+											if (data.success) {
+												Swal.fire('Scheduled Plan Cancelled!', 'The scheduled plan has been cancelled and full refund will be processed within 5-7 business days.', 'success')
+													.then(() => location.reload());
+											} else {
+												Swal.fire('Error', data.message, 'error');
+											}
+										})
+										.catch(() => {
+											Swal.fire('Error', 'Failed to cancel scheduled plan. Please try again.', 'error');
+										});
+									});
+								}
+
+								function showScheduledPlanDetails() {
+									Swal.fire({
+										title: 'Scheduled Plan Details',
+										html: `
+											<div class="text-start">
+												<p><strong>Plan:</strong> @jsScheduledPlanName</p>
+												<p><strong>Billing Cycle:</strong> @jsScheduledBilling</p>
+												<p><strong>Amount Paid:</strong> ?@jsScheduledAmount.ToString("N0")</p>
+												<p><strong>Activation Date:</strong> @jsScheduledStartDate</p>
+												<p><strong>Status:</strong> <span class="badge bg-info">@jsScheduledStatus</span></p>
+												<hr>
+												<p class="text-info">
+													<i class="fa-solid fa-info-circle me-2"></i>
+													This plan will automatically activate when your current plan expires.
+												</p>
+											</div>
+										`,
+										icon: 'info',
+										confirmButtonText: 'OK',
+										confirmButtonColor: '#2589C9'
+									});
+								}
+							</script>
+}
+
+
+

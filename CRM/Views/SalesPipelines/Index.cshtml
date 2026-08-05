@@ -1,0 +1,415 @@
+@{
+    ViewData["Title"] = "Sales Pipeline";
+}
+
+<style>
+/* ━━ COMPACT CRM PRO UI — matches HTML prototype exactly ━━ */
+:root {
+  --P:#1A6FA8;--PD:#125082;--PX:#0F4C75;--PL:#E8EDF2;--PLL:#F0F4F8;
+  --G:#D4A45A;--GD:#B8883E;--GL:#F0F4F8;
+  --bg:#F0F4F8;--card:#FFFFFF;--card2:#FFFFFF;
+  --bd:rgba(0,0,0,0.08);--bd2:rgba(0,0,0,0.14);
+  --t1:#1A2332;--t2:#2A3A4A;--t3:#8FA3B8;
+  --ok:#16A34A;--okl:#F0F4F8;--er:#DC2626;--erl:#F0F4F8;
+  --wa:#F59E0B;--wal:#F0F4F8;
+  --r:6px;--rs:4px;--sh:0 1px 3px rgba(0,0,0,0.08);--sh2:0 4px 14px rgba(0,0,0,0.13);
+  --fn:'Segoe UI',system-ui,sans-serif;
+}
+h1, .h1 {
+    font-size: 0.8rem !important;
+    font-weight: 700 !important;
+    margin-bottom: 0.1rem !important;
+}
+
+p {
+    font-size: 0.95rem !important;
+    line-height: 1.6 !important;
+    margin-bottom: 0px !important;
+}
+/* ━━ SCROLLBAR ━━ */
+::-webkit-scrollbar{width:3px;height:3px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:rgba(26,111,168,.3);border-radius:2px}
+
+/* ━━ BREADCRUMB ━━ */
+.crm-bc{font-size:10.5px;margin-bottom:6px;display:flex;align-items:center;gap:3px}
+.crm-bc a{color:var(--t3);display:flex;align-items:center;gap:3px;text-decoration:none}
+.crm-bc a:hover{color:var(--P)}
+.crm-bc-sep{color:var(--t3);font-size:8px}
+.crm-bc-cur{color:var(--t2);font-weight:600}
+
+/* ━━ PAGE HEADER ━━ */
+.crm-ph{background:linear-gradient(105deg,var(--PX) 0%,var(--P) 50%,#2589C9 100%);border-radius:var(--r);padding:.55rem .9rem;margin-bottom:7px;position:relative;overflow:hidden}
+.crm-ph::after{content:'';position:absolute;right:-15px;top:-15px;width:90px;height:90px;border-radius:50%;background:rgba(212,164,90,.18);pointer-events:none}
+.crm-ph::before{content:'';position:absolute;right:40px;bottom:-20px;width:60px;height:60px;border-radius:50%;background:rgba(212,164,90,.1);pointer-events:none}
+.crm-ph-in{position:relative;z-index:1;display:flex;align-items:center;gap:7px}
+.crm-ph-ic{width:28px;height:28px;border-radius:5px;background:rgba(212,164,90,.25);display:flex;align-items:center;justify-content:center;color:var(--G);font-size:11px;flex-shrink:0}
+.crm-ph h1{font-size:.88rem;font-weight:700;color:#FFFFFF;margin:0;line-height:1.3}
+.crm-ph p{font-size:.65rem;color:rgba(255,255,255,.7);margin:0}
+
+/* ━━ KANBAN BOARD ━━ */
+.crm-board{display:flex;gap:6px;overflow-x:auto;padding-bottom:6px}
+.crm-board::-webkit-scrollbar{height:3px}
+
+/* ━━ KANBAN COLUMN ━━ */
+.crm-col{background:var(--card);min-width:180px;flex:1;border-radius:var(--r);padding:7px;box-shadow:var(--sh);border:1px solid var(--bd);display:flex;flex-direction:column;transition:all .15s}
+.crm-col-h{display:flex;align-items:center;justify-content:center;gap:5px;white-space:nowrap;background:linear-gradient(105deg,var(--PX),var(--P));color:#FFFFFF;padding:5px 8px;border-radius:var(--rs);font-size:.7rem;font-weight:600;margin-bottom:6px;box-shadow:0 2px 6px rgba(26,111,168,.2)}
+.crm-col-cnt{display:inline-flex;align-items:center;justify-content:center;min-width:16px;height:16px;padding:0 4px;background:rgba(255,255,255,.25);color:#FFFFFF;font-size:8.5px;font-weight:700;border-radius:8px;flex-shrink:0}
+
+/* ━━ CARDS CONTAINER ━━ */
+.crm-cards{flex:1;overflow-y:auto;max-height:calc(100vh - 185px);min-height:160px;padding-right:2px}
+.crm-cards::-webkit-scrollbar{width:2px}
+
+/* ━━ KANBAN CARD ━━ */
+.crm-kcard{padding:7px 9px 7px 12px;margin-bottom:5px;background:var(--card2);border-radius:var(--rs);cursor:pointer;transition:all .18s;border:1.5px solid var(--bd);position:relative;overflow:hidden}
+.crm-kcard::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:linear-gradient(to bottom,var(--P),var(--G))}
+.crm-kcard:hover{transform:translateY(-1px);box-shadow:var(--sh2);border-color:rgba(26,111,168,.25)}
+.crm-kcard:active,.crm-kcard.dragging{cursor:grabbing;opacity:.5}
+.crm-kcard[draggable="true"]{cursor:grab}
+
+.crm-cname{font-weight:700;color:var(--P);font-size:.72rem;line-height:1.3;margin-bottom:3px}
+.crm-cname:hover{color:var(--PD)}
+
+.crm-ccontact{font-size:.62rem;color:var(--t2);display:flex;align-items:center;gap:3px;margin-bottom:3px}
+.crm-ccontact i{font-size:.55rem;color:var(--G)}
+
+/* ━━ STATUS BADGES ━━ */
+.cst{display:inline-block;padding:.1rem .38rem;border-radius:8px;font-size:.58rem;font-weight:600}
+.cst-active{background:var(--okl);color:var(--ok)}
+.cst-hot{background:var(--erl);color:var(--er)}
+.cst-warm{background:var(--wal);color:var(--wa)}
+.cst-cold{background:var(--PL);color:var(--P)}
+.cst-inactive{background:var(--card2);color:var(--t3);border:1px solid var(--bd)}
+
+/* ━━ EMPTY STATE ━━ */
+.crm-empty-col{text-align:center;padding:16px 8px;color:var(--t3);font-size:.65rem}
+.crm-empty-col i{font-size:1.3rem;color:var(--bd);display:block;margin-bottom:4px}
+
+/* ━━ DRAG OVER ━━ */
+.crm-col.drag-over .crm-cards{background:var(--PLL);border:1.5px dashed var(--P);border-radius:var(--rs)}
+
+/* ━━ TOUCH GHOST ━━ */
+.crm-touch-ghost{position:fixed;z-index:9999;pointer-events:none;opacity:.85;transform:rotate(2deg) scale(1.05);box-shadow:var(--sh2);border:1.5px solid var(--P);border-radius:var(--rs);background:var(--card)}
+
+/* ━━ DARK MODE ━━ */
+.dark-mode .crm-col,.dark-mode .crm-kcard{background:#1E2A3A;border-color:#2A3A4A}
+.dark-mode .crm-kcard{background:#2A3A4A!important}
+.dark-mode .crm-cname{color:#2589C9!important}
+.dark-mode .crm-ccontact{color:#8FA3B8!important}
+.dark-mode .crm-touch-ghost{background:#2A3A4A}
+
+/* ━━ RESPONSIVE ━━ */
+@@media(max-width:768px){
+  .crm-board{flex-direction:column}
+  .crm-col{min-width:100%}
+  .crm-cards{max-height:260px;overflow-y:visible}
+}
+</style>
+
+<!-- ━━━━━━━━ BREADCRUMB ━━━━━━━━ -->
+<div class="crm-bc">
+    <a href="/Home"><i class="fa fa-home" style="font-size:9px"></i> Home</a>
+    <span class="crm-bc-sep"><i class="fa fa-angle-right"></i></span>
+    <span class="crm-bc-cur">Sales Pipeline</span>
+</div>
+
+<!-- ━━━━━━━━ PAGE HEADER ━━━━━━━━ -->
+<div class="crm-ph">
+    <div class="crm-ph-in">
+        <div class="crm-ph-ic"><i class="fa fa-chart-line"></i></div>
+        <div>
+            <h1>Sales Pipeline</h1>
+            <p>Drag and drop leads to update their stage</p>
+        </div>
+    </div>
+</div>
+
+<!-- ━━━━━━━━ KANBAN BOARD ━━━━━━━━ -->
+<div class="crm-board" id="kanbanBoard"></div>
+
+@Html.AntiForgeryToken()
+
+@section Scripts {
+<script>
+const stages=[
+    'New','Office Meeting','Site Visit Requested','Site Visit Done',
+    'Quotation','Quotation Sent','Negotiation','Booked'
+];
+
+let draggedCard=null, draggedLeadId=null;
+
+document.addEventListener('DOMContentLoaded',function(){
+    loadLeads();
+});
+
+function loadLeads(){
+    fetch('@Url.Action("GetLeadsByStage","SalesPipelines")')
+        .then(r=>r.json())
+        .then(data=>{
+            renderBoard(data);
+            attachDrag();
+            attachTouch();
+        })
+        .catch(err=>{
+            console.error('Error loading leads:',err);
+            crmToast('Error loading leads','er');
+        });
+}
+
+function renderBoard(data){
+    const board=document.getElementById('kanbanBoard');
+    board.innerHTML='';
+    stages.forEach(stage=>{
+        const sd=data.find(d=>d.stage===stage);
+        const leads=sd?sd.leads:[];
+
+        const col=document.createElement('div');
+        col.className='crm-col';
+        col.dataset.stage=stage;
+        col.innerHTML=`
+          <div class="crm-col-h">
+            <span>${stage}</span>
+            <span class="crm-col-cnt">${leads.length}</span>
+          </div>
+          <div class="crm-cards" data-stage="${stage}">
+            ${leads.length===0?'<div class="crm-empty-col"><i class="fa fa-users"></i>No leads</div>':''}
+          </div>`;
+
+        const cards=col.querySelector('.crm-cards');
+        leads.forEach(lead=>cards.appendChild(createCard(lead)));
+        board.appendChild(col);
+    });
+}
+
+function createCard(lead){
+    const card=document.createElement('div');
+    card.className='crm-kcard';
+    card.draggable=true;
+    card.dataset.leadId=lead.leadId;
+
+    const st=lead.status||'Inactive';
+    const stCls='cst-'+(st.toLowerCase().replace(/\s+/g,''));
+
+    card.innerHTML=`
+      <div class="crm-cname">${lead.name||'Unnamed Lead'}</div>
+      <div class="crm-ccontact"><i class="fa fa-phone"></i><span>${lead.contact||'No contact'}</span></div>
+      <span class="cst ${stCls}">${st}</span>`;
+
+    card.addEventListener('click',function(e){
+        if(!this.classList.contains('dragging'))
+            window.location.href= lead.encodeUrl; //  `/Leads/Details/${lead.leadId}`;
+    });
+    return card;
+}
+
+/* ━━ DRAG & DROP ━━ */
+function attachDrag(){
+    document.querySelectorAll('.crm-kcard').forEach(card=>{
+        card.addEventListener('dragstart',handleDragStart);
+        card.addEventListener('dragend',handleDragEnd);
+    });
+    document.querySelectorAll('.crm-cards').forEach(c=>{
+        c.addEventListener('dragover',handleDragOver);
+        c.addEventListener('drop',handleDrop);
+        c.addEventListener('dragleave',handleDragLeave);
+    });
+}
+
+let autoScrollRAF=null, lastMouseX=0;
+
+function handleDragStart(e){
+    draggedCard=this;draggedLeadId=parseInt(this.dataset.leadId);
+    this.classList.add('dragging');e.dataTransfer.effectAllowed='move';
+    startAutoScroll();
+}
+function handleDragEnd(){
+    this.classList.remove('dragging');
+    document.querySelectorAll('.crm-col').forEach(c=>c.classList.remove('drag-over'));
+    stopAutoScroll();
+}
+function handleDragOver(e){
+    e.preventDefault();e.dataTransfer.dropEffect='move';
+    this.closest('.crm-col').classList.add('drag-over');
+}
+function handleDragLeave(e){
+    if(e.target.classList.contains('crm-cards'))
+        this.closest('.crm-col').classList.remove('drag-over');
+}
+function handleDrop(e){
+    e.preventDefault();
+    const col=this.closest('.crm-col');col.classList.remove('drag-over');
+    if(!draggedCard)return;
+    const newStage=this.dataset.stage;
+    const oldStage=draggedCard.closest('.crm-cards').dataset.stage;
+    if(newStage===oldStage)return;
+    this.appendChild(draggedCard);
+    updateEmptyStates();updateCounts();
+    updateLeadStage(draggedLeadId,newStage);
+}
+
+function startAutoScroll(){
+    document.addEventListener('dragover',trackMouse);
+    autoScrollLoop();
+}
+function stopAutoScroll(){
+    document.removeEventListener('dragover',trackMouse);
+    if(autoScrollRAF){cancelAnimationFrame(autoScrollRAF);autoScrollRAF=null;}
+}
+function trackMouse(e){lastMouseX=e.clientX;}
+function autoScrollLoop(){
+    const board=document.getElementById('kanbanBoard');
+    if(!board||!draggedCard)return;
+    const rect=board.getBoundingClientRect(),edge=80,speed=12;
+    if(lastMouseX>0){
+        if(lastMouseX<rect.left+edge)board.scrollLeft-=speed;
+        else if(lastMouseX>rect.right-edge)board.scrollLeft+=speed;
+    }
+    autoScrollRAF=requestAnimationFrame(autoScrollLoop);
+}
+
+function updateLeadStage(leadId,newStage){
+    const token=document.querySelector('input[name="__RequestVerificationToken"]');
+    fetch('@Url.Action("UpdateLeadStage","SalesPipelines")',{
+        method:'POST',
+        headers:{'Content-Type':'application/json','RequestVerificationToken':token?token.value:''},
+        body:JSON.stringify({leadId,newStage})
+    })
+    .then(r=>r.json())
+    .then(data=>{
+        if(data.success)crmToast('Lead stage updated successfully','ok');
+        else{crmToast('Error updating lead stage','er');loadLeads();}
+    })
+    .catch(()=>{crmToast('Error updating lead stage','er');loadLeads();});
+}
+
+function updateEmptyStates(){
+    document.querySelectorAll('.crm-cards').forEach(c=>{
+        const cards=c.querySelectorAll('.crm-kcard');
+        const emp=c.querySelector('.crm-empty-col');
+        if(cards.length===0&&!emp)c.innerHTML='<div class="crm-empty-col"><i class="fa fa-users"></i>No leads</div>';
+        else if(cards.length>0&&emp)emp.remove();
+    });
+}
+function updateCounts(){
+    document.querySelectorAll('.crm-col').forEach(col=>{
+        const cnt=col.querySelector('.crm-col-cnt');
+        if(cnt)cnt.textContent=col.querySelectorAll('.crm-kcard').length;
+    });
+}
+
+/* ━━ TOUCH DRAG ━━ */
+let touchCard=null,touchLeadId=null,touchGhost=null;
+let touchStartX=0,touchStartY=0,touchMoved=false;
+let touchScrollRAF=null,touchLastY=0;
+
+function attachTouch(){
+    document.querySelectorAll('.crm-kcard').forEach(card=>{
+        card.addEventListener('touchstart',onTouchStart,{passive:false});
+    });
+}
+
+function onTouchStart(e){
+    const touch=e.touches[0];
+    touchStartX=touch.clientX;touchStartY=touch.clientY;
+    touchMoved=false;touchCard=this;touchLeadId=parseInt(this.dataset.leadId);
+    this._touchTimer=setTimeout(()=>startTouchDrag(touch),300);
+    document.addEventListener('touchmove',onTouchMove,{passive:false});
+    document.addEventListener('touchend',onTouchEnd);
+    document.addEventListener('touchcancel',onTouchEnd);
+}
+
+function startTouchDrag(touch){
+    if(!touchCard)return;
+    touchMoved=true;touchCard.classList.add('dragging');
+    touchGhost=touchCard.cloneNode(true);
+    touchGhost.className='crm-kcard crm-touch-ghost';
+    touchGhost.style.width=touchCard.offsetWidth+'px';
+    touchGhost.style.left=(touch.clientX-touchCard.offsetWidth/2)+'px';
+    touchGhost.style.top=(touch.clientY-30)+'px';
+    document.body.appendChild(touchGhost);
+    touchAutoScrollLoop();
+}
+
+function onTouchMove(e){
+    const touch=e.touches[0];
+    const dx=Math.abs(touch.clientX-touchStartX),dy=Math.abs(touch.clientY-touchStartY);
+    if(!touchMoved&&(dx>10||dy>10)){clearTimeout(touchCard?._touchTimer);cleanupTouch();return;}
+    if(!touchMoved)return;
+    e.preventDefault();
+    touchLastY=touch.clientY;
+    if(touchGhost){
+        touchGhost.style.left=(touch.clientX-touchGhost.offsetWidth/2)+'px';
+        touchGhost.style.top=(touch.clientY-30)+'px';
+    }
+    document.querySelectorAll('.crm-col').forEach(c=>c.classList.remove('drag-over'));
+    const tgt=getDropTarget(touch.clientX,touch.clientY);
+    if(tgt)tgt.closest('.crm-col').classList.add('drag-over');
+}
+
+function onTouchEnd(e){
+    clearTimeout(touchCard?._touchTimer);
+    document.removeEventListener('touchmove',onTouchMove);
+    document.removeEventListener('touchend',onTouchEnd);
+    document.removeEventListener('touchcancel',onTouchEnd);
+    if(!touchMoved){
+        if(touchCard&&touchLeadId)window.location.href=`/Leads/Details/${touchLeadId}`;
+        cleanupTouch();return;
+    }
+    const lastTouch=e.changedTouches[0];
+    const tgt=getDropTarget(lastTouch.clientX,lastTouch.clientY);
+    if(tgt&&touchCard){
+        const newStage=tgt.dataset.stage;
+        const oldStage=touchCard.closest('.crm-cards')?.dataset.stage;
+        if(newStage&&newStage!==oldStage){
+            tgt.appendChild(touchCard);
+            updateEmptyStates();updateCounts();
+            updateLeadStage(touchLeadId,newStage);
+        }
+    }
+    cleanupTouch();
+}
+
+function getDropTarget(x,y){
+    if(touchGhost)touchGhost.style.display='none';
+    const el=document.elementFromPoint(x,y);
+    if(touchGhost)touchGhost.style.display='';
+    if(!el)return null;
+    return el.closest('.crm-cards');
+}
+
+function touchAutoScrollLoop(){
+    if(!touchMoved)return;
+    const edge=100,viewH=window.innerHeight;
+    if(touchLastY>0){
+        if(touchLastY<edge){const spd=Math.round((1-touchLastY/edge)*25)+5;window.scrollBy(0,-spd);}
+        else if(touchLastY>viewH-edge){const spd=Math.round((1-(viewH-touchLastY)/edge)*25)+5;window.scrollBy(0,spd);}
+    }
+    touchScrollRAF=requestAnimationFrame(touchAutoScrollLoop);
+}
+
+function cleanupTouch(){
+    if(touchCard)touchCard.classList.remove('dragging');
+    if(touchGhost){touchGhost.remove();touchGhost=null;}
+    if(touchScrollRAF){cancelAnimationFrame(touchScrollRAF);touchScrollRAF=null;}
+    document.querySelectorAll('.crm-col').forEach(c=>c.classList.remove('drag-over'));
+    touchCard=null;touchLeadId=null;touchMoved=false;touchLastY=0;
+}
+
+/* ━━ TOAST ━━ */
+function crmToast(msg,type='ok'){
+    if(typeof showToast==='function'){showToast(msg,type==='ok'?'success':type==='er'?'error':'warning');return;}
+    const box=document.getElementById('crmTbox')||createTbox();
+    const t=document.createElement('div');
+    t.style.cssText=`padding:.38rem .75rem;border-radius:4px;font-size:.72rem;font-weight:600;display:flex;align-items:center;gap:5px;box-shadow:0 4px 14px rgba(0,0,0,.13);max-width:260px;margin-bottom:3px;color:#FFFFFF;background:${type==='ok'?'#16A34A':type==='er'?'#DC2626':'#F59E0B'}`;
+    const ico=type==='ok'?'fa-check-circle':type==='er'?'fa-circle-exclamation':'fa-triangle-exclamation';
+    t.innerHTML=`<i class="fa ${ico}" style="font-size:.75rem"></i>${msg}`;
+    box.appendChild(t);
+    setTimeout(()=>{t.style.transition='.25s';t.style.opacity='0';t.style.transform='translateX(110%)';setTimeout(()=>t.remove(),260)},3000);
+}
+function createTbox(){
+    const b=document.createElement('div');
+    b.id='crmTbox';b.style.cssText='position:fixed;top:48px;right:10px;z-index:3000;pointer-events:none;display:flex;flex-direction:column;';
+    document.body.appendChild(b);return b;
+}
+</script>
+}

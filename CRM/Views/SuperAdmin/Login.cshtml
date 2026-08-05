@@ -1,0 +1,85 @@
+@model CRM.Models.LoginModel
+@{
+    ViewData["Title"] = "Super Admin Login";
+    Layout = "_LayoutLogin";
+}
+
+<script>
+    sessionStorage.removeItem('navbarReady');
+</script>
+
+<div class="login-container auth-v5 auth-login-page">
+    <aside class="login-left auth-showcase" style="background: linear-gradient(135deg, #1E2A3A 0%, #111827 100%);">
+        <div class="auth-showcase-header">
+            <div class="brand-logo">
+                <img src="/superadmin/logo.jpg" alt="PropTech CRM" style="max-height: 60px;" />
+            </div>
+            <h1>Super Admin Portal</h1>
+            <p>Global administration and tenant management</p>
+        </div>
+
+        <ul class="auth-points list-unstyled">
+            <li><i class="fas fa-shield-alt"></i> Full system access</li>
+            <li><i class="fas fa-building"></i> Manage all tenants</li>
+            <li><i class="fas fa-chart-line"></i> Platform-wide analytics</li>
+        </ul>
+    </aside>
+
+    <section class="login-form-section">
+        <div class="form-brand">
+            <div class="form-brand-logo">
+                <img src="/superadmin/logo.jpg" alt="PropTech CRM" style="max-height: 50px;" />
+            </div>
+            <div class="form-brand-meta">
+                <h2>Super Admin Login</h2>
+                <p>Access the global administration panel</p>
+            </div>
+        </div>
+
+        @if (ViewBag.Message != null)
+        {
+            <div class="alert alert-danger">@ViewBag.Message</div>
+        }
+
+        <form asp-action="Login" method="post" class="auth-login-form">
+            <div class="form-floating mb-3">
+                <input type="text" class="form-control" id="Username" name="Username" placeholder="Username or Email" required />
+                <label for="Username">Username or Email</label>
+            </div>
+            <div class="mb-3 form-password-toggle">
+                <div class="input-group input-group-merge">
+                    <div class="form-floating">
+                        <input type="password" class="form-control" id="Password" name="Password" placeholder="Password" required />
+                        <label for="Password">Password</label>
+                    </div>
+                    <button type="button" class="btn btn-outline-secondary" onclick="togglePassword()">
+                        <i class="fas fa-eye" id="eyeIcon"></i>
+                    </button>
+                </div>
+            </div>
+            <button type="submit" class="btn btn-primary w-100">Sign In</button>
+        </form>
+
+        <div class="auth-footer mt-4">
+            <p class="text-center">
+                <a href="/Account/Login">Back to Tenant Login</a>
+            </p>
+        </div>
+    </section>
+</div>
+
+<script>
+    function togglePassword() {
+        var passwordInput = document.getElementById("Password");
+        var eyeIcon = document.getElementById("eyeIcon");
+        if (passwordInput.type === "password") {
+            passwordInput.type = "text";
+            eyeIcon.classList.remove("fa-eye");
+            eyeIcon.classList.add("fa-eye-slash");
+        } else {
+            passwordInput.type = "password";
+            eyeIcon.classList.remove("fa-eye-slash");
+            eyeIcon.classList.add("fa-eye");
+        }
+    }
+</script>

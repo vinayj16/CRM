@@ -1,0 +1,721 @@
+@model CRM.Models.InvoiceModel
+@{
+    ViewData["Title"] = "Invoice Details";
+    var booking = Model.Booking;
+    var lead = booking?.Lead;
+    var property = booking?.Property;
+    var flat = booking?.Flat;
+    var installment = Model.Installment;
+    var items = ViewBag.Items as List<CRM.Models.InvoiceItemModel> ?? new List<CRM.Models.InvoiceItemModel>();
+    var payments = ViewBag.Payments as List<CRM.Models.PaymentModel> ?? new List<CRM.Models.PaymentModel>();
+    
+    var companyName = ViewBag.CompanyName?.ToString() ?? "Company Name";
+    var companyAddress = ViewBag.CompanyAddress?.ToString() ?? "Company Address";
+    var companyPhone = ViewBag.CompanyPhone?.ToString() ?? "Phone";
+    var companyEmail = ViewBag.CompanyEmail?.ToString() ?? "Email";
+    var companyGst = ViewBag.CompanyGST?.ToString() ?? "GST Number";
+    var gstRate = (decimal)(ViewBag.GSTRate ?? 5);
+}
+
+<style>
+    :root {
+        --gold: #D4A45A;
+        --gold-light: #FEF3C7;
+        --gold-dark: #B8883E;
+        --blue: #1A6FA8;
+        --blue-light: #E2E8F0;
+        --blue-dark: #0F4C75;
+        --ink: #1A2332;
+        --ink-mid: #2A3A4A;
+        --ink-soft: #6B7B8D;
+        --surface: #FFFFFF;
+        --bg: #F0F4F8;
+        --border: #E2E8F0;
+        --radius: 8px;
+        --radius-lg: 12px;
+    }
+
+    .dark-mode {
+        --ink: #E8EDF2;
+        --ink-mid: #B8C8D8;
+        --ink-soft: #6B7B8D;
+        --surface: #1A2332;
+        --bg: #111827;
+        --border: #2A3A4A;
+        --gold-light: #1A2332;
+        --blue-light: #162436;
+    }
+    p {
+    font-size: 0.95rem !important;
+    line-height: 1.6 !important;
+    margin-bottom: 0.1rem !important;
+}
+    /* ── WRAPPER ── */
+    .inv-wrap {
+        max-width: 860px;
+        margin: 0 auto;
+        font-family: 'Segoe UI', system-ui, sans-serif;
+        font-size: 12.5px;
+        color: var(--ink);
+    }
+
+    /* ── ACTION BAR ── */
+    .inv-actions {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 7px 14px;
+        background: var(--blue);
+        border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+        gap: 8px;
+    }
+
+    .inv-actions .btn-act {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 5px 12px;
+        border-radius: var(--radius);
+        font-size: 11.5px;
+        font-weight: 600;
+        text-decoration: none;
+        border: none;
+        cursor: pointer;
+        transition: opacity .15s;
+    }
+
+    .inv-actions .btn-act:hover { opacity: .85; }
+    .btn-back { background: rgba(255,255,255,.15); color: #FFFFFF; }
+    .btn-dl   { background: var(--gold); color: #FFFFFF; }
+    .btn-pay  { background: #16A34A; color: #FFFFFF; }
+
+    /* ── INVOICE CARD ── */
+    .inv-card {
+        background: var(--surface);
+        box-shadow: 0 2px 16px rgba(0,0,0,.07);
+        border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+        overflow: hidden;
+    }
+
+    .dark-mode .inv-card { box-shadow: 0 2px 16px rgba(0,0,0,.3); }
+
+    /* ── HEADER BAND ── */
+    .inv-header {
+        padding: 6px 20px 6px;
+        border-bottom: 2px solid var(--gold);
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 12px;
+    }
+
+    .inv-company-name {
+        font-size: 18px;
+        font-weight: 700;
+        color: var(--blue);
+        margin: 0 0 2px;
+        letter-spacing: -.2px;
+    }
+
+    .dark-mode .inv-company-name { color: var(--gold); }
+
+    .inv-company-meta {
+        font-size: 11px;
+        color: var(--ink-soft);
+        margin: 0;
+        line-height: 1.55;
+    }
+
+    .inv-header-right {
+        text-align: right;
+        flex-shrink: 0;
+    }
+
+    .inv-number-pill {
+        display: inline-block;
+        background: var(--blue);
+        color: #FFFFFF;
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: .5px;
+        text-transform: uppercase;
+        padding: 3px 10px;
+        border-radius: 20px;
+        margin-bottom: 4px;
+    }
+
+    .inv-number-val {
+        display: block;
+        font-size: 15px;
+        font-weight: 700;
+        color: var(--blue);
+        margin-bottom: 4px;
+    }
+
+    .dark-mode .inv-number-val { color: var(--gold); }
+
+    /* ── STATUS BADGES ── */
+    .status-badge {
+        display: inline-block;
+        padding: 2px 9px;
+        border-radius: 20px;
+        font-weight: 700;
+        font-size: 9.5px;
+        letter-spacing: .5px;
+        text-transform: uppercase;
+    }
+
+    .status-generated { background:#E2E8F0; color:#1A6FA8; }
+    .status-sent      { background:#DCFCE7; color:#15803D; }
+    .status-paid      { background:#DCFCE7; color:#15803D; }
+    .status-partial   { background:#FEF3C7; color:#B45309; }
+    .status-overdue   { background:#FEE2E2; color:#991B1B; }
+    .status-cancelled { background:#F0F4F8; color:#2A3A4A; }
+
+    /* ── BODY GRID ── */
+    .inv-body {
+        padding: 12px 20px;
+    }
+
+    .inv-meta-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+        margin-bottom: 12px;
+    }
+
+    @@media (max-width: 640px) {
+        .inv-meta-row { grid-template-columns: 1fr; }
+    }
+
+    .inv-meta-box {
+        background: var(--bg);
+        border-radius: var(--radius);
+        padding: 9px 12px;
+        border-left: 3px solid var(--gold);
+    }
+
+    .dark-mode .inv-meta-box { background: var(--blue-light); }
+
+    .inv-meta-box h6 {
+        margin: 0 0 5px;
+        font-size: 9.5px;
+        font-weight: 700;
+        letter-spacing: .7px;
+        text-transform: uppercase;
+        color: var(--gold-dark);
+        display: flex;
+        align-items: center;
+        gap: 4px;
+    }
+
+    .dark-mode .inv-meta-box h6 { color: var(--gold); }
+
+    .inv-meta-box p {
+        margin: 0;
+        padding: 1px 0;
+        color: var(--ink-mid);
+        font-size: 12px;
+        line-height: 1.45;
+    }
+
+    .inv-meta-box p strong { color: var(--ink); }
+    .dark-mode .inv-meta-box p strong { color: var(--ink); }
+
+    /* ── ITEMS TABLE ── */
+    .inv-table-wrap {
+        margin-bottom: 12px;
+        border-radius: var(--radius);
+        overflow: hidden;
+        border: 1px solid var(--border);
+    }
+
+    .inv-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 12px;
+    }
+
+    .inv-table thead tr { background: var(--blue); }
+
+    .inv-table thead th {
+        color: #FFFFFF;
+        padding: 7px 10px;
+        font-weight: 600;
+        font-size: 10.5px;
+        letter-spacing: .3px;
+        text-transform: uppercase;
+        white-space: nowrap;
+    }
+
+    .inv-table tbody tr {
+        border-bottom: 1px solid var(--border);
+        transition: background .1s;
+    }
+
+    .inv-table tbody tr:last-child { border-bottom: none; }
+    .inv-table tbody tr:hover { background: var(--bg); }
+
+    .inv-table td {
+        padding: 6px 10px;
+        color: var(--ink-mid);
+        vertical-align: middle;
+    }
+
+    .inv-table td:first-child {
+        color: var(--ink-soft);
+        font-size: 11px;
+        font-weight: 600;
+    }
+
+    .inv-table td.desc { color: var(--ink); font-weight: 500; }
+    .inv-table td.amt  { font-weight: 600; color: var(--ink); }
+
+    /* ── TOTALS ── */
+    .inv-totals-row {
+        display: flex;
+        justify-content: flex-end;
+        margin-bottom: 12px;
+    }
+
+    .inv-totals {
+        width: 280px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        overflow: hidden;
+        font-size: 12px;
+    }
+
+    @@media (max-width: 640px) { .inv-totals { width: 100%; } }
+
+    .tot-line {
+        display: flex;
+        justify-content: space-between;
+        padding: 6px 12px;
+        border-bottom: 1px solid var(--border);
+        color: var(--ink-mid);
+    }
+
+    .tot-line:last-child { border-bottom: none; }
+    .tot-line strong { color: var(--ink); }
+
+    .tot-grand {
+        background: var(--blue);
+        color: #FFFFFF;
+        font-size: 12.5px;
+        font-weight: 700;
+        padding: 8px 12px;
+    }
+
+    .tot-paid { background: var(--gold-light); }
+    .tot-paid strong { color: var(--gold-dark); }
+    .dark-mode .tot-paid strong { color: var(--gold); }
+
+    .tot-balance { background: #F0F4F8; }
+    .tot-balance strong { color: #B45309; }
+    .dark-mode .tot-balance { background: #0D1724; }
+
+    /* ── PAYMENT HISTORY ── */
+    .inv-payments { margin-bottom: 12px; }
+
+    .inv-section-title {
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: .7px;
+        text-transform: uppercase;
+        color: var(--gold-dark);
+        margin: 0 0 6px;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+    }
+
+    .dark-mode .inv-section-title { color: var(--gold); }
+
+    .pay-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 7px 12px;
+        background: var(--bg);
+        border-radius: var(--radius);
+        margin-bottom: 5px;
+        border-left: 3px solid var(--blue);
+        font-size: 11.5px;
+    }
+
+    .dark-mode .pay-item { background: var(--blue-light); }
+
+    .pay-item .pay-ref  { font-weight: 600; color: var(--ink); }
+    .pay-item .pay-meta { color: var(--ink-soft); font-size: 10.5px; margin-top: 1px; }
+    .pay-item .pay-amt  { font-weight: 700; color: #15803D; font-size: 12.5px; }
+    .dark-mode .pay-item .pay-amt { color: #16A34A; }
+
+    /* ── BANK + TERMS ── */
+    .inv-two-col {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+        margin-bottom: 12px;
+    }
+
+    @@media (max-width: 640px) { .inv-two-col { grid-template-columns: 1fr; } }
+
+    .inv-info-box {
+        background: var(--bg);
+        border-radius: var(--radius);
+        padding: 9px 12px;
+        border-top: 2px solid var(--blue);
+    }
+
+    .dark-mode .inv-info-box { background: var(--blue-light); }
+
+    .inv-info-box p {
+        margin: 0;
+        padding: 1px 0;
+        font-size: 11.5px;
+        color: var(--ink-mid);
+        line-height: 1.45;
+    }
+
+    .inv-info-box p strong { color: var(--ink); }
+
+    .inv-terms-list {
+        padding-left: 14px;
+        margin: 4px 0 0;
+    }
+
+    .inv-terms-list li {
+        font-size: 11px;
+        color: var(--ink-soft);
+        margin-bottom: 2px;
+        line-height: 1.4;
+    }
+
+    /* ── NOTES ── */
+    .inv-notes {
+        background: var(--gold-light);
+        border-radius: var(--radius);
+        padding: 8px 12px;
+        margin-bottom: 12px;
+        border-left: 3px solid var(--gold);
+        font-size: 12px;
+        color: var(--ink-mid);
+    }
+
+    .dark-mode .inv-notes { background: #111827; }
+
+    /* ── FOOTER ── */
+    .inv-footer {
+        text-align: center;
+        padding: 9px 14px;
+        border-top: 1px solid var(--border);
+        background: var(--bg);
+        font-size: 11px;
+        color: var(--ink-soft);
+    }
+
+    .dark-mode .inv-footer { background: var(--blue-light); }
+
+    .inv-footer span { color: var(--gold-dark); font-weight: 600; }
+    .dark-mode .inv-footer span { color: var(--gold); }
+
+    /* ── PRINT ── */
+    @@media print {
+        .inv-actions { display: none !important; }
+        .inv-wrap { max-width: 100%; }
+        .inv-card { box-shadow: none; }
+        * { color-adjust: exact; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    }
+
+    /* ── RESPONSIVE ── */
+    @@media (max-width: 480px) {
+        .inv-header { flex-direction: column; }
+        .inv-header-right { text-align: left; }
+        .inv-body { padding: 10px 14px; }
+        .inv-actions { flex-wrap: wrap; }
+        .btn-act { font-size: 11px; padding: 4px 9px; }
+    }
+</style>
+
+<style>
+    html.invoice-pdf-mode #sidebar,
+    html.invoice-pdf-mode .sidebar,
+    html.invoice-pdf-mode .navbar,
+    html.invoice-pdf-mode .navbar-bg,
+    html.invoice-pdf-mode .sidebar-toggle,
+    html.invoice-pdf-mode #navbar-skeleton,
+    html.invoice-pdf-mode .global-search-container,
+    html.invoice-pdf-mode .global-search-overlay,
+    html.invoice-pdf-mode .offcanvas,
+    html.invoice-pdf-mode .modal-backdrop { display: none !important; }
+
+    html.invoice-pdf-mode .main { margin-left: 0 !important; width: 100% !important; overflow: visible !important; }
+    html.invoice-pdf-mode main.content { padding-top: 0 !important; margin-top: 0 !important; overflow: visible !important; height: auto !important; }
+    html.invoice-pdf-mode, html.invoice-pdf-mode body, html.invoice-pdf-mode .wrapper, html.invoice-pdf-mode .content { overflow: visible !important; overflow-x: hidden !important; height: auto !important; scrollbar-width: none !important; }
+    html.invoice-pdf-mode::-webkit-scrollbar, html.invoice-pdf-mode body::-webkit-scrollbar, html.invoice-pdf-mode .content::-webkit-scrollbar, html.invoice-pdf-mode main.content::-webkit-scrollbar { display: none !important; width: 0 !important; height: 0 !important; }
+    html.invoice-pdf-mode .inv-card { box-shadow: none !important; }
+</style>
+
+<div class="content">
+<div class="inv-wrap">
+
+    <!-- ACTION BAR -->
+    <div class="inv-actions no-print">
+        <a href="/Invoices/Index" class="btn-act btn-back">
+            <i class="fa-solid fa-arrow-left"></i> Back
+        </a>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                <a href="/invoicedetails/@IdObfuscator.Encode(Model.InvoiceId)" class="btn-act btn-dl"
+               onclick="sessionStorage.setItem('invoiceAutoPrint','1');">
+                <i class="fa-solid fa-download"></i> Download PDF
+            </a>
+            @if (Model.Status != "Paid" && Model.Status != "Cancelled")
+            {
+                <a href="/Payments/Create?invoiceId=@Model.InvoiceId" class="btn-act btn-pay">
+                    <i class="fa-solid fa-credit-card"></i> Record Payment
+                </a>
+            }
+        </div>
+    </div>
+
+    <!-- INVOICE CARD -->
+    <div class="inv-card">
+
+        <!-- HEADER -->
+        <div class="inv-header">
+            <div>
+                <p class="inv-company-name">@companyName</p>
+                <p class="inv-company-meta">
+                    @companyAddress<br />
+                    <i class="fa-solid fa-phone" style="font-size:10px;margin-right:4px;"></i>@companyPhone &nbsp;|&nbsp;
+                    <i class="fa-solid fa-envelope" style="font-size:10px;margin-right:4px;"></i>@companyEmail<br />
+                    <strong>GSTIN:</strong> @companyGst
+                </p>
+            </div>
+            <div class="inv-header-right">
+                <span class="inv-number-pill">Tax Invoice</span>
+                <span class="inv-number-val">@Model.InvoiceNumber</span>
+                <span class="status-badge status-@Model.Status.ToLower()">@Model.Status</span>
+            </div>
+        </div>
+
+        <!-- BODY -->
+        <div class="inv-body">
+
+            <!-- Bill To + Invoice Details -->
+            <div class="inv-meta-row">
+                <div class="inv-meta-box">
+                    <h6><i class="fa-solid fa-user" style="font-size:10px;"></i> Bill To</h6>
+                    <p><strong>@lead?.Name</strong></p>
+                    <p>@lead?.Contact</p>
+                    <p>@lead?.Email</p>
+                    @if (!string.IsNullOrEmpty(booking?.BookingNumber))
+                    {
+                        <p><strong>Booking:</strong> @booking.BookingNumber</p>
+                    }
+                </div>
+                <div class="inv-meta-box">
+                    <h6><i class="fa-solid fa-calendar" style="font-size:10px;"></i> Invoice Details</h6>
+                    <p><strong>Invoice Date:</strong> @Model.InvoiceDate.ToString("MMM dd, yyyy")</p>
+                    <p><strong>Due Date:</strong> @Model.DueDate.ToString("MMM dd, yyyy")</p>
+                    @if (installment != null)
+                    {
+                        <p><strong>Installment:</strong> #@installment.InstallmentNumber – @installment.MilestoneName</p>
+                    }
+                    <p><strong>Property:</strong> @property?.PropertyName</p>
+                    <p><strong>Unit:</strong> @flat?.FlatName</p>
+                </div>
+            </div>
+
+            <!-- Items Table -->
+            <div class="inv-table-wrap">
+                <table class="inv-table">
+                    <thead>
+                        <tr>
+                            <th style="width:36px;">#</th>
+                            <th>Description</th>
+                            <th class="text-center" style="width:60px;">Qty</th>
+                            <th class="text-end" style="width:110px;">Rate</th>
+                            <th class="text-end" style="width:110px;">Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (items.Any())
+                        {
+                            @for (int i = 0; i < items.Count; i++)
+                            {
+                                var item = items[i];
+                                <tr>
+                                    <td>@(i + 1)</td>
+                                    <td class="desc">@item.Description</td>
+                                    <td class="text-center">@item.Quantity</td>
+                                    <td class="text-end">₹@item.Rate.ToString("N2")</td>
+                                    <td class="text-end amt">₹@item.Amount.ToString("N2")</td>
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            var fallbackDescription = installment != null
+                                ? $"{installment.MilestoneName} Payment - Installment #{installment.InstallmentNumber}"
+                                : (!string.IsNullOrWhiteSpace(Model.Notes) ? Model.Notes : "Property Booking Invoice");
+                            <tr>
+                                <td>1</td>
+                                <td class="desc">@fallbackDescription</td>
+                                <td class="text-center">1</td>
+                                <td class="text-end">₹@Model.Amount.ToString("N2")</td>
+                                <td class="text-end amt">₹@Model.Amount.ToString("N2")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Totals -->
+            <div class="inv-totals-row">
+                <div class="inv-totals">
+                    <div class="tot-line">
+                        <span>Subtotal</span>
+                        <strong>₹@Model.Amount.ToString("N2")</strong>
+                    </div>
+                    <div class="tot-line">
+                        <span>GST (@gstRate%)</span>
+                        <strong>₹@Model.TaxAmount.ToString("N2")</strong>
+                    </div>
+                    <div class="tot-line tot-grand">
+                        <span>Total Amount</span>
+                        <span>₹@Model.TotalAmount.ToString("N2")</span>
+                    </div>
+                    @if (Model.PaidAmount > 0)
+                    {
+                        <div class="tot-line tot-paid">
+                            <span>Amount Paid</span>
+                            <strong>₹@Model.PaidAmount.ToString("N2")</strong>
+                        </div>
+                        <div class="tot-line tot-balance">
+                            <span>Balance Due</span>
+                            <strong>₹@((Model.TotalAmount - Model.PaidAmount).ToString("N2"))</strong>
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <!-- Payment History -->
+            @if (payments.Any())
+            {
+                <div class="inv-payments">
+                    <p class="inv-section-title">
+                        <i class="fa-solid fa-clock-rotate-left" style="font-size:10px;"></i> Payment History
+                    </p>
+                    @foreach (var payment in payments)
+                    {
+                        <div class="pay-item">
+                            <div>
+                                <div class="pay-ref">@payment.ReceiptNumber</div>
+                                <div class="pay-meta">
+                                    @payment.PaymentDate.ToString("MMM dd, yyyy") · @payment.PaymentMethod
+                                    @if (!string.IsNullOrEmpty(payment.TransactionReference))
+                                    {
+                                        <span> · Ref: @payment.TransactionReference</span>
+                                    }
+                                </div>
+                            </div>
+                            <div class="pay-amt">₹@payment.Amount.ToString("N2")</div>
+                        </div>
+                    }
+                </div>
+            }
+
+            <!-- Notes -->
+            @if (!string.IsNullOrEmpty(Model.Notes))
+            {
+                <div class="inv-notes">
+                    <p class="inv-section-title" style="margin-bottom:4px;">
+                        <i class="fa-solid fa-note-sticky" style="font-size:10px;"></i> Notes
+                    </p>
+                    @Model.Notes
+                </div>
+            }
+
+            <!-- Bank Details + Terms -->
+            @{
+                var bankAccount = ViewBag.BankAccount as CRM.Models.BankAccountModel;
+            }
+            <div class="inv-two-col">
+                @if (bankAccount != null)
+                {
+                    <div class="inv-info-box">
+                        <p class="inv-section-title" style="margin-bottom:8px;">
+                            <i class="fa-solid fa-building-columns" style="font-size:10px;"></i> Bank Details
+                        </p>
+                        <p><strong>Bank:</strong> @bankAccount.BankName</p>
+                        <p><strong>Account:</strong> @bankAccount.AccountHolderName</p>
+                        <p><strong>Acc No:</strong> @bankAccount.AccountNumber</p>
+                        <p><strong>IFSC:</strong> @bankAccount.IFSCCode</p>
+                        @if (!string.IsNullOrEmpty(bankAccount.BranchName))
+                        {
+                            <p><strong>Branch:</strong> @bankAccount.BranchName</p>
+                        }
+                        @if (!string.IsNullOrEmpty(bankAccount.AccountType))
+                        {
+                            <p><strong>Type:</strong> @bankAccount.AccountType</p>
+                        }
+                    </div>
+                }
+                <div class="inv-info-box">
+                    <p class="inv-section-title" style="margin-bottom:8px;">
+                        <i class="fa-solid fa-file-contract" style="font-size:10px;"></i> Payment Terms
+                    </p>
+                    <ul class="inv-terms-list">
+                        <li>Payment due by the date mentioned above.</li>
+                        <li>Late payments may incur additional charges.</li>
+                        <li>All amounts are in Indian Rupees (INR).</li>
+                        <li>This is a computer-generated invoice.</li>
+                    </ul>
+                </div>
+            </div>
+
+        </div><!-- /inv-body -->
+
+        <!-- FOOTER -->
+        <div class="inv-footer">
+            Thank you for your business! &nbsp;·&nbsp;
+            <span>@companyPhone</span> &nbsp;·&nbsp; <span>@companyEmail</span>
+        </div>
+
+    </div><!-- /inv-card -->
+</div><!-- /inv-wrap -->
+</div>
+
+<script>
+    window.addEventListener('load', function () {
+        var params = new URLSearchParams(window.location.search);
+        var shouldAutoPrint = params.get('autoPrint') === 'true' || sessionStorage.getItem('invoiceAutoPrint') === '1';
+        if (!shouldAutoPrint) return;
+
+        sessionStorage.removeItem('invoiceAutoPrint');
+        document.documentElement.classList.add('invoice-pdf-mode');
+        document.body.classList.add('invoice-pdf-mode');
+
+        if (window.location.search) {
+            history.replaceState({}, document.title, window.location.pathname);
+        }
+
+        var hasReloaded = false;
+        var reloadOnce = function () {
+            if (hasReloaded) return;
+            hasReloaded = true;
+            window.location.replace(window.location.pathname);
+        };
+
+        window.addEventListener('afterprint', function () {
+            setTimeout(reloadOnce, 120);
+        }, { once: true });
+
+        setTimeout(function () {
+            window.print();
+            setTimeout(reloadOnce, 2500);
+        }, 300);
+    });
+</script>

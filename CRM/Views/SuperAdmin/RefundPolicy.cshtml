@@ -1,0 +1,1316 @@
+@{
+    ViewData["Title"] = "Return, Refund & Cancellation Policy";
+    Layout = "_LandingLayout";
+
+    // var companyName = "PropTech CRM";
+    // var companyEmail = "support@company.com";
+
+    // var footerAddress = "Your Company Address";
+    // var footerPhone = "+91 98765 43210";
+    // var footerEmail = "support@company.com";
+    // var footerCompanyName = "PropTech CRM";
+    // var footerMapUrl = "";
+    // var currentYear = DateTime.Now.Year;
+
+    var CompanyLogo = Context.RequestServices.GetService<CRM.MasterDb.MasterDbContext>()?.SaasSetting.FirstOrDefault(s => s.SettingKey == "CompanyLogo")?.SettingValue ?? "";
+    var copyrightText = Context.RequestServices.GetService<CRM.MasterDb.MasterDbContext>()?.SaasSetting.FirstOrDefault(s => s.SettingKey == "CopyrightText")?.SettingValue ?? "";
+    var footerEmail = Context.RequestServices.GetService<CRM.MasterDb.MasterDbContext>()?.SaasSetting.FirstOrDefault(s => s.SettingKey == "CompanyEmail")?.SettingValue ?? "";
+    var footerCompanyName = Context.RequestServices.GetService<CRM.MasterDb.MasterDbContext>()?.SaasSetting.FirstOrDefault(s => s.SettingKey == "CompanyName")?.SettingValue ?? "PropTech CRM";
+    var footerMapUrl = Context.RequestServices.GetService<CRM.MasterDb.MasterDbContext>()?.SaasSetting.FirstOrDefault(s => s.SettingKey == "CompanyMapUrl")?.SettingValue;
+    var footerPhone = Context.RequestServices.GetService<CRM.MasterDb.MasterDbContext>()?.SaasSetting.FirstOrDefault(s => s.SettingKey == "CompanyPhone")?.SettingValue ?? "";
+    var footerAddress = Context.RequestServices.GetService<CRM.MasterDb.MasterDbContext>()?.SaasSetting.FirstOrDefault(s => s.SettingKey == "CompanyAddress")?.SettingValue ?? "";
+
+}
+
+@section Scripts {
+    <style>
+        :root {
+            --saas-primary: #D4A45A;
+            --saas-primary-hover: #B8883E;
+            --saas-dark: #162436;
+            --saas-muted-blue: #125082;
+            --saas-gray: #6B7B8D;
+            --lp-grad-mix: linear-gradient(90deg, #162436 0%, #125082 35%, #E8C27E 70%, #B8883E 100%);
+            --blue: #1A6FA8;
+            --blue-d: #125082;
+            --blue-l: #F0F4F8;
+            --gold: #D4A45A;
+            --gold-d: #B8883E;
+            --gold-l: #F0F4F8;
+            --dark: #162436;
+            --text: #2A3A4A;
+            --muted: #6B7B8D;
+            --border: #E2E8F0;
+            --bg: #FFFFFF;
+            --white: #FFFFFF;
+            --grad: linear-gradient(135deg,var(--blue) 0%,var(--dark) 100%);
+            --nav-h: 60px;
+            --r: 10px;
+            --sh: 0 4px 24px rgba(26,111,168,.10);
+            --sh2: 0 12px 40px rgba(26,111,168,.18);
+        }
+
+        *, *::before, *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0
+        }
+
+        html {
+            scroll-behavior: smooth;
+            overflow-x: hidden
+        }
+
+        body {
+            font-family: 'Segoe UI',system-ui,sans-serif;
+            font-size: 14px;
+            color: var(--text);
+            background: var(--bg);
+            overflow-x: hidden
+        }
+
+        img {
+            max-width: 100%;
+            display: block
+        }
+
+        a {
+            color: inherit;
+            text-decoration: none
+        }
+
+        .pp-wrap {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 0 20px
+        }
+
+        .fw-wrap {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px
+        }
+
+        .rf-hero {
+            background: var(--grad);
+            padding: 28px 0 0;
+            position: relative;
+            overflow: hidden
+        }
+
+            .rf-hero::before {
+                content: '';
+                position: absolute;
+                top: -50px;
+                right: -50px;
+                width: 220px;
+                height: 220px;
+                background: rgba(212,164,90,.07);
+                border-radius: 50%
+            }
+
+            .rf-hero::after {
+                content: '';
+                position: absolute;
+                bottom: 10px;
+                left: 30px;
+                width: 120px;
+                height: 120px;
+                background: rgba(255,255,255,.04);
+                border-radius: 50%
+            }
+
+        .rf-hero-inner {
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 12px
+        }
+
+        .rf-hero-left {
+            position: relative;
+            z-index: 1
+        }
+
+        .rf-breadcrumb {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 11px;
+            font-weight: 600;
+            color: rgba(255,255,255,.5);
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            margin-bottom: 8px
+        }
+
+            .rf-breadcrumb a {
+                color: var(--gold);
+                transition: opacity .2s
+            }
+
+                .rf-breadcrumb a:hover {
+                    opacity: .8
+                }
+
+            .rf-breadcrumb span {
+                color: rgba(255,255,255,.25)
+            }
+
+        .rf-hero h1 {
+            font-size: 1.8rem;
+            font-weight: 900;
+            color: #FFFFFF;
+            line-height: 1.15;
+            margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+            gap: 12px
+        }
+
+            .rf-hero h1 .icon-wrap {
+                width: 40px;
+                height: 40px;
+                border-radius: 10px;
+                background: rgba(212,164,90,.22);
+                border: 1px solid rgba(212,164,90,.4);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 17px;
+                color: var(--gold);
+                flex-shrink: 0
+            }
+
+        .rf-hero-sub {
+            font-size: 12px;
+            color: rgba(255,255,255,.52);
+            margin-bottom: 20px
+        }
+
+        .rf-back-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            padding: 8px 18px;
+            border-radius: 7px;
+            background: transparent;
+            color: rgba(255,255,255,.85);
+            border: 1.5px solid rgba(255,255,255,.28);
+            font-size: 12px;
+            font-weight: 600;
+            transition: all .25s;
+            position: relative;
+            z-index: 1
+        }
+
+            .rf-back-btn:hover {
+                background: rgba(255,255,255,.1);
+                border-color: rgba(255,255,255,.6);
+                color: #FFFFFF
+            }
+
+        .rf-hero-wave {
+            display: block;
+            width: 100%;
+            margin-bottom: -2px
+        }
+
+        .rf-layout {
+            display: grid;
+            grid-template-columns: 210px 1fr;
+            gap: 24px;
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 28px 20px 52px;
+            align-items: start
+        }
+
+        .rf-toc {
+            position: sticky;
+            top: calc(var(--nav-h) + 14px);
+            background: #FFFFFF;
+            border-radius: var(--r);
+            border: 1.5px solid var(--border);
+            box-shadow: var(--sh);
+            overflow: hidden
+        }
+
+        .rf-toc-head {
+            padding: 11px 15px;
+            background: linear-gradient(90deg,var(--blue),var(--dark));
+            font-size: 10px;
+            font-weight: 800;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: var(--gold)
+        }
+
+        .rf-toc-list {
+            list-style: none;
+            padding: 6px 0
+        }
+
+            .rf-toc-list li a {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                padding: 7px 14px;
+                font-size: 12px;
+                font-weight: 500;
+                color: var(--muted);
+                transition: all .2s;
+                border-left: 2px solid transparent
+            }
+
+                .rf-toc-list li a:hover, .rf-toc-list li a.active {
+                    color: var(--blue);
+                    background: var(--blue-l);
+                    border-left-color: var(--blue)
+                }
+
+        .toc-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: var(--border);
+            flex-shrink: 0;
+            transition: background .2s
+        }
+
+        .rf-toc-list li a:hover .toc-dot, .rf-toc-list li a.active .toc-dot {
+            background: var(--blue)
+        }
+
+        .rf-content {
+            min-width: 0
+        }
+
+        .rf-updated {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 5px 12px;
+            border-radius: 20px;
+            background: var(--blue-l);
+            border: 1px solid rgba(26,111,168,.2);
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--blue);
+            margin-bottom: 18px
+        }
+
+            .rf-updated i {
+                font-size: 10px
+            }
+
+        .rf-alert {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            background: linear-gradient(90deg,var(--gold-l),#FFFFFF);
+            border: 1.5px solid rgba(212,164,90,.35);
+            border-left: 4px solid var(--gold);
+            border-radius: var(--r);
+            padding: 14px 18px;
+            margin-bottom: 20px
+        }
+
+            .rf-alert i {
+                color: var(--gold-d);
+                font-size: 16px;
+                margin-top: 1px;
+                flex-shrink: 0
+            }
+
+        .rf-alert-body strong {
+            display: block;
+            font-size: 13px;
+            font-weight: 800;
+            color: var(--dark);
+            margin-bottom: 3px
+        }
+
+        .rf-alert-body p {
+            font-size: 12px;
+            color: var(--muted);
+            margin: 0;
+            line-height: 1.65
+        }
+
+        .rf-section {
+            background: #FFFFFF;
+            border-radius: var(--r);
+            border: 1.5px solid var(--border);
+            box-shadow: var(--sh);
+            margin-bottom: 14px;
+            overflow: hidden;
+            transition: box-shadow .25s,border-color .25s;
+            scroll-margin-top: calc(var(--nav-h) + 20px)
+        }
+
+            .rf-section:hover {
+                box-shadow: var(--sh2);
+                border-color: rgba(26,111,168,.25)
+            }
+
+        .rf-section-head {
+            display: flex;
+            align-items: center;
+            gap: 11px;
+            padding: 13px 18px;
+            background: linear-gradient(90deg,var(--blue-l),#FFFFFF);
+            border-bottom: 1.5px solid var(--border)
+        }
+
+        .rf-sec-icon {
+            width: 30px;
+            height: 30px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 13px;
+            flex-shrink: 0
+        }
+
+            .rf-sec-icon.blue {
+                background: rgba(26,111,168,.12);
+                color: var(--blue)
+            }
+
+            .rf-sec-icon.gold {
+                background: rgba(212,164,90,.15);
+                border: 1px solid rgba(212,164,90,.3);
+                color: var(--gold-d)
+            }
+
+        .rf-section-head h4 {
+            font-size: 13px;
+            font-weight: 800;
+            color: var(--dark);
+            margin: 0;
+            text-transform: uppercase;
+            letter-spacing: .4px
+        }
+
+        .rf-section-body {
+            padding: 15px 18px
+        }
+
+            .rf-section-body p {
+                font-size: 13px;
+                color: var(--muted);
+                line-height: 1.8;
+                margin-bottom: 8px
+            }
+
+                .rf-section-body p:last-child {
+                    margin-bottom: 0
+                }
+
+            .rf-section-body strong {
+                color: var(--text)
+            }
+
+            .rf-section-body a {
+                color: var(--blue);
+                font-weight: 600
+            }
+
+                .rf-section-body a:hover {
+                    color: var(--blue-d)
+                }
+
+            .rf-section-body ul {
+                list-style: none;
+                margin: 10px 0;
+                padding: 0
+            }
+
+                .rf-section-body ul li {
+                    font-size: 13px;
+                    color: var(--muted);
+                    line-height: 1.8;
+                    padding: 4px 0 4px 20px;
+                    position: relative;
+                    border-bottom: 1px solid var(--border)
+                }
+
+                    .rf-section-body ul li:last-child {
+                        border-bottom: none
+                    }
+
+                    .rf-section-body ul li::before {
+                        content: '›';
+                        position: absolute;
+                        left: 0;
+                        color: var(--gold);
+                        font-weight: 800;
+                        font-size: 16px;
+                        line-height: 1.4
+                    }
+
+        .rf-timeline {
+            margin: 12px 0 4px;
+            padding-left: 0;
+            list-style: none
+        }
+
+            .rf-timeline li {
+                display: flex;
+                align-items: flex-start;
+                gap: 12px;
+                padding: 10px 0;
+                border-bottom: 1px dashed var(--border);
+                font-size: 13px;
+                color: var(--muted)
+            }
+
+                .rf-timeline li:last-child {
+                    border-bottom: none
+                }
+
+        .rf-tl-num {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: var(--blue);
+            color: #FFFFFF;
+            font-size: 10px;
+            font-weight: 800;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            margin-top: 1px
+        }
+
+        .rf-tl-body strong {
+            display: block;
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--dark);
+            margin-bottom: 2px
+        }
+
+        .rf-highlight {
+            background: var(--blue-l);
+            border: 1px solid rgba(26,111,168,.2);
+            border-left: 3px solid var(--blue);
+            border-radius: 7px;
+            padding: 11px 14px;
+            font-size: 12px;
+            color: var(--text);
+            line-height: 1.7;
+            margin-top: 10px;
+            display: flex;
+            align-items: flex-start;
+            gap: 9px
+        }
+
+            .rf-highlight i {
+                color: var(--blue);
+                margin-top: 2px;
+                flex-shrink: 0
+            }
+
+        .rf-days-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: linear-gradient(90deg,var(--blue),var(--blue-d));
+            color: #FFFFFF;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 800;
+            margin-bottom: 12px
+        }
+
+            .rf-days-badge span {
+                font-size: 1.4rem;
+                font-weight: 900;
+                color: var(--gold)
+            }
+
+        .rf-contact-card {
+            background: var(--grad);
+            border-radius: var(--r);
+            padding: 18px 22px;
+            margin-top: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 14px;
+            flex-wrap: wrap
+        }
+
+            .rf-contact-card h5 {
+                color: #FFFFFF;
+                font-size: 13px;
+                font-weight: 800;
+                margin-bottom: 3px
+            }
+
+            .rf-contact-card p {
+                color: rgba(255,255,255,.6);
+                font-size: 12px;
+                margin: 0
+            }
+
+            .rf-contact-card a.cc-btn {
+                display: inline-flex;
+                align-items: center;
+                gap: 6px;
+                padding: 8px 16px;
+                border-radius: 7px;
+                background: var(--gold);
+                color: var(--dark);
+                font-size: 12px;
+                font-weight: 700;
+                flex-shrink: 0;
+                transition: background .2s
+            }
+
+                .rf-contact-card a.cc-btn:hover {
+                    background: var(--gold-d)
+                }
+
+        @@media(max-width:900px) {
+            .rf-layout {
+                grid-template-columns: 1fr
+            }
+
+            .rf-toc {
+                position: static
+            }
+        }
+
+        @@media(max-width:575px) {
+            .rf-hero h1 {
+                font-size: 1.25rem
+            }
+
+            .rf-section-head {
+                padding: 11px 14px
+            }
+
+            .rf-section-body {
+                padding: 13px 14px
+            }
+
+            .rf-contact-card {
+                flex-direction: column;
+                align-items: flex-start
+            }
+        }
+
+        .rf-footer {
+            background: var(--dark);
+            color: rgba(255,255,255,.75)
+        }
+
+        .footer-body {
+            padding: 42px 0 32px
+        }
+
+        .footer-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1.5fr;
+            gap: 32px
+        }
+
+        .footer-col-title {
+            font-size: 10px;
+            font-weight: 800;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: var(--gold);
+            margin-bottom: 16px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid rgba(26,111,168,.3);
+            display: block
+        }
+
+        .footer-bname {
+            font-size: 1.2rem;
+            font-weight: 800;
+            color: #FFFFFF;
+            display: block;
+            margin-bottom: 10px
+        }
+
+        .footer-brand p {
+            font-size: 12px;
+            line-height: 1.7;
+            color: #FFFFFF;
+            margin-bottom: 14px
+        }
+
+        .footer-socials {
+            display: flex;
+            gap: 7px;
+            flex-wrap: wrap
+        }
+
+        .fsoc {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 13px;
+            transition: all .25s;
+            color: #FFFFFF;
+            flex-shrink: 0
+        }
+
+            .fsoc:hover {
+                transform: translateY(-3px);
+                box-shadow: 0 4px 12px rgba(0,0,0,.3)
+            }
+
+        .fsoc-tw {
+            background: #2589C9
+        }
+
+        .fsoc-fb {
+            background: #2589C9
+        }
+
+        .fsoc-ig {
+            background: linear-gradient(45deg,#DC2626,#DC2626)
+        }
+
+        .fsoc-li {
+            background: #1A6FA8
+        }
+
+        .fsoc-wa {
+            background: #16A34A
+        }
+
+        .footer-lnk {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            font-size: 12px;
+            color: #FFFFFF;
+            padding: 4px 0;
+            transition: color .2s
+        }
+
+            .footer-lnk i {
+                font-size: 9px;
+                color: var(--blue)
+            }
+
+            .footer-lnk:hover {
+                color: #D4A45A
+            }
+
+        .footer-contact {
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+            font-size: 12px;
+            color: #FFFFFF;
+            margin-bottom: 10px;
+            line-height: 1.5
+        }
+
+            .footer-contact i {
+                color: var(--blue);
+                margin-top: 2px;
+                flex-shrink: 0
+            }
+
+            .footer-contact a {
+                color: #FFFFFF;
+                transition: color .2s
+            }
+
+                .footer-contact a:hover {
+                    color: #D4A45A
+                }
+
+        @@media(max-width:991px) {
+            .footer-grid {
+                grid-template-columns: 1fr 1fr
+            }
+        }
+
+        @@media(max-width:575px) {
+            .footer-grid {
+                grid-template-columns: 1fr
+            }
+        }
+
+        .footer-strip {
+            background: rgba(0,0,0,.4);
+            padding: 12px 0
+        }
+
+        .footer-strip-inner {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 8px
+        }
+
+        .footer-copy {
+            font-size: 13px;
+            color: rgba(255,255,255,.45)
+        }
+
+            .footer-copy a {
+                color: #D4A45A;
+                transition: color .2s
+            }
+
+                .footer-copy a:hover {
+                    color: #FFFFFF
+                }
+
+        .footer-legal {
+            display: flex;
+            gap: 14px;
+            flex-wrap: wrap
+        }
+
+            .footer-legal a {
+                font-size: 13px;
+                color: #FFFFFF;
+                transition: color .2s
+            }
+
+                .footer-legal a:hover {
+                    color: #D4A45A
+                }
+
+        @@media(max-width:575px) {
+            .footer-strip-inner {
+                flex-direction: column;
+                align-items: flex-start
+            }
+
+            .footer-legal {
+                gap: 8px
+            }
+        }
+
+        .back-top {
+            position: fixed;
+            bottom: 22px;
+            right: 22px;
+            z-index: 900;
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            background: var(--gold);
+            color: var(--dark);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            font-size: 15px;
+            font-weight: 700;
+            box-shadow: 0 4px 16px rgba(212,164,90,.4);
+            transition: all .3s
+        }
+
+            .back-top:hover {
+                background: var(--gold-d);
+                transform: translateY(-3px)
+            }
+
+            .back-top.show {
+                display: flex
+            }
+
+        .saas-footer {
+            background: var(--saas-dark);
+            color: #B8C8D8;
+            padding: 34px 0 0;
+        }
+
+            .saas-footer h5 {
+                color: #FFFFFF;
+                font-weight: 700;
+                margin-bottom: 16px;
+            }
+
+            .saas-footer p {
+                color: #8FA3B8;
+                font-size: 0.94rem;
+                line-height: 1.6;
+            }
+
+            .saas-footer a {
+                color: #8FA3B8;
+                text-decoration: none;
+                transition: 0.25s;
+            }
+
+                .saas-footer a:hover {
+                    color: var(--saas-primary);
+                }
+
+            .saas-footer .footer-links {
+                list-style: none;
+                padding: 0;
+            }
+
+                .saas-footer .footer-links li {
+                    margin-bottom: 8px;
+                }
+
+            .saas-footer .social-links a {
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                width: 34px;
+                height: 34px;
+                border: 1px solid #2A3A4A;
+                border-radius: 50%;
+                margin-right: 8px;
+                color: #8FA3B8;
+                transition: 0.25s;
+            }
+
+                .saas-footer .social-links a:hover {
+                    border-color: var(--saas-primary);
+                    color: var(--saas-primary);
+                }
+
+            .saas-footer .copyright {
+                border-top: 1px solid rgba(255, 255, 255, 0.1);
+                padding: 18px 0;
+                margin-top: 24px;
+                text-align: center;
+                color: #6B7B8D;
+                font-size: 0.88rem;
+            }
+    </style>
+}
+
+<div class="rf-hero">
+    <div class="fw-wrap">
+        <div class="rf-hero-inner">
+            <div class="rf-hero-left">
+                <div class="rf-breadcrumb">
+                    <a href="/Home/Landing"><i class="fa fa-home"></i> Home</a>
+                    <span>/</span>
+                    <span>Refund Policy</span>
+                </div>
+                <h1>
+                    <span class="icon-wrap"><i class="fa fa-undo-alt"></i></span>
+                    Return, Refund &amp; Cancellation
+                </h1>
+                <p class="rf-hero-sub">Our policies on returns, refunds, exchanges and cancellations</p>
+            </div>
+            <a href="/Home/Landing" class="rf-back-btn">
+                <i class="fa fa-arrow-left"></i> Back to Home
+            </a>
+        </div>
+    </div>
+    <svg class="rf-hero-wave" viewBox="0 0 1440 32" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
+        <path d="M0,32 C360,0 1080,0 1440,32 L1440,32 L0,32 Z" fill="#FFFFFF" />
+    </svg>
+</div>
+
+<div class="rf-layout">
+    <aside class="rf-toc">
+        <div class="rf-toc-head">Contents</div>
+        <ul class="rf-toc-list">
+            <li><a href="#s-returns" class="toc-lnk"><span class="toc-dot"></span>Returns</a></li>
+            <li><a href="#s-refunds" class="toc-lnk"><span class="toc-dot"></span>Refunds</a></li>
+            <li><a href="#s-late" class="toc-lnk"><span class="toc-dot"></span>Late Refunds</a></li>
+            <li><a href="#s-exchange" class="toc-lnk"><span class="toc-dot"></span>Exchanges</a></li>
+            <li><a href="#s-cancel" class="toc-lnk"><span class="toc-dot"></span>Cancellation</a></li>
+            <li><a href="#s-help" class="toc-lnk"><span class="toc-dot"></span>Need Help?</a></li>
+        </ul>
+    </aside>
+
+    <div class="rf-content">
+        <div class="rf-updated"><i class="fa fa-clock"></i> Last updated: @DateTime.Now.Year</div>
+
+        <div class="rf-alert">
+            <i class="fa fa-exclamation-triangle"></i>
+            <div class="rf-alert-body">
+                <strong>Important Notice</strong>
+                <p>All return and refund requests are subject to the conditions outlined below. Please read carefully before making a purchase decision.</p>
+            </div>
+        </div>
+
+        <div class="rf-section" id="s-returns">
+            <div class="rf-section-head">
+                <span class="rf-sec-icon blue"><i class="fa fa-box-open"></i></span>
+                <h4>Returns</h4>
+            </div>
+            <div class="rf-section-body">
+                <div class="rf-days-badge">
+                    <span>10</span> Day Return Window
+                </div>
+                <p>Our policy lasts <strong>10 days</strong>. If 10 days have gone by since your purchase, unfortunately we can't offer you a refund or exchange.</p>
+                <p>To be eligible for a return, your application/software package must <strong>not</strong> have been downloaded from the server.</p>
+                <p><strong>Additional non-returnable items:</strong></p>
+                <ul>
+                    <li>Downloadable software products</li>
+                    <li>Themes / Templates / Plugins</li>
+                    <li>Customized Applications etc.</li>
+                </ul>
+                <div class="rf-highlight">
+                    <i class="fa fa-info-circle"></i>
+                    <span>To complete your return, we require a <strong>receipt or proof of purchase</strong>. Please keep your transaction details safe.</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="rf-section" id="s-refunds">
+            <div class="rf-section-head">
+                <span class="rf-sec-icon gold"><i class="fa fa-rupee-sign"></i></span>
+                <h4>Refunds (if applicable)</h4>
+            </div>
+            <div class="rf-section-body">
+                <p>Once your return/refund request is received and inspected, we will send you an email to notify you that we have received your refund request. We will also notify you of the approval or rejection.</p>
+                <ul class="rf-timeline">
+                    <li>
+                        <span class="rf-tl-num">1</span>
+                        <div class="rf-tl-body">
+                            <strong>Request Received</strong>
+                            We acknowledge and begin reviewing your refund request.
+                        </div>
+                    </li>
+                    <li>
+                        <span class="rf-tl-num">2</span>
+                        <div class="rf-tl-body">
+                            <strong>Inspection &amp; Decision</strong>
+                            We review eligibility and notify you via email of approval or rejection.
+                        </div>
+                    </li>
+                    <li>
+                        <span class="rf-tl-num">3</span>
+                        <div class="rf-tl-body">
+                            <strong>Credit Applied</strong>
+                            If approved, credit is applied to your original payment method within <strong>7 working days</strong>.
+                        </div>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="rf-section" id="s-late">
+            <div class="rf-section-head">
+                <span class="rf-sec-icon blue"><i class="fa fa-clock"></i></span>
+                <h4>Late or Missing Refunds (if applicable)</h4>
+            </div>
+            <div class="rf-section-body">
+                <p>If you haven't received a refund yet, please follow these steps in order:</p>
+                <ul>
+                    <li>First check your bank account again</li>
+                    <li>Contact your credit card company, as it may take some time before your refund is officially posted</li>
+                    <li>Next contact your bank, as there is often processing time before a refund is posted</li>
+                </ul>
+                <div class="rf-highlight">
+                    <i class="fa fa-envelope"></i>
+                    <span>
+                        If you've done all of this and still have not received your refund, please contact us at&nbsp;
+                        <a href="mailto:@footerEmail"><strong>@footerEmail</strong></a>
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <div class="rf-section" id="s-exchange">
+            <div class="rf-section-head">
+                <span class="rf-sec-icon gold"><i class="fa fa-exchange-alt"></i></span>
+                <h4>Exchanges (if applicable)</h4>
+            </div>
+            <div class="rf-section-body">
+                <p>
+                    We only replace software if it is <strong>defective or damaged</strong>. If you need to exchange it for the same item, send us an email at
+                    <a href="mailto:@footerEmail"><strong>@footerEmail</strong></a> with order details.
+                </p>
+                <div class="rf-highlight">
+                    <i class="fa fa-tools"></i>
+                    <span>Exchanges are only applicable for defective or damaged products and must be reported within the 10-day window.</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="rf-section" id="s-cancel">
+            <div class="rf-section-head">
+                <span class="rf-sec-icon blue"><i class="fa fa-ban"></i></span>
+                <h4>Cancellation</h4>
+            </div>
+            <div class="rf-section-body">
+                <p>To be eligible for a cancellation, your application/software package must <strong>not</strong> have been downloaded from the server.</p>
+                <div class="rf-highlight">
+                    <i class="fa fa-info-circle"></i>
+                    <span>Once a product is downloaded, it is considered delivered and cancellation requests will not be entertained.</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="rf-section" id="s-help">
+            <div class="rf-section-head">
+                <span class="rf-sec-icon gold"><i class="fa fa-headset"></i></span>
+                <h4>Need Help?</h4>
+            </div>
+            <div class="rf-section-body">
+                <p>Contact us for questions related to refunds, returns and cancellations.</p>
+                <div class="rf-contact-card">
+                    <div>
+                        <h5>We're Here to Help</h5>
+                        <p>Our support team typically responds within 24 hours</p>
+                    </div>
+                    <a href="mailto:@footerEmail" class="cc-btn">
+                        <i class="fa fa-envelope"></i> @footerEmail
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ═══ FOOTER (identical structure to Index_Final) ═══ -->
+<footer class="saas-footer">
+    <div class="container">
+        <div class="row gy-4">
+
+            <!-- Company Info -->
+            <div class="col-lg-4 col-md-6">
+                <h5 class="footer-title">PropTech CRM</h5>
+
+                <p class="footer-text">
+                    Modern real estate CRM platform designed to manage leads,
+                    automate follow-ups, close deals faster, and grow your
+                    real estate business efficiently.
+                </p>
+
+                <div class="social-links mt-3">
+                    <a href="https://www.facebook.com/proptechit" target="_blank">
+                        <i class="fab fa-facebook-f"></i>
+                    </a>
+
+                    <a href="https://twitter.com/PropTechIT" target="_blank">
+                        <i class="fab fa-twitter"></i>
+                    </a>
+
+                    <a href="https://www.linkedin.com/company/proptechit/" target="_blank">
+                        <i class="fab fa-linkedin-in"></i>
+                    </a>
+
+                    <a href="https://www.instagram.com/proptech_it" target="_blank">
+                        <i class="fab fa-instagram"></i>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Quick Links -->
+            <div class="col-lg-2 col-md-6">
+                <h5 class="footer-title">Quick Links</h5>
+
+                <ul class="footer-links">
+                    <li><a href="/#home">Home</a></li>
+                    <li><a href="/#features">Features</a></li>
+                    <li><a href="/#about">About</a></li>
+                    <li><a href="/#pricing">Pricing</a></li>
+                    <li><a href="/#inquiry">Contact Us</a></li>
+                    <li><a href="/Account/Login">Login</a></li>
+                </ul>
+            </div>
+
+            <!-- Contact Info -->
+            <div class="col-lg-3 col-md-6">
+                <h5 class="footer-title">Contact Info</h5>
+
+                <ul class="footer-links">
+
+                    @if (!string.IsNullOrEmpty(footerAddress))
+                    {
+                        <li>
+                            <i class="fas fa-map-marker-alt me-2"></i>
+
+                            @if (!string.IsNullOrEmpty(footerMapUrl))
+                            {
+                                <a href="@footerMapUrl" target="_blank">
+                                    @footerAddress
+                                </a>
+                            }
+                            else
+                            {
+                                <span>@footerAddress</span>
+                            }
+                        </li>
+                    }
+
+                    @if (!string.IsNullOrEmpty(footerPhone))
+                    {
+                        <li>
+                            <i class="fas fa-phone-alt me-2"></i>
+                            <span>@footerPhone</span>
+                        </li>
+                    }
+
+                    @if (!string.IsNullOrEmpty(footerEmail))
+                    {
+                        <li>
+                            <i class="fas fa-envelope me-2"></i>
+
+                            <a href="https://mail.google.com/mail/?view=cm&to=@footerEmail"
+                               target="_blank">
+                                @footerEmail
+                            </a>
+                        </li>
+                    }
+
+                </ul>
+            </div>
+
+            <!-- Legal -->
+            <div class="col-lg-3 col-md-6">
+                <h5 class="footer-title">Legal</h5>
+
+                <ul class="footer-links">
+                    <li>
+                        <a href="/superadmin/Privacy">
+                            Privacy Policy
+                        </a>
+                    </li>
+
+                    <li>
+                        <a href="/superadmin/Terms">
+                            Terms of Service
+                        </a>
+                    </li>
+
+                    <li>
+                        <a href="/superadmin/RefundPolicy">
+                            Refund Policy
+                        </a>
+                    </li>
+                </ul>
+            </div>
+
+        </div>
+
+        <!-- Copyright -->
+        <div class="copyright mt-4 pt-3">
+            @{
+                var currentYear2 = DateTime.Now.Year;
+
+                var copyrightText2 =
+                Context.RequestServices
+                .GetService<CRM.MasterDb.MasterDbContext>()?
+                .SaasSetting
+                .FirstOrDefault(s => s.SettingKey == "CopyrightText")
+                ?.SettingValue;
+            }
+
+            <p class="mb-0 text-center">
+
+                &copy; 2015 - @currentYear2
+
+                <a href="/Home/Landing">
+                    @(!string.IsNullOrEmpty(copyrightText2)
+                                        ? Html.Raw(copyrightText2)
+                                        : footerCompanyName)</a>.
+
+                All Rights Reserved |
+                Powered by
+
+                <a href="https://proptechit.com/" target="_blank">
+                    PropTech Solutions Private Limited
+                </a>
+
+            </p>
+        </div>
+
+    </div>
+</footer>
+
+
+<a href="#" class="back-top" id="rfBackTop"><i class="fa fa-arrow-up"></i></a>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const burger = document.getElementById('rfBurger');
+        const navMenu = document.getElementById('rfNavMenu');
+
+        if (burger && navMenu) {
+            burger.addEventListener('click', () => navMenu.classList.toggle('open'));
+        }
+
+        const bTop = document.getElementById('rfBackTop');
+
+        window.addEventListener('scroll', () => {
+            if (bTop) {
+                bTop.classList.toggle('show', window.scrollY > 300);
+            }
+        }, { passive: true });
+
+        document.querySelectorAll('a[href^="#"]').forEach(a => {
+            a.addEventListener('click', function (e) {
+                const href = this.getAttribute('href');
+
+                if (href === '#') {
+                    e.preventDefault();
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                    return;
+                }
+
+                const target = document.querySelector(href);
+
+                if (target) {
+                    e.preventDefault();
+                    const navH = document.getElementById('rfNav')?.offsetHeight || 60;
+                    window.scrollTo({
+                        top: target.getBoundingClientRect().top + window.pageYOffset - navH - 16,
+                        behavior: 'smooth'
+                    });
+                }
+            });
+        });
+
+        const tocLinks = document.querySelectorAll('.toc-lnk');
+        const sections = document.querySelectorAll('.rf-section[id]');
+
+        if (sections.length && tocLinks.length) {
+            const tocObs = new IntersectionObserver(entries => {
+                entries.forEach(en => {
+                    if (en.isIntersecting) {
+                        tocLinks.forEach(l => l.classList.remove('active'));
+                        const a = document.querySelector('.toc-lnk[href="#' + en.target.id + '"]');
+                        if (a) a.classList.add('active');
+                    }
+                });
+            }, { rootMargin: '-20% 0px -70% 0px' });
+
+            sections.forEach(s => tocObs.observe(s));
+        }
+
+        const cards = document.querySelectorAll('.rf-section');
+
+        const obs = new IntersectionObserver(entries => {
+            entries.forEach(en => {
+                if (en.isIntersecting) {
+                    en.target.style.opacity = '1';
+                    en.target.style.transform = 'translateY(0)';
+                    obs.unobserve(en.target);
+                }
+            });
+        }, { threshold: 0.08 });
+
+        cards.forEach((c, i) => {
+            c.style.opacity = '0';
+            c.style.transform = 'translateY(16px)';
+            c.style.transition = 'opacity .4s ease ' + (i * 0.05) + 's, transform .4s ease ' + (i * 0.05) + 's';
+            obs.observe(c);
+        });
+    });
+</script>

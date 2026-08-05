@@ -1,0 +1,1109 @@
+@model CRM.Models.QuotationModel
+@{
+    ViewData["Title"] = "Create Quotation";
+    var leads = ViewBag.Leads as List<CRM.Models.LeadModel> ?? new List<CRM.Models.LeadModel>();
+    var properties = ViewBag.Properties as List<CRM.Models.PropertyModel> ?? new List<CRM.Models.PropertyModel>();
+    var gstRate = (decimal)(ViewBag.GSTRate ?? 5);
+}
+
+<style>
+    :root {
+        --primary: #1A6FA8;
+        --primary-dark: #125082;
+        --primary-light: #E8EDF2;
+        --accent: #D4A45A;
+        --accent-dark: #B8883E;
+        --accent-light: #FEE2E2;
+        --text-dark: #1E2A3A;
+        --text-muted: #6B7B8D;
+        --border-soft: #E2E8F0;
+    }
+
+    .create-quotation-container {
+        max-width: 1100px;
+        margin: 0 auto;
+        font-size: 0.92rem;
+    }
+
+    .create-quotation-container h2 {
+        font-size: 1.4rem;
+        font-weight: 700;
+        color: var(--text-dark);
+    }
+
+    .create-quotation-container h2 i {
+        color: var(--primary);
+    }
+
+    .create-quotation-container .text-muted {
+        font-size: 0.85rem;
+    }
+
+    .breadcrumb {
+        font-size: 0.82rem;
+    }
+
+    .breadcrumb a {
+        color: var(--primary);
+        text-decoration: none;
+    }
+
+    .section-card {
+        background: #FFFFFF;
+        border: 1px solid var(--border-soft);
+        border-radius: 10px;
+        box-shadow: 0 1px 4px rgba(22,36,54, 0.06);
+        margin-bottom: 1.1rem;
+        overflow: hidden;
+    }
+
+    .section-header {
+        background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+        color: #FFFFFF;
+        padding: 0.65rem 1.1rem;
+        font-weight: 600;
+        font-size: 0.95rem;
+        letter-spacing: 0.2px;
+    }
+
+    .section-header i {
+        color: var(--accent-light);
+    }
+
+    .section-body {
+        padding: 1.1rem 1.25rem;
+    }
+
+    .form-label {
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: var(--text-dark);
+        margin-bottom: 0.3rem;
+    }
+
+    .section-body .form-control,
+    .section-body .form-select {
+        font-size: 0.85rem;
+        padding: 0.4rem 0.65rem;
+        border-radius: 6px;
+        border: 1px solid #E2E8F0;
+    }
+
+    .section-body .form-control:focus,
+    .section-body .form-select:focus {
+        border-color: var(--primary);
+        box-shadow: 0 0 0 0.15rem rgba(26,111,168, 0.18);
+    }
+
+    .row.g-3 {
+        --bs-gutter-y: 0.85rem;
+    }
+
+    .items-table {
+        width: 100%;
+        margin-top: 0.5rem;
+        border-collapse: collapse;
+    }
+
+    .items-table th {
+        background-color: var(--primary-light);
+        color: var(--primary-dark);
+        padding: 0.5rem 0.6rem;
+        font-weight: 600;
+        font-size: 0.78rem;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+        border-bottom: 2px solid var(--border-soft);
+    }
+
+    .items-table td {
+        padding: 0.45rem 0.6rem;
+        vertical-align: middle;
+    }
+
+    .items-table .form-control,
+    .items-table .form-select {
+        font-size: 0.82rem;
+        padding: 0.32rem 0.5rem;
+    }
+
+    .item-row {
+        border-bottom: 1px solid var(--border-soft);
+    }
+
+    .add-item-btn {
+        background: var(--accent-dark);
+        border: none;
+        color: #FFFFFF;
+        padding: 0.4rem 1.1rem;
+        border-radius: 6px;
+        font-weight: 600;
+        font-size: 0.85rem;
+        transition: all 0.2s ease;
+    }
+
+    .add-item-btn:hover {
+        background: var(--accent);
+        transform: translateY(-1px);
+        box-shadow: 0 3px 10px rgba(212,164,90, 0.35);
+        color: #FFFFFF;
+    }
+
+    .remove-item-btn {
+        background-color: #DC2626;
+        border: none;
+        color: #FFFFFF;
+        padding: 0.3rem 0.6rem;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 0.8rem;
+    }
+
+    .remove-item-btn:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+    }
+
+    .totals-section {
+        background-color: var(--accent-light);
+        border: 1px solid #FEF3C7;
+        border-radius: 8px;
+        padding: 0.9rem 1.1rem;
+        margin-top: 1.1rem;
+        font-size: 0.88rem;
+    }
+
+    .total-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.4rem 0;
+        border-bottom: 1px solid #FEF3C7;
+        flex-wrap: wrap;
+        gap: 0.4rem;
+    }
+
+    .total-row:last-child {
+        border-bottom: none;
+        font-size: 1.05rem;
+        font-weight: 700;
+        color: var(--primary-dark);
+        padding-top: 0.55rem;
+    }
+
+    .totals-section #DiscountPercent {
+        width: 85px !important;
+        display: inline-block;
+        margin-left: 8px;
+    }
+
+    .submit-btn {
+        background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+        border: none;
+        padding: 0.7rem 2.2rem;
+        border-radius: 7px;
+        font-weight: 600;
+        font-size: 0.95rem;
+        color: #FFFFFF !important;
+        box-shadow: 0 3px 10px rgba(18,80,130, 0.3);
+        transition: all 0.2s ease;
+    }
+
+    .submit-btn:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 5px 16px rgba(18,80,130, 0.4);
+        color: #FFFFFF !important;
+    }
+
+    /* Searchable Dropdown Styles */
+    .position-relative .dropdown-menu {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        z-index: 1000;
+        border: 1px solid var(--border-soft);
+        border-radius: 0.4rem;
+        background-color: #FFFFFF;
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.12);
+        min-width: 280px;
+        max-width: 100%;
+    }
+
+    .position-relative .dropdown-item {
+        padding: 0.45rem 0.85rem;
+        cursor: pointer;
+        border-bottom: 1px solid #F0F4F8;
+        white-space: normal;
+        word-wrap: break-word;
+        font-size: 0.85rem;
+    }
+
+    .position-relative .dropdown-item:hover {
+        background-color: var(--primary-light);
+    }
+
+    .position-relative .dropdown-item:last-child {
+        border-bottom: none;
+    }
+
+    /* Flatpickr tweaks to match theme */
+    .flatpickr-day.selected,
+    .flatpickr-day.selected:hover {
+        background: var(--primary);
+        border-color: var(--primary);
+    }
+
+    .flatpickr-day.today {
+        border-color: var(--accent);
+    }
+
+    .flatpickr-months .flatpickr-month,
+    .flatpickr-current-month input.cur-year {
+        color: var(--primary-dark);
+    }
+
+    .flatpickr-day:hover {
+        background: var(--primary-light);
+    }
+
+    /* Dark Mode */
+    .dark-mode .create-quotation-container h2 {
+        color: #E2E8F0;
+    }
+
+    .dark-mode .section-card {
+        background: #1E2A3A;
+        border-color: #2A3A4A;
+    }
+
+    .dark-mode .items-table th {
+        background-color: #2A3A4A;
+        color: #B8C8D8;
+        border-bottom-color: #2A3A4A;
+    }
+
+    .dark-mode .items-table td {
+        border-bottom-color: #2A3A4A;
+        color: #E2E8F0;
+    }
+
+    .dark-mode .item-row {
+        border-bottom-color: #2A3A4A;
+    }
+
+    .dark-mode .section-body .form-control,
+    .dark-mode .section-body .form-select {
+        background-color: #2A3A4A;
+        border-color: #2A3A4A;
+        color: #E2E8F0;
+    }
+
+    .dark-mode .totals-section {
+        background-color: #2A3A4A;
+        border-color: #2A3A4A;
+        color: #E2E8F0;
+    }
+
+    .dark-mode .total-row {
+        border-bottom-color: #2A3A4A;
+    }
+
+    .dark-mode .total-row:last-child {
+        color: #E8C27E;
+    }
+
+    .dark-mode .submit-btn,
+    .dark-mode .submit-btn:hover,
+    .dark-mode .submit-btn:focus,
+    .dark-mode .submit-btn:active,
+    .dark-mode .btn.submit-btn,
+    .dark-mode .btn-primary.submit-btn {
+        color: #FFFFFF !important;
+        -webkit-text-fill-color: #FFFFFF !important;
+    }
+
+    @@media (max-width: 768px) {
+        .create-quotation-container {
+            font-size: 0.88rem;
+        }
+
+        .section-header {
+            padding: 0.55rem 0.9rem;
+            font-size: 0.88rem;
+        }
+
+        .section-body {
+            padding: 0.85rem;
+        }
+
+        .items-table {
+            font-size: 0.8rem;
+        }
+
+        .items-table th,
+        .items-table td {
+            padding: 0.4rem 0.3rem;
+        }
+
+        .totals-section {
+            padding: 0.75rem 0.85rem;
+        }
+
+        .total-row {
+            font-size: 0.85rem;
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 0.75rem;
+        }
+
+        .position-relative .dropdown-menu {
+            min-width: 100%;
+        }
+    }
+
+    @@media (max-width: 480px) {
+        .add-item-btn {
+            width: 100%;
+        }
+    }
+</style>
+
+<div class="content create-quotation-container">
+    <!-- Breadcrumb -->
+    <nav class="mb-3" aria-label="breadcrumb">
+        <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item"><a href="/Home/Index">Home</a></li>
+            <li class="breadcrumb-item"><a href="/Quotations/Index">Quotations</a></li>
+            <li class="breadcrumb-item active">Create New</li>
+        </ol>
+    </nav>
+
+    <!-- Page Header -->
+    <div class="mb-3">
+        <h2><i class="fa-solid fa-file-invoice me-2"></i>Create New Quotation</h2>
+        <p class="text-muted mb-0">Generate a professional quotation for your lead</p>
+    </div>
+
+    <form id="quotationForm" novalidate>
+        <!-- Basic Information -->
+        <div class="section-card">
+            <div class="section-header">
+                <i class="fa-solid fa-info-circle me-2"></i>Basic Information
+            </div>
+            <div class="section-body">
+                <div class="row g-3">
+                    <div class="col-lg-3 col-md-6">
+                        <label for="LeadId" class="form-label">Select Lead <span class="text-danger">*</span></label>
+                        <div class="position-relative">
+                            <input type="text" class="form-control" id="leadSearch" placeholder="Search leads..." autocomplete="off" required>
+                            <input type="hidden" id="LeadId" name="LeadId" value="" required>
+                            <div class="invalid-feedback">Please select a lead</div>
+                            <div class="dropdown-menu w-100" id="leadDropdown" style="max-height: 200px; overflow-y: auto; display: none;">
+                                <div class="dropdown-item" data-value="">Choose a lead...</div>
+                                @foreach (var lead in leads)
+                                {
+                                    <div class="dropdown-item" data-value="@lead.LeadId" data-name="@lead.Name - @lead.Contact">@lead.Name - @lead.Contact</div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-lg-3 col-md-6">
+                        <label for="PropertyId" class="form-label">Select Property <span class="text-danger">*</span></label>
+                        <div class="position-relative">
+                            <input type="text" class="form-control" id="propertySearch" placeholder="Search properties..." autocomplete="off" required>
+                            <input type="hidden" id="PropertyId" name="PropertyId" value="" required>
+                            <div class="invalid-feedback">Please select a property</div>
+                            <div class="dropdown-menu w-100" id="propertyDropdown" style="max-height: 200px; overflow-y: auto; display: none;">
+                                <div class="dropdown-item" data-value="">Choose a property...</div>
+                                @foreach (var property in properties)
+                                {
+                                    <div class="dropdown-item" data-value="@property.PropertyId" data-name="@property.PropertyName">@property.PropertyName</div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-lg-3 col-md-6">
+                        <label for="FloorId" class="form-label">Select Floor <span class="text-danger">*</span></label>
+                        <div class="position-relative">
+                            <input type="text" class="form-control" id="floorSearch" placeholder="Search floors..." autocomplete="off" required>
+                            <input type="hidden" id="FloorId" name="FloorId" value="" required>
+                            <div class="invalid-feedback">Please select a floor</div>
+                            <div class="dropdown-menu w-100" id="floorDropdown" style="max-height: 200px; overflow-y: auto; display: none;">
+                                <div class="dropdown-item" data-value="">Choose a floor...</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-lg-3 col-md-6">
+                        <label for="FlatId" class="form-label">Select Flat <span class="text-danger">*</span></label>
+                        <div class="position-relative">
+                            <input type="text" class="form-control" id="flatSearch" placeholder="Search flats..." autocomplete="off" required>
+                            <input type="hidden" id="FlatId" name="FlatId" value="" required>
+                            <div class="invalid-feedback">Please select a flat</div>
+                            <div class="dropdown-menu w-100" id="flatDropdown" style="max-height: 200px; overflow-y: auto; display: none;">
+                                <div class="dropdown-item" data-value="">Choose a flat...</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-lg-3 col-md-6">
+                        <label for="ValidUntil" class="form-label">Valid Until <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="ValidUntil" name="ValidUntil" placeholder="Select date" autocomplete="off" required>
+                        <div class="invalid-feedback">Please select valid until date</div>
+                    </div>
+
+                    <div class="col-lg-9 col-12">
+                        <label for="Notes" class="form-label">Notes <span class="text-danger">*</span></label>
+                        <textarea class="form-control" id="Notes" name="Notes" rows="1"
+                                  placeholder="Additional notes or terms..." required></textarea>
+                        <div class="invalid-feedback">Please enter notes</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quotation Items -->
+        <div class="section-card">
+            <div class="section-header">
+                <i class="fa-solid fa-list me-2"></i>Quotation Items
+            </div>
+            <div class="section-body">
+                <div class="table-responsive">
+                    <table class="items-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 20%;">Item Type</th>
+                                <th style="width: 35%;">Description</th>
+                                <th style="width: 10%;">Qty</th>
+                                <th style="width: 15%;">Amount (₹)</th>
+                                <th style="width: 15%;">Total (₹)</th>
+                                <th style="width: 5%;"></th>
+                            </tr>
+                        </thead>
+                        <tbody id="itemsTableBody">
+                            <tr class="item-row">
+                                <td>
+                                    <select class="form-select form-select-sm item-type" required>
+                                        <option value="Base">Base Price</option>
+                                        <option value="Parking">Parking</option>
+                                        <option value="Club">Club Membership</option>
+                                        <option value="Legal">Legal & Registration</option>
+                                        <option value="Other">Other</option>
+                                    </select>
+                                </td>
+                                <td>
+                                    <input type="text" class="form-control form-control-sm item-description"
+                                           placeholder="Description" required>
+                                </td>
+                                <td>
+                                    <input type="number" class="form-control form-control-sm item-quantity"
+                                           value="1" min="1" required>
+                                </td>
+                                <td>
+                                    <input type="number" class="form-control form-control-sm item-amount"
+                                           placeholder="0" step="0.01" min="0.01" required>
+                                </td>
+                                <td>
+                                    <input type="text" class="form-control form-control-sm item-total"
+                                           readonly value="0">
+                                </td>
+                                <td>
+                                    <button type="button" class="remove-item-btn" onclick="removeItem(this)" disabled>
+                                        <i class="fa-solid fa-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <button type="button" class="btn add-item-btn mt-3" onclick="addItem()">
+                    <i class="fa-solid fa-plus me-2"></i>Add Item
+                </button>
+
+                <!-- Totals Section -->
+                <div class="totals-section">
+                    <div class="total-row">
+                        <span>Subtotal:</span>
+                        <strong id="subtotalDisplay">₹0</strong>
+                    </div>
+                    <div class="total-row">
+                        <span>
+                            <strong>Discount %:</strong>
+                            <input type="number" id="DiscountPercent" name="DiscountPercent"
+                                   value="0" step="0.01" min="0" max="100"
+                                   class="form-control form-control-sm">
+                        </span>
+                        <strong>Discount Amount: <span id="discountDisplay">₹0</span></strong>
+                    </div>
+                    <div class="total-row">
+                        <span>GST (@gstRate%):</span>
+                        <strong id="taxDisplay">₹0</strong>
+                    </div>
+                    <div class="total-row">
+                        <span>Grand Total:</span>
+                        <strong id="grandTotalDisplay">₹0</strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Submit Button -->
+        <div class="text-center mb-5">
+            <button type="submit" class="btn btn-primary submit-btn">
+                <i class="fa-solid fa-save me-2"></i>Generate Quotation
+            </button>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+<!-- Flatpickr -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+
+<script>
+    const gstRate = @gstRate;
+
+    let isSubmitting = false;
+    
+    $(document).ready(function() {
+        console.log('=== Quotation Create Page Loaded ===');
+        console.log('GST Rate:', gstRate);
+        console.log('jQuery version:', $.fn.jquery);
+        
+        // Clear any existing handlers first
+        $('#quotationForm').off();
+        $(document).off('input change', '.item-quantity, .item-amount, #DiscountPercent');
+        
+        // Initialize searchable dropdowns
+        initializeSearchableDropdowns();
+
+        // Initialize date picker for Valid Until (keeps Y-m-d format, same as native date input)
+        flatpickr('#ValidUntil', {
+            dateFormat: 'Y-m-d',
+            altInput: true,
+            altFormat: 'd M Y',
+            minDate: 'today',
+            disableMobile: true
+        });
+        
+        // Attach event listeners immediately
+        attachEventListeners();
+        
+        // Initial calculation
+        calculateTotals();
+    });
+
+    function initializeSearchableDropdowns() {
+        // Lead dropdown
+        setupSearchableDropdown('leadSearch', 'LeadId', 'leadDropdown');
+        // Property dropdown
+        setupSearchableDropdown('propertySearch', 'PropertyId', 'propertyDropdown');
+        // Floor dropdown
+        setupSearchableDropdown('floorSearch', 'FloorId', 'floorDropdown');
+        // Flat dropdown
+        setupSearchableDropdown('flatSearch', 'FlatId', 'flatDropdown');
+    }
+
+    function setupSearchableDropdown(searchId, hiddenId, dropdownId) {
+        const searchInput = $('#' + searchId);
+        const hiddenInput = $('#' + hiddenId);
+        const dropdown = $('#' + dropdownId);
+        const dropdownItems = dropdown.find('.dropdown-item');
+
+        // Show dropdown on focus
+        searchInput.on('focus', function() {
+            dropdown.show();
+            filterDropdownItems(dropdownItems, '');
+        });
+
+        // Hide dropdown when clicking outside
+        $(document).on('click', function(e) {
+            if (!searchInput.is(e.target) && !dropdown.is(e.target) && dropdown.has(e.target).length === 0) {
+                dropdown.hide();
+            }
+        });
+
+        // Filter on input
+        searchInput.on('input', function() {
+            const searchTerm = $(this).val().toLowerCase();
+            filterDropdownItems(dropdownItems, searchTerm);
+        });
+
+        // Handle dropdown item selection
+        dropdownItems.on('click', function() {
+            const value = $(this).data('value');
+            const name = $(this).data('name') || $(this).text();
+            
+            hiddenInput.val(value);
+            searchInput.val(name);
+            dropdown.hide();
+            
+            // Trigger change event for property to load floors
+            if (hiddenId === 'PropertyId') {
+                hiddenInput.trigger('change');
+            }
+            // Trigger change event for floor to load flats
+            if (hiddenId === 'FloorId') {
+                hiddenInput.trigger('change');
+            }
+            // Trigger change event for flat to auto-fill quotation item row
+            if (hiddenId === 'FlatId') {
+                hiddenInput.trigger('change');
+            }
+        });
+    }
+
+    function filterDropdownItems(items, searchTerm) {
+        items.each(function() {
+            const text = $(this).text().toLowerCase();
+            if (text.includes(searchTerm)) {
+                $(this).show();
+            } else {
+                $(this).hide();
+            }
+        });
+    }
+
+
+
+    function attachEventListeners() {
+        // Property change - load floors
+        $('#PropertyId').off('change').on('change', function() {
+            console.log('Property changed:', $(this).val());
+            const propertyId = $(this).val();
+            $('#FloorId').html('<option value="">Choose a floor...</option>');
+            $('#FlatId').html('<option value="">Choose a flat...</option>');
+            
+            if (propertyId) {
+                loadFloors(propertyId);
+            }
+        });
+
+        // Floor change - load flats
+        $('#FloorId').off('change').on('change', function() {
+            console.log('Floor changed:', $(this).val());
+            const propertyId = $('#PropertyId').val();
+            const floorId = $(this).val();
+            
+            // Clear flat dropdown
+            $('#flatDropdown').html('<div class="dropdown-item" data-value="">Choose a flat...</div>');
+            $('#FlatId').val('');
+            $('#flatSearch').val('');
+            
+            if (propertyId && floorId) {
+                // Get floor number from the selected dropdown item
+                const floorNumber = $('#floorDropdown').find(`[data-value="${floorId}"]`).data('floor');
+                console.log('Loading flats for floor number:', floorNumber);
+                if (floorNumber) {
+                    loadFlats(propertyId, floorNumber);
+                }
+            }
+        });
+
+        // Flat change - auto fill first item
+        $('#FlatId').off('change').on('change', function() {
+            console.log('Flat changed:', $(this).val());
+            const flatId = $(this).val();
+            if (flatId) {
+                const selectedItem = $('#flatDropdown').find(`[data-value="${flatId}"]`);
+                const flatPrice = parseFloat(selectedItem.data('price')) || 0;
+                const flatDescription = 'Flat Base Price';
+                console.log('Flat price:', flatPrice, 'Flat name:', flatDescription);
+                
+                if (flatPrice) {
+                    const firstRow = $('#itemsTableBody tr:first');
+                    firstRow.find('.item-type').val('Base');
+                    firstRow.find('.item-description').val(flatDescription);
+                    firstRow.find('.item-quantity').val(1);
+                    firstRow.find('.item-amount').val(flatPrice);
+                    calculateItemTotal(firstRow);
+                }
+            }
+        });
+
+        // Item changes - calculate on input
+        $(document).off('input change', '.item-quantity, .item-amount, #DiscountPercent');
+        $(document).on('input change', '.item-quantity, .item-amount, #DiscountPercent', function() {
+            console.log('Input changed:', $(this).attr('class'), 'Value:', $(this).val());
+            if ($(this).is('#DiscountPercent')) {
+                const rawValue = ($(this).val() || '').toString().trim();
+                if (rawValue !== '' && rawValue !== '.' && !rawValue.endsWith('.')) {
+                    let discountValue = parseFloat(rawValue);
+                    if (!isNaN(discountValue)) {
+                        // Do not rewrite valid in-range typing (e.g., 3.5).
+                        // Only force-correct when out of bounds.
+                        if (discountValue < 0) {
+                            $(this).val(0);
+                        } else if (discountValue > 100) {
+                            $(this).val(100);
+                        }
+                    }
+                }
+            }
+            const row = $(this).closest('tr');
+            if (row.length && ($(this).hasClass('item-amount') || $(this).hasClass('item-quantity'))) {
+                calculateItemTotal(row);
+            } else {
+                calculateTotals();
+            }
+        });
+
+        // Clamp discount only after user finishes typing, so decimals like 3.5 are easy to enter.
+        $(document).off('blur change', '#DiscountPercent');
+        $(document).on('blur change', '#DiscountPercent', function() {
+            let discountValue = parseFloat($(this).val());
+            if (isNaN(discountValue) || discountValue < 0) {
+                discountValue = 0;
+            }
+            if (discountValue > 100) {
+                discountValue = 100;
+            }
+            $(this).val(discountValue);
+            calculateTotals();
+        });
+
+        // Form submission
+        $('#quotationForm').on('submit', function(e) {
+            e.preventDefault();
+            
+            // Validate form
+            if (!this.checkValidity()) {
+                this.classList.add('was-validated');
+                return false;
+            }
+            
+            // Validate hidden fields
+            const leadId = $('#LeadId').val();
+            const propertyId = $('#PropertyId').val();
+            const floorId = $('#FloorId').val();
+            const flatId = $('#FlatId').val();
+            
+            if (!leadId) {
+                $('#leadSearch').addClass('is-invalid');
+                Swal.fire('Error', 'Please select a lead', 'error');
+                return false;
+            }
+            
+            if (!propertyId) {
+                $('#propertySearch').addClass('is-invalid');
+                Swal.fire('Error', 'Please select a property', 'error');
+                return false;
+            }
+            
+            if (!floorId) {
+                $('#floorSearch').addClass('is-invalid');
+                Swal.fire('Error', 'Please select a floor', 'error');
+                return false;
+            }
+            
+            if (!flatId) {
+                $('#flatSearch').addClass('is-invalid');
+                Swal.fire('Error', 'Please select a flat', 'error');
+                return false;
+            }
+            
+            // Prevent double submission with global flag
+            if (isSubmitting) {
+                console.log('Already submitting, ignoring...');
+                return false;
+            }
+            
+            isSubmitting = true;
+            console.log('Form submitted - setting isSubmitting to true');
+            
+            // Collect items - only visible rows with strict duplicate prevention
+            const items = [];
+            const seenItems = new Set();
+            let hasInvalidItemRow = false;
+            
+            $('#itemsTableBody tr:visible').each(function(index) {
+                const row = $(this);
+                const itemTypeInput = row.find('.item-type');
+                const descriptionInput = row.find('.item-description');
+                const quantityInput = row.find('.item-quantity');
+                const amountInput = row.find('.item-amount');
+
+                const itemType = (itemTypeInput.val() || '').toString().trim();
+                const description = (descriptionInput.val() || '').toString().trim();
+                const quantity = parseInt(quantityInput.val(), 10);
+                const amount = parseFloat(amountInput.val());
+
+                const isRowValid = itemType !== '' && description !== '' && Number.isInteger(quantity) && quantity > 0 && Number.isFinite(amount) && amount > 0;
+
+                itemTypeInput.toggleClass('is-invalid', itemType === '');
+                descriptionInput.toggleClass('is-invalid', description === '');
+                quantityInput.toggleClass('is-invalid', !Number.isInteger(quantity) || quantity <= 0);
+                amountInput.toggleClass('is-invalid', !Number.isFinite(amount) || amount <= 0);
+
+                if (!isRowValid) {
+                    hasInvalidItemRow = true;
+                    return;
+                }
+                
+                const item = {
+                    itemType: itemType,
+                    description: description,
+                    quantity: quantity,
+                    amount: amount,
+                    total: parseFloat(row.find('.item-total').val()) || 0
+                };
+
+                // Create unique key
+                const itemKey = `${item.itemType}|${item.description}|${item.amount}`;
+
+                // Only add if not seen before
+                if (!seenItems.has(itemKey)) {
+                    seenItems.add(itemKey);
+                    items.push(item);
+                    console.log(`Added item ${items.length}:`, item);
+                } else {
+                    console.log(`Skipped duplicate item:`, item);
+                }
+            });
+
+            if (hasInvalidItemRow) {
+                Swal.fire('Error', 'Each item row requires Item Type, Description, Qty (> 0), and Amount (> 0).', 'error');
+                isSubmitting = false;
+                return false;
+            }
+
+            if (items.length === 0) {
+                Swal.fire('Error', 'Please add at least one item', 'error');
+                isSubmitting = false;
+                return false;
+            }
+            
+            console.log('Final items to submit:', items);
+
+            // Collect form data
+            const formData = {
+                leadId: $('#LeadId').val(),
+                propertyId: $('#PropertyId').val(),
+                flatId: $('#FlatId').val() || null,
+                validUntil: $('#ValidUntil').val() || null,
+                notes: $('#Notes').val(),
+                basePrice: items.reduce((sum, item) => sum + item.total, 0),
+                discountAmount: 0,
+            };
+
+            // Show loading
+            const submitBtn = $(this).find('button[type="submit"]');
+            const originalText = submitBtn.html();
+
+            // Calculate discount amount from percentage
+            const discountPercent = parseFloat($('#DiscountPercent').val()) || 0;
+            if (discountPercent < 0 || discountPercent > 100) {
+                Swal.fire('Error', 'Discount percent must be between 0 and 100.', 'error');
+                isSubmitting = false;
+                return false;
+            }
+            formData.discountAmount = (formData.basePrice * discountPercent) / 100;
+
+            submitBtn.prop('disabled', true).html('<i class="fa-solid fa-spinner fa-spin me-2"></i>Creating...');
+
+            // Build the data string properly
+            let dataString = $.param(formData);
+            items.forEach((item, index) => {
+                dataString += `&items[${index}].itemType=${encodeURIComponent(item.itemType)}`;
+                dataString += `&items[${index}].description=${encodeURIComponent(item.description)}`;
+                dataString += `&items[${index}].quantity=${item.quantity}`;
+                dataString += `&items[${index}].amount=${item.amount}`;
+                dataString += `&items[${index}].total=${item.total}`;
+            });
+
+            // Submit
+            $.ajax({
+                url: '/Quotations/Create',
+                type: 'POST',
+                contentType: 'application/x-www-form-urlencoded',
+                data: dataString,
+                success: function(response) {
+                    isSubmitting = false;
+                    if (response.success) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Success!',
+                            text: response.message,
+                            timer: 2000,
+                            showConfirmButton: false
+                        }).then(() => {
+                            window.location.href = '/Quotations/Details/' + response.quotationId;
+                        });
+                    } else {
+                        Swal.fire('Error', response.message, 'error');
+                        submitBtn.prop('disabled', false).html(originalText);
+                    }
+                },
+                error: function() {
+                    isSubmitting = false;
+                    Swal.fire('Error', 'Failed to create quotation', 'error');
+                    submitBtn.prop('disabled', false).html(originalText);
+                }
+            });
+            
+            return false;
+        });
+    }
+
+    function loadFloors(propertyId) {
+        $.ajax({
+            url: '/Quotations/GetFloorsByProperty',
+            type: 'GET',
+            data: { propertyId },
+            success: function(response) {
+                console.log('Floors response:', response);
+                if (response.success && response.floors && response.floors.length > 0) {
+                    let options = '<div class="dropdown-item" data-value="">Choose a floor...</div>';
+                    response.floors.forEach(floor => {
+                        const floorValue = floor.floorNumber || floor.floorName || '';
+                        const floorName = floor.floorName || (floorValue ? `Floor ${floorValue}` : 'Unknown Floor');
+                        options += `<div class="dropdown-item" data-value="${floor.floorId}" data-floor="${floorValue}" data-name="${floorName}">${floorName}</div>`;
+                    });
+                    $('#floorDropdown').html(options);
+                    // Re-setup floor dropdown after loading new options
+                    setupSearchableDropdown('floorSearch', 'FloorId', 'floorDropdown');
+                } else {
+                    $('#floorDropdown').html('<div class="dropdown-item" data-value="">No floors available</div>');
+                    console.log('No floors found for property:', propertyId);
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error('Floor AJAX Error:', error);
+                console.error('Response:', xhr.responseText);
+                $('#floorDropdown').html('<div class="dropdown-item" data-value="">Error loading floors</div>');
+            }
+        });
+    }
+
+    function loadFlats(propertyId, floorNumber) {
+        $.ajax({
+            url: '/Quotations/GetFlatsByProperty',
+            type: 'GET',
+            data: { propertyId: propertyId, floorNumber: floorNumber },
+            success: function(response) {
+                console.log('Flats response:', response);
+                if (response.success) {
+                    let options = '<div class="dropdown-item" data-value="">Choose a flat...</div>';
+                    if (response.flats && response.flats.length > 0) {
+                        response.flats.forEach(flat => {
+                            const price = flat.price || 0;
+                            const bhk = flat.bhk || '';
+                            const status = flat.status || 'Available';
+                            const area = flat.area || '';
+                            const flatName = `${flat.flatName} - ${bhk} - ${area} sqft - ₹${price.toLocaleString()} - ${status}`;
+                            options += `<div class="dropdown-item" data-value="${flat.flatId}" data-price="${price}" data-name="${flatName}">${flatName}</div>`;
+                        });
+                    } else {
+                        options += '<div class="dropdown-item" data-value="">No available flats</div>';
+                    }
+                    $('#flatDropdown').html(options);
+                    // Re-setup flat dropdown after loading new options
+                    setupSearchableDropdown('flatSearch', 'FlatId', 'flatDropdown');
+                } else {
+                    console.error('Failed to load flats');
+                    $('#flatDropdown').html('<div class="dropdown-item" data-value="">Error loading flats</div>');
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error('Flat AJAX Error:', error);
+                console.error('Response:', xhr.responseText);
+                $('#flatDropdown').html('<div class="dropdown-item" data-value="">Error loading flats</div>');
+            }
+        });
+    }
+
+    function addItem() {
+        const newRow = `
+            <tr class="item-row">
+                <td>
+                    <select class="form-select form-select-sm item-type" required>
+                        <option value="Base">Base Price</option>
+                        <option value="Parking">Parking</option>
+                        <option value="Club">Club Membership</option>
+                        <option value="Legal">Legal & Registration</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </td>
+                <td>
+                    <input type="text" class="form-control form-control-sm item-description" 
+                           placeholder="Description" required>
+                </td>
+                <td>
+                    <input type="number" class="form-control form-control-sm item-quantity" 
+                           value="1" min="1" required>
+                </td>
+                <td>
+                    <input type="number" class="form-control form-control-sm item-amount" 
+                           placeholder="0" step="0.01" min="0.01" required>
+                </td>
+                <td>
+                    <input type="text" class="form-control form-control-sm item-total" 
+                           readonly value="0">
+                </td>
+                <td>
+                    <button type="button" class="remove-item-btn" onclick="removeItem(this)">
+                        <i class="fa-solid fa-trash"></i>
+                    </button>
+                </td>
+            </tr>
+        `;
+        $('#itemsTableBody').append(newRow);
+        updateRemoveButtons();
+    }
+
+    function removeItem(btn) {
+        $(btn).closest('tr').remove();
+        calculateTotals();
+        updateRemoveButtons();
+    }
+
+    function updateRemoveButtons() {
+        const rowCount = $('#itemsTableBody tr').length;
+        $('#itemsTableBody tr').each(function(index) {
+            const removeBtn = $(this).find('.remove-item-btn');
+            removeBtn.prop('disabled', rowCount === 1);
+        });
+    }
+
+    function calculateItemTotal(row) {
+        const qty = parseFloat(row.find('.item-quantity').val()) || 0;
+        const amount = parseFloat(row.find('.item-amount').val()) || 0;
+        const total = qty * amount;
+        console.log('Calculating item total: qty=' + qty + ', amount=' + amount + ', total=' + total);
+        row.find('.item-total').val(total.toFixed(2));
+        
+        // Trigger total calculation
+        calculateTotals();
+    }
+
+    function calculateTotals() {
+        let subtotal = 0;
+        $('#itemsTableBody tr').each(function() {
+            const total = parseFloat($(this).find('.item-total').val()) || 0;
+            subtotal += total;
+        });
+
+        const discountPercent = parseFloat($('#DiscountPercent').val()) || 0;
+        const discountAmount = (subtotal * discountPercent) / 100;
+        const taxableAmount = subtotal - discountAmount;
+        const tax = taxableAmount * (gstRate / 100);
+        const grandTotal = taxableAmount + tax;
+
+        console.log('Calculating totals: subtotal=' + subtotal + ', discount=' + discountAmount + ', tax=' + tax + ', grandTotal=' + grandTotal);
+
+        $('#subtotalDisplay').text('₹' + subtotal.toLocaleString('en-IN', {maximumFractionDigits: 2}));
+        $('#discountDisplay').text('₹' + discountAmount.toLocaleString('en-IN', {maximumFractionDigits: 2}));
+        $('#taxDisplay').text('₹' + tax.toLocaleString('en-IN', {maximumFractionDigits: 2}));
+        $('#grandTotalDisplay').text('₹' + grandTotal.toLocaleString('en-IN', {maximumFractionDigits: 2}));
+    }
+</script>
+
+<!-- SweetAlert2 -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+}

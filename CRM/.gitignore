@@ -1,0 +1,51 @@
+# Ignore build outputs
+bin/
+obj/
+publish/
+
+# Visual Studio / IDE
+.vs/
+.vscode/
+.idea/
+
+# User-specific files
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Logs
+*.log
+
+# Node
+node_modules/
+
+# Secrets and credentials
+firebase-credentials.json
+realestatecrm-*-firebase-adminsdk-*.json
+*firebase-adminsdk*.json
+credentials.json
+secrets/
+secrets.json
+
+# App settings (may contain keys)
+appsettings.json
+appsettings.*.json
+
+# Environment files
+.env
+.env.*
+.env.local
+
+# Certificate and key files
+*.key
+*.pem
+*.p12
+*.pfx
+*.jks
+*.p8
+
+# Azure / Publish
+PublishProfiles/
+*.Publish.xml
+*.publishsettings

@@ -1,0 +1,108 @@
+@model List<CRM.Models.EmailLogModel>
+@{
+    ViewData["Title"] = "Email Log - Super Admin";
+}
+<style>
+    .el-container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+    .el-header { margin-bottom: 20px; }
+    .el-header h2 { margin: 0; font-size: 1.5rem; font-weight: 600; color: var(--text-primary); }
+    .el-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+    .el-table thead { background: linear-gradient(135deg, var(--blue), var(--blue-dark)); }
+    .el-table th { color: #FFFFFF; padding: 10px 12px; text-align: left; font-weight: 600; font-size: 0.75rem; white-space: nowrap; text-transform: uppercase; letter-spacing: 0.3px; }
+    .el-table td { padding: 8px 12px; border-bottom: 1px solid var(--border-color); vertical-align: middle; }
+    .el-table tbody tr { transition: background 0.15s; }
+    .el-table tbody tr:hover td { background: rgba(26,111,168,0.04); }
+    .el-badge { padding: 2px 10px; border-radius: 4px; font-size: 0.7rem; font-weight: 600; }
+    .el-badge-sent { background: #E2E8F0; color: #1A6FA8; }
+    .el-badge-failed { background: #FEE2E2; color: #DC2626; }
+    .el-badge-general { background: #F0F4F8; color: #6B7B8D; }
+
+    /* Dark mode */
+    .dark-mode .el-table tbody tr:hover td,
+    [data-bs-theme="dark"] .el-table tbody tr:hover td { background: rgba(26,111,168,0.12); }
+    .dark-mode .el-table td,
+    [data-bs-theme="dark"] .el-table td { color: var(--text-primary, #E8EDF2); border-bottom-color: var(--border-color, #2A3A4A); }
+    .dark-mode .el-table thead th,
+    [data-bs-theme="dark"] .el-table thead th { color: #FFFFFF; }
+    .dark-mode .el-badge-sent,
+    [data-bs-theme="dark"] .el-badge-sent { background: rgba(26,111,168,0.25); color: #8FA3B8; }
+    .dark-mode .el-badge-failed,
+    [data-bs-theme="dark"] .el-badge-failed { background: rgba(220,38,38,0.2); color: #E8C27E; }
+    .dark-mode .el-badge-general,
+    [data-bs-theme="dark"] .el-badge-general { background: rgba(107,123,141,0.15); color: #8FA3B8; }
+    .dark-mode .el-empty i,
+    [data-bs-theme="dark"] .el-empty i { color: var(--gold, #D4A45A); opacity: 0.3; }
+    .el-empty { text-align: center; padding: 60px 20px; color: var(--text-muted); }
+    .el-empty i { font-size: 48px; opacity: 0.3; margin-bottom: 16px; color: var(--gold); }
+
+    @@media (max-width: 767px) {
+        .el-container { padding: 12px; }
+        .el-table { font-size: 0.78rem; }
+        .el-table th, .el-table td { padding: 0.45rem 0.5rem; }
+    }
+</style>
+
+<div class="el-container">
+    <nav class="mb-3" aria-label="breadcrumb">
+        <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item"><a href="/SuperAdmin/Dashboard">Dashboard</a></li>
+            <li class="breadcrumb-item active">Email Log</li>
+        </ol>
+    </nav>
+
+    <div class="el-header">
+        <h2><i class="fa-solid fa-paper-plane" style="color:var(--blue);"></i> Email Log</h2>
+        <p style="color:var(--text-muted);font-size:0.85rem;">Track all emails sent from the system</p>
+    </div>
+
+    @if (!Model.Any())
+    {
+        <div class="el-empty">
+            <i class="fa-solid fa-inbox"></i>
+            <p>No emails have been sent yet. Emails sent for welcome, password reset, plan selection, and member invitations will appear here.</p>
+        </div>
+    }
+    else
+    {
+        <div style="overflow-x:auto;">
+            <table class="el-table">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>To</th>
+                        <th>Subject</th>
+                        <th>Template</th>
+                        <th>Category</th>
+                        <th>Sent By</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var log in Model)
+                    {
+                        <tr>
+                            <td style="white-space:nowrap;">@log.SentOn.ToString("MMM dd, HH:mm")</td>
+                            <td>@log.ToEmail</td>
+                            <td style="max-width:250px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="@log.Subject">@log.Subject</td>
+                            <td>@(log.TemplateName ?? "-")</td>
+                            <td><span class="el-badge el-badge-general">@(log.Category ?? "General")</span></td>
+                            <td>@(log.SentByUser ?? "System")</td>
+                            <td>
+                                <span class="el-badge @(log.Status == "Sent" ? "el-badge-sent" : "el-badge-failed")">
+                                    @log.Status
+                                </span>
+                                @if (!string.IsNullOrEmpty(log.ErrorMessage))
+                                {
+                                    <div style="font-size:0.7rem;color:#DC2626;margin-top:2px;" title="@log.ErrorMessage">Error</div>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+        <div style="text-align:center;padding:12px;color:var(--text-muted);font-size:0.8rem;">
+            Showing last @Model.Count emails
+        </div>
+    }
+</div>

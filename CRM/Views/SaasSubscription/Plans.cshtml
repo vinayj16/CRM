@@ -1,0 +1,782 @@
+@model IEnumerable<CRM.MasterDb.Models.SaasSubscriptionPlanModel>
+
+@{
+    ViewData["Title"] = "Subscription Plans";
+}
+
+<style>
+    .plan-card {
+        border: 1px solid var(--bs-border-color, rgba(0, 0, 0, 0.125));
+        transition: all 0.3s ease;
+        background: var(--bs-body-bg, white);
+    }
+
+        .plan-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+    .plan-header {
+        border-bottom: 1px solid var(--bs-border-color, #E8EDF2);
+        padding-bottom: 1rem;
+        margin-bottom: 1rem;
+    }
+
+    .plan-name {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: var(--bs-body-color, #1E2A3A);
+        margin-bottom: 0.5rem;
+    }
+
+    .plan-type {
+        padding: 0.25rem 0.75rem;
+        border-radius: 15px;
+        font-weight: 500;
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+        .plan-type.basic {
+            background: #E2E8F0;
+            color: #1A6FA8;
+        }
+
+        .plan-type.standard {
+            background: #DCFCE7;
+            color: #15803D;
+        }
+
+        .plan-type.enterprise {
+            background: #FEF3C7;
+            color: #B45309;
+        }
+
+    .dark-mode [data-bs-theme="dark"] .plan-type.enterprise,
+    .dark-mode .plan-type.enterprise,
+    [data-bs-theme="dark"] .plan-type.enterprise {
+        background-color: #F59E0B !important;
+        color: #FFFFFF !important;
+        border: none !important;
+    }
+
+    .dark-mode [data-bs-theme="dark"] .plan-type.basic,
+    .dark-mode .plan-type.basic,
+    [data-bs-theme="dark"] .plan-type.basic {
+        background-color: #2589C9 !important;
+        color: #FFFFFF !important;
+        border: none !important;
+    }
+
+    .dark-mode [data-bs-theme="dark"] .plan-type.standard,
+    .dark-mode .plan-type.standard,
+    [data-bs-theme="dark"] .plan-type.standard {
+        background-color: #16A34A !important;
+        color: #FFFFFF !important;
+        border: none !important;
+    }
+
+    .price-label {
+        font-size: 0.75rem;
+        color: var(--bs-secondary-color, #6B7B8D);
+        margin-bottom: 0.25rem;
+        font-weight: 500;
+        text-transform: uppercase;
+    }
+
+    .price-amount {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: var(--bs-body-color, #1E2A3A);
+    }
+
+    .price-currency {
+        font-size: 1rem;
+        color: var(--bs-secondary-color, #6B7B8D);
+    }
+
+    .feature-group h6 {
+        font-weight: 600;
+        color: var(--bs-body-color, #2A3A4A);
+        margin-bottom: 0.5rem;
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .feature-item {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-bottom: 0.25rem;
+        font-size: 0.8rem;
+    }
+
+        .feature-item i {
+            width: 14px;
+            text-align: center;
+            font-size: 0.75rem;
+        }
+
+    .feature-enabled {
+        background: #DCFCE7;
+        color: #16A34A;
+    }
+
+    .feature-disabled {
+        background: #FEE2E2;
+        color: #DC2626;
+    }
+
+    .feature-limited {
+        background: #FEF3C7;
+        color: #F59E0B;
+    }
+
+    [data-bs-theme="dark"] .feature-limited,
+    .dark-mode .feature-limited,
+    [data-bs-theme="dark"] .feature-item .feature-limited,
+    .dark-mode .feature-item .feature-limited,
+    [data-bs-theme="dark"] .plan-card .feature-limited,
+    .dark-mode .plan-card .feature-limited,
+    [data-bs-theme="dark"] .feature-icon.feature-limited,
+    .dark-mode .feature-icon.feature-limited,
+    body[data-bs-theme="dark"] .feature-limited,
+    body.dark-mode .feature-limited {
+        background: #0D1724 !important;
+        color: #E2E8F0 !important;
+        border: none !important;
+    }
+
+    [data-bs-theme="dark"] .feature-disabled,
+    .dark-mode .feature-disabled,
+    [data-bs-theme="dark"] .feature-item .feature-disabled,
+    .dark-mode .feature-item .feature-disabled,
+    [data-bs-theme="dark"] .plan-card .feature-disabled,
+    .dark-mode .plan-card .feature-disabled,
+    [data-bs-theme="dark"] .feature-icon.feature-disabled,
+    .dark-mode .feature-icon.feature-disabled,
+    body[data-bs-theme="dark"] .feature-disabled,
+    body.dark-mode .feature-disabled {
+        background: #0D1724 !important;
+        color: #E2E8F0 !important;
+        border: none !important;
+    }
+
+    .header-section {
+        background: linear-gradient(135deg, #1A6FA8 0%, #125082 100%);
+        color: white;
+        padding: 1.5rem;
+        border-radius: 12px;
+        margin-bottom: 1.5rem;
+        position: relative;
+        overflow: hidden;
+        border: none !important;
+    }
+
+    .header-content {
+        position: relative;
+        z-index: 2;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 4rem 2rem;
+        background: var(--bs-body-bg, white);
+        border-radius: 16px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        border: 1px solid var(--bs-border-color, transparent);
+    }
+
+        .empty-state i {
+            font-size: 2.2rem;
+            color: var(--bs-secondary-color, #E2E8F0);
+            margin-bottom: 1.5rem;
+        }
+
+    @@media (min-width: 992px) {
+        #createPlanModal .modal-dialog {
+            max-width: 1100px !important;
+        }
+    }
+
+    @@media (max-width: 991px) {
+        .modal-dialog {
+            margin: 0.5rem;
+            max-width: calc(100% - 1rem);
+        }
+
+        .modal-footer {
+            flex-wrap: nowrap;
+        }
+
+            .modal-footer .btn {
+                flex: 1;
+            }
+    }
+
+    [data-bs-theme="dark"] .swal2-popup,
+    .dark-mode .swal2-popup,
+    body[data-bs-theme="dark"] .swal2-popup {
+        background-color: var(--bs-body-bg, #1E2A3A) !important;
+        color: var(--bs-body-color, #FFFFFF) !important;
+    }
+
+    [data-bs-theme="dark"] .swal2-title,
+    .dark-mode .swal2-title,
+    body[data-bs-theme="dark"] .swal2-title {
+        color: var(--bs-body-color, #FFFFFF) !important;
+    }
+
+    [data-bs-theme="dark"] .swal2-html-container,
+    .dark-mode .swal2-html-container,
+    body[data-bs-theme="dark"] .swal2-html-container,
+    [data-bs-theme="dark"] .swal2-html-container *,
+    .dark-mode .swal2-html-container *,
+    body[data-bs-theme="dark"] .swal2-html-container * {
+        color: var(--bs-body-color, #FFFFFF) !important;
+    }
+/* Custom styles for plans slider */
+.plans-slider {
+    position: relative;
+    overflow: hidden;
+    margin: 0 -1rem;
+}
+.slides {
+    display: flex;
+    transition: transform 0.5s ease-in-out;
+    gap: 1rem;
+}
+.slide {
+    min-width: 300px;
+    flex-shrink: 0;
+}
+.slide-btn {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(255,255,255,0.8);
+    border: none;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 10;
+}
+.slide-btn.prev {
+    left: 1rem;
+}
+.slide-btn.next {
+    right: 1rem;
+}
+.slide-btn i {
+    font-size: 1.2rem;
+}
+</style>
+
+<div class="content">
+    <nav class="mb-3" aria-label="breadcrumb">
+        <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item"><a href="/Home/Index">Home</a></li>
+            <li class="breadcrumb-item active">Subscription Plans</li>
+        </ol>
+    </nav>
+
+    <div class="header-section">
+        <div class="header-content">
+            <div class="row align-items-center">
+                <div class="col-lg-8">
+                    <div class="d-flex align-items-center mb-2">
+                        <div class="me-3">
+                            <i class="fa-solid fa-layer-group" style="font-size: 2rem; opacity: 0.9;"></i>
+                        </div>
+                        <div>
+                            <h1 class="mb-0" style="font-size: 2rem; font-weight: 700;">Subscription Plans</h1>
+                            <p class="mb-0" style="font-size: 1rem; opacity: 0.9;">Create and manage pricing plans for your partners</p>
+                        </div>
+</div>
+    <button class="slide-btn prev" id="prevBtn"><i class="fa-solid fa-chevron-left"></i></button>
+    <button class="slide-btn next" id="nextBtn"><i class="fa-solid fa-chevron-right"></i></button>
+</div>
+                <div class="col-lg-4 text-lg-end">
+                    <button type="button" class="btn btn-light" data-bs-toggle="modal" data-bs-target="#createPlanModal">
+                        <i class="fa-solid fa-plus me-2"></i>
+                        <span>Create New Plan</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="plansContainer" class="plans-slider">
+        @if (Model != null && Model.Any())
+        {
+            <div class="row">
+                @foreach (var plan in Model)
+                {
+                    var hasIntegrations = plan.HasWhatsAppIntegration || plan.HasFacebookIntegration || plan.HasEmailIntegration || plan.HasCustomAPIAccess;
+                    var hasReportsSupport = plan.HasAdvancedReports || plan.HasPrioritySupport;
+
+                    <div class="col-lg-3 col-md-6 mb-4">
+                        <div class="card h-100 plan-card">
+                            <div class="card-body d-flex flex-column">
+                                <div class="plan-header">
+                                    <div>
+                                        <h5 class="plan-name">@plan.PlanName</h5>
+                                        @if (!string.IsNullOrEmpty(plan.Description))
+                                        {
+                                            <p class="text-muted mb-0 small">@plan.Description</p>
+                                        }
+                                    </div>
+
+                                    <div class="d-flex align-items-center gap-2 mb-2">
+                                        <span class="plan-type @(plan.PlanType?.ToLower() ?? "")">@plan.PlanType</span>
+                                        @if (plan.IsActive)
+                                        {
+                                            <span class="badge bg-success">Active</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-secondary">Inactive</span>
+                                        }
+                                    </div>
+                                </div>
+
+                                <div class="plan-pricing mb-3">
+                                    <div class="row text-center">
+                                        <div class="col-6">
+                                            <div class="price-label">Monthly</div>
+                                            <div class="price-amount">
+                                                <span class="price-currency">?</span>@plan.MonthlyPrice.ToString("N0")
+                                            </div>
+                                        </div>
+                                        <div class="col-6">
+                                            <div class="price-label">Annual</div>
+                                            <div class="price-amount">
+                                                <span class="price-currency">?</span>@plan.YearlyPrice.ToString("N0")
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="plan-features flex-grow-1">
+                                    <div class="feature-group mb-3">
+                                        <h6>Limits</h6>
+                                        <div class="feature-item">
+                                            <i class="fa-solid fa-users @(plan.MaxAgents == -1 ? "feature-enabled" : "feature-limited")"></i>
+                                            <span>@(plan.MaxAgents == -1 ? "Unlimited" : plan.MaxAgents.ToString()) Agents</span>
+                                        </div>
+                                        <div class="feature-item">
+                                            <i class="fa-solid fa-chart-line @(plan.MaxLeadsPerMonth == -1 ? "feature-enabled" : "feature-limited")"></i>
+                                            <span>@(plan.MaxLeadsPerMonth == -1 ? "Unlimited" : plan.MaxLeadsPerMonth.ToString()) Leads/Month</span>
+                                        </div>
+                                    </div>
+
+                                    @if (hasIntegrations)
+                                    {
+                                        <div class="feature-group mb-3">
+                                            <h6>Integrations</h6>
+                                            @if (plan.HasWhatsAppIntegration)
+                                            {
+                                                <div class="feature-item">
+                                                    <i class="fa-brands fa-whatsapp feature-enabled"></i>
+                                                    <span>WhatsApp</span>
+                                                </div>
+                                            }
+                                            @if (plan.HasFacebookIntegration)
+                                            {
+                                                <div class="feature-item">
+                                                    <i class="fa-brands fa-facebook feature-enabled"></i>
+                                                    <span>Facebook</span>
+                                                </div>
+                                            }
+                                            @if (plan.HasEmailIntegration)
+                                            {
+                                                <div class="feature-item">
+                                                    <i class="fa-solid fa-envelope feature-enabled"></i>
+                                                    <span>Email</span>
+                                                </div>
+                                            }
+                                            @if (plan.HasCustomAPIAccess)
+                                            {
+                                                <div class="feature-item">
+                                                    <i class="fa-solid fa-code feature-enabled"></i>
+                                                    <span>Custom API</span>
+                                                </div>
+                                            }
+                                        </div>
+                                    }
+
+                                    @if (hasReportsSupport)
+                                    {
+                                        <div class="feature-group mb-3">
+                                            <h6>Reports & Support</h6>
+                                            @if (plan.HasAdvancedReports)
+                                            {
+                                                <div class="feature-item">
+                                                    <i class="fa-solid fa-chart-bar feature-enabled"></i>
+                                                    <span>Advanced Reports</span>
+                                                </div>
+                                                <div class="feature-item">
+                                                    <i class="fa-solid fa-file-chart feature-enabled"></i>
+                                                    <span>Custom Reports</span>
+                                                </div>
+                                                <div class="feature-item">
+                                                    <i class="fa-solid fa-download feature-enabled"></i>
+                                                    <span>Data Export</span>
+                                                </div>
+                                            }
+                                            @if (plan.HasPrioritySupport)
+                                            {
+                                                <div class="feature-item">
+                                                    <i class="fa-solid fa-headset feature-enabled"></i>
+                                                    <span>@plan.SupportLevel Support</span>
+                                                </div>
+                                            }
+                                        </div>
+                                    }
+                                </div>
+
+                                <div class="plan-actions mt-auto">
+                                    <div class="d-flex gap-2">
+                                        <a href="/SaasSubscription/EditPlan/@plan.PlanId" class="btn btn-sm btn-outline-primary flex-fill">
+                                            <i class="fa-solid fa-edit"></i> Edit
+                                        </a>
+                                        <button type="button"
+                                                class="btn btn-sm @(plan.IsActive ? "btn-outline-danger" : "btn-outline-success") flex-fill"
+                                                onclick="togglePlanStatus(@plan.PlanId, @plan.IsActive.ToString().ToLower())">
+                                            <i class="fa-solid fa-@(plan.IsActive ? "pause" : "play")"></i>
+                                            @(plan.IsActive ? "Deactivate" : "Activate")
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="empty-state">
+                <i class="fa-solid fa-layer-group"></i>
+                <h3>No Subscription Plans</h3>
+                <p class="text-muted">Create your first subscription plan to get started</p>
+                <button type="button" class="btn btn-primary mt-3" data-bs-toggle="modal" data-bs-target="#createPlanModal">
+                    <i class="fa-solid fa-plus me-2"></i>Create Plan
+                </button>
+            </div>
+        }
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<script>
+    function togglePlanStatus(planId, isActive) {
+        if (isActive) {
+            fetch('/saassubscription/CheckPlanSubscribers?planId=' + planId)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.hasActiveSubscribers) {
+                        Swal.fire({
+                            title: 'Cannot Deactivate Plan',
+                            html: 'This plan has <strong>' + data.count + '</strong> active subscribers and cannot be deactivated.',
+                            icon: 'error',
+                            confirmButtonText: 'Create New Plan Instead',
+                            showCancelButton: true,
+                            cancelButtonText: 'Cancel',
+                            customClass: {
+                                popup: 'dark-mode-popup',
+                                title: 'dark-mode-title',
+                                htmlContainer: 'dark-mode-content'
+                            }
+                        }).then((result) => {
+                            if (result.isConfirmed) {
+                                window.location.href = '/saassubscription/CreatePlan';
+                            }
+                        });
+                    } else {
+                        Swal.fire({
+                            title: 'Deactivate Plan?',
+                            text: 'Are you sure you want to deactivate this plan?',
+                            icon: 'warning',
+                            showCancelButton: true,
+                            confirmButtonText: 'Yes, Deactivate',
+                            cancelButtonText: 'Cancel',
+                            confirmButtonColor: '#DC2626'
+                        }).then((result) => {
+                            if (result.isConfirmed) {
+                                submitToggleForm(planId, false);
+                            }
+                        });
+                    }
+                })
+                .catch(error => {
+                    Swal.fire('Error', 'Failed to check active subscribers', 'error');
+                });
+        } else {
+            Swal.fire({
+                title: 'Activate Plan?',
+                text: 'Are you sure you want to activate this plan?',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'Yes, Activate',
+                cancelButtonText: 'Cancel',
+                confirmButtonColor: '#2589C9'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    submitToggleForm(planId, true);
+                }
+            });
+        }
+    }
+
+    function submitToggleForm(planId, isActive) {
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '/saassubscription/TogglePlan';
+
+        const tokenInput = document.createElement('input');
+        tokenInput.type = 'hidden';
+        tokenInput.name = '__RequestVerificationToken';
+        tokenInput.value = document.querySelector('input[name="__RequestVerificationToken"]').value;
+
+        const planIdInput = document.createElement('input');
+        planIdInput.type = 'hidden';
+        planIdInput.name = 'id';
+        planIdInput.value = planId;
+
+        const statusInput = document.createElement('input');
+        statusInput.type = 'hidden';
+        statusInput.name = 'isActive';
+        statusInput.value = isActive.toString();
+
+        form.appendChild(tokenInput);
+        form.appendChild(planIdInput);
+        form.appendChild(statusInput);
+
+        document.body.appendChild(form);
+        form.submit();
+    }
+</script>
+
+<div class="modal fade" id="createPlanModal" tabindex="-1" aria-labelledby="createPlanModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" style="max-width: 1100px; width: 1100px;">
+        <div class="modal-content">
+            <form id="createPlanForm" method="post" novalidate>
+                @Html.AntiForgeryToken()
+
+                <div class="modal-header">
+                    <h5 class="modal-title" id="createPlanModalLabel">Create Subscription Plan</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+
+                <div class="modal-body">
+                    <div class="row g-2">
+                        <div class="col-md-4 mb-2">
+                            <label class="form-label">Plan Name <span class="text-danger">*</span></label>
+                            <input name="PlanName" class="form-control" required />
+                            <div class="invalid-feedback">Please enter plan name</div>
+                        </div>
+
+                        <div class="col-md-4 mb-2">
+                            <label class="form-label">Plan Type <span class="text-danger">*</span></label>
+                            <select name="PlanType" class="form-select" required>
+                                <option value="">Select Type</option>
+                                <option value="Basic">Basic</option>
+                                <option value="Standard">Standard</option>
+                                <option value="Enterprise">Enterprise</option>
+                                <option value="Premium">Premium</option>
+                                <option value="Ultimate">Ultimate</option>
+                            </select>
+                            <div class="invalid-feedback">Please select plan type</div>
+                        </div>
+
+                        <div class="col-md-4 mb-2">
+                            <label class="form-label">Monthly Price (?) <span class="text-danger">*</span></label>
+                            <input name="MonthlyPrice" type="number" step="0.01" class="form-control" required />
+                            <div class="invalid-feedback">Please enter monthly price</div>
+                        </div>
+                    </div>
+
+                    <div class="row g-2">
+                        <div class="col-md-4 mb-2">
+                            <label class="form-label">Yearly Price (?) <span class="text-danger">*</span></label>
+                            <input name="YearlyPrice" type="number" step="0.01" class="form-control" required />
+                            <div class="invalid-feedback">Please enter yearly price</div>
+                        </div>
+
+                        <div class="col-md-4 mb-2">
+                            <label class="form-label">Support Level <span class="text-danger">*</span></label>
+                            <select name="SupportLevel" class="form-select" required>
+                                <option value="">Select Support Level</option>
+                                <option value="Email">Email</option>
+                                <option value="Chat">Chat</option>
+                                <option value="Phone">Phone</option>
+                                <option value="Dedicated">Dedicated</option>
+                            </select>
+                            <div class="invalid-feedback">Please select support level</div>
+                        </div>
+
+                        <div class="col-md-4 mb-2">
+                            <label class="form-label">Sort Order <span class="text-danger">*</span></label>
+                            <input name="SortOrder" type="number" class="form-control" value="0" required />
+                            <div class="invalid-feedback">Please enter sort order</div>
+                        </div>
+                    </div>
+
+                    <div class="row g-2">
+                        <div class="col-12 mb-2">
+                            <label class="form-label">Description <span class="text-danger">*</span></label>
+                            <textarea name="Description" class="form-control" rows="2" required></textarea>
+                            <div class="invalid-feedback">Please enter description</div>
+                        </div>
+                    </div>
+
+                    <h6 class="mb-2 mt-2">Limits</h6>
+                    <div class="row g-2">
+                        <div class="col-md-4 mb-2">
+                            <label class="form-label">Max Agents <span class="text-danger">*</span></label>
+                            <input name="MaxAgents" type="number" class="form-control" value="2" required />
+                            <div class="invalid-feedback">Please enter max agents</div>
+                        </div>
+
+                        <div class="col-md-4 mb-2">
+                            <label class="form-label">Max Leads/Month <span class="text-danger">*</span></label>
+                            <input name="MaxLeadsPerMonth" type="number" class="form-control" value="500" required />
+                            <div class="invalid-feedback">Please enter max leads</div>
+                        </div>
+                    </div>
+
+                    <input type="hidden" name="MaxStorageGB" value="1000" />
+
+                    <h6 class="mb-2 mt-2">Features</h6>
+                    <div class="d-flex flex-wrap gap-3">
+                        <div class="form-check">
+                            <input name="HasWhatsAppIntegration" type="checkbox" class="form-check-input" value="true" checked />
+                            <label class="form-check-label">WhatsApp Integration</label>
+                        </div>
+                        <div class="form-check">
+                            <input name="HasFacebookIntegration" type="checkbox" class="form-check-input" value="true" checked />
+                            <label class="form-check-label">Facebook Integration</label>
+                        </div>
+                        <div class="form-check">
+                            <input name="HasEmailIntegration" type="checkbox" class="form-check-input" value="true" checked />
+                            <label class="form-check-label">Email Integration</label>
+                        </div>
+                        <div class="form-check">
+                            <input name="HasCustomAPIAccess" type="checkbox" class="form-check-input" value="true" checked />
+                            <label class="form-check-label">Custom API Access</label>
+                        </div>
+                        <div class="form-check">
+                            <input name="HasDataExport" type="checkbox" class="form-check-input" value="true" checked />
+                            <label class="form-check-label">Data Export</label>
+                        </div>
+                    </div>
+
+                    <input type="hidden" name="HasAdvancedReports" value="false" />
+                    <input type="hidden" name="HasCustomReports" value="false" />
+                    <input type="hidden" name="HasPrioritySupport" value="false" />
+                    <input type="hidden" name="HasPhoneSupport" value="false" />
+                    <input type="hidden" name="HasDedicatedManager" value="false" />
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Create Plan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            document.getElementById('createPlanForm').addEventListener('submit', function (e) {
+                e.preventDefault();
+
+                if (!this.checkValidity()) {
+                    e.stopPropagation();
+                    this.classList.add('was-validated');
+                    return;
+                }
+
+                const formData = new FormData(this);
+
+                fetch('/saassubscription/CreatePlan', {
+                    method: 'POST',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: formData
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            showToast(data.message || 'Plan created successfully!', 'success');
+                            document.getElementById('createPlanModal').querySelector('.btn-close').click();
+                            location.reload();
+                        } else {
+                            const errors = data.errors || ['An error occurred'];
+                            showToast(errors.join(', '), 'error');
+                        }
+                    })
+                    .catch(error => {
+                        showToast('An error occurred while creating plan', 'error');
+                    });
+            });
+        });
+    </script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const slides = document.querySelector('.slides');
+            const prevBtn = document.getElementById('prevBtn');
+            const nextBtn = document.getElementById('nextBtn');
+            let currentIndex = 0;
+
+            if (slides && prevBtn && nextBtn) {
+                const slideWidth = slides.querySelector('.slide')?.offsetWidth || 300;
+                const slideCount = slides.children.length;
+                const visibleSlides = Math.floor(window.innerWidth / slideWidth);
+                
+                function updateSlider() {
+                    const offset = -currentIndex * slideWidth;
+                    slides.style.transform = `translateX(${offset}px)`;
+                    
+                    // Hide buttons if not needed
+                    prevBtn.style.display = currentIndex === 0 ? 'none' : 'flex';
+                    nextBtn.style.display = currentIndex >= slideCount - visibleSlides ? 'none' : 'flex';
+                }
+
+                prevBtn.addEventListener('click', () => {
+                    if (currentIndex > 0) {
+                        currentIndex--;
+                        updateSlider();
+                    }
+                });
+
+                nextBtn.addEventListener('click', () => {
+                    if (currentIndex < slideCount - visibleSlides) {
+                        currentIndex++;
+                        updateSlider();
+                    }
+                });
+
+                // Initialize
+                updateSlider();
+
+                // Handle window resize
+                window.addEventListener('resize', () => {
+                    updateSlider();
+                });
+            }
+        });
+    </script>
+}

@@ -1,0 +1,1179 @@
+<div class="modal fade" id="saasUpgradeModal" tabindex="-1" aria-labelledby="saasUpgradeModalLabel" aria-hidden="true">
+	<div class="modal-dialog modal-xl">
+		<div class="modal-content">
+			<div class="modal-header">
+				<h5 class="modal-title" id="saasUpgradeModalLabel">
+					<i class="fa-solid fa-rocket me-2"></i>Upgrade Tenant Plan
+				</h5>
+				<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+			</div>
+
+			<div class="modal-body">
+				<div class="alert alert-info mb-4" id="saasPartnerInfo" style="display:none;">
+					<div class="d-flex align-items-center">
+						<i class="fa-solid fa-building me-3" style="font-size:2rem;"></i>
+						<div>
+							<h6 class="mb-1" id="saasPartnerName"></h6>
+							<small class="text-muted" id="saasPartnerEmail"></small>
+						</div>
+					</div>
+				</div>
+
+				<div class="card mb-4" id="saasCurrentSubscriptionCard" style="display:none;">
+					<div class="card-header">
+						<h6 class="mb-0"><i class="fa-solid fa-crown me-2"></i>Current Subscription</h6>
+					</div>
+					<div class="card-body">
+						<div class="row g-2">
+							<div class="col-md-3">
+								<strong>Plan:</strong> <span id="saasCurrentPlanName"></span>
+							</div>
+							<div class="col-md-3">
+								<strong>Amount:</strong> ₹<span id="saasCurrentAmount"></span>
+							</div>
+							<div class="col-md-3">
+								<strong>Billing:</strong> <span id="saasCurrentBilling"></span>
+							</div>
+							<div class="col-md-3">
+								<strong>Expires:</strong> <span id="saasCurrentExpiry"></span>
+							</div>
+						</div>
+						<div class="mt-2">
+							<span class="badge bg-warning text-dark" id="saasDaysRemaining"></span>
+						</div>
+					</div>
+				</div>
+
+				<div class="row mb-4">
+					<div class="col-12">
+						<h6 class="mb-3">Choose Upgrade Type:</h6>
+						<div class="row g-3">
+							<div class="col-md-4">
+								<div class="card h-100 upgrade-type-card" data-type="existing" onclick="selectUpgradeType('existing')">
+									<div class="card-body text-center">
+										<div class="upgrade-icon mb-3">
+											<i class="fa-solid fa-exchange-alt" style="font-size:2.5rem;color:#2589C9;"></i>
+										</div>
+										<h6 class="card-title">Existing + Upgrade</h6>
+										<p class="card-text small text-muted">
+											Convert remaining amount to upgrade plan days.
+											Starts immediately, existing plan stops.
+										</p>
+									</div>
+								</div>
+							</div>
+
+							<div class="col-md-4">
+								<div class="card h-100 upgrade-type-card" data-type="immediate" onclick="selectUpgradeType('immediate')">
+									<div class="card-body text-center">
+										<div class="upgrade-icon mb-3">
+											<i class="fa-solid fa-bolt" style="font-size:2.5rem;color:#16A34A;"></i>
+										</div>
+										<h6 class="card-title">Immediate Upgrade</h6>
+										<p class="card-text small text-muted">
+											Full plan duration starts immediately.
+											Remaining amount adjusted from price.
+										</p>
+									</div>
+								</div>
+							</div>
+
+							<div class="col-md-4">
+								<div class="card h-100 upgrade-type-card" data-type="scheduled" onclick="selectUpgradeType('scheduled')">
+									<div class="card-body text-center">
+										<div class="upgrade-icon mb-3">
+											<i class="fa-solid fa-calendar-plus" style="font-size:2.5rem;color:#F59E0B;"></i>
+										</div>
+										<h6 class="card-title">Scheduled Plan</h6>
+										<p class="card-text small text-muted">
+											Starts after current plan expires.
+											No remaining amount calculations.
+										</p>
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+
+				<div class="row mb-4" id="saasUpgradeTypeDetails" style="display:none;">
+					<div class="col-12">
+						<div class="alert alert-info mb-0" id="saasUpgradeTypeDetailsContent"></div>
+					</div>
+				</div>
+
+				<div id="saasPlanSelectionSection" style="display:none;">
+					<h6 class="mb-3">Select New Plan:</h6>
+					<div class="row" id="saasAvailablePlans"></div>
+				</div>
+
+				<div id="saasCalculationResults" style="display:none;">
+					<div class="card">
+						<div class="card-header">
+							<h6 class="mb-0"><i class="fa-solid fa-calculator me-2"></i>Upgrade Calculation</h6>
+						</div>
+						<div class="card-body" id="saasCalculationContent"></div>
+					</div>
+				</div>
+
+				<div id="saasRefundSection" style="display:none;">
+					<div class="card border-warning">
+						<div class="card-header bg-warning text-dark">
+							<h6 class="mb-0"><i class="fa-solid fa-undo me-2"></i>Process Refund</h6>
+						</div>
+						<div class="card-body">
+							<div class="alert alert-warning">
+								<i class="fa-solid fa-exclamation-triangle me-2"></i>
+								<strong>Warning:</strong> This will process a refund through Razorpay for successful upgrade transactions.
+							</div>
+							<div id="saasRefundableTransactions"></div>
+						</div>
+					</div>
+				</div>
+			</div>
+
+			<div class="modal-footer">
+				<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+
+				<button type="button" class="btn btn-warning" id="saasShowRefundBtn" onclick="showRefundSection()" style="display:none;">
+					<i class="fa-solid fa-undo me-2"></i>Process Refund
+				</button>
+
+				<button type="button" class="btn btn-primary" id="saasSendPaymentLinkBtn" onclick="sendPaymentLink()" style="display:none;">
+					<i class="fa-solid fa-paper-plane me-2"></i>Send Payment
+				</button>
+			</div>
+		</div>
+	</div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<style>
+	.upgrade-type-card,
+	.plan-card {
+		cursor: pointer;
+		transition: all 0.3s ease;
+		border: 2px solid transparent;
+	}
+
+		.upgrade-type-card:hover {
+			transform: translateY(-5px);
+			box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+		}
+
+		.upgrade-type-card.selected {
+			border-color: #2589C9 !important;
+			background: linear-gradient(135deg, #E2E8F0 0%, #E2E8F0 100%) !important;
+		}
+
+		.plan-card:hover {
+			transform: translateY(-3px);
+			box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+		}
+
+		.plan-card.selected {
+			border-color: #16A34A !important;
+			background: linear-gradient(135deg, #DCFCE7 0%, #B8C8D8 100%) !important;
+		}
+
+		.plan-card.current-plan {
+			border-color: var(--bs-primary, #2589C9) !important;
+			background: var(--bs-primary-bg-subtle, #E2E8F0) !important;
+		}
+
+	.billing-toggle {
+		display: flex;
+		justify-content: center;
+		margin-bottom: 1rem;
+	}
+
+		.billing-toggle button {
+			padding: 0.5rem 1rem;
+			border: 2px solid #E2E8F0;
+			background: #FFFFFF;
+			color: #6B7B8D;
+			font-weight: 600;
+			transition: all 0.2s ease;
+		}
+
+			.billing-toggle button:first-child {
+				border-radius: 25px 0 0 25px;
+				border-right: none;
+			}
+
+			.billing-toggle button:last-child {
+				border-radius: 0 25px 25px 0;
+				border-left: none;
+			}
+
+			.billing-toggle button.active {
+				background: #2589C9;
+				color: #FFFFFF;
+				border-color: #2589C9;
+			}
+
+	.feature-list {
+		list-style: none;
+		padding: 0;
+		margin: 0;
+	}
+
+		.feature-list li {
+			padding: 0.25rem 0;
+			font-size: 0.875rem;
+		}
+
+			.feature-list li i {
+				width: 16px;
+				margin-right: 0.5rem;
+			}
+
+	#saasUpgradeModal .modal-body {
+		padding: 10px !important;
+	}
+
+	#saasUpgradeModal .card {
+		margin-bottom: 10px !important;
+	}
+
+	#saasUpgradeModal .card-body {
+		padding: 10px !important;
+	}
+
+	#saasUpgradeModal .card-header {
+		padding: 8px 10px !important;
+	}
+
+	#saasUpgradeModal h6 {
+		font-size: 13px !important;
+		margin-bottom: 8px !important;
+	}
+
+	#saasUpgradeModal p {
+		margin: 3px 0 !important;
+		font-size: 12px !important;
+	}
+
+	#saasUpgradeModal .alert {
+		padding: 8px !important;
+		margin-bottom: 8px !important;
+	}
+
+	.swal2-popup {
+		max-height: 90vh !important;
+		overflow-y: auto !important;
+	}
+
+	.swal2-html-container {
+		max-height: 60vh !important;
+		overflow-y: auto !important;
+		padding: 0.5rem 1rem !important;
+	}
+
+	[data-bs-theme="dark"] .billing-toggle button,
+	.dark-mode .billing-toggle button {
+		background: #1E2A3A !important;
+		color: #FFFFFF !important;
+		border-color: #2A3A4A !important;
+	}
+
+		[data-bs-theme="dark"] .billing-toggle button.active,
+		.dark-mode .billing-toggle button.active {
+			background: #2589C9 !important;
+			color: #FFFFFF !important;
+			border-color: #2589C9 !important;
+		}
+
+	[data-bs-theme="dark"] .swal2-popup,
+	.dark-mode .swal2-popup {
+		background: var(--bs-dark) !important;
+		color: #FFFFFF !important;
+	}
+
+	[data-bs-theme="dark"] .swal2-title,
+	[data-bs-theme="dark"] .swal2-html-container,
+	[data-bs-theme="dark"] .swal2-html-container *,
+	.dark-mode .swal2-title,
+	.dark-mode .swal2-html-container,
+	.dark-mode .swal2-html-container * {
+		color: #FFFFFF !important;
+	}
+
+	[data-bs-theme="dark"] .swal2-actions button,
+	.dark-mode .swal2-actions button {
+		color: #FFFFFF !important;
+		font-weight: 600 !important;
+	}
+
+	@@media (max-width: 768px) {
+		#saasUpgradeModal .modal-dialog {
+			max-width: 95%;
+			margin: 0.5rem;
+		}
+
+		.upgrade-type-card {
+			margin-bottom: 1rem;
+		}
+	}
+</style>
+
+<script>
+	(function () {
+		let saasSelectedUpgradeType = null;
+		let saasSelectedPlanId = null;
+		let saasSelectedBillingCycle = 'monthly';
+		let saasCurrentTenantData = null;
+		let calculationData = null;
+
+		function money(value) {
+			return Number(value || 0).toLocaleString();
+		}
+
+		function escapeHtml(value) {
+			return String(value ?? '')
+				.replace(/&/g, '&amp;')
+				.replace(/</g, '&lt;')
+				.replace(/>/g, '&gt;')
+				.replace(/"/g, '&quot;')
+				.replace(/'/g, '&#125082;');
+		}
+
+		function getPartner() {
+			return saasCurrentTenantData ? (saasCurrentTenantData.partner || saasCurrentTenantData.tenant) : null;
+		}
+
+		function getTenantId() {
+			const partner = getPartner();
+			return partner ? (partner.tenantId || partner.TenantId) : null;
+		}
+
+		async function readJsonResponse(response, endpointName) {
+			const text = await response.text();
+
+			if (!response.ok) {
+				console.error(endpointName + ' failed:', response.status, text);
+				throw new Error('HTTP ' + response.status);
+			}
+
+			try {
+				return JSON.parse(text);
+			} catch (error) {
+				console.error(endpointName + ' returned non JSON:', text);
+				throw error;
+			}
+		}
+
+		window.openSaasUpgradeModal = function (tenantId) {
+			console.log('=== UPGRADE MODAL OPENED ===');
+			console.log('Tenant ID:', tenantId);
+
+			resetSaasUpgradeModal();
+
+			fetch('/saassubscription/GetUpgradeOptions?tenantId=' + encodeURIComponent(tenantId))
+				.then(response => readJsonResponse(response, 'GetUpgradeOptions'))
+				.then(data => {
+					console.log('=== API RESPONSE ===');
+					console.log('Response data:', data);
+
+					if (!data.success) {
+						Swal.fire('Error', data.message || 'Failed to load upgrade options', 'error');
+						return;
+					}
+
+					saasCurrentTenantData = data;
+					populateSaasTenantInfo(data.partner || data.tenant);
+					populateSaasCurrentSubscription(data.currentSubscription);
+					populateSaasAvailablePlans(data.availablePlans || []);
+
+					new bootstrap.Modal(document.getElementById('saasUpgradeModal')).show();
+				})
+				.catch(error => {
+					console.error('Error loading upgrade options:', error);
+					Swal.fire('Error', 'Failed to load upgrade options', 'error');
+				});
+		};
+
+		function resetSaasUpgradeModal() {
+			saasSelectedUpgradeType = null;
+			saasSelectedPlanId = null;
+			saasSelectedBillingCycle = 'monthly';
+			saasCurrentTenantData = null;
+			calculationData = null;
+
+			document.getElementById('saasPartnerInfo').style.display = 'none';
+			document.getElementById('saasCurrentSubscriptionCard').style.display = 'none';
+			document.getElementById('saasUpgradeTypeDetails').style.display = 'none';
+			document.getElementById('saasPlanSelectionSection').style.display = 'none';
+			document.getElementById('saasCalculationResults').style.display = 'none';
+			document.getElementById('saasRefundSection').style.display = 'none';
+			document.getElementById('saasSendPaymentLinkBtn').style.display = 'none';
+
+			document.querySelectorAll('.upgrade-type-card, .plan-card').forEach(card => {
+				card.classList.remove('selected');
+			});
+
+			document.getElementById('saasAvailablePlans').innerHTML = '';
+			document.getElementById('saasCalculationContent').innerHTML = '';
+			document.getElementById('saasRefundableTransactions').innerHTML = '';
+		}
+
+		function populateSaasTenantInfo(partner) {
+			if (!partner) return;
+
+			document.getElementById('saasPartnerName').textContent = partner.companyName || partner.CompanyName || partner.contactPerson || '';
+			document.getElementById('saasPartnerEmail').textContent = partner.email || partner.Email || '';
+			document.getElementById('saasPartnerInfo').style.display = 'block';
+		}
+
+		function populateSaasCurrentSubscription(subscription) {
+			if (subscription) {
+				document.getElementById('saasCurrentPlanName').textContent = subscription.planName || '';
+				document.getElementById('saasCurrentAmount').textContent =subscription.amount.toLocaleString();
+				document.getElementById('saasCurrentBilling').textContent = subscription.billingCycle || '';
+				document.getElementById('saasCurrentExpiry').textContent = new Date(subscription.endDate).toLocaleDateString();
+
+			   var daysEl = document.getElementById('saasDaysRemaining');
+				if (subscription.daysRemaining <= 0) {
+					daysEl.textContent = 'Expired';
+					daysEl.className = 'badge bg-danger';
+				} else {
+					daysEl.textContent = `${subscription.daysRemaining} days remaining`;
+				}
+				document.getElementById('saasCurrentSubscriptionCard').style.display = 'block';
+
+			}
+
+			// Show scheduled subscription if exists
+				if (saasCurrentTenantData && saasCurrentTenantData.scheduledSubscription) {
+					var scheduled = saasCurrentTenantData.scheduledSubscription;
+					var scheduledHtml = `<div class="mt-2 p-2" style="background: #FEF3C7; border-radius: 6px; border: 1px solid #F59E0B;">
+						<strong><i class="fa-solid fa-calendar-check me-1"></i>Scheduled Plan:</strong> ${scheduled.planName} (${scheduled.billingCycle}) - ₹${scheduled.amount.toLocaleString()}
+						<br><small>Activates: ${new Date(scheduled.startDate).toLocaleDateString()} -> ${new Date(scheduled.endDate).toLocaleDateString()}</small>
+					</div>`;
+					var cardBody = document.querySelector('#saasCurrentSubscriptionCard .card-body');
+					if (cardBody) {
+						cardBody.insertAdjacentHTML('beforeend', scheduledHtml);
+					}
+					document.getElementById('saasCurrentSubscriptionCard').style.display = 'block';
+				}
+		}
+
+
+			function populateSaasAvailablePlans(plans) {
+		const container = document.getElementById('saasAvailablePlans');
+		container.innerHTML = '';
+
+		plans.forEach(plan => {
+			const planCard = createPlanCard(plan);
+			container.appendChild(planCard);
+		});
+
+		// Highlight current plan after all plans are loaded
+		if (saasCurrentTenantData && saasCurrentTenantData.currentSubscription) {
+			const currentPlanId = saasCurrentTenantData.currentSubscription.planId;
+	console.log('DEBUG: currentPlanId =', currentPlanId, typeof currentPlanId);
+	console.log('DEBUG: available cards =', document.querySelectorAll('#saasUpgradeModal [data-plan-id]').length);
+	const currentPlanCard = document.querySelector(`#saasUpgradeModal [data-plan-id="${currentPlanId}"]`);
+	console.log('DEBUG: currentPlanCard found =', currentPlanCard);
+			if (currentPlanCard) {
+				currentPlanCard.classList.add('current-plan');
+
+				// Add current plan badge
+				const cardBody = currentPlanCard.querySelector('.card-body');
+				if (cardBody && !cardBody.querySelector('.current-plan-badge')) {
+					const badge = document.createElement('div');
+					badge.className = 'badge bg-primary current-plan-badge mb-2';
+					var isExpired = saasCurrentTenantData.currentSubscription.saasDaysRemaining <= 0;
+					badge.textContent = isExpired ? `Expired (${saasCurrentTenantData.currentSubscription.billingCycle})` : `Current Plan (${saasCurrentTenantData.currentSubscription.billingCycle})`;
+					if (isExpired) badge.className = 'badge bg-danger current-plan-badge mb-2';
+					cardBody.insertBefore(badge, cardBody.firstChild);
+				}
+			}
+		}
+	}
+
+			function createPlanCard(plan) {
+		const col = document.createElement('div');
+		col.className = 'col-md-6 col-lg-4 mb-3';
+
+		col.innerHTML = `
+			<div class="card h-100 plan-card" data-plan-id="${plan.planId}" onclick="selectPlan('${plan.planId}')">
+				<div class="card-body">
+					<h5 class="card-title">${plan.planName}</h5>
+					<p class="card-text small text-muted">${plan.description || ''}</p>
+
+					<div class="billing-toggle mb-3">
+						<button type="button" class="monthly-btn active" onclick="event.stopPropagation(); toggleBilling('${plan.planId}', 'monthly')">Monthly</button>
+						<button type="button" class="annual-btn" onclick="event.stopPropagation(); toggleBilling('${plan.planId}', 'annual')">Annual</button>
+					</div>
+
+					<div class="text-center mb-3">
+						<div class="monthly-price">
+							<h3 class="text-primary">₹${plan.monthlyPrice.toLocaleString()}</h3>
+							<small class="text-muted">per month</small>
+						</div>
+						<div class="annual-price" style="display: none;">
+							<h3 class="text-primary">₹${plan.yearlyPrice.toLocaleString()}</h3>
+							<small class="text-muted">per year</small>
+							${plan.monthlyPrice > 0 ? `<div class="badge bg-success mt-1">Save ${Math.round(((plan.monthlyPrice * 12 - plan.yearlyPrice) / (plan.monthlyPrice * 12)) * 100)}%</div>` : ''}
+						</div>
+					</div>
+
+					<ul class="feature-list">
+						<li><i class="fa-solid fa-users text-primary"></i> ${plan.maxAgents === -1 ? 'Unlimited' : plan.maxAgents} Agents</li>
+						<li><i class="fa-solid fa-chart-line text-primary"></i> ${plan.maxLeadsPerMonth === -1 ? 'Unlimited' : plan.maxLeadsPerMonth} Leads/Month</li>
+						<li><i class="fa-solid fa-database text-primary"></i> ${plan.maxStorageGB === -1 ? 'Unlimited' : plan.maxStorageGB + ' GB'} Storage</li>
+						<li><i class="fa-solid ${plan.hasWhatsAppIntegration ? 'fa-check text-success' : 'fa-times text-danger'}"></i> WhatsApp Integration</li>
+						<li><i class="fa-solid ${plan.hasAdvancedReports ? 'fa-check text-success' : 'fa-times text-danger'}"></i> Advanced Reports</li>
+						<li><i class="fa-solid fa-headset text-primary"></i> ${plan.supportLevel} Support</li>
+					</ul>
+				</div>
+			</div>
+		`;
+
+		return col;
+	}
+
+		function isSamePlan(subscription, plan) {
+			if (!subscription || !plan) return false;
+
+			if (subscription.planId != null && plan.planId != null) {
+				return Number(subscription.planId) === Number(plan.planId);
+			}
+
+			return String(subscription.planName || '').toLowerCase() === String(plan.planName || '').toLowerCase();
+		}
+
+			window.toggleBilling = function(planId, cycle) {
+				console.log(planId,cycle,saasCurrentTenantData?.currentSubscription?.billingCycle,saasCurrentTenantData?.currentSubscription?.planId)
+		const card = document.querySelector(`[data-plan-id="${planId}"]`);
+		const monthlyBtn = card.querySelector('.monthly-btn');
+		const annualBtn = card.querySelector('.annual-btn');
+		const monthlyPrice = card.querySelector('.monthly-price');
+		const annualPrice = card.querySelector('.annual-price');
+
+		if (cycle === 'monthly') {
+			monthlyBtn.classList.add('active');
+			annualBtn.classList.remove('active');
+			monthlyPrice.style.display = 'block';
+			annualPrice.style.display = 'none';
+		} else {
+			monthlyBtn.classList.remove('active');
+			annualBtn.classList.add('active');
+			monthlyPrice.style.display = 'none';
+			annualPrice.style.display = 'block';
+		}
+
+		// Update current plan badge visibility
+		const currentPlanBadge = card.querySelector('.current-plan-badge');
+		console.log('found' ,currentPlanBadge);
+		if (currentPlanBadge && saasCurrentTenantData && saasCurrentTenantData.currentSubscription) {
+			const currentPlanId = saasCurrentTenantData.currentSubscription.planId;
+			const saasCurrentBillingCycle = saasCurrentTenantData.currentSubscription.billingCycle;
+
+			// Show badge only if both plan ID and billing cycle match
+			if (String(planId) === String(currentPlanId) && cycle.toLowerCase() === saasCurrentBillingCycle.toLowerCase()) {
+				currentPlanBadge.style.setProperty('display','block','important');
+				card.classList.add('current-plan');
+			} else {
+				console.log(planId, currentPlanId , cycle.toLowerCase() , saasCurrentBillingCycle.toLowerCase())
+				currentPlanBadge.style.setProperty('display','none','important');
+				card.classList.remove('current-plan');
+			}
+		}
+
+		// Update global billing cycle if this is the selected plan
+		if (saasSelectedPlanId === planId) {
+			saasSelectedBillingCycle = cycle;
+			window.calculateUpgrade();
+		}
+	};
+
+		window.selectUpgradeType = function (type) {
+			saasSelectedUpgradeType = type;
+
+			// Update UI - scope to saasUpgradeModal only
+			document.querySelectorAll('#saasUpgradeModal .upgrade-type-card').forEach(card => {
+				card.classList.remove('selected');
+			});
+
+			const selectedCard = document.querySelector(`#saasUpgradeModal [data-type="${type}"]`);
+			if (selectedCard) selectedCard.classList.add('selected');
+
+			const detailsSection = document.getElementById('saasUpgradeTypeDetails');
+			const detailsContent = document.getElementById('saasUpgradeTypeDetailsContent');
+
+			if (type === 'existing') {
+				detailsContent.className = 'alert alert-info mb-0';
+				detailsContent.innerHTML = '<strong>Day-based conversion:</strong><br>Remaining amount / upgrade per-day rate = days<br>+1 day if any remainder &gt; 0';
+			} else if (type === 'immediate') {
+				detailsContent.className = 'alert alert-success mb-0';
+				detailsContent.innerHTML = '<strong>Full duration:</strong><br>Monthly: 30 days | Annual: 365 days<br>Credit applied from current plan';
+			} else if (type === 'scheduled') {
+				detailsContent.className = 'alert alert-warning mb-0';
+				detailsContent.innerHTML = '<strong>Future activation:</strong><br>Starts on current plan end date + 1 day<br>Full plan duration applies';
+			}
+
+			detailsSection.style.display = 'block';
+			document.getElementById('saasPlanSelectionSection').style.display = 'block';
+
+			// if (saasSelectedPlanId) {
+			// 	window.calculateUpgrade();
+			// }
+		};
+
+		window.selectPlan = function(planId) {
+	console.log('=== PLAN SELECTED ===');
+	console.log('Plan ID:', planId);
+	console.log('selectPlan called with planId:', planId);
+
+	// Get the selected card to check billing cycle
+	const selectedCard = document.querySelector(`[data-plan-id="${planId}"]`);
+	const isAnnualActive = selectedCard ? selectedCard.querySelector('.annual-btn').classList.contains('active') : false;
+	saasSelectedBillingCycle = isAnnualActive ? 'annual' : 'monthly';
+
+	// Check if this is the current plan with same billing cycle
+	if (saasCurrentTenantData && saasCurrentTenantData.currentSubscription &&
+		saasCurrentTenantData.currentSubscription.planId === planId &&
+		saasCurrentTenantData.currentSubscription.billingCycle.toLowerCase() === saasSelectedBillingCycle.toLowerCase()) {
+
+		const subscription = saasCurrentTenantData.currentSubscription;
+		const expiryDate = new Date(subscription.endDate).toLocaleDateString();
+
+			Swal.fire({
+				title: 'Current Active Plan',
+				text: `This is your current active plan. It will expire on ${expiryDate}.`,
+				icon: 'info',
+				confirmButtonText: 'OK'
+			});
+			return;
+		}
+
+		// Check if upgrade type is selected first
+		if (!saasSelectedUpgradeType) {
+			Swal.fire('Select Upgrade Type', 'Please select an upgrade type first (Existing Upgrade, Immediate Upgrade, or Scheduled Plan)', 'warning');
+			console.log('Please select an upgrade type first (Existing Upgrade, Immediate Upgrade, or Scheduled Plan)');
+			return;
+		}
+
+		saasSelectedPlanId = planId;
+
+		// Update UI
+		document.querySelectorAll('.plan-card').forEach(card => {
+			card.classList.remove('selected');
+		});
+
+		if (selectedCard) {
+			selectedCard.classList.add('selected');
+
+			// Update global billing cycle
+			window.saasSelectedBillingCycle = saasSelectedBillingCycle;
+			console.log('Selected billing cycle:', saasSelectedBillingCycle);
+
+			// Calculate upgrade
+			window.calculateUpgrade();
+		} else {
+			console.error('Selected card not found for planId:', planId);
+		}
+	};
+
+		window.calculateUpgrade = function () {
+			console.log('=== CALCULATE UPGRADE CALLED ===');
+
+			const tenantId = getTenantId();
+
+			if (!tenantId || !saasSelectedUpgradeType || !saasSelectedPlanId) {
+				console.log('Missing required data for calculation');
+				return;
+			}
+
+			fetch('/saassubscription/calculateupgrade', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/x-www-form-urlencoded'
+				},
+				body: new URLSearchParams({
+					tenantId: tenantId,
+					newPlanId: saasSelectedPlanId,
+					billingCycle: saasSelectedBillingCycle,
+					upgradeType: saasSelectedUpgradeType
+				})
+			})
+				.then(response => readJsonResponse(response, 'CalculateUpgrade'))
+				.then(data => {
+					console.log('=== CALCULATION RESPONSE ===');
+					console.log('Calculation data:', data);
+
+					if (data.success) {
+						calculationData = data;
+						displayCalculationResults(data);
+					} else {
+						Swal.fire('Error', data.message || 'Failed to calculate upgrade', 'error');
+					}
+				})
+				.catch(error => {
+					console.error('Error calculating upgrade:', error);
+					Swal.fire('Error', 'Failed to calculate upgrade', 'error');
+				});
+		};
+
+		function displayCalculationResults(data) {
+			const calc = data.calculation || {};
+
+			if (data.insufficientAmount) {
+				const shortfall = calc.shortfall || 0;
+				const requiredAmount = calc.requiredAmount || 0;
+				const remainingAmount = calc.remainingAmount || 0;
+
+				Swal.fire({
+					title: 'Insufficient Amount',
+					html: `
+						<div style="text-align:left;font-size:14px;">
+							<div style="background:#F0F4F8;padding:15px;border-radius:8px;border:2px solid #E8C27E;">
+								<h6 style="color:#DC2626;margin-bottom:10px;">Insufficient Amount</h6>
+								<p><strong>Current Plan:</strong> ${escapeHtml(calc.currentPlan || 'N/A')}</p>
+								<p><strong>Remaining Amount:</strong> ₹${money(remainingAmount)}</p>
+								<p><strong>Required for 1 day:</strong> ₹${money(requiredAmount)}</p>
+								<p><strong>Shortfall:</strong> ₹${money(shortfall)}</p>
+								<hr>
+								<p style="color:#DC2626;font-weight:bold;">Your remaining amount is not sufficient for this upgrade.</p>
+								<p style="font-size:12px;color:#6B7B8D;">Please choose Immediate Upgrade or Scheduled Plan instead.</p>
+							</div>
+						</div>
+					`,
+					icon: 'error',
+					confirmButtonText: 'Choose Different Option',
+					confirmButtonColor: '#DC2626',
+					width: '500px'
+				});
+				return;
+			}
+
+			let content = '';
+
+				 switch (data.upgradeType) {
+			case 'existing': {
+				const existingCurrentAmount = calc.currentAmount || 0;
+				const existingRemainingDays = calc.remainingDays || 0;
+				const currentPerDayRate =
+					existingRemainingDays > 0
+						? existingCurrentAmount / existingRemainingDays
+						: 0;
+				const upgradePerDayRate = calc.upgradePerDayRate || 0;
+				const convertedDays = calc.convertedDays || 0;
+
+			content = `
+				<div style="text-align: left; font-size: 12px;">
+					<div style="background: #FFFFFF; padding: 12px; border-radius: 8px; margin-bottom: 2px;">
+						<h6 style="color: #2589C9; margin-bottom: 10px;"><i class="fa-solid fa-chart-bar me-2"></i>Current Plan Analysis</h6>
+						<p><strong>Current Plan:</strong> ${calc.currentPlan || 'N/A'}</p>
+						<p><strong>Plan Amount:</strong> ₹${existingCurrentAmount.toLocaleString()}</p>
+						<p><strong>Remaining Days:</strong> ${existingRemainingDays} days</p>
+						<p><strong>Current Per Day Rate:</strong> ₹${currentPerDayRate.toFixed(2)}/day</p>
+						<p><strong>Remaining Amount:</strong> ₹${(calc.remainingAmount || 0).toLocaleString()}</p>
+					</div>
+
+					<div style="background: #F0F4F8; padding: 15px; border-radius: 8px;">
+						<h6 style="color: #16A34A; margin-bottom: 10px;"><i class="fa-solid fa-arrows-rotate me-2"></i>Conversion Calculation</h6>
+						<p><strong>New Plan Per Day Rate:</strong> ₹${upgradePerDayRate.toFixed(2)}/day</p>
+						<p><strong>Conversion Formula:</strong>
+							₹${(calc.remainingAmount || 0).toLocaleString()}
+							÷ ₹${upgradePerDayRate.toFixed(2)}
+							= ${convertedDays} days
+						</p>
+						<hr>
+						<p><strong>You will get:</strong> ${convertedDays} days of ${calc.newPlan || 'N/A'}</p>
+						<p style="color: #16A34A;"><strong>No additional payment required!</strong></p>
+					</div>
+				</div>
+			`;
+				break;
+			}
+
+		case 'immediate': {
+			const immediateCurrentAmount = calc.currentAmount || 0;
+			const immediateRemainingDays = calc.remainingDays || 0;
+			const creditAmount = calc.creditAmount || 0;
+
+			content = `
+				<div style="text-align: left; font-size: 14px;">
+					<div style="display: flex; gap: 10px; margin-bottom: 10px;">
+						<div style="flex: 1; background: #FFFFFF; padding: 10px; border-radius: 8px;">
+							<h6 style="color: #2589C9;"><i class="fa-solid fa-chart-bar me-2"></i>Current Plan Analysis</h6>
+							<p><strong>Current Plan:</strong> ${calc.currentPlan || 'N/A'}</p>
+							<p><strong>Plan Amount:</strong> ₹${immediateCurrentAmount.toLocaleString()}</p>
+							<p><strong>Remaining Days:</strong> ${immediateRemainingDays} days</p>
+							<p><strong>Per Day Rate:</strong>
+								₹${(immediateCurrentAmount / Math.max(1, immediateRemainingDays)).toFixed(2)}/day
+							</p>
+							<p><strong>Remaining Value:</strong> ₹${creditAmount.toFixed(2)}</p>
+						</div>
+
+						<div style="flex: 1; background: #FFFFFF; padding: 10px; border-radius: 8px;">
+							<h6 style="color: #2589C9;"><i class="fa-solid fa-credit-card me-2"></i>Payment Breakdown</h6>
+							<p><strong>New Plan Cost:</strong> ₹${(calc.newAmount || 0).toLocaleString()}</p>
+							<p><strong>Credit from Current Plan:</strong> -₹${creditAmount.toLocaleString()}</p>
+							<hr>
+							<p>
+								<strong><i class="fa-solid fa-credit-card me-2"></i>Amount to Pay:</strong>
+								<span style="color: #DC2626;">
+									₹${(calc.adjustedAmount || 0).toLocaleString()}
+								</span>
+							</p>
+						</div>
+					</div>
+
+					<div style="background: #F0F4F8; padding: 10px; border-radius: 8px;">
+						<h6 style="color: #16A34A;"><i class="fa-solid fa-calendar me-2"></i>New Subscription Details</h6>
+						<p><strong>Plan:</strong> ${calc.newPlan || 'N/A'}</p>
+						<p><strong>Duration:</strong> Full ${saasSelectedBillingCycle || 'monthly'} period</p>
+						<p><strong>Starts:</strong>
+							${calc.startDate
+								? new Date(calc.startDate).toLocaleDateString()
+									: 'Immediately'}
+							</p>
+							<p><strong>Expires:</strong>
+								${calc.endDate
+									? new Date(calc.endDate).toLocaleDateString()
+									: 'N/A'}
+							</p>
+						</div>
+					</div>
+				`;
+				break;
+			}
+
+		case 'scheduled': {
+			content = `
+				<div style="text-align: left; font-size: 14px;">
+					<div style="background: #FEF3C7; padding: 10px; border-radius: 8px;">
+						<h6 style="color: #F59E0B;"><i class="fa-solid fa-calendar me-2"></i>Scheduled Plan Details</h6>
+						<p><strong>Plan:</strong> ${calc.newPlan || 'N/A'}</p>
+						<p>
+							<strong>Amount to Pay:</strong>
+							<span style="color: #DC2626;">
+								₹${(calc.newAmount || 0).toLocaleString()}
+							</span>
+						</p>
+						<p><strong>Activation Date:</strong>
+							${calc.startDate
+								? new Date(calc.startDate).toLocaleDateString()
+								: 'N/A'}
+						</p>
+						<p style="font-size: 12px; color: #6B7B8D;">
+							Plan will activate automatically after your current plan expires.
+						</p>
+					</div>
+				</div>
+			`;
+			break;
+		}
+		}
+
+		const isExistingUpgrade = data.upgradeType === 'existing';
+
+	Swal.fire({
+		title: '<i class="fa-solid fa-chart-bar me-2"></i>Upgrade Calculation',
+			html: content,
+			showCancelButton: true,
+			confirmButtonText: isExistingUpgrade
+				? 'Activate Now'
+				: 'Proceed to Payment',
+			cancelButtonText: 'Cancel',
+			confirmButtonColor: '#2589C9',
+			cancelButtonColor: '#6B7B8D',
+			width: '600px'
+		}).then((result) => {
+			if (result.isConfirmed) {
+				if (isExistingUpgrade) {
+					activatePlanNow();
+				} else {
+					document.getElementById('saasSendPaymentLinkBtn').style.display = 'block';
+					sendPaymentLink();
+				}
+			}
+		});
+	}
+
+
+		window.sendPaymentLink = function() {
+	console.log('=== SEND PAYMENT LINK CLICKED ===');
+	console.log('calculationData:', calculationData);
+	console.log('saasCurrentTenantData:', saasCurrentTenantData);
+
+	if (!calculationData || !saasCurrentTenantData) {
+		console.log('Missing data - showing error');
+		Swal.fire('Error', 'Missing calculation data', 'error');
+		return;
+	}
+
+	const tenantId = saasCurrentTenantData.partner.tenantId;
+	let amount = 0;
+
+	// Get the correct amount based on upgrade type
+	if (calculationData.upgradeType === 'immediate') {
+		amount = calculationData.calculation.adjustedAmount || calculationData.calculation.paymentRequired || 0;
+	} else if (calculationData.upgradeType === 'scheduled') {
+		amount = calculationData.calculation.newAmount || calculationData.calculation.paymentRequired || 0;
+	} else {
+		amount = calculationData.calculation.paymentRequired || 0;
+	}
+
+	console.log('Payment amount:', amount);
+
+	if (amount <= 0) {
+		console.log('No payment required');
+		Swal.fire('No Payment Required', 'No payment required for this upgrade', 'info');
+		return;
+	}
+
+	console.log('Creating payment link...');
+
+	fetch('/saassubscription/createpaymentlink', {
+		method: 'POST',
+		headers: {
+			'Content-Type': 'application/x-www-form-urlencoded',
+		},
+			body: new URLSearchParams({
+				tenantId: tenantId,
+				planId: saasSelectedPlanId,
+				billingCycle: saasSelectedBillingCycle,
+				upgradeType: saasSelectedUpgradeType,
+				amount: amount
+			})
+		})
+		.then(response => {
+			console.log('Response status:', response.status);
+			if (!response.ok) {
+				return response.text().then(text => { throw new Error('Server returned ' + response.status + ': ' + text.substring(0, 200)); });
+			}
+			return response.json();
+		})
+		.then(data => {
+			console.log('Payment link response:', data);
+			if (data.success) {
+				showPaymentLinkSuccess(data);
+			} else {
+				Swal.fire('Error', data.message, 'error');
+			}
+		})
+		.catch(error => {
+			console.error('Error creating payment link:', error);
+			Swal.fire('Error', error.message || 'Failed to create payment link', 'error');
+		});
+	}
+		function showPaymentLinkSuccess(data) {
+			const payLink = data.paymentLink || '';
+			const emailStatus = data.emailSent
+				? 'Email sent to ' + (data.partnerEmail || 'tenant')
+				: 'Tenant email not configured - share link manually';
+
+			const amount = data.amount ? data.amount / 100 : 0;
+			let linkHtml = '';
+
+			if (payLink) {
+				linkHtml = `
+					<div class="input-group mb-3">
+						<input type="text" class="form-control" value="${escapeHtml(payLink)}" id="payLinkCopy" readonly>
+						<button class="btn btn-primary" id="copyLinkBtn" type="button">Copy Link</button>
+					</div>
+				`;
+			}
+
+			Swal.fire({
+				title: 'Payment Link Created!',
+				html: '<p>' + escapeHtml(emailStatus) + '</p>' + linkHtml +
+					'<p><strong>Plan:</strong> ' + escapeHtml(data.planName || '') +
+					' | <strong>Amount:</strong> ₹' + money(amount) + '</p>',
+				icon: 'success',
+				didOpen: function () {
+					const btn = document.getElementById('copyLinkBtn');
+
+					if (btn) {
+						btn.addEventListener('click', function () {
+							const input = document.getElementById('payLinkCopy');
+							navigator.clipboard.writeText(input.value);
+							btn.textContent = 'Copied!';
+							btn.className = 'btn btn-success';
+						});
+					}
+				}
+			}).then(function () {
+				const modal = bootstrap.Modal.getInstance(document.getElementById('saasUpgradeModal'));
+				if (modal) modal.hide();
+				location.reload();
+			});
+		}
+
+		window.showRefundSection = function () {
+			const tenantId = getTenantId();
+
+			if (!tenantId) {
+				Swal.fire('Error', 'No partner selected', 'error');
+				return;
+			}
+
+			document.getElementById('saasPlanSelectionSection').style.display = 'none';
+			document.getElementById('saasCalculationResults').style.display = 'none';
+			document.getElementById('saasSendPaymentLinkBtn').style.display = 'none';
+			document.getElementById('saasRefundSection').style.display = 'block';
+
+			loadRefundableTransactions(tenantId);
+		};
+
+		function loadRefundableTransactions(tenantId) {
+			fetch('/saassubscription/getrefundabletransactions?tenantId=' + encodeURIComponent(tenantId))
+				.then(response => readJsonResponse(response, 'GetRefundableTransactions'))
+				.then(data => {
+					if (data.success) {
+						displayRefundableTransactions(data.transactions || []);
+					} else {
+						Swal.fire('Error', data.message || 'Failed to load refundable transactions', 'error');
+					}
+				})
+				.catch(error => {
+					console.error('Error loading refundable transactions:', error);
+					Swal.fire('Error', 'Failed to load refundable transactions', 'error');
+				});
+		}
+
+		function displayRefundableTransactions(transactions) {
+			const container = document.getElementById('saasRefundableTransactions');
+
+			if (!transactions.length) {
+				container.innerHTML = `
+					<div class="alert alert-info">
+						<i class="fa-solid fa-info-circle me-2"></i>
+						No refundable transactions found for this partner.
+					</div>
+				`;
+				return;
+			}
+
+			let html = `
+				<div class="table-responsive">
+					<table class="table table-sm">
+						<thead>
+							<tr>
+								<th>Date</th>
+								<th>Plan</th>
+								<th>Amount</th>
+								<th>Action</th>
+							</tr>
+						</thead>
+						<tbody>
+			`;
+
+			transactions.forEach(transaction => {
+				html += `
+					<tr>
+						<td>${escapeHtml(transaction.transactionDate)}</td>
+						<td>${escapeHtml(transaction.planName)} (${escapeHtml(transaction.billingCycle)})</td>
+						<td>₹${money(transaction.amount)}</td>
+						<td>
+							<button class="btn btn-sm btn-danger" onclick="processRefund('${escapeHtml(transaction.transactionId)}', '${escapeHtml(transaction.planName)}', ${Number(transaction.amount || 0)})">
+								<i class="fa-solid fa-undo me-1"></i>Refund
+							</button>
+						</td>
+					</tr>
+				`;
+			});
+
+			html += `
+						</tbody>
+					</table>
+				</div>
+			`;
+
+			container.innerHTML = html;
+		}
+
+		window.processRefund = function (transactionId, planName, amount) {
+			const reason = prompt('Process Refund for ' + planName + ' (₹' + money(amount) + ')\nEnter refund reason:');
+
+			if (reason && reason.trim()) {
+				executeRefund(transactionId, reason.trim());
+			}
+		};
+
+		function executeRefund(transactionId, refundReason) {
+			fetch('/saassubscription/processrefund', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/x-www-form-urlencoded'
+				},
+				body: new URLSearchParams({
+					transactionId: transactionId,
+					refundReason: refundReason
+				})
+			})
+				.then(response => readJsonResponse(response, 'ProcessRefund'))
+				.then(data => {
+					if (data.success) {
+						Swal.fire('Refund Processed', data.message || ('Refund ID: ' + data.refundId), 'success');
+						loadRefundableTransactions(getTenantId());
+					} else {
+						Swal.fire('Refund Failed', data.message || 'Refund failed', 'error');
+					}
+				})
+				.catch(error => {
+					console.error('Error processing refund:', error);
+					Swal.fire('Error', 'Failed to process refund. Please try again.', 'error');
+				});
+		}
+
+		window.activatePlanNow = function () {
+			const tenantId = getTenantId();
+
+			if (!tenantId || !calculationData) {
+				Swal.fire('Error', 'Missing calculation data', 'error');
+				return;
+			}
+
+			Swal.fire({
+				title: 'Activating Plan...',
+				text: 'Please wait while we activate your new plan.',
+				allowOutsideClick: false,
+				didOpen: function () {
+					Swal.showLoading();
+				}
+			});
+
+			fetch('/saassubscription/calculateupgrade', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/x-www-form-urlencoded'
+				},
+				body: new URLSearchParams({
+					tenantId: tenantId,
+					newPlanId: saasSelectedPlanId,
+					billingCycle: saasSelectedBillingCycle,
+					upgradeType: saasSelectedUpgradeType,
+					activateNow: 'true'
+				})
+			})
+				.then(response => readJsonResponse(response, 'ActivatePlanNow'))
+				.then(data => {
+					if (data.success) {
+						Swal.fire({
+							title: 'Success!',
+							text: data.message || 'Plan activated successfully.',
+							icon: 'success',
+							confirmButtonText: 'OK'
+						}).then(function () {
+							const modal = bootstrap.Modal.getInstance(document.getElementById('saasUpgradeModal'));
+							if (modal) modal.hide();
+							location.reload();
+						});
+					} else {
+						Swal.fire('Error', data.message || 'Failed to activate plan', 'error');
+					}
+				})
+				.catch(error => {
+					console.error('Error activating plan:', error);
+					Swal.fire('Error', 'Failed to activate plan', 'error');
+				});
+		};
+	})();
+</script>

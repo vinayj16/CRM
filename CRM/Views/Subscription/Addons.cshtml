@@ -1,0 +1,539 @@
+@model IEnumerable<CRM.Models.SubscriptionAddonModel>
+@{
+    ViewData["Title"] = "Membership Addons";
+}
+
+<style>
+    .addon-card {
+        background: var(--bs-body-bg, white);
+        border-radius: 16px;
+        padding: 1.5rem;
+        margin-bottom: 1rem;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        border: 1px solid var(--bs-border-color, rgba(0, 0, 0, 0.05));
+        transition: all 0.3s ease;
+    }
+
+    .addon-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+        border-color: rgba(37,137,201, 0.2);
+    }
+
+    .addon-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+        padding-bottom: 1rem;
+        border-bottom: 2px solid #F0F4F8;
+    }
+
+    .addon-name {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: var(--bs-body-color, #1E2A3A);
+        margin: 0;
+    }
+
+    .addon-type {
+        padding: 0.375rem 0.75rem;
+        border-radius: 20px;
+        font-weight: 600;
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .type-feature { background: #E2E8F0; color: #1A6FA8; }
+    .type-agents { background: #DCFCE7; color: #15803D; }
+    .type-storage { background: #FEF3C7; color: #B45309; }
+    .type-api_calls { background: #F0F4F8; color: #125082; }
+    .type-leads { background: #FEE2E2; color: #DC2626; }
+    
+    /* Dark mode overrides for addon type badges */
+    [data-bs-theme="dark"] .type-feature {
+        background: #1A6FA8 !important;
+        color: #FFFFFF !important;
+        border: none !important;
+    }
+    
+    [data-bs-theme="dark"] .type-agents {
+        background: #15803D !important;
+        color: #FFFFFF !important;
+        border: none !important;
+    }
+    
+    [data-bs-theme="dark"] .type-storage {
+        background: #B45309 !important;
+        color: #FFFFFF !important;
+        border: none !important;
+    }
+    
+    [data-bs-theme="dark"] .type-apicalls {
+        background: #125082 !important;
+        color: #FFFFFF !important;
+        border: none !important;
+    }
+    
+    [data-bs-theme="dark"] .type-leads {
+        background: #DC2626 !important;
+        color: #FFFFFF !important;
+        border: none !important;
+    }
+
+    .addon-pricing {
+        display: flex;
+        gap: 2rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .price-item {
+        text-align: center;
+    }
+
+    .price-label {
+        font-size: 0.875rem;
+        color: #6B7B8D;
+        margin-bottom: 0.5rem;
+        font-weight: 500;
+    }
+
+    .price-amount {
+        font-size: 1.5rem;
+        font-weight: 800;
+        color: var(--bs-body-color, #1E2A3A);
+        margin-bottom: 0.25rem;
+    }
+
+    .price-currency {
+        font-size: 1rem;
+        color: var(--bs-secondary-color, #6B7B8D);
+    }
+
+    .addon-details {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .detail-item {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.9rem;
+        color: var(--bs-secondary-color, #6B7B8D);
+    }
+
+    .detail-item i {
+        width: 16px;
+        text-align: center;
+        color: #2589C9;
+    }
+
+    .addon-actions {
+        display: flex;
+        gap: 0.75rem;
+        justify-content: flex-end;
+        padding-top: 1rem;
+        border-top: 1px solid #E2E8F0;
+    }
+
+    .btn-addon {
+        padding: 0.5rem 1rem;
+        border-radius: 8px;
+        font-size: 0.875rem;
+        font-weight: 500;
+        border: none;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .btn-edit {
+        background: #2589C9;
+        color: white;
+    }
+
+    .btn-edit:hover {
+        background: #2589C9;
+        color: white;
+    }
+
+    .btn-toggle {
+        background: #6B7B8D;
+        color: white;
+    }
+
+    .btn-toggle:hover {
+        background: #2A3A4A;
+    }
+
+    .btn-toggle.active {
+        background: #16A34A;
+    }
+
+    .btn-toggle.inactive {
+        background: #DC2626;
+    }
+
+    .header-section {
+        background: linear-gradient(135deg, #2589C9 0%, #1A6FA8 100%);
+        color: white;
+        padding: 2rem;
+        border-radius: 16px;
+        margin-bottom: 2rem;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .header-section::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="50" cy="50" r="1" fill="%23ffffff" opacity="0.1"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>') repeat;
+        opacity: 0.3;
+    }
+
+    .header-content {
+        position: relative;
+        z-index: 2;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 4rem 2rem;
+        background: var(--bs-body-bg, white);
+        border-radius: 16px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        border: 1px solid var(--bs-border-color, transparent);
+    }
+
+    .empty-state i {
+        font-size: 2.2rem;
+        color: var(--bs-secondary-color, #E2E8F0);
+        margin-bottom: 1.5rem;
+    }
+</style>
+
+<div class="content">
+    <!-- Breadcrumb -->
+    <nav class="mb-3" aria-label="breadcrumb">
+        <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item"><a href="/home">Home</a></li>
+            <li class="breadcrumb-item"><a href="/Subscription/Plans">Subscriptions</a></li>
+            <li class="breadcrumb-item active">Membership Addons</li>
+        </ol>
+    </nav>
+
+    <!-- Header Section -->
+    <div class="header-section">
+        <div class="header-content">
+            <div class="row align-items-center">
+                <div class="col-lg-8">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="me-3">
+                            <i class="fa-solid fa-plus-square" style="font-size: 2.5rem; opacity: 0.9;"></i>
+                        </div>
+                        <div>
+                            <h1 class="mb-0" style="font-size: 2.5rem; font-weight: 700;">Membership Addons</h1>
+                            <p class="mb-0" style="font-size: 1.1rem; opacity: 0.9;">Manage additional features and resources for subscription plans</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-4 text-lg-end">
+                    <button type="button" class="btn btn-light btn-lg" data-bs-toggle="modal" data-bs-target="#createAddonModal">
+                        <i class="fa-solid fa-plus me-2"></i>
+                        <span>Create New Addon</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Addons List -->
+    <div id="addonsContainer">
+        @if (Model.Any())
+        {
+            @foreach (var addon in Model)
+            {
+                <div class="addon-card">
+                    <div class="addon-header">
+                        <div>
+                            <h3 class="addon-name">@addon.AddonName</h3>
+                            @if (!string.IsNullOrEmpty(addon.Description))
+                            {
+                                <p class="text-muted mb-0">@addon.Description</p>
+                            }
+                        </div>
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="addon-type type-@addon.AddonType.ToLower().Replace("_", "")">@addon.AddonType.Replace("_", " ")</span>
+                            @if (addon.IsActive)
+                            {
+                                <span class="badge bg-success">Active</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-secondary">Inactive</span>
+                            }
+                        </div>
+                    </div>
+
+                    <div class="addon-pricing">
+                        <div class="price-item">
+                            <div class="price-label">Monthly</div>
+                            <div class="price-amount">
+                                <span class="price-currency">₹</span>@addon.MonthlyPrice.ToString("N0")
+                            </div>
+                        </div>
+                        <div class="price-item">
+                            <div class="price-label">Annual</div>
+                            <div class="price-amount">
+                                <span class="price-currency">₹</span>@addon.YearlyPrice.ToString("N0")
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="addon-details">
+                        @if (addon.AdditionalAgents.HasValue)
+                        {
+                            <div class="detail-item">
+                                <i class="fa-solid fa-users"></i>
+                                <span>+@addon.AdditionalAgents Additional Agents</span>
+                            </div>
+                        }
+                        @if (addon.AdditionalStorageGB.HasValue)
+                        {
+                            <div class="detail-item">
+                                <i class="fa-solid fa-database"></i>
+                                <span>+@addon.AdditionalStorageGB GB Storage</span>
+                            </div>
+                        }
+                        @if (addon.AdditionalLeadsPerMonth.HasValue)
+                        {
+                            <div class="detail-item">
+                                <i class="fa-solid fa-chart-line"></i>
+                                <span>+@addon.AdditionalLeadsPerMonth.Value.ToString("N0") Leads/Month</span>
+                            </div>
+                        }
+                        @if (addon.AdditionalAPICallsPerMonth.HasValue)
+                        {
+                            <div class="detail-item">
+                                <i class="fa-solid fa-code"></i>
+                                <span>+@addon.AdditionalAPICallsPerMonth.Value.ToString("N0") API Calls/Month</span>
+                            </div>
+                        }
+                        @if (!string.IsNullOrEmpty(addon.FeatureName))
+                        {
+                            <div class="detail-item">
+                                <i class="fa-solid fa-star"></i>
+                                <span>@addon.FeatureName</span>
+                            </div>
+                        }
+                    </div>
+
+                    <div class="addon-actions">
+                        <button type="button" class="btn-addon btn-edit" onclick="editAddon(@addon.AddonId)">
+                            <i class="fa-solid fa-edit"></i>
+                            Edit
+                        </button>
+                        <button type="button" class="btn-addon btn-toggle @(addon.IsActive ? "active" : "inactive")" 
+                                onclick="toggleAddonStatus(@addon.AddonId, @addon.IsActive.ToString().ToLower())">
+                            <i class="fa-solid fa-@(addon.IsActive ? "pause" : "play")"></i>
+                            @(addon.IsActive ? "Deactivate" : "Activate")
+                        </button>
+                    </div>
+                </div>
+            }
+        }
+        else
+        {
+            <div class="empty-state">
+                <i class="fa-solid fa-plus-square"></i>
+                <h3>No Membership Addons</h3>
+                <p class="text-muted">Create your first addon to offer additional features to your partners</p>
+                <button type="button" class="btn btn-primary mt-3" data-bs-toggle="modal" data-bs-target="#createAddonModal">
+                    <i class="fa-solid fa-plus me-2"></i>Create Addon
+                </button>
+            </div>
+        }
+    </div>
+</div>
+
+<!-- Create Addon Modal -->
+<div class="modal fade" id="createAddonModal" tabindex="-1" aria-labelledby="createAddonModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <form id="createAddonForm">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="createAddonModalLabel">Create Membership Addon</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Addon Name <span class="text-danger">*</span></label>
+                            <input name="AddonName" class="form-control" required />
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Addon Type</label>
+                            <select name="AddonType" class="form-select" onchange="toggleAddonFields()">
+                                <option value="Feature">Feature</option>
+                                <option value="Agents">Additional Agents</option>
+                                <option value="Storage">Additional Storage</option>
+                                <option value="API_Calls">API Calls</option>
+                                <option value="Leads">Additional Leads</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Description</label>
+                        <textarea name="Description" class="form-control" rows="2"></textarea>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Monthly Price (₹) <span class="text-danger">*</span></label>
+                            <input name="MonthlyPrice" type="number" step="0.01" class="form-control" required />
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Yearly Price (₹) <span class="text-danger">*</span></label>
+                            <input name="YearlyPrice" type="number" step="0.01" class="form-control" required />
+                        </div>
+                    </div>
+
+                    <!-- Dynamic fields based on addon type -->
+                    <div id="agentsField" class="mb-3" style="display: none;">
+                        <label class="form-label">Additional Agents</label>
+                        <input name="AdditionalAgents" type="number" class="form-control" />
+                    </div>
+
+                    <div id="storageField" class="mb-3" style="display: none;">
+                        <label class="form-label">Additional Storage (GB)</label>
+                        <input name="AdditionalStorageGB" type="number" class="form-control" />
+                    </div>
+
+                    <div id="leadsField" class="mb-3" style="display: none;">
+                        <label class="form-label">Additional Leads per Month</label>
+                        <input name="AdditionalLeadsPerMonth" type="number" class="form-control" />
+                    </div>
+
+                    <div id="apiField" class="mb-3" style="display: none;">
+                        <label class="form-label">Additional API Calls per Month</label>
+                        <input name="AdditionalAPICallsPerMonth" type="number" class="form-control" />
+                    </div>
+
+                    <div id="featureField" class="mb-3">
+                        <label class="form-label">Feature Name</label>
+                        <input name="FeatureName" class="form-control" placeholder="e.g., Premium Support, Custom Reports" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Sort Order</label>
+                        <input name="SortOrder" type="number" class="form-control" value="0" />
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Create Addon</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function toggleAddonFields() {
+            const addonType = document.querySelector('select[name="AddonType"]').value;
+            
+            // Hide all fields first
+            document.getElementById('agentsField').style.display = 'none';
+            document.getElementById('storageField').style.display = 'none';
+            document.getElementById('leadsField').style.display = 'none';
+            document.getElementById('apiField').style.display = 'none';
+            document.getElementById('featureField').style.display = 'none';
+            
+            // Show relevant field
+            switch(addonType) {
+                case 'Agents':
+                    document.getElementById('agentsField').style.display = 'block';
+                    break;
+                case 'Storage':
+                    document.getElementById('storageField').style.display = 'block';
+                    break;
+                case 'Leads':
+                    document.getElementById('leadsField').style.display = 'block';
+                    break;
+                case 'API_Calls':
+                    document.getElementById('apiField').style.display = 'block';
+                    break;
+                case 'Feature':
+                default:
+                    document.getElementById('featureField').style.display = 'block';
+                    break;
+            }
+        }
+
+        document.getElementById('createAddonForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(this);
+            
+            // Convert FormData to JSON
+            const data = {};
+            formData.forEach((value, key) => {
+                data[key] = value;
+            });
+            
+            fetch('/Subscription/CreateAddon', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showToast(data.message || 'Addon created successfully!', 'success');
+                    document.getElementById('createAddonModal').querySelector('.btn-close').click();
+                    location.reload();
+                } else {
+                    const errors = data.errors || ['An error occurred'];
+                    showToast(errors.join(', '), 'error');
+                }
+            })
+            .catch(error => {
+                showToast('An error occurred while creating addon', 'error');
+            });
+        });
+
+        function editAddon(addonId) {
+            // Implementation for editing addon
+            showToast('Edit functionality coming soon!', 'info');
+        }
+
+        function toggleAddonStatus(addonId, isActive) {
+            const action = isActive ? 'deactivate' : 'activate';
+            if (!confirm(`Are you sure you want to ${action} this addon?`)) return;
+            
+            // Implementation for toggling addon status
+            showToast(`Addon ${action}d successfully!`, 'success');
+            setTimeout(() => location.reload(), 1000);
+        }
+
+        // showToast is global from _Layout.cshtml);
+    </script>
+}
+
+

@@ -1,0 +1,495 @@
+@{
+    ViewData["Title"] = "Sales Dashboard";
+}
+
+<style>
+    @@keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+    @@keyframes slideInLeft { from { opacity: 0; transform: translateX(-50px); } to { opacity: 1; transform: translateX(0); } }
+
+    
+    .dashboard-card {
+        background: white;
+        border-radius: 12px;
+        padding: 1.25rem;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        border: 1px solid rgba(0,0,0,0.05);
+        transition: all 0.3s;
+        animation: fadeInUp 0.6s ease-out;
+    }
+    .dashboard-card:hover { transform: translateY(-5px); box-shadow: 0 12px 40px rgba(0,0,0,0.15); }
+    .stat-card { position: relative; overflow: hidden; min-height: 0; }
+    .stat-number { font-size: 2rem; font-weight: 700; margin: 0; }
+    .stat-label { color: #6B7B8D; font-size: 0.85rem; margin-top: 0.5rem; }
+    .stat-icon { font-size: 1.5rem; color: var(--blue); opacity: 0.8; position: absolute; right: 1rem; top: 1rem; }
+    .earning-card .stat-number { color: var(--blue); }
+    .expense-card .stat-number { color: var(--gold-dark); }
+    .profit-card .stat-number { color: var(--blue); }
+    .chart-card { min-height: 320px; }
+    .chart-card canvas { height: 250px !important; }
+    .table-card { min-height: 320px; }
+    .table-responsive { max-height: 250px; overflow-y: auto; }
+    .table-responsive::-webkit-scrollbar { width: 4px; }
+    .table-responsive::-webkit-scrollbar-thumb { background: #6B7B8D; border-radius: 10px; }
+    .dark-mode .dashboard-card { background: #1E2A3A !important; border-color: #2A3A4A !important; color: #E2E8F0 !important; }
+    .dark-mode .stat-label { color: #8FA3B8 !important; }
+    .dark-mode .stat-icon { color: var(--blue) !important; opacity: 0.8 !important; }
+    .animated-row { animation: slideInLeft 0.5s ease-out; }
+    .card-1 { animation-delay: 0.1s; }
+    .card-2 { animation-delay: 0.2s; }
+    .card-3 { animation-delay: 0.3s; }
+    .chart-1 { animation-delay: 0.4s; }
+    .chart-2 { animation-delay: 0.5s; }
+    .chart-3 { animation-delay: 0.6s; }
+    .chart-4 { animation-delay: 0.7s; }
+
+    @@media (max-width: 767px) {
+        .stat-card { min-height: 0; padding: 1rem; }
+        .stat-number { font-size: 1.5rem; }
+        .stat-icon { font-size: 1.5rem; top: 0.75rem; right: 0.75rem; }
+        .dashboard-card { padding: 1rem; }
+    }
+</style>
+
+<div class="content">
+    <nav class="mb-3" aria-label="breadcrumb">
+        <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item"><a href="/home">Home</a></li>
+            <li class="breadcrumb-item active">Sales Dashboard</li>
+        </ol>
+    </nav>
+
+    <!-- Hero Welcome Section -->
+    <div class="hero-welcome card  mb-4 border-0 overflow-hidden" style="background:linear-gradient(135deg,#1A6FA8 0%,#D4A45A 100%);border-radius:16px;box-shadow:0 8px 32px rgba(26,111,168,0.15);">
+        <div class="card-body p-4">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="avatar-placeholder rounded-circle d-flex align-items-center justify-content-center" style="width:64px;height:64px;flex-shrink:0;background:rgba(255,255,255,0.25);">
+                            <i class="fa-solid fa-user text-white" style="font-size:1.8rem;"></i>
+                        </div>
+                        <div>
+                            <h2 class="text-white mb-1 fw-bold" style="font-size:1.8rem;">Welcome, @ViewBag.Username!</h2>
+                            <p class="text-white-50 mb-0"><i class="fa-solid fa-briefcase me-2"></i>@ViewBag.CompanyName</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4 text-md-end mt-3 mt-md-0">
+                    <div class="d-flex align-items-center justify-content-md-end gap-3">
+                        @if (!string.IsNullOrEmpty(ViewBag.CompanyLogo as string))
+                        {
+                            <div class="company-badge-hero d-flex align-items-center gap-2 rounded-3 px-3 py-2" style="background:rgba(255,255,255,0.15);">
+                                <img src="@ViewBag.CompanyLogo" style="height:36px;width:auto;max-width:100px;object-fit:contain;border-radius:4px;" alt="Logo" />
+                                <span class="text-white fw-semibold" style="font-size:0.95rem;">@ViewBag.CompanyName</span>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="company-badge-hero d-flex align-items-center gap-2 rounded-3 px-3 py-2" style="background:rgba(255,255,255,0.15);">
+                                <i class="fa-solid fa-building text-white" style="font-size:1.4rem;"></i>
+                                <span class="text-white fw-semibold" style="font-size:0.95rem;">@ViewBag.CompanyName</span>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-4" id="statsRow">
+        <div class="col-md-4">
+            <div class="dashboard-card stat-card earning-card card-1">
+                <i class="fa-solid fa-indian-rupee-sign stat-icon"></i>
+                <h2 class="stat-number" id="totalEarning">₹0</h2>
+                <p class="stat-label">Total Earnings</p>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="dashboard-card stat-card expense-card card-2">
+                <i class="fa-solid fa-money-bill-trend-up stat-icon"></i>
+                <h2 class="stat-number" id="totalExpenses">₹0</h2>
+                <p class="stat-label">Total Expenses</p>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="dashboard-card stat-card profit-card card-3">
+                <i class="fa-solid fa-chart-line stat-icon"></i>
+                <h2 class="stat-number" id="totalProfit">₹0</h2>
+                <p class="stat-label">Total Profit</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-4">
+        <!-- Sales Report -->
+        <div class="col-lg-8">
+            <div class="dashboard-card chart-card chart-1">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="mb-0"><i class="fa-solid fa-chart-column me-2"></i>Sales Report</h5>
+                    <div class="btn-group btn-group-sm" role="group" id="salesToggle">
+                        <button type="button" class="btn btn-outline-primary active" data-months="6" onclick="switchChartPeriod(6)">6M</button>
+                        <button type="button" class="btn btn-outline-primary" data-months="12" onclick="switchChartPeriod(12)">12M</button>
+                    </div>
+                </div>
+                <canvas id="salesReportChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Sales Status -->
+        <div class="col-lg-4">
+            <div class="dashboard-card chart-card chart-2">
+                <h5 class="mb-3"><i class="fa-solid fa-chart-pie me-2"></i>Sales Status</h5>
+                <canvas id="salesStatusChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-4">
+        <!-- Sales Growth -->
+        <div class="col-lg-6">
+            <div class="dashboard-card chart-card chart-3">
+                <h5 class="mb-3"><i class="fa-solid fa-arrow-trend-up me-2"></i>Sales Growth</h5>
+                <canvas id="salesGrowthChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Recent Bookings -->
+        <div class="col-lg-6">
+            <div class="dashboard-card table-card chart-4">
+                <h5 class="mb-3"><i class="fa-solid fa-book me-2"></i>Recent Sales/Bookings</h5>
+                <div class="table-responsive">
+                    <table class="table table-sm" id="recentBookingsTable">
+                        <thead>
+                            <tr>
+                                <th>Booking ID</th>
+                                <th>Amount</th>
+                                <th>Status</th>
+                                <th>Date</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Access Links -->
+    <div class="row g-3 mt-3">
+        <div class="col-12">
+            <div class="dashboard-card" style="animation-delay:0.8s;">
+                <h5 class="mb-3"><i class="fa-solid fa-bolt me-2"></i>Quick Access</h5>
+                <div class="d-flex flex-wrap gap-2" id="quickAccessLinks">
+                    <a href="/Leads/Index" class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-user-plus me-1"></i>Leads</a>
+                    <a href="/Quotations/Index" class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-clipboard me-1"></i>Quotations</a>
+                    <a href="/Bookings/Index" class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-book-open me-1"></i>Bookings</a>
+                    <a href="/Payments/Index" class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-credit-card me-1"></i>Payments</a>
+                    <a href="/Invoices/Index" class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-file-invoice me-1"></i>Invoices</a>
+                    <a href="/Profile" class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-user me-1"></i>My Profile</a>
+                    <a href="/Attendance/Calendar" class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-clock me-1"></i>Attendance</a>
+                    <button type="button" class="btn btn-outline-secondary btn-sm" onclick="openCustomizeModal()"><i class="fa-solid fa-sliders me-1"></i>Customize</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Customize Dashboard Modal -->
+<div class="modal fade" id="customizeModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header" style="background:linear-gradient(135deg,#1A6FA8,#125082);color:white;">
+                <h5 class="modal-title"><i class="fa-solid fa-sliders me-2"></i>Customize Dashboard</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-muted mb-3">Toggle dashboard widgets on/off. Changes are saved per user.</p>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <div class="card" style="border:1px solid #E2E8F0;">
+                            <div class="card-header bg-light py-2"><strong>Sales Widgets</strong></div>
+                            <div class="card-body py-2">
+                                <div class="form-check form-switch mb-2">
+                                    <input class="form-check-input" type="checkbox" id="showSalesStats" checked>
+                                    <label class="form-check-label" for="showSalesStats">Stats Cards</label>
+                                </div>
+                                <div class="form-check form-switch mb-2">
+                                    <input class="form-check-input" type="checkbox" id="showSalesChart" checked>
+                                    <label class="form-check-label" for="showSalesChart">Sales Report Chart</label>
+                                </div>
+                                <div class="form-check form-switch mb-2">
+                                    <input class="form-check-input" type="checkbox" id="showSalesStatus" checked>
+                                    <label class="form-check-label" for="showSalesStatus">Sales Status Chart</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card" style="border:1px solid #E2E8F0;">
+                            <div class="card-header bg-light py-2"><strong>More Widgets</strong></div>
+                            <div class="card-body py-2">
+                                <div class="form-check form-switch mb-2">
+                                    <input class="form-check-input" type="checkbox" id="showSalesBookings" checked>
+                                    <label class="form-check-label" for="showSalesBookings">Recent Bookings</label>
+                                </div>
+                                <div class="form-check form-switch mb-2">
+                                    <input class="form-check-input" type="checkbox" id="showQuickAccess" checked>
+                                    <label class="form-check-label" for="showQuickAccess">Quick Access Links</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" onclick="saveDashboardSettings()" style="background:#1A6FA8;border-color:#1A6FA8;">Save Settings</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        let charts = {};
+
+        document.addEventListener('DOMContentLoaded', function() {
+            loadSalesDashboardData();
+            loadDashboardSettings();
+        });
+
+        var salesMonths = 6;
+
+        function switchChartPeriod(months) {
+            salesMonths = months;
+            var group = document.getElementById('salesToggle');
+            if (group) {
+                group.querySelectorAll('.btn').forEach(function(b) {
+                    b.classList.remove('active');
+                    if (parseInt(b.getAttribute('data-months')) === months) b.classList.add('active');
+                });
+            }
+            loadSalesDashboardData();
+        }
+
+        function loadSalesDashboardData() {
+            fetch('/Home/GetSalesDashboardData?months=' + salesMonths)
+                .then(response => response.json())
+                .then(data => {
+                    updateStats(data);
+                    renderSalesReportChart(data.salesReport);
+                    renderSalesStatusChart(data.salesStatus);
+                    renderSalesGrowthChart(data.salesReport);
+                    renderRecentBookings(data.recentBookings);
+                })
+                .catch(error => console.error('Error:', error));
+        }
+
+        function updateStats(data) {
+            if (!data || data.error) {
+                ['totalEarning','totalExpenses','totalProfit'].forEach(function(id) {
+                    var el = document.getElementById(id);
+                    if (el) el.textContent = '\u20b90';
+                });
+                return;
+            }
+            animateNumber('totalEarning', safeNum(data.totalEarning), '\u20b9');
+            animateNumber('totalExpenses', safeNum(data.totalExpenses), '\u20b9');
+            animateNumber('totalProfit', safeNum(data.totalProfit), '\u20b9');
+        }
+
+        function safeNum(val) {
+            return (typeof val === 'number' && !isNaN(val)) ? val : 0;
+        }
+
+        function animateNumber(elementId, targetValue, prefix) {
+            var element = document.getElementById(elementId);
+            if (!element) return;
+            targetValue = safeNum(targetValue);
+            var duration = 2000;
+            var startTime = performance.now();
+            var startValue = 0;
+
+            function updateNumber(currentTime) {
+                var elapsed = currentTime - startTime;
+                var progress = Math.min(elapsed / duration, 1);
+                var easeOutQuart = 1 - Math.pow(1 - progress, 4);
+                var currentValue = Math.floor(startValue + (targetValue - startValue) * easeOutQuart);
+                element.textContent = prefix + formatNumber(currentValue);
+                if (progress < 1) {
+                    requestAnimationFrame(updateNumber);
+                }
+            }
+            requestAnimationFrame(updateNumber);
+        }
+
+        function renderSalesReportChart(data) {
+            const ctx = document.getElementById('salesReportChart').getContext('2d');
+            if (charts.salesReport) charts.salesReport.destroy();
+            charts.salesReport = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: data.map(d => d.month),
+                    datasets: [{
+                        label: 'Sales',
+                        data: data.map(d => d.sales),
+                        backgroundColor: '#1A6FA8',
+                        borderRadius: 8
+                    }]
+                },
+                options: { 
+                    responsive: true, 
+                    maintainAspectRatio: false, 
+                    plugins: { legend: { display: false } },
+                    animation: {
+                        duration: 2000,
+                        easing: 'easeOutBounce'
+                    }
+                }
+            });
+        }
+
+        function renderSalesStatusChart(data) {
+            const ctx = document.getElementById('salesStatusChart').getContext('2d');
+            if (charts.salesStatus) charts.salesStatus.destroy();
+            charts.salesStatus = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Paid', 'Pending', 'Overdue'],
+                    datasets: [{
+                        data: [data.paidCount, data.pendingCount, data.overdueCount],
+                        backgroundColor: ['#16A34A', '#F59E0B', '#DC2626']
+                    }]
+                },
+                options: { 
+                    responsive: true, 
+                    maintainAspectRatio: false,
+                    animation: {
+                        duration: 2000,
+                        easing: 'easeOutElastic'
+                    }
+                }
+            });
+        }
+
+        function renderSalesGrowthChart(data) {
+            const ctx = document.getElementById('salesGrowthChart').getContext('2d');
+            if (charts.salesGrowth) charts.salesGrowth.destroy();
+            charts.salesGrowth = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: data.map(d => d.month),
+                    datasets: [{
+                        label: 'Sales Growth',
+                        data: data.map(d => d.sales),
+                        borderColor: '#16A34A',
+                        backgroundColor: 'rgba(22,163,74, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: { 
+                    responsive: true, 
+                    maintainAspectRatio: false, 
+                    plugins: { legend: { display: false } },
+                    animation: {
+                        duration: 2000,
+                        easing: 'easeInOutQuart'
+                    }
+                }
+            });
+        }
+
+        function renderRecentBookings(data) {
+            const tbody = document.querySelector('#recentBookingsTable tbody');
+            tbody.innerHTML = '';
+            
+            data.forEach((booking, index) => {
+                setTimeout(() => {
+                    const row = document.createElement('tr');
+                    row.className = 'animated-row';
+                    row.innerHTML = `
+                        <td>#${booking.bookingId}</td>
+                        <td><strong>₹${formatNumber(booking.bookingAmount)}</strong></td>
+                        <td><span class="badge bg-${booking.status === 'Paid' ? 'success' : booking.status === 'Pending' ? 'warning' : 'danger'}">${booking.status}</span></td>
+                        <td><small>${booking.createdOn}</small></td>
+                    `;
+                    tbody.appendChild(row);
+                }, index * 200);
+            });
+        }
+
+        function formatNumber(num) {
+            if (typeof num !== 'number' || isNaN(num)) return '0';
+            return new Intl.NumberFormat('en-IN').format(num);
+        }
+
+        function loadDashboardSettings() {
+            fetch('/Home/GetDashboardSettings')
+                .then(r => r.json())
+                .then(data => {
+                    if (!data.success) return;
+                    var s = data.settings;
+                    applyWidgetSetting('#statsRow .col-md-4', s.showSalesStats);
+                    applyWidgetSetting('#salesReportChart', s.showSalesChart);
+                    applyWidgetSetting('#salesStatusChart', s.showSalesStatus);
+                    applyWidgetSetting('#recentBookingsTable', s.showSalesBookings);
+                    applyWidgetSetting('#quickAccessLinks', s.showQuickAccess);
+                    populateCustomizeModal(s);
+                })
+                .catch(err => console.error('Error loading dashboard settings:', err));
+        }
+
+        function applyWidgetSetting(selector, show) {
+            var el = document.querySelector(selector);
+            if (!el) return;
+            var parentCard = el.closest('.dashboard-card') || el.closest('.row.g-3.mb-4') || el.closest('.row.g-3') || el.closest('.row.g-3.mt-3');
+            if (parentCard) {
+                parentCard.style.display = show ? '' : 'none';
+            }
+        }
+
+        function populateCustomizeModal(s) {
+            var keys = ['showSalesStats', 'showSalesChart', 'showSalesStatus', 'showSalesBookings', 'showQuickAccess'];
+            keys.forEach(function(k) {
+                var el = document.getElementById(k);
+                if (el && s[k] !== undefined) el.checked = s[k];
+            });
+        }
+
+        function openCustomizeModal() {
+            var modal = new bootstrap.Modal(document.getElementById('customizeModal'));
+            modal.show();
+        }
+
+        function saveDashboardSettings() {
+            var settings = {
+                showSalesStats: document.getElementById('showSalesStats').checked,
+                showSalesChart: document.getElementById('showSalesChart').checked,
+                showSalesStatus: document.getElementById('showSalesStatus').checked,
+                showSalesBookings: document.getElementById('showSalesBookings').checked,
+                showQuickAccess: document.getElementById('showQuickAccess').checked
+            };
+
+            fetch('/Home/SaveDashboardSettings', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(settings)
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    var modal = bootstrap.Modal.getInstance(document.getElementById('customizeModal'));
+                    if (modal) modal.hide();
+                    showToast('Dashboard layout saved!', 'success');
+                    setTimeout(() => location.reload(), 1200);
+                } else {
+                    showToast('Error saving layout: ' + data.message, 'error');
+                }
+            })
+            .catch(err => showToast('Error saving layout', 'error'));
+        }
+    </script>
+}
+
+

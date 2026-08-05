@@ -1,0 +1,752 @@
+@model List<CRM.Models.PaymentModel>
+@inject CRM.AppDbContext _context
+@{
+    ViewData["Title"] = "Payments";
+    var invoices = ViewBag.Invoices as List<CRM.Models.InvoiceModel> ?? new List<CRM.Models.InvoiceModel>();
+    var bookings = ViewBag.Bookings as List<CRM.Models.BookingModel> ?? new List<CRM.Models.BookingModel>();
+    var userRole = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value;
+
+    bool canCreate = User.IsInRole("Admin");
+    bool canDelete = User.IsInRole("Admin");
+
+    int? payPageId = null;
+    int? createPermId = null;
+    int? deletePermId = null;
+
+    if ((!canCreate || !canDelete) && !string.IsNullOrEmpty(userRole))
+    {
+        payPageId = _context.Pages
+            .Where(p => p.Controller == "Payments" && p.Action == "Index")
+            .Select(p => (int?)p.PageId)
+            .FirstOrDefault();
+        var perms = _context.Permissions
+            .Where(p => p.PermissionName == "Create" || p.PermissionName == "Delete")
+            .ToList();
+        createPermId = perms.FirstOrDefault(p => p.PermissionName == "Create")?.PermissionId;
+        deletePermId = perms.FirstOrDefault(p => p.PermissionName == "Delete")?.PermissionId;
+    }
+
+    if (!canCreate && !string.IsNullOrEmpty(userRole) && payPageId.HasValue && createPermId.HasValue)
+    {
+        canCreate = _context.RolePagePermissions
+            .Any(rpp => rpp.RoleName == userRole &&
+                        rpp.PageId == payPageId.Value &&
+                        rpp.PermissionId == createPermId.Value &&
+                        rpp.IsGranted);
+    }
+
+    if (!canDelete && !string.IsNullOrEmpty(userRole) && payPageId.HasValue && deletePermId.HasValue)
+    {
+        canDelete = _context.RolePagePermissions
+            .Any(rpp => rpp.RoleName == userRole &&
+                        rpp.PageId == payPageId.Value &&
+                        rpp.PermissionId == deletePermId.Value &&
+                        rpp.IsGranted);
+    }
+}
+
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM%2BSans:wght@400;500;600&family=Playfair%2BDisplay:wght@600&display=swap">
+
+<style>
+.pm-wrap { font-family: 'DM Sans', sans-serif; }
+
+/* ── Flatpickr overrides ── */
+.flatpickr-input { cursor: pointer !important; }
+.flatpickr-calendar { font-family: 'DM Sans', sans-serif !important; border-radius: 10px !important; box-shadow: 0 8px 24px rgba(0,0,0,0.12) !important; border: 0.5px solid #E2E8F0 !important; }
+.flatpickr-day.selected, .flatpickr-day.selected:hover { background: #1A6FA8 !important; border-color: #1A6FA8 !important; }
+.flatpickr-day:hover { background: rgba(26,111,168,0.1) !important; }
+.flatpickr-months .flatpickr-month { background: #1A6FA8 !important; color: #FFFFFF !important; border-radius: 10px 10px 0 0 !important; }
+.flatpickr-current-month .flatpickr-monthDropdown-months { background: #1A6FA8 !important; color: #FFFFFF !important; }
+.flatpickr-current-month input.cur-year { color: #FFFFFF !important; }
+.flatpickr-weekday { color: #1A6FA8 !important; font-weight: 600 !important; }
+.numInputWrapper span.arrowUp:after { border-bottom-color: #FFFFFF !important; }
+.numInputWrapper span.arrowDown:after { border-top-color: #FFFFFF !important; }
+.flatpickr-prev-month svg, .flatpickr-next-month svg { fill: #FFFFFF !important; }
+.flatpickr-prev-month:hover svg, .flatpickr-next-month:hover svg { fill: #D4A45A !important; }
+
+/* ── Header ── */
+.pm-header {
+    background: linear-gradient(120deg, #1A6FA8 0%, #0F4C75 55%, #0F4C75 100%);
+    border-radius: 10px;
+    padding: 1rem 1.25rem;
+    margin-bottom: 0.75rem;
+    position: relative;
+    overflow: hidden;
+}
+.pm-header::before {
+    content: '';
+    position: absolute;
+    right: -20px; top: -20px;
+    width: 150px; height: 150px;
+    border-radius: 50%;
+    background: rgba(212,164,90,0.12);
+    pointer-events: none;
+}
+.pm-title-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.75rem;
+    position: relative;
+    z-index: 1;
+}
+.pm-page-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 19px;
+    font-weight: 600;
+    color: #FFFFFF;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    margin: 0;
+}
+.pm-page-title i { color: #D4A45A; font-size: 17px; }
+.pm-page-sub { font-size: 11px; color: rgba(255,255,255,0.55); margin-top: 2px; }
+
+.pm-create-btn {
+    background: #D4A45A;
+    border: none;
+    color: #162436;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 6px 14px;
+    border-radius: 6px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    white-space: nowrap;
+    font-family: 'DM Sans', sans-serif;
+    text-decoration: none;
+    transition: all 0.2s;
+    line-height: 1.4;
+}
+.pm-create-btn:hover { background: #E8C27E; color: #162436; transform: translateY(-1px); text-decoration: none; }
+
+/* ── Stats ── */
+.pm-stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    position: relative;
+    z-index: 1;
+}
+.pm-stat {
+    background: rgba(255,255,255,0.09);
+    border: 1px solid rgba(212,164,90,0.2);
+    border-radius: 7px;
+    padding: 8px 10px;
+    text-align: center;
+}
+.pm-stat-val { font-size: 16px; font-weight: 600; color: #D4A45A; line-height: 1.2; }
+.pm-stat-lbl { font-size: 9px; color: rgba(255,255,255,0.55); margin-top: 1px; text-transform: uppercase; letter-spacing: 0.4px; }
+
+/* ── Filter bar ── */
+.pm-filter {
+    background: #FFFFFF;
+    border: 0.5px solid #E2E8F0;
+    border-radius: 9px;
+    padding: 0.65rem 1rem;
+    margin-bottom: 0.75rem;
+    display: flex;
+    align-items: flex-end;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+.pm-fg {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    flex: 1;
+    min-width: 130px;
+}
+.pm-fg label {
+    font-size: 10px;
+    color: #8FA3B8;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+}
+.pm-fg .form-control,
+.pm-fg input[type="text"] {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 12.5px;
+    background: #F0F4F8;
+    border: 0.5px solid #E2E8F0;
+    border-radius: 6px;
+    padding: 5px 9px;
+    height: 32px;
+    color: #1E2A3A;
+    outline: none;
+    transition: border-color 0.2s;
+    width: 100%;
+}
+.pm-fg .form-control:focus,
+.pm-fg input[type="text"]:focus { border-color: #1A6FA8; box-shadow: 0 0 0 2px rgba(26,111,168,0.1); }
+
+/* date input icon area */
+.pm-date-wrap { position: relative; }
+.pm-date-wrap .pm-cal-icon {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #1A6FA8;
+    font-size: 12px;
+    pointer-events: none;
+}
+
+.pm-filter-btn {
+    background: #1A6FA8;
+    color: #FFFFFF;
+    border: none;
+    border-radius: 6px;
+    padding: 0 14px;
+    font-size: 12.5px;
+    font-weight: 500;
+    cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    white-space: nowrap;
+    height: 32px;
+    align-self: flex-end;
+    transition: background 0.2s;
+}
+.pm-filter-btn:hover { background: #125082; }
+
+/* ── Section label ── */
+.pm-section-label {
+    font-size: 10px;
+    font-weight: 700;
+    color: #B8C8D8;
+    text-transform: uppercase;
+    letter-spacing: 0.7px;
+    margin-bottom: 0.4rem;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+}
+.pm-section-label::after { content: ''; flex: 1; height: 0.5px; background: #E8EDF2; }
+
+/* ── Payment Card ── */
+.payment-card {
+    background: #FFFFFF !important;
+    border: 0.5px solid #E2E8F0 !important;
+    border-left: 3px solid #D4A45A !important;
+    border-radius: 9px !important;
+    padding: 0 !important;
+    margin-bottom: 0.45rem !important;
+    box-shadow: none !important;
+    transition: box-shadow 0.2s, transform 0.2s !important;
+    position: relative;
+    overflow: visible !important;
+}
+.payment-card:hover {
+    box-shadow: 0 2px 10px rgba(26,111,168,0.09) !important;
+    transform: translateY(-1px) !important;
+    z-index: 10;
+}
+.payment-card .card-body {
+    padding: 0.6rem 0.9rem !important;
+    display: grid !important;
+    grid-template-columns: 2.2fr 1.6fr 1.4fr 1fr auto !important;
+    gap: 10px !important;
+    align-items: center !important;
+}
+
+/* ── Card columns ── */
+.pm-col-1 {}
+.pm-receipt-no {
+    font-size: 12.5px;
+    font-weight: 600;
+    color: #1A6FA8;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin-bottom: 2px;
+    line-height: 1.3;
+}
+.pm-gold-dot { width: 6px; height: 6px; border-radius: 50%; background: #D4A45A; flex-shrink: 0; }
+.pm-person-name {
+    font-size: 12px;
+    font-weight: 500;
+    color: #1E2A3A;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-bottom: 1px;
+}
+.pm-person-name i { font-size: 10px; color: #8FA3B8; }
+.pm-inv-ref { font-size: 10.5px; color: #8FA3B8; display: flex; align-items: center; gap: 4px; }
+.pm-inv-ref i { font-size: 10px; color: #B8C8D8; }
+
+.pm-col-lbl { font-size: 9.5px; color: #B8C8D8; text-transform: uppercase; letter-spacing: 0.35px; margin-bottom: 2px; font-weight: 600; }
+.pm-col-val { font-size: 12.5px; color: #1E2A3A; font-weight: 500; line-height: 1.3; }
+
+/* Payment method badge — colored per method */
+.pm-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 7px;
+    border-radius: 9px;
+    margin-top: 3px;
+    white-space: nowrap;
+}
+.pm-badge-cash    { background: #E8EDF2; color: #15803D; }
+.pm-badge-card    { background: #F0F4F8; color: #1A6FA8; }
+.pm-badge-upi     { background: #F0F4F8; color: #6B7B8D; }
+.pm-badge-neft, .pm-badge-bank { background: #FEE2E2; color: #B45309; }
+.pm-badge-cheque  { background: #FEE2E2; color: #DC2626; }
+.pm-badge-default { background: rgba(26,111,168,0.08); color: #1A6FA8; }
+
+.pm-amount-val { font-size: 15px; font-weight: 600; color: #1A6FA8; line-height: 1.2; }
+.pm-amt-lbl { font-size: 9.5px; color: #B8C8D8; text-transform: uppercase; letter-spacing: 0.35px; margin-bottom: 2px; font-weight: 600; }
+
+/* ── Action icon buttons — colorful ── */
+.pm-action-group { display: flex; gap: 4px; align-items: center; flex-shrink: 0; }
+.pm-act-btn {
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+    font-size: 12px;
+    border: none;
+    cursor: pointer;
+    transition: transform 0.15s, opacity 0.15s;
+    flex-shrink: 0;
+}
+.pm-act-btn:hover { transform: translateY(-1px); opacity: 0.88; text-decoration: none; }
+/* receipt — teal */
+.pm-btn-receipt  { background: #E8EDF2; color: #1A6FA8; }
+/* invoice — blue */
+.pm-btn-invoice  { background: #E2E8F0; color: #1A6FA8; }
+/* download — amber/gold */
+.pm-btn-download { background: #FEE2E2; color: #D4A45A; }
+/* delete — red */
+.pm-btn-delete   { background: #FEE2E2; color: #DC2626; }
+
+/* ── Empty state ── */
+.pm-empty {
+    text-align: center;
+    padding: 3rem 2rem;
+    background: #FFFFFF;
+    border: 0.5px solid #E2E8F0;
+    border-radius: 10px;
+}
+.pm-empty .pm-empty-icon { font-size: 48px; color: #E2E8F0; display: block; margin-bottom: 0.75rem; }
+.pm-empty h3 { font-size: 15px; font-weight: 600; color: #2A3A4A; margin-bottom: 0.4rem; }
+.pm-empty p { font-size: 12px; color: #8FA3B8; margin-bottom: 1.25rem; }
+
+/* ── Pagination ── */
+.pagination-container {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.55rem 0.9rem;
+    background: #FFFFFF;
+    border: 0.5px solid #E2E8F0;
+    border-radius: 7px;
+    margin-top: 0.5rem;
+}
+.pagination-info { font-size: 11.5px; color: #8FA3B8; }
+.pagination-controls { display: flex; gap: 3px; align-items: center; }
+.pagination-btn {
+    background: #F0F4F8;
+    border: 0.5px solid #E2E8F0;
+    border-radius: 4px;
+    padding: 3px 9px;
+    font-size: 11.5px;
+    cursor: pointer;
+    color: #6B7B8D;
+    font-family: 'DM Sans', sans-serif;
+    transition: all 0.15s;
+    line-height: 1.5;
+}
+.pagination-btn:hover:not(:disabled) { border-color: #D4A45A; color: #D4A45A; }
+.pagination-btn.active { background: #1A6FA8; border-color: #1A6FA8; color: #FFFFFF; }
+.pagination-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+
+/* ── Dark mode ── */
+.dark-mode .pm-filter,
+.dark-mode .pagination-container,
+.dark-mode .pm-empty { background: #1A2332 !important; border-color: #2A3A4A !important; }
+.dark-mode .payment-card { background: #1A2332 !important; border-color: #2A3A4A !important; border-left-color: #D4A45A !important; }
+.dark-mode .pm-fg .form-control,
+.dark-mode .pm-fg input[type="text"] { background: #1E2A3A; border-color: #2A3A4A; color: #E2E8F0; }
+.dark-mode .pm-fg label { color: #6B7B8D; }
+.dark-mode .pm-section-label { color: #2A3A4A; }
+.dark-mode .pm-section-label::after { background: #2A3A4A; }
+.dark-mode .pm-receipt-no { color: #8FA3B8; }
+.dark-mode .pm-person-name { color: #E2E8F0; }
+.dark-mode .pm-col-val { color: #B8C8D8; }
+.dark-mode .pm-amount-val { color: #8FA3B8; }
+.dark-mode .pm-col-lbl, .dark-mode .pm-amt-lbl { color: #6B7B8D; }
+.dark-mode .pm-inv-ref { color: #6B7B8D; }
+.dark-mode .pagination-btn { background: #1E2A3A; border-color: #2A3A4A; color: #8FA3B8; }
+.dark-mode .pagination-btn.active { background: #1A6FA8; border-color: #1A6FA8; color: #FFFFFF; }
+.dark-mode .pagination-info { color: #6B7B8D; }
+.dark-mode .pm-empty .pm-empty-icon { color: #2A3A4A; }
+.dark-mode .pm-empty h3 { color: #B8C8D8; }
+.dark-mode .pm-empty p { color: #6B7B8D; }
+
+/* ── Responsive ── */
+@@media (max-width: 768px) {
+    .pm-stats { grid-template-columns: repeat(2, 1fr); }
+    .payment-card .card-body {
+        grid-template-columns: 1fr auto !important;
+        grid-template-rows: auto auto auto !important;
+    }
+    .pm-col-mid-ref { display: none; }
+    .pm-col-amount { grid-column: 1; }
+    .pm-action-group { grid-column: 2; grid-row: 1 / span 3; flex-direction: column; justify-content: center; }
+    .pm-filter { flex-direction: column; gap: 7px; }
+    .pm-fg { min-width: 100%; }
+    .pm-filter-btn { width: 100%; justify-content: center; height: 34px; }
+    .pagination-container { flex-direction: column; gap: 7px; text-align: center; }
+    .pagination-controls { flex-wrap: wrap; justify-content: center; }
+    .pm-title-row { flex-wrap: wrap; gap: 8px; }
+}
+@@media (max-width: 480px) {
+    .pm-stat-val { font-size: 14px; }
+    .pm-header { padding: 0.75rem 0.9rem; }
+}
+</style>
+
+<div class="content pm-wrap">
+
+    
+    <nav class="mb-2" aria-label="breadcrumb">
+        <ol class="breadcrumb mb-0" style="font-size:12px;">
+            <li class="breadcrumb-item"><a href="/Home">Home</a></li>
+            <li class="breadcrumb-item active">Payments</li>
+        </ol>
+    </nav>
+
+    
+    <div class="pm-header">
+        <div class="pm-title-row">
+            <div>
+                <div class="pm-page-title">
+                    <i class="fa-solid fa-money-bill-wave"></i>
+                    Payments
+                </div>
+                <div class="pm-page-sub">Track all payment transactions and receipts</div>
+            </div>
+            @if (canCreate)
+            {
+                <a href="/Payments/Create" class="pm-create-btn">
+                    <i class="fa-solid fa-plus"></i>Record Payment
+                </a>
+            }
+        </div>
+
+        <div class="pm-stats">
+            <div class="pm-stat">
+                <div class="pm-stat-val">@Model.Count</div>
+                <div class="pm-stat-lbl">Total Payments</div>
+            </div>
+            <div class="pm-stat">
+                <div class="pm-stat-val">₹@Model.Sum(p => p.Amount).ToString("N0")</div>
+                <div class="pm-stat-lbl">Total Received</div>
+            </div>
+            <div class="pm-stat">
+                <div class="pm-stat-val">@Model.Count(p => p.PaymentDate.Month == DateTime.Now.Month)</div>
+                <div class="pm-stat-lbl">This Month</div>
+            </div>
+            <div class="pm-stat">
+                <div class="pm-stat-val">₹@Model.Where(p => p.PaymentDate.Month == DateTime.Now.Month).Sum(p => p.Amount).ToString("N0")</div>
+                <div class="pm-stat-lbl">Month Revenue</div>
+            </div>
+        </div>
+    </div>
+
+    
+    <div class="pm-filter">
+        <div class="pm-fg">
+            <label for="searchInput">Search</label>
+            <input type="text" class="form-control" id="searchInput"
+                   placeholder="Receipt, transaction ref..."
+                   value="@ViewBag.SearchTerm">
+        </div>
+        <div class="pm-fg">
+            <label for="fromDate">From Date</label>
+            <div class="pm-date-wrap">
+                <input type="text" class="form-control pm-flatpickr" id="fromDate"
+                       placeholder="Select date" value="@ViewBag.FromDate" readonly>
+                <i class="fa-regular fa-calendar pm-cal-icon"></i>
+            </div>
+        </div>
+        <div class="pm-fg">
+            <label for="toDate">To Date</label>
+            <div class="pm-date-wrap">
+                <input type="text" class="form-control pm-flatpickr" id="toDate"
+                       placeholder="Select date" value="@ViewBag.ToDate" readonly>
+                <i class="fa-regular fa-calendar pm-cal-icon"></i>
+            </div>
+        </div>
+        <button class="pm-filter-btn" onclick="applyFilters()">
+            <i class="fa-solid fa-filter"></i>Filter
+        </button>
+    </div>
+
+    
+    @if (Model.Any())
+    {
+        <div class="pm-section-label">Recent Transactions</div>
+
+        foreach (var payment in Model)
+        {
+            var invoice  = invoices.FirstOrDefault(i => i.InvoiceId == payment.InvoiceId);
+            var booking  = invoice != null ? bookings.FirstOrDefault(b => b.BookingId == invoice.BookingId) : null;
+
+            // Determine badge class from method
+            var methodKey = (payment.PaymentMethod ?? "").ToLower().Trim();
+            var badgeCls  = methodKey switch {
+                "cash"                          => "pm-badge-cash",
+                "card" or "credit card"
+                      or "debit card"           => "pm-badge-card",
+                "upi"                           => "pm-badge-upi",
+                "neft" or "rtgs" or "imps"
+                      or "bank transfer"        => "pm-badge-neft",
+                "cheque" or "check"             => "pm-badge-cheque",
+                _                               => "pm-badge-default"
+            };
+            var methodIcon = methodKey switch {
+                "cash"                          => "fa-money-bill",
+                "card" or "credit card"
+                      or "debit card"           => "fa-credit-card",
+                "upi"                           => "fa-mobile-screen",
+                "neft" or "rtgs" or "imps"
+                      or "bank transfer"        => "fa-building-columns",
+                "cheque" or "check"             => "fa-file-lines",
+                _                               => "fa-circle-dollar-to-slot"
+            };
+
+            <div class="card payment-card paginated-item">
+                <div class="card-body">
+
+                    
+                    <div class="pm-col-1">
+                        <div class="pm-receipt-no">
+                            <span class="pm-gold-dot"></span>
+                            @payment.ReceiptNumber
+                        </div>
+                        <div class="pm-person-name">
+                            <i class="fa-solid fa-circle-user"></i>
+                            @booking?.Lead?.Name
+                        </div>
+                        <div class="pm-inv-ref">
+                            <i class="fa-solid fa-file-invoice"></i>
+                            Invoice: @invoice?.InvoiceNumber
+                        </div>
+                    </div>
+
+                    
+                    <div>
+                        <div class="pm-col-lbl">Payment Date</div>
+                        <div class="pm-col-val">@payment.PaymentDate.ToString("MMM dd, yyyy")</div>
+                        <span class="pm-badge @badgeCls">
+                            <i class="fa-solid @methodIcon" style="font-size:9px;"></i>
+                            @payment.PaymentMethod
+                        </span>
+                    </div>
+
+                    
+                    <div class="pm-col-mid-ref">
+                        @if (!string.IsNullOrEmpty(payment.TransactionReference))
+                        {
+                            <div class="pm-col-lbl">Transaction Ref</div>
+                            <div class="pm-col-val" style="font-size:12px; word-break:break-all;">@payment.TransactionReference</div>
+                        }
+                        else if (!string.IsNullOrEmpty(payment.ChequeNumber))
+                        {
+                            <div class="pm-col-lbl">Cheque No.</div>
+                            <div class="pm-col-val" style="font-size:12px;">@payment.ChequeNumber</div>
+                        }
+                    </div>
+
+                    
+                    <div class="pm-col-amount">
+                        <div class="pm-amt-lbl">Amount Paid</div>
+                        <div class="pm-amount-val">₹@payment.Amount.ToString("N0")</div>
+                    </div>
+
+                    
+                    <div class="pm-action-group">
+                        <a class="pm-act-btn pm-btn-receipt" href="/paymentreceipt/@IdObfuscator.Encode(payment.PaymentId)" title="View Receipt">
+                            <i class="fa-solid fa-receipt"></i>
+                        </a>
+                        <a class="pm-act-btn pm-btn-invoice" href="/invoicedetails/@IdObfuscator.Encode(payment.InvoiceId)" title="View Invoice">
+                            <i class="fa-solid fa-file-invoice"></i>
+                        </a>
+                        <a class="pm-act-btn pm-btn-download" href="/paymentreceipt/@IdObfuscator.Encode(payment.PaymentId)" title="Download Receipt">
+                            <i class="fa-solid fa-download"></i>
+                        </a>
+                        @if (canDelete)
+                        {
+                            <a class="pm-act-btn pm-btn-delete" href="#"
+                               onclick="deletePayment(@payment.PaymentId); return false;" title="Delete">
+                                <i class="fa-solid fa-trash"></i>
+                            </a>
+                        }
+                    </div>
+
+                </div>
+            </div>
+        }
+
+        
+        <div class="pagination-container" id="paginationContainer" style="display:none;">
+            <div class="pagination-info">
+                <span id="paginationInfo">Showing 1–10 of 50 payments</span>
+            </div>
+            <div class="pagination-controls">
+                <button class="pagination-btn" id="prevBtn" onclick="changePage(-1)">
+                    <i class="fa-solid fa-chevron-left"></i> Prev
+                </button>
+                <div id="pageNumbers" style="display:flex;gap:3px;"></div>
+                <button class="pagination-btn" id="nextBtn" onclick="changePage(1)">
+                    Next <i class="fa-solid fa-chevron-right"></i>
+                </button>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="pm-empty">
+            <i class="fa-solid fa-money-bill-wave pm-empty-icon"></i>
+            <h3>No Payments Found</h3>
+            <p>Start by recording your first payment</p>
+            @if (canCreate)
+            {
+                <a href="/Payments/Create" class="pm-create-btn">
+                    <i class="fa-solid fa-plus"></i>Record Payment
+                </a>
+            }
+        </div>
+    }
+
+</div>
+
+
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script>
+    // ── Flatpickr init ──
+    document.querySelectorAll('.pm-flatpickr').forEach(function(el) {
+        flatpickr(el, {
+            dateFormat: 'Y-m-d',
+            altInput: true,
+            altFormat: 'd M Y',
+            disableMobile: true,
+            allowInput: false
+        });
+    });
+
+    // ── Pagination ──
+    let currentPage = 1;
+    const pageSize  = 10;
+    let filteredItems = [];
+
+    setTimeout(function () {
+        if (typeof $ === 'undefined') return;
+
+        filteredItems = Array.from(document.querySelectorAll('.paginated-item'));
+        updatePagination();
+
+        function applyFilters() {
+            const search   = $('#searchInput').val();
+            const fromDate = $('#fromDate').val();
+            const toDate   = $('#toDate').val();
+            let url = '/Payments/Index?';
+            if (search)   url += 'search='   + encodeURIComponent(search)   + '&';
+            if (fromDate) url += 'fromDate=' + encodeURIComponent(fromDate) + '&';
+            if (toDate)   url += 'toDate='   + encodeURIComponent(toDate);
+            window.location.href = url;
+        }
+
+        $('#searchInput').on('keypress', function (e) { if (e.which === 13) applyFilters(); });
+        window.applyFilters = applyFilters;
+    }, 800);
+
+    function updatePagination() {
+        const total      = filteredItems.length;
+        const totalPages = Math.ceil(total / pageSize);
+        const start      = (currentPage - 1) * pageSize;
+        const end        = Math.min(start + pageSize, total);
+
+        $('.paginated-item').hide();
+        for (let i = start; i < end; i++) {
+            if (filteredItems[i]) $(filteredItems[i]).show();
+        }
+
+        const s = total > 0 ? start + 1 : 0;
+        $('#paginationInfo').text('Showing ' + s + '–' + end + ' of ' + total + ' payments');
+        updatePageNumbers(totalPages);
+        $('#prevBtn').prop('disabled', currentPage === 1);
+        $('#nextBtn').prop('disabled', currentPage === totalPages || totalPages === 0);
+        if (total > 0) $('#paginationContainer').show(); else $('#paginationContainer').hide();
+    }
+
+    function updatePageNumbers(totalPages) {
+        const $pg = $('#pageNumbers');
+        $pg.empty();
+        if (totalPages <= 1) return;
+        const max = 5;
+        let sp = Math.max(1, currentPage - Math.floor(max / 2));
+        let ep = Math.min(totalPages, sp + max - 1);
+        if (ep - sp + 1 < max) sp = Math.max(1, ep - max + 1);
+        for (let i = sp; i <= ep; i++) {
+            $('<button></button>')
+                .addClass('pagination-btn' + (i === currentPage ? ' active' : ''))
+                .text(i)
+                .on('click', (function(p){ return function(){ goToPage(p); }; })(i))
+                .appendTo($pg);
+        }
+    }
+
+    function changePage(dir) {
+        const tp = Math.ceil(filteredItems.length / pageSize);
+        const np = currentPage + dir;
+        if (np >= 1 && np <= tp) { currentPage = np; updatePagination(); }
+    }
+
+    function goToPage(p) { currentPage = p; updatePagination(); }
+
+    function deletePayment(paymentId) {
+        if (typeof Swal === 'undefined') return;
+        Swal.fire({
+            title: 'Are you sure?',
+            text: 'This will reverse the payment and update invoice/installment status!',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#DC2626',
+            cancelButtonColor: '#6B7B8D',
+            confirmButtonText: 'Yes, delete it!'
+        }).then(function(result) {
+            if (result.isConfirmed) {
+                $.ajax({
+                    url: '/Payments/Delete/' + paymentId,
+                    type: 'POST',
+                    success: function (r) {
+                        if (r.success) {
+                            Swal.fire({ icon: 'success', title: 'Deleted!', text: r.message,
+                                        timer: 2000, showConfirmButton: false })
+                                .then(function() { location.reload(); });
+                        } else { Swal.fire('Error', r.message, 'error'); }
+                    },
+                    error: function () { Swal.fire('Error', 'Failed to delete payment', 'error'); }
+                });
+            }
+        });
+    }
+</script>

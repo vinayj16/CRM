@@ -1,0 +1,2367 @@
+@model CRM.Models.LeadModel
+@{
+    ViewData["Title"] = "Lead Details";
+    var executives = ViewBag.Executives as IEnumerable<dynamic>;
+    var isPartnerTeamUser = ViewBag.IsPartnerTeamUser != null && (bool)ViewBag.IsPartnerTeamUser;
+    var displayedExecutiveId = (isPartnerTeamUser && Model.PartnerAssignedAgentUserId.HasValue)
+        ? Model.PartnerAssignedAgentUserId.Value
+        : (Model.ExecutiveId ?? 0);
+    string executiveName = "Unassigned";
+
+    if (displayedExecutiveId > 0 && executives != null)
+    {
+        foreach (var e in executives)
+        {
+            try
+            {
+                int eId = Convert.ToInt32(e.UserId);
+                if (eId == displayedExecutiveId)
+                {
+                    executiveName = (string)(e.FullName ?? e.Username ?? "Unassigned");
+                    break;
+                }
+            }
+            catch { }
+        }
+
+        // Fallback: direct DB lookup if not found in executives list
+        if (executiveName == "Unassigned")
+        {
+            var db = Context.RequestServices.GetService<CRM.AppDbContext>();
+            var user = db?.Users.FirstOrDefault(u => u.UserId == displayedExecutiveId);
+            if (user != null)
+            {
+                var profile = db?.UserProfiles.FirstOrDefault(p => p.UserId == displayedExecutiveId);
+                executiveName = (profile != null && !string.IsNullOrWhiteSpace(profile.FirstName))
+                    ? $"{profile.FirstName} {profile.LastName}".Trim()
+                    : user.Username ?? "Unassigned";
+            }
+        }
+    }
+}
+
+<!-- Flatpickr: lightweight date/time picker used for the Follow-up form's
+     date and time fields. Loaded from CDN; does not touch any backend code. -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+
+<style>
+    /* ===========================================================
+    DESIGN TOKENS
+    =========================================================== */
+    :root {
+    --brand-primary: #1A6FA8;
+    --brand-primary-dark: #125082;
+    --brand-primary-light: rgba(26,111,168, 0.08);
+    --brand-accent: #D4A45A;
+    --brand-accent-dark: #B8883E;
+    --brand-accent-light: rgba(212,164,90, 0.12);
+    --ink-900: #1E2A3A;
+    --ink-600: #6B7B8D;
+    --ink-400: #8FA3B8;
+    --surface: #FFFFFF;
+    --surface-muted: #F0F4F8;
+    --border-soft: rgba(26,111,168, 0.12);
+    --danger: #DC2626;
+    --success: #16A34A;
+    --radius-lg: 10px;
+    --radius-md: 8px;
+    --radius-sm: 6px;
+    }
+
+    /* Mobile responsive styles */
+    @@media (max-width: 768px) {
+    /* Prevent horizontal scroll */
+    body {
+    overflow-x: hidden;
+    }
+
+    html, body {
+    max-width: 100vw;
+    overflow-x: hidden;
+    }
+
+    .row[style*="flex-wrap:nowrap"] {
+    flex-wrap: wrap !important;
+    }
+
+    .row[style*="flex-wrap:nowrap"] > [style*="max-width:380px"] {
+    max-width: 100% !important;
+    flex-shrink: 1 !important;
+    }
+
+    .sticky-leads-sidebar {
+    position: relative !important;
+    margin-bottom: 0.75rem;
+    }
+
+    .pb-9 {
+    padding-bottom: 1.25rem !important;
+    }
+    /* Prevent horizontal overflow and remove gaps - MOBILE ONLY */
+    main.content {
+    padding: 0.5rem !important;
+    overflow-x: hidden !important;
+    max-width: 100vw;
+    }
+
+    main.content > .container-fluid {
+    padding-left: 0.5rem !important;
+    padding-right: 0.5rem !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    overflow-x: hidden !important;
+    }
+
+    .row {
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    max-width: 100%;
+    }
+
+    .col-12, .col-md-5, .col-md-7, .col-lg-5, .col-lg-7,
+    .col-xl-4, .col-xl-8, [class*="col-"] {
+    padding-left: 0.4rem !important;
+    padding-right: 0.4rem !important;
+    max-width: 100%;
+    }
+
+    .avatar-name {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    }
+    /* Card adjustments */
+    .card {
+    margin-bottom: 0.6rem !important;
+    overflow-x: hidden;
+    }
+
+    .card-body {
+    overflow-x: hidden;
+    word-wrap: break-word;
+    }
+    /* Make cards more compact */
+    .card-body h6 {
+    font-size: 0.8125rem;
+    }
+
+    .card-body p {
+    font-size: 0.8125rem;
+    margin-bottom: 0.5rem !important;
+    }
+    /* Make tables responsive */
+    .table-responsive {
+    margin-left: 0;
+    margin-right: 0;
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    }
+
+    .table {
+    margin-bottom: 0;
+    }
+    /* Adjust button groups */
+    .d-flex.flex-wrap.gap-2 {
+    gap: 0.4rem !important;
+    }
+
+    .btn {
+    font-size: 0.8125rem;
+    padding: 0.375rem 0.7rem;
+    white-space: nowrap;
+    }
+    /* Adjust tab styling for mobile */
+    .nav-tabs .nav-link {
+    padding: 0.4rem 0.65rem;
+    font-size: 0.8125rem;
+    }
+    /* Fix breadcrumb */
+    .breadcrumb {
+    font-size: 0.8125rem;
+    margin-bottom: 0.4rem !important;
+    }
+    /* Fix tab content padding */
+    .tab-content {
+    padding: 0.6rem 0.4rem !important;
+    overflow-x: hidden;
+    }
+    /* Grid columns in cards */
+    .g-3, .g-md-4, .g-xl-6 {
+    --bs-gutter-x: 0.4rem !important;
+    --bs-gutter-y: 0.4rem !important;
+    }
+    /* Prevent wide content from breaking layout */
+    p, h1, h2, h3, h4, h5, h6, span, div {
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    }
+    }
+</style>
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+      crossorigin="anonymous" referrerpolicy="no-referrer" />
+
+<div class="content">
+    <!-- Breadcrumb - Outside of header card -->
+    <nav class="mb-2" aria-label="breadcrumb">
+        <ol class="breadcrumb mb-0" style="background: transparent; padding: 0; font-size: 0.8125rem;">
+            <li class="breadcrumb-item"><a href="/Home" style="color: var(--ink-400); text-decoration: none;">Home</a></li>
+            <li class="breadcrumb-item"><a href="/Leads/Index" style="color: var(--ink-400); text-decoration: none;">Leads</a></li>
+            <li class="breadcrumb-item active" style="color: var(--ink-900);">@Model.Name</li>
+        </ol>
+    </nav>  
+
+    <!-- Modern Header -->
+    <div class="modern-header-section mb-3">
+        <div class="modern-header-bg">
+            <div class="header-content-wrapper">
+                <!-- Header Title -->
+                <div class="modern-header-title">
+                    <div class="d-flex align-items-center">
+                        <div class="header-icon me-3">
+                            <i class="fa-solid fa-user-circle"></i>
+                        </div>
+                        <div>
+                            <h1 class="header-main-title mb-1">@Model.Name</h1>
+                            <p class="header-subtitle mb-0">Lead Details &amp; Activity Management</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="pb-9">
+        <!-- Header Actions -->
+        <div class="row">
+            <div class="col-12">
+                <div class="row align-items-center justify-content-between g-2 mb-3">
+                    <div class="col-12 col-md-auto">
+                        <h2 class="mb-0 section-title">Lead Details</h2>
+                    </div>
+                    <div class="col-12 col-md-auto">
+                        <div class="d-flex flex-wrap gap-2">
+                            <button class="btn btn-success" onclick="openNoteModal()">
+                                <span class="fa-solid fa-note-sticky me-2"></span>Add Note
+                            </button>
+                            <button class="btn btn-info" onclick="openFollowUpModal(@Model.LeadId)" style="color: #FFFFFF;">
+                                <span class="fa-solid fa-calendar-plus me-2"></span>Add Follow-up
+                            </button>
+                            <a href="/Leads/Index" class="btn btn-phoenix-secondary">
+                                <span class="fa-solid fa-arrow-left me-2"></span>Back to Leads
+                            </a>
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content Grid -->
+        <div class="row g-3 g-md-3 g-xl-4" style="flex-wrap:nowrap;">
+            <!-- Left Sidebar - Lead Info Cards -->
+            <div class="col-12 col-md-5 col-lg-5 col-xl-4" style="max-width:380px;flex-shrink:0;">
+                <div class="sticky-leads-sidebar">
+                    <!-- Lead Profile Card -->
+                    <div class="card mb-3 position-relative">
+                        <!-- WhatsApp Icon Button - Hidden for future implementation -->
+                        <button class="whatsapp-icon-btn"
+                                onclick="openWhatsAppModal(@Model.LeadId, '@Model.Name', '@Model.Contact')"
+                                title="Send WhatsApp Message"
+                                style="display: none;">
+                            <i class="fab fa-whatsapp"></i>
+                        </button>
+
+                        <div class="card-body">
+                            <div class="d-flex align-items-center gap-3">
+                                <div class="avatar avatar-xl" style="flex-shrink: 0;">
+                                    <div class="avatar-name rounded-circle" style="width: 54px; height: 54px; display: flex; align-items: center; justify-content: center;">
+                                        <span class="fs-5 fw-bold">@Model.Name.Substring(0, 1).ToUpper()</span>
+                                    </div>
+                                </div>
+                                <div class="flex-1" style="min-width: 0;">
+                                    <h3 class="fw-bolder mb-1 profile-name">@Model.Name</h3>
+                                    <div class="d-flex flex-wrap align-items-center gap-2">
+                                        <span class="badge badge-phoenix badge-phoenix-@(Model.Status == "Active" ? "success" : Model.Status == "Hot" ? "danger" : Model.Status == "Warm" ? "warning" : Model.Status == "Cold" ? "info" : "secondary")">
+                                            @Model.Status
+                                        </span>
+                                        <span class="badge badge-phoenix badge-phoenix-@(Model.Stage == "New" ? "primary" : Model.Stage == "Qualified" ? "success" : Model.Stage == "Negotiation" ? "warning" : Model.Stage == "Closed" ? "success" : "secondary")">
+                                            @Model.Stage
+                                        </span>
+                                        @if (!string.IsNullOrEmpty(Model.Rating))
+                                        {
+                                            <span class="badge badge-rating">@Model.Rating</span>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Contact Information Card -->
+                    <div class="card mb-3">
+                        <div class="card-body p-4">
+                            <div class="d-flex align-items-center mb-3">
+                                <h4 class="mb-0">Contact Information</h4>
+                            </div>
+
+                            <div class="info-row">
+                                <div class="d-flex align-items-center mb-1">
+                                    <span class="me-2 fa-solid fa-envelope info-icon"></span>
+                                    <h5 class="text-body-highlight mb-0 fs-9">Email</h5>
+                                </div>
+                                <div class="d-flex align-items-center gap-2 info-value">
+                                    <a href="mailto:@Model.Email" class="text-primary-brand">@(Model.Email ?? "Not provided")</a>
+                                    @if (!string.IsNullOrEmpty(Model.Email))
+                                    {
+                                        <a href="mailto:@Model.Email" class="btn btn-outline-danger btn-sm" title="Send Email" style="padding: 2px 8px; font-size: 0.75rem;">
+                                            <i class="fa-solid fa-paper-plane"></i>
+                                        </a>
+                                    }
+                                </div>
+                            </div>
+
+                            <div class="info-row">
+                                <div class="d-flex align-items-center mb-1">
+                                    <span class="me-2 fa-solid fa-phone info-icon"></span>
+                                    <h5 class="text-body-highlight mb-0 fs-9">Phone</h5>
+                                </div>
+                                <div class="d-flex align-items-center gap-2 info-value">
+                                    <a href="tel:@Model.Contact" class="text-primary-brand">@Model.Contact</a>
+                                    @if (!string.IsNullOrEmpty(Model.Contact))
+                                    {
+                                        <a href="https://wa.me/@(Model.Contact.TrimStart('+').Replace(" ", "").Replace("-", ""))" target="_blank" class="btn btn-success btn-sm" title="Chat on WhatsApp" style="padding: 2px 8px; font-size: 0.75rem;">
+                                            <i class="fab fa-whatsapp"></i>
+                                        </a>
+                                    }
+                                </div>
+                            </div>
+
+                            @if (!string.IsNullOrEmpty(Model.GroupName))
+                            {
+                                <div class="info-row">
+                                    <div class="d-flex align-items-center mb-1">
+                                        <span class="me-2 fa-solid fa-users info-icon"></span>
+                                        <h5 class="text-body-highlight mb-0 fs-9">Group Name</h5>
+                                    </div>
+                                    <p class="mb-0 text-body-secondary info-value">@Model.GroupName</p>
+                                </div>
+                            }
+
+                            <div class="info-row">
+                                <div class="d-flex align-items-center mb-1">
+                                    <span class="me-2 fa-solid fa-user-tie info-icon"></span>
+                                    <h5 class="text-body-highlight mb-0 fs-9">Assigned Executive</h5>
+                                </div>
+                                <p class="mb-0 text-body-secondary fw-semibold info-value">@executiveName</p>
+                            </div>
+
+                            @if (!string.IsNullOrEmpty(Model.Source))
+                            {
+                                <div class="info-row">
+                                    <div class="d-flex align-items-center mb-1">
+                                        <span class="me-2 fa-solid fa-bullseye info-icon"></span>
+                                        <h5 class="text-body-highlight mb-0 fs-9">Lead Source</h5>
+                                    </div>
+                                    <p class="mb-0 text-body-secondary info-value">@Model.Source</p>
+                                </div>
+                            }
+
+                            <div class="info-row">
+                                <div class="d-flex align-items-center mb-1">
+                                    <span class="me-2 fa-solid fa-clock info-icon"></span>
+                                    <h5 class="text-body-highlight mb-0 fs-9">Created On</h5>
+                                </div>
+                                <p class="mb-0 text-body-secondary info-value">@Model.CreatedOn.ToString("MMMM dd, yyyy hh:mm tt")</p>
+                            </div>
+
+                            @if (Model.ModifiedOn.HasValue)
+                            {
+                                <div class="info-row info-row-last">
+                                    <div class="d-flex align-items-center mb-1">
+                                        <span class="me-2 fa-solid fa-pen info-icon"></span>
+                                        <h5 class="text-body-highlight mb-0 fs-9">Last Modified</h5>
+                                    </div>
+                                    <p class="mb-0 text-body-secondary info-value">@Model.ModifiedOn.Value.ToString("MMMM dd, yyyy hh:mm tt")</p>
+                                </div>
+                            }
+                        </div>
+                    </div>
+
+                    <!-- Property Requirements Card -->
+                    <div class="card mb-3">
+                        <div class="card-body p-4">
+                            <div class="d-flex align-items-center mb-3">
+                                <h4 class="mb-0">Property Requirements</h4>
+                            </div>
+
+                            @if (!string.IsNullOrEmpty(Model.PreferredLocation))
+                            {
+                                <div class="info-row">
+                                    <div class="d-flex align-items-center mb-1">
+                                        <span class="me-2 fa-solid fa-location-dot info-icon"></span>
+                                        <h5 class="text-body-highlight mb-0 fs-9">Preferred Location</h5>
+                                    </div>
+                                    <p class="mb-0 text-body-secondary info-value">@Model.PreferredLocation</p>
+                                </div>
+                            }
+
+                            @if (!string.IsNullOrEmpty(Model.Type))
+                            {
+                                <div class="info-row">
+                                    <div class="d-flex align-items-center mb-1">
+                                        <span class="me-2 fa-solid fa-tag info-icon"></span>
+                                        <h5 class="text-body-highlight mb-0 fs-9">Type</h5>
+                                    </div>
+                                    <p class="mb-0 text-body-secondary info-value">@Model.Type</p>
+                                </div>
+                            }
+
+                            @if (!string.IsNullOrEmpty(Model.PropertyType))
+                            {
+                                <div class="info-row">
+                                    <div class="d-flex align-items-center mb-1">
+                                        <span class="me-2 fa-solid fa-building info-icon"></span>
+                                        <h5 class="text-body-highlight mb-0 fs-9">Property Type</h5>
+                                    </div>
+                                    <p class="mb-0 text-body-secondary info-value">@Model.PropertyType</p>
+                                </div>
+                            }
+
+                            @if (!string.IsNullOrEmpty(Model.BHK))
+                            {
+                                <div class="info-row">
+                                    <div class="d-flex align-items-center mb-1">
+                                        <span class="me-2 fa-solid fa-home info-icon"></span>
+                                        <h5 class="text-body-highlight mb-0 fs-9">BHK</h5>
+                                    </div>
+                                    <p class="mb-0 text-body-secondary info-value">@Model.BHK</p>
+                                </div>
+                            }
+
+                            @if (!string.IsNullOrEmpty(Model.Sqft))
+                            {
+                                <div class="info-row">
+                                    <div class="d-flex align-items-center mb-1">
+                                        <span class="me-2 fa-solid fa-ruler-combined info-icon"></span>
+                                        <h5 class="text-body-highlight mb-0 fs-9">Square Feet</h5>
+                                    </div>
+                                    <p class="mb-0 text-body-secondary info-value">@Model.Sqft sq.ft</p>
+                                </div>
+                            }
+
+                            @if (!string.IsNullOrEmpty(Model.Facing))
+                            {
+                                <div class="info-row">
+                                    <div class="d-flex align-items-center mb-1">
+                                        <span class="me-2 fa-solid fa-compass info-icon"></span>
+                                        <h5 class="text-body-highlight mb-0 fs-9">Facing</h5>
+                                    </div>
+                                    <p class="mb-0 text-body-secondary info-value">@Model.Facing</p>
+                                </div>
+                            }
+
+                            @if (!string.IsNullOrEmpty(Model.LocationDistance))
+                            {
+                                <div class="info-row info-row-last">
+                                    <div class="d-flex align-items-center mb-1">
+                                        <span class="me-2 fa-solid fa-road info-icon"></span>
+                                        <h5 class="text-body-highlight mb-0 fs-9">Location Distance</h5>
+                                    </div>
+                                    <p class="mb-0 text-body-secondary info-value">@Model.LocationDistance</p>
+                                </div>
+                            }
+                        </div>
+                    </div>
+
+                    <!-- Additional Details Card -->
+                    @if (!string.IsNullOrEmpty(Model.Requirement) || !string.IsNullOrEmpty(Model.Comments))
+                    {
+                        <div class="card mb-3">
+                            <div class="card-body p-4">
+                                <div class="d-flex align-items-center mb-3">
+                                    <h4 class="mb-0">Additional Details</h4>
+                                </div>
+
+                                @if (!string.IsNullOrEmpty(Model.Requirement))
+                                {
+                                    <div class="info-row">
+                                        <div class="d-flex align-items-center mb-1">
+                                            <span class="me-2 fa-solid fa-list-check info-icon"></span>
+                                            <h5 class="text-body-highlight mb-0 fs-9">Requirements</h5>
+                                        </div>
+                                        <p class="mb-0 text-body-secondary info-value">@Model.Requirement</p>
+                                    </div>
+                                }
+
+                                @if (!string.IsNullOrEmpty(Model.Comments))
+                                {
+                                    <div class="info-row info-row-last">
+                                        <div class="d-flex align-items-center mb-1">
+                                            <span class="me-2 fa-solid fa-comment info-icon"></span>
+                                            <h5 class="text-body-highlight mb-0 fs-9">Comments</h5>
+                                        </div>
+                                        <p class="mb-0 text-body-secondary info-value">@Model.Comments</p>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    }
+
+                    <!-- Follow-up Date Card -->
+                    @if (Model.FollowUpDate.HasValue)
+                    {
+                        var daysRemaining = (Model.FollowUpDate.Value.Date - CRM.Helpers.IndianTime.Today).Days;
+                        var statusClass = Model.Status switch
+                        {
+                            "Active" => "success",
+                            "Hot" => "danger",
+                            "Warm" => "warning",
+                            "Cold" => "info",
+                            _ => "primary"
+                        };
+
+                        <div class="card mb-3 followup-card">
+                            <div class="card-body">
+                                <div class="d-flex align-items-center mb-2">
+                                    <span class="me-2 fa-solid fa-calendar-check fs-5" style="color: var(--brand-accent-dark);"></span>
+                                    <h5 class="mb-0" style="color: var(--brand-primary-dark); font-weight: 700;">Next Follow-up</h5>
+                                </div>
+                                <p class="mb-1 fw-semibold fs-7">@Model.FollowUpDate.Value.ToString("MMMM dd, yyyy")</p>
+                                <p class="mb-2 text-body-tertiary fs-9">
+                                    @if (daysRemaining == 0)
+                                    {
+                                        <span class="text-danger fw-bold">Today</span>
+                                    }
+                                    else if (daysRemaining == 1)
+                                    {
+                                        <span class="text-warning fw-bold">Tomorrow</span>
+                                    }
+                                    else if (daysRemaining < 0)
+                                    {
+                                        <span class="text-danger fw-bold">@Math.Abs(daysRemaining) days overdue</span>
+                                    }
+                                    else
+                                    {
+                                        <span>@daysRemaining days remaining</span>
+                                    }
+                                </p>
+                                @if (!string.IsNullOrEmpty(Model.Stage))
+                                {
+                                    <div class="d-flex gap-2">
+                                        <span class="badge bg-primary fs-10">@Model.Stage</span>
+                                        @if (!string.IsNullOrEmpty(Model.Status))
+                                        {
+                                            <span class="badge bg-@statusClass fs-10">@Model.Status</span>
+                                        }
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <!-- Right Content Area - Activity Tabs -->
+            <div class="col-12 col-md" style="min-width:0;">
+                <div class="lead-details-container">
+                    <!-- Tab Navigation -->
+                    <nav class="pb-0 px-0 bg-white nav-underline-scrollspy" id="navbar-lead-detail">
+                        <ul class="nav nav-underline fs-9 flex-nowrap scrollbar">
+                            <li class="nav-item">
+                                <a class="nav-link active me-2" href="#scrollspyHistory"
+                                   onclick="loadHistory(@Model.LeadId)">
+                                    <span class="fa-solid fa-clock-rotate-left me-1"></span>Activities
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link me-2" href="#scrollspyFollowups"
+                                   onclick="loadFollowups(@Model.LeadId)">
+                                    <span class="fa-solid fa-calendar-days me-1"></span>Follow-ups
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link me-2" href="#scrollspyNotes"
+                                   onclick="loadNotes(@Model.LeadId)">
+                                    <span class="fa-solid fa-note-sticky me-1"></span>Notes
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link me-2" href="#scrollspyUploads"
+                                   onclick="loadUploads(@Model.LeadId)">
+                                    <span class="fa-solid fa-file-arrow-up me-1"></span>Uploads
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="#scrollspySiteVisits"
+                                   onclick="loadSiteVisits(@Model.LeadId)">
+                                    <span class="fa-solid fa-building-circle-check me-1"></span>Site Visit Activities
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="#scrollspyDocuments" onclick="loadDocuments(@Model.LeadId)">
+                                    <span class="fa-solid fa-file-invoice me-1"></span>Documents &amp; Transactions
+                                </a>
+                            </li>
+                        </ul>
+                    </nav>
+
+                    <!-- Dynamic Content Area -->
+                    <div id="detailSubContent" class="min-vh-50">
+                        <!-- Initial loading state -->
+                        <div class="text-center py-5">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                            <p class="mt-3 text-body-tertiary">Loading activities...</p>
+                        </div>
+                        <!-- Documents & Transactions Section -->
+                        <div id="documentsSection" class="documents-section" style="display:none;">
+                            <div class="card mb-4 document-card quotation-card">
+                                <div class="card-header document-header">
+                                    <div class="d-flex align-items-center justify-content-between">
+                                        <div class="d-flex align-items-center">
+                                            <div class="document-icon quotation-icon me-3">
+                                                <i class="fa-solid fa-file-invoice"></i>
+                                            </div>
+                                            <h4 class="mb-0 fw-bold">Quotations</h4>
+                                        </div>
+                                        <button class="btn btn-modern btn-primary" onclick="createQuotation(@Model.LeadId)">
+                                            <i class="fa-solid fa-plus me-2"></i>New Quotation
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="card-body">
+                                    <div id="quotationList" class="document-list"></div>
+                                </div>
+                            </div>
+
+                            <div class="card mb-4 document-card booking-card">
+                                <div class="card-header document-header">
+                                    <div class="d-flex align-items-center">
+                                        <div class="document-icon booking-icon me-3">
+                                            <i class="fa-solid fa-handshake"></i>
+                                        </div>
+                                        <h4 class="mb-0 fw-bold">Booking Documents</h4>
+                                    </div>
+                                </div>
+                                <div class="card-body">
+                                    <div id="bookingDocumentsList" class="document-list"></div>
+                                </div>
+                            </div>
+
+                            <div class="card mb-4 document-card invoice-card">
+                                <div class="card-header document-header">
+                                    <div class="d-flex align-items-center justify-content-between">
+                                        <div class="d-flex align-items-center">
+                                            <div class="document-icon invoice-icon me-3">
+                                                <i class="fa-solid fa-receipt"></i>
+                                            </div>
+                                            <h4 class="mb-0 fw-bold">Invoice Documents</h4>
+                                        </div>
+                                        <button class="btn btn-modern btn-info" onclick="createInvoice(@Model.LeadId)">
+                                            <i class="fa-solid fa-plus me-2"></i>New Invoice
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="card-body">
+                                    <div id="invoiceDocumentsList" class="document-list"></div>
+                                </div>
+                            </div>
+
+                            <div class="card mb-4 document-card payment-card">
+                                <div class="card-header document-header">
+                                    <div class="d-flex align-items-center justify-content-between">
+                                        <div class="d-flex align-items-center">
+                                            <div class="document-icon payment-icon me-3">
+                                                <i class="fa-solid fa-credit-card"></i>
+                                            </div>
+                                            <h4 class="mb-0 fw-bold">Payments</h4>
+                                        </div>
+                                        <button class="btn btn-modern btn-success" onclick="recordPayment(@Model.LeadId)">
+                                            <i class="fa-solid fa-plus me-2"></i>Record Payment
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="card-body">
+                                    <div id="paymentsList" class="document-list"></div>
+                                </div>
+                            </div>
+
+                            <div id="noDocumentsMessage" class="modern-alert" style="display:none;">
+                                <div class="alert-content">
+                                    <i class="fa-solid fa-info-circle me-3"></i>
+                                    <div>
+                                        <h5 class="mb-1">No Documents Available</h5>
+                                        <p class="mb-0">No quotations, bookings, or invoices available for this lead yet.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+
+    /* Sticky Sidebar */
+    .sticky-leads-sidebar {
+    position: sticky;
+    top: 16px;
+    }
+
+    .btn-primary, .bg-primary, .badge.bg-primary {
+    background: #1A6FA8 !important;
+    border-color: #2A3A4A !important;
+    color: #FFFFFF !important;
+    }
+
+    .header-subtitle {
+    font-size: 0.78rem !important;
+    margin-bottom: 0px !important;
+    }
+
+    h1, .h1 {
+    font-size: 1.3rem !important;
+    font-weight: 700 !important;
+    margin-bottom: 0px !important;
+    }
+
+    .g-3, .gy-3 {
+    --bs-gutter-y: 0.3rem !important;
+    }
+
+    .modal-footer {
+    padding: 0.65rem 1.1rem !important;
+    border-top: 1px solid var(--border-soft) !important;
+    }
+
+    .modal-title {
+    margin-bottom: 0;
+    line-height: 1.3;
+    }
+    /* Avatar Name Styles */
+    .avatar-name {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    }
+
+    .profile-name {
+    font-size: 1.05rem;
+    color: var(--ink-900);
+    }
+
+    .section-title {
+    color: var(--ink-900);
+    font-size: 1.35rem;
+    font-weight: 700;
+    }
+
+    .text-primary-brand {
+    color: var(--brand-primary) !important;
+    text-decoration: none;
+    font-weight: 500;
+    }
+
+    .text-primary-brand:hover {
+    color: var(--brand-primary-dark) !important;
+    text-decoration: underline;
+    }
+
+    /* Compact info rows used across sidebar cards */
+    .info-row {
+    margin-bottom: 0.55rem;
+    padding-bottom: 0.55rem;
+    border-bottom: 1px dashed rgba(26,111,168, 0.12);
+    }
+
+    .info-row-last,
+    .info-row:last-child {
+    margin-bottom: 0;
+    padding-bottom: 0;
+    border-bottom: none;
+    }
+
+    .info-icon {
+    min-width: 15px;
+    text-align: center;
+    color: var(--brand-accent-dark);
+    font-size: 0.78rem;
+    }
+
+    .info-value {
+    padding-left: 22px;
+    font-size: 0.8125rem;
+    }
+
+    .info-row h5 {
+    text-align: left;
+    white-space: nowrap;
+    }
+
+    /* Navigation Underline Active State - Modern Underline Style */
+    .nav-underline .nav-link.active {
+    background: transparent;
+    color: var(--brand-primary) !important;
+    border-radius: 0;
+    padding: 0.5rem 0.75rem;
+    border-bottom: 2.5px solid var(--brand-accent) !important;
+    font-weight: 600;
+    }
+
+    .nav-underline .nav-link {
+    color: var(--ink-600);
+    border-bottom: 2.5px solid transparent;
+    transition: all 0.2s ease;
+    padding: 0.5rem 0.75rem;
+    border-radius: 0;
+    font-weight: 500;
+    background: transparent;
+    font-size: 0.825rem;
+    }
+
+    .nav-underline .nav-link:hover {
+    background-color: transparent;
+    color: var(--brand-primary);
+    border-bottom-color: rgba(212,164,90, 0.45);
+    }
+
+    /* Smooth Scrolling for Tab Navigation */
+    .nav-underline-scrollspy {
+    border-bottom: 1px solid var(--border-soft);
+    background: white;
+    }
+
+    /* Content Area Minimum Height */
+    .min-vh-50 {
+    min-height: 50vh;
+    }
+
+    /* Card Hover Effects */
+    .card {
+    transition: all 0.25s ease;
+    }
+
+    .card:hover {
+    box-shadow: 0 0.4rem 0.9rem rgba(26,111,168, 0.1);
+    }
+
+    /* Custom Scrollbar for Navigation */
+    .nav.scrollbar {
+    overflow-x: auto;
+    overflow-y: hidden;
+    white-space: nowrap;
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE/Edge */
+    }
+
+    .nav.scrollbar::-webkit-scrollbar {
+    display: none; /* Chrome/Safari */
+    }
+
+    /* Loading Spinner */
+    .spinner-border {
+    width: 2.5rem;
+    height: 2.5rem;
+    color: var(--brand-primary) !important;
+    }
+
+    /* Dark Mode Support */
+    .dark-mode .modern-header-bg {
+    background: linear-gradient(135deg, #2A3A4A 0%, #162436 100%) !important;
+    }
+
+    .dark-mode .card {
+    background: #1A2332 !important;
+    border-color: #2A3A4A !important;
+    color: #E2E8F0 !important;
+    }
+
+    .dark-mode .card-body h4,
+    .dark-mode .card-body h5 {
+    color: #E2E8F0 !important;
+    }
+
+    .dark-mode .text-body-secondary {
+    color: #8FA3B8 !important;
+    }
+
+    .dark-mode .text-body-highlight {
+    color: #E2E8F0 !important;
+    }
+
+    .dark-mode #navbar-lead-detail,
+    .dark-mode .nav-underline-scrollspy {
+    background: #1A2332 !important;
+    border-bottom-color: #2A3A4A !important;
+    }
+
+    .dark-mode #navbar-lead-detail .nav-link,
+    .dark-mode .nav-underline .nav-link {
+    color: #E2E8F0 !important;
+    }
+
+    .dark-mode #navbar-lead-detail .nav-link:hover,
+    .dark-mode .nav-underline .nav-link:hover {
+    color: #FFFFFF !important;
+    border-bottom-color: rgba(212,164,90, 0.55) !important;
+    }
+
+    .dark-mode #navbar-lead-detail .nav-link.active,
+    .dark-mode .nav-underline .nav-link.active {
+    color: #8FA3B8 !important;
+    border-bottom-color: var(--brand-accent) !important;
+    }
+
+    .dark-mode #navbar-lead-detail .nav-link i,
+    .dark-mode .nav-underline .nav-link i {
+    color: inherit !important;
+    }
+
+    .dark-mode .info-row {
+    border-bottom-color: rgba(212,164,90, 0.15);
+    }
+
+    /* Responsive Adjustments */
+    @@media (max-width: 768px) {
+    .modern-header-section {
+    margin: -0.5rem -0.5rem 0.75rem -0.5rem;
+    }
+
+    .header-content-wrapper {
+    padding: 1.1rem 1.25rem;
+    }
+
+    .header-main-title {
+    font-size: 1.5rem;
+    }
+
+    .header-icon {
+    font-size: 1.75rem;
+    }
+
+    .sticky-leads-sidebar {
+    position: relative !important;
+    top: 0 !important;
+    margin-bottom: 0.75rem;
+    }
+
+    .nav-underline {
+    overflow-x: auto;
+    display: flex;
+    flex-wrap: nowrap;
+    }
+
+    .nav-underline .nav-link {
+    white-space: nowrap;
+    font-size: 0.8125rem;
+    padding: 6px 10px;
+    }
+
+    .avatar.avatar-5xl {
+    width: 70px !important;
+    height: 70px !important;
+    border-width: 2px;
+    }
+    /* Make cards more compact */
+    .card-body {
+    padding: 0.85rem;
+    }
+
+    .card-body h4 {
+    font-size: 1rem;
+    }
+
+    .card-body h5 {
+    font-size: 0.9rem;
+    }
+
+    .card-body p {
+    font-size: 0.8125rem;
+    }
+    /* Adjust spacing */
+    .pb-9 {
+    padding-bottom: 1.25rem !important;
+    }
+
+    .g-3 {
+    gap: 0.6rem !important;
+    }
+    /* Make buttons stack better */
+    .d-flex.flex-wrap.gap-2 {
+    gap: 0.4rem !important;
+    }
+
+    .btn {
+    font-size: 0.8125rem;
+    padding: 0.35rem 0.7rem;
+    }
+    /* Timeline adjustments */
+    .timeline-item {
+    padding-left: 0.85rem;
+    }
+    /* Table responsive */
+    .table-responsive {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    }
+    /* Reduce header size */
+    h2 {
+    font-size: 1.3rem !important;
+    }
+
+    h3 {
+    font-size: 1.1rem !important;
+    }
+    /* Fix column gaps */
+    .row.g-3.g-md-4.g-xl-6 {
+    gap: 0.6rem !important;
+    }
+
+    .col-md-5, .col-md-7 {
+    padding-left: 0.4rem;
+    padding-right: 0.4rem;
+    }
+    }
+
+    /* Extra small devices */
+    @@media (max-width: 576px) {
+    .avatar.avatar-5xl {
+    width: 56px !important;
+    height: 56px !important;
+    border-width: 2px;
+    }
+
+    .avatar.avatar-5xl .fs-2 {
+    font-size: 1.25rem !important;
+    }
+    /* Make action buttons full width on mobile - only header action bar */
+    .col-md-auto > .d-flex.flex-wrap.gap-2 {
+    width: 100%;
+    }
+
+    .col-md-auto > .d-flex.flex-wrap.gap-2 > .btn {
+    flex: 1 1 auto;
+    }
+    /* Keep inline icon buttons (email/whatsapp) compact */
+    .card-body .btn-sm {
+    flex: 0 0 auto !important;
+    width: auto !important;
+    padding: 2px 8px !important;
+    font-size: 0.72rem !important;
+    }
+    /* Smaller badges */
+    .badge {
+    font-size: 0.7rem !important;
+    padding: 0.22rem 0.45rem;
+    }
+    /* Contact info compact */
+    .card-body .row.g-2 p {
+    margin-bottom: 0.4rem;
+    }
+    }
+
+    /* Modern Header Styles - Compact & On-Brand */
+    .modern-header-section {
+    margin: -1rem -1rem 0.85rem -1rem;
+    padding: 0;
+    }
+
+    .modern-header-bg {
+    background: linear-gradient(135deg, var(--brand-primary) 0%, var(--brand-primary-dark) 100%);
+    position: relative;
+    overflow: hidden;
+    border-radius: 0 0 14px 14px;
+    box-shadow: 0 4px 16px rgba(26,111,168, 0.2);
+    }
+
+    .modern-header-bg::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="50" cy="50" r="1" fill="%23ffffff" opacity="0.1"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>') repeat;
+    opacity: 0.2;
+    }
+
+    .modern-header-bg::after {
+    content: '';
+    position: absolute;
+    right: -40px;
+    bottom: -40px;
+    width: 160px;
+    height: 160px;
+    border-radius: 50%;
+    background: var(--brand-accent);
+    opacity: 0.18;
+    }
+
+    .header-content-wrapper {
+    position: relative;
+    z-index: 2;
+    padding: 0.85rem 1.1rem;
+    color: white;
+    }
+
+    .header-icon {
+    font-size: 1.85rem;
+    opacity: 0.95;
+    color: var(--brand-accent);
+    }
+
+    .header-main-title {
+    font-size: 1.3rem;
+    font-weight: 700;
+    margin: 0;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+    }
+
+    .header-subtitle {
+    font-size: 0.78rem;
+    opacity: 0.85;
+    font-weight: 400;
+    }
+
+    /* Enhanced Card Styles - Compact */
+    .card {
+    border: none;
+    border-radius: var(--radius-md);
+    box-shadow: 0 2px 8px rgba(26,111,168, 0.05);
+    transition: all 0.2s ease;
+    background: var(--surface);
+    border: 1px solid var(--border-soft);
+    margin-bottom: 0.65rem;
+    }
+
+    .card:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 14px rgba(26,111,168, 0.12);
+    border-color: rgba(26,111,168, 0.22);
+    }
+
+    .card-body:not(.p-4) {
+    padding: 0.75rem;
+    }
+
+    .card-body.p-4 {
+    padding: 0.95rem 1rem !important;
+    }
+
+    .card-body h4 {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--ink-900);
+    margin-bottom: 0.5rem;
+    padding-bottom: 0.4rem;
+    border-bottom: 1px solid var(--border-soft);
+    }
+
+    .card-body h5:not(.modal-title) {
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--ink-600);
+    text-transform: uppercase;
+    letter-spacing: 0.35px;
+    }
+
+    /* Enhanced Avatar */
+    .avatar.avatar-5xl {
+    width: 80px;
+    height: 80px;
+    border: 3px solid var(--brand-primary-light);
+    box-shadow: 0 4px 15px rgba(26,111,168, 0.12);
+    }
+
+    .avatar.avatar-xl {
+    width: 54px;
+    height: 54px;
+    border: 2px solid var(--brand-primary-light);
+    box-shadow: 0 2px 10px rgba(26,111,168, 0.1);
+    }
+
+    .avatar-name {
+    background: var(--brand-primary-light) !important;
+    color: var(--brand-primary) !important;
+    }
+
+    .dark-mode .avatar-name {
+    background: rgba(26,111,168, 0.28) !important;
+    color: #8FA3B8 !important;
+    }
+
+    /* Badge Custom Colors - On-Brand, Compact */
+    .badge-phoenix-success,
+    .badge-phoenix-warning,
+    .badge-phoenix-info,
+    .badge-phoenix-primary,
+    .badge-phoenix-secondary,
+    .badge-phoenix-danger,
+    .badge-rating {
+    font-weight: 600;
+    padding: 0.2rem 0.5rem;
+    font-size: 0.68rem;
+    border-radius: 9px;
+    letter-spacing: 0.2px;
+    }
+
+    .badge-phoenix-success {
+    background-color: rgba(22,163,74, 0.12);
+    color: var(--success);
+    }
+
+    .badge-phoenix-warning {
+    background-color: var(--brand-accent-light);
+    color: var(--brand-accent-dark);
+    }
+
+    .badge-phoenix-info {
+    background-color: rgba(26,111,168, 0.1);
+    color: var(--brand-primary);
+    }
+
+    .badge-phoenix-primary {
+    background-color: rgba(26,111,168, 0.12);
+    color: var(--brand-primary);
+    }
+
+    .badge-phoenix-secondary {
+    background-color: rgba(107,123,141, 0.1);
+    color: var(--ink-600);
+    }
+
+    .badge-phoenix-danger {
+    background-color: rgba(220,38,38, 0.1);
+    color: var(--danger);
+    }
+
+    .badge-rating {
+    background-color: var(--brand-accent-light);
+    color: var(--brand-accent-dark);
+    }
+
+    /* Dynamic Content Animations */
+    #detailSubContent {
+    animation: fadeIn 0.3s ease-in;
+    }
+
+    @@keyframes fadeIn {
+    from {
+    opacity: 0;
+    transform: translateY(8px);
+    }
+
+    to {
+    opacity: 1;
+    transform: translateY(0);
+    }
+    }
+
+    /* Phoenix Button Styles - Compact, On-Brand */
+    .btn-phoenix-primary,
+    .btn-success,
+    .btn-info,
+    .btn-primary {
+    border-radius: var(--radius-sm);
+    font-weight: 600;
+    padding: 0.45rem 0.9rem;
+    font-size: 0.8rem;
+    border: none;
+    transition: all 0.2s ease;
+    }
+
+    .btn-phoenix-primary,
+    .btn-info {
+    background: linear-gradient(135deg, var(--brand-primary) 0%, var(--brand-primary-dark) 100%);
+    color: white;
+    }
+
+    .btn-success {
+    background: linear-gradient(135deg, var(--brand-accent) 0%, var(--brand-accent-dark) 100%);
+    color: white;
+    }
+
+    .btn-phoenix-primary:hover,
+    .btn-info:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(26,111,168, 0.3);
+    color: white;
+    }
+
+    .btn-success:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(212,164,90, 0.35);
+    color: white;
+    }
+
+    .btn-phoenix-secondary {
+    background-color: white;
+    color: var(--ink-600);
+    border: 1px solid var(--border-soft);
+    border-radius: var(--radius-sm);
+    font-weight: 600;
+    padding: 0.45rem 0.9rem;
+    font-size: 0.8rem;
+    transition: all 0.2s ease;
+    }
+
+    .btn-phoenix-secondary:hover {
+    background-color: var(--surface-muted);
+    border-color: var(--brand-primary);
+    color: var(--brand-primary);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(26,111,168, 0.1);
+    }
+
+    /* Follow-up Card Styling */
+    .followup-card {
+    border-left: 3px solid var(--brand-accent) !important;
+    background: var(--brand-accent-light);
+    }
+
+    /* Documents & Transactions Section Styles - Compact */
+    .documents-section {
+    animation: fadeIn 0.3s ease-in;
+    }
+
+    .document-card {
+    border: none;
+    border-radius: var(--radius-md);
+    box-shadow: 0 2px 8px rgba(26,111,168, 0.05);
+    border: 1px solid var(--border-soft);
+    transition: all 0.2s ease;
+    overflow: hidden;
+    margin-bottom: 0.75rem;
+    }
+
+    .document-card:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 14px rgba(26,111,168, 0.1);
+    }
+
+    .document-header {
+    background: var(--surface-muted);
+    border: none;
+    padding: 0.75rem 0.9rem;
+    border-bottom: 1px solid var(--border-soft);
+    }
+
+    .quotation-card .document-header {
+    background: rgba(26,111,168, 0.05);
+    border-left: 3px solid var(--brand-primary);
+    }
+
+    .booking-card .document-header {
+    background: var(--brand-accent-light);
+    border-left: 3px solid var(--brand-accent);
+    }
+
+    .invoice-card .document-header {
+    background: rgba(26,111,168, 0.05);
+    border-left: 3px solid var(--brand-primary-dark);
+    }
+
+    .payment-card .document-header {
+    background: var(--brand-accent-light);
+    border-left: 3px solid var(--brand-accent-dark);
+    }
+
+    .document-icon {
+    width: 34px;
+    height: 34px;
+    border-radius: var(--radius-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    color: white;
+    box-shadow: 0 2px 8px rgba(26,111,168, 0.15);
+    }
+
+    .quotation-icon {
+    background: linear-gradient(135deg, var(--brand-primary) 0%, var(--brand-primary-dark) 100%);
+    }
+
+    .booking-icon {
+    background: linear-gradient(135deg, var(--brand-accent) 0%, var(--brand-accent-dark) 100%);
+    }
+
+    .invoice-icon {
+    background: linear-gradient(135deg, var(--brand-primary-dark) 0%, #0F4C75 100%);
+    }
+
+    .payment-icon {
+    background: linear-gradient(135deg, var(--brand-accent-dark) 0%, #B8883E 100%);
+    }
+
+    .btn-modern {
+    border-radius: var(--radius-sm);
+    padding: 0.5rem 1rem;
+    font-weight: 600;
+    border: none;
+    transition: all 0.25s ease;
+    font-size: 0.8125rem;
+    }
+
+    .btn-modern:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(26,111,168, 0.18);
+    }
+
+    .document-list .list-group {
+    border: none;
+    }
+
+    .document-list .list-group-item {
+    border: none;
+    border-radius: var(--radius-sm);
+    margin-bottom: 0.4rem;
+    padding: 0.65rem 0.8rem;
+    background: var(--surface-muted);
+    border: 1px solid var(--border-soft);
+    transition: all 0.2s ease;
+    font-size: 0.8375rem;
+    }
+
+    .document-list .list-group-item:hover {
+    transform: translateX(2px);
+    box-shadow: 0 2px 8px rgba(26,111,168, 0.08);
+    background: white;
+    }
+
+    .document-list .btn-outline-primary {
+    border-radius: var(--radius-sm);
+    padding: 0.35rem 0.8rem;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--brand-primary);
+    border-color: var(--brand-primary);
+    transition: all 0.25s ease;
+    }
+
+    .document-list .btn-outline-primary:hover {
+    background-color: var(--brand-primary);
+    border-color: var(--brand-primary);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(26,111,168, 0.25);
+    }
+
+    .modern-alert {
+    background: var(--brand-primary-light);
+    border: 1px solid rgba(26,111,168, 0.18);
+    border-radius: var(--radius-lg);
+    padding: 1.25rem;
+    text-align: center;
+    }
+
+    .modern-alert .alert-content {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: left;
+    }
+
+    .modern-alert i {
+    font-size: 1.5rem;
+    color: var(--brand-primary);
+    }
+
+    .modern-alert h5 {
+    color: var(--ink-900);
+    font-weight: 700;
+    font-size: 0.9375rem;
+    }
+
+    .modern-alert p {
+    color: var(--ink-600);
+    margin: 0;
+    font-size: 0.8125rem;
+    }
+
+    /* Dark Mode Support */
+    .dark-mode .document-card {
+    background: #1A2332 !important;
+    border-color: #2A3A4A !important;
+    }
+
+    .dark-mode .document-header {
+    background: #1E2A3A !important;
+    color: #E2E8F0 !important;
+    }
+
+    .dark-mode .document-list .list-group-item {
+    background: #1E2A3A !important;
+    color: #E2E8F0 !important;
+    border-color: #2A3A4A !important;
+    }
+
+    .dark-mode .modern-alert {
+    background: #1E2A3A !important;
+    border-color: #2A3A4A !important;
+    }
+
+    .dark-mode .modern-alert h5 {
+    color: #E2E8F0 !important;
+    }
+
+    .dark-mode .modern-alert p {
+    color: #8FA3B8 !important;
+    }
+
+    /* Icon Colors */
+    .fa-solid.text-primary {
+    color: var(--brand-primary) !important;
+    }
+
+    /* ===========================================================
+    SHARED FORM / VALIDATION STYLING
+    Applies to modal forms (e.g. Add Follow-up, Add Note) and any
+    AJAX-loaded partials rendered inside #detailSubContent.
+    Purely presentational — no backend logic touched.
+    =========================================================== */
+    .modal-content {
+    border: none;
+    border-radius: var(--radius-lg);
+    box-shadow: 0 12px 32px rgba(26,111,168, 0.18);
+    }
+
+    .modal-header {
+    background: linear-gradient(135deg, var(--brand-primary) 0%, var(--brand-primary-dark) 100%);
+    color: #FFFFFF;
+    border-radius: var(--radius-md) var(--radius-md) 0 0;
+    padding: 0.7rem 1.1rem;
+    border-bottom: none;
+    }
+
+    .modal-header .modal-title {
+    font-weight: 700;
+    font-size: 0.95rem;
+    }
+
+    .modal-header .btn-close {
+    filter: brightness(0) invert(1);
+    opacity: 0.85;
+    }
+
+    .modal-body {
+    padding: 0.9rem 1.1rem;
+    }
+
+    .modal-footer {
+    padding: 0.65rem 1.1rem;
+    border-top: 1px solid var(--border-soft);
+    }
+
+    form .form-label,
+    .modal-body .form-label {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--ink-700, var(--ink-900));
+    margin-bottom: 0.3rem;
+    }
+
+    form .form-label.required::after,
+    .modal-body .form-label.required::after,
+    label.required::after {
+    content: " *";
+    color: var(--danger);
+    font-weight: 700;
+    }
+
+    .form-control,
+    .form-select {
+    border: 1px solid var(--border-soft);
+    border-radius: var(--radius-sm);
+    padding: 0.4rem 0.65rem;
+    font-size: 0.8375rem;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .form-control:focus,
+    .form-select:focus {
+    border-color: var(--brand-primary);
+    box-shadow: 0 0 0 0.15rem rgba(26,111,168, 0.15);
+    }
+
+    .form-control.is-invalid,
+    .form-select.is-invalid {
+    border-color: var(--danger);
+    background-image: none;
+    }
+
+    .form-control.is-valid,
+    .form-select.is-valid {
+    border-color: var(--success);
+    background-image: none;
+    }
+
+    .invalid-feedback {
+    font-size: 0.75rem;
+    color: var(--danger);
+    margin-top: 0.2rem;
+    }
+
+    .valid-feedback {
+    font-size: 0.75rem;
+    color: var(--success);
+    margin-top: 0.2rem;
+    }
+
+    /* Compact field spacing inside forms/modals */
+    form .mb-3,
+    .modal-body .mb-3 {
+    margin-bottom: 0.65rem !important;
+    }
+
+    form .row.g-2 > [class*="col-"],
+    .modal-body .row.g-2 > [class*="col-"] {
+    padding-left: 0.4rem;
+    padding-right: 0.4rem;
+    }
+
+    .modal-footer .btn {
+    border-radius: var(--radius-sm);
+    font-weight: 600;
+    padding: 0.5rem 1.1rem;
+    font-size: 0.8125rem;
+    }
+
+    .modal-footer .btn-primary,
+    .modal-footer .btn-phoenix-primary {
+    background: linear-gradient(135deg, var(--brand-primary) 0%, var(--brand-primary-dark) 100%);
+    border: none;
+    }
+
+    textarea.form-control {
+    min-height: 72px;
+    resize: vertical;
+    }
+
+    input[type="file"].form-control {
+    padding: 0.4rem 0.6rem;
+    font-size: 0.8125rem;
+    }
+
+    /* Safety net: repaint any leftover teal-branded buttons/borders
+    from other partials (e.g. Add Note / Upload) onto the two
+    approved brand colors, without touching their markup or logic. */
+    .btn-teal,
+    button[class*="teal"],
+    button[style*="00918E"],
+    button[style*="#1A6FA8" i] {
+    background: linear-gradient(135deg, var(--brand-primary) 0%, var(--brand-primary-dark) 100%) !important;
+    border-color: var(--brand-primary) !important;
+    color: #FFFFFF !important;
+    }
+
+    input[type="file"].form-control:focus,
+    input[type="file"]:hover {
+    border-color: var(--brand-primary);
+    }
+
+    /* ===========================================================
+    FLATPICKR THEME — two-color brand, compact sizing
+    =========================================================== */
+    .flatpickr-alt-input {
+    cursor: pointer;
+    }
+
+    .flatpickr-calendar {
+    border-radius: var(--radius-md);
+    box-shadow: 0 10px 28px rgba(26,111,168, 0.2);
+    font-size: 0.8125rem;
+    }
+
+    .flatpickr-calendar.arrowTop:before,
+    .flatpickr-calendar.arrowTop:after {
+    border-bottom-color: var(--brand-primary);
+    }
+
+    .flatpickr-months {
+    background: linear-gradient(135deg, var(--brand-primary) 0%, var(--brand-primary-dark) 100%);
+    border-radius: var(--radius-md) var(--radius-md) 0 0;
+    padding: 0.35rem 0;
+    }
+
+    .flatpickr-months .flatpickr-month {
+    color: #FFFFFF;
+    fill: #FFFFFF;
+    height: 32px;
+    }
+
+    .flatpickr-current-month {
+    font-size: 0.875rem;
+    padding-top: 2px;
+    }
+
+    .flatpickr-current-month input.cur-year,
+    .flatpickr-current-month .flatpickr-monthDropdown-months {
+    color: #FFFFFF;
+    }
+
+    .flatpickr-months .flatpickr-prev-month svg,
+    .flatpickr-months .flatpickr-next-month svg {
+    fill: #FFFFFF;
+    }
+
+    span.flatpickr-weekday {
+    background: var(--surface-muted);
+    color: var(--ink-600);
+    font-size: 0.7rem;
+    font-weight: 600;
+    }
+
+    .flatpickr-day {
+    border-radius: var(--radius-sm);
+    font-size: 0.75rem;
+    height: 30px;
+    line-height: 30px;
+    }
+
+    .flatpickr-day.today {
+    border-color: var(--brand-accent);
+    }
+
+    .flatpickr-day:hover,
+    .flatpickr-day.nextMonthDay:hover,
+    .flatpickr-day.prevMonthDay:hover {
+    background: var(--brand-accent-light);
+    border-color: var(--brand-accent-light);
+    }
+
+    .flatpickr-day.selected,
+    .flatpickr-day.selected:hover,
+    .flatpickr-day.selected:focus {
+    background: var(--brand-primary);
+    border-color: var(--brand-primary);
+    color: #FFFFFF;
+    }
+
+    .flatpickr-time {
+    border-top: 1px solid var(--border-soft);
+    height: 34px;
+    }
+
+    .flatpickr-time input {
+    font-size: 0.8rem;
+    }
+
+    .flatpickr-time .flatpickr-am-pm,
+    .flatpickr-time input:hover,
+    .flatpickr-time .flatpickr-am-pm:hover,
+    .flatpickr-time input:focus,
+    .flatpickr-time .flatpickr-am-pm:focus {
+    background: var(--brand-accent-light);
+    }
+</style>
+
+<script>
+    // AJAX Content Loading Functions
+    function loadFollowups(leadId) {
+    showLoading();
+    $.ajax({
+    url: '/Leads/GetFollowups',
+    type: 'GET',
+    data: { leadId: leadId },
+    success: function (data) {
+    $("#detailSubContent").html(data);
+    },
+    error: function (xhr, status, error) {
+    console.error('Error loading follow-ups:', error);
+    showError("Failed to load follow-ups");
+    }
+    });
+    if (typeof event !== 'undefined' && event && event.target) {
+    setActiveTab(event.target);
+    }
+    }
+    // Load Documents & Transactions
+    // Load Documents & Transactions
+    function loadDocuments(leadId) {
+    $("#detailSubContent").html(`
+    <div id="documentsSection" class="documents-section">
+    <div class="card mb-4 document-card quotation-card">
+    <div class="card-header document-header">
+    <div class="d-flex align-items-center justify-content-between">
+    <div class="d-flex align-items-center">
+    <div class="document-icon quotation-icon me-3">
+    <i class="fa-solid fa-file-invoice"></i>
+    </div>
+    <h4 class="mb-0 fw-bold">Quotations</h4>
+    </div>
+    <button class="btn btn-modern btn-primary" onclick="createQuotation(${leadId})">
+    <i class="fa-solid fa-plus me-2"></i>New Quotation
+    </button>
+    </div>
+    </div>
+    <div class="card-body">
+    <div id="quotationList" class="document-list">Loading...</div>
+    </div>
+    </div>
+
+    <div class="card mb-4 document-card booking-card">
+    <div class="card-header document-header">
+    <div class="d-flex align-items-center">
+    <div class="document-icon booking-icon me-3">
+    <i class="fa-solid fa-handshake"></i>
+    </div>
+    <h4 class="mb-0 fw-bold">Booking Documents</h4>
+    </div>
+    </div>
+    <div class="card-body">
+    <div id="bookingDocumentsList" class="document-list">Loading...</div>
+    </div>
+    </div>
+
+    <div class="card mb-4 document-card invoice-card">
+    <div class="card-header document-header">
+    <div class="d-flex align-items-center justify-content-between">
+    <div class="d-flex align-items-center">
+    <div class="document-icon invoice-icon me-3">
+    <i class="fa-solid fa-receipt"></i>
+    </div>
+    <h4 class="mb-0 fw-bold">Invoice Documents</h4>
+    </div>
+    <button class="btn btn-modern btn-info" onclick="createInvoice(${leadId})">
+    <i class="fa-solid fa-plus me-2"></i>
+    </button>
+    </div>
+    </div>
+    <div class="card-body">
+    <div id="invoiceDocumentsList" class="document-list">Loading...</div>
+    </div>
+    </div>
+
+    <div class="card mb-4 document-card payment-card">
+    <div class="card-header document-header">
+    <div class="d-flex align-items-center justify-content-between">
+    <div class="d-flex align-items-center">
+    <div class="document-icon payment-icon me-3">
+    <i class="fa-solid fa-credit-card"></i>
+    </div>
+    <h4 class="mb-0 fw-bold">Payments</h4>
+    </div>
+    <button class="btn btn-modern btn-success" onclick="recordPayment(${leadId})">
+    <i class="fa-solid fa-plus me-2"></i>Record Payment
+    </button>
+    </div>
+    </div>
+    <div class="card-body">
+    <div id="paymentsList" class="document-list">Loading...</div>
+    </div>
+    </div>
+
+    <div id="noDocumentsMessage" class="modern-alert" style="display:none;">
+    <div class="alert-content">
+    <i class="fa-solid fa-info-circle me-3"></i>
+    </div>
+    <h5 class="mb-1">No Documents Available</h5>
+    <p class="mb-0">No quotations, bookings, or invoices available for this lead yet.</p>
+    </div>
+    </div>
+    `);
+
+    // Fetch quotations
+    $.get('/Leads/GetQuotations', { leadId: leadId }, function (data) {
+    console.log('Quotations:', data);
+    if (data && data.length > 0) {
+    let html = '<ul class="list-group">';
+    data.forEach(function (q) {
+    const id = q.QuotationId ?? q.quotationId;
+    const status = q.Status ?? q.status;
+    html += `<li class="list-group-item d-flex justify-content-between align-items-center">
+    <span>Quotation #${id} - ${status}</span>
+    <a href="/Quotations/DownloadPdf/${id}" class="btn btn-sm btn-outline-primary ms-2"><span class="fa fa-download"></span> Download</a>
+    </li>`;
+    });
+    html += '</ul>';
+    $("#quotationList").html(html);
+    } else {
+    $("#quotationList").html('<div class="text-muted">No quotations available.</div>');
+    }
+    checkNoDocuments();
+    });
+    // Fetch booking documents
+    $.get('/Leads/GetBookingDocuments', { leadId: leadId }, function (data) {
+    console.log('Bookings:', data);
+    if (data && data.length > 0) {
+    let html = '<ul class="list-group">';
+    data.forEach(function (b) {
+    const id = b.BookingId ?? b.bookingId;
+    const status = b.Status ?? b.status;
+    html += `<li class="list-group-item d-flex justify-content-between align-items-center">
+    <span>Booking #${id} - ${status}</span>
+    <a href="/Bookings/DownloadPdf/${id}" class="btn btn-sm btn-outline-primary ms-2"><span class="fa fa-download"></span> Download</a>
+    </li>`;
+    });
+    html += '</ul>';
+    $("#bookingDocumentsList").html(html);
+    } else {
+    $("#bookingDocumentsList").html('<div class="text-muted">No booking documents available.</div>');
+    }
+    checkNoDocuments();
+    });
+    // Fetch invoice documents
+    $.get('/Leads/GetInvoiceDocuments', { leadId: leadId }, function (data) {
+    console.log('Invoices:', data);
+    if (data && data.length > 0) {
+    let html = '<ul class="list-group">';
+    data.forEach(function (i) {
+    const id = i.InvoiceId ?? i.invoiceId;
+    const status = i.Status ?? i.status;
+    html += `<li class="list-group-item d-flex justify-content-between align-items-center">
+    <span>Invoice #${id} - ${status}</span>
+    <a href="/Invoices/DownloadPdf/${id}" class="btn btn-sm btn-outline-primary ms-2"><span class="fa fa-download"></span> Download</a>
+    </li>`;
+    });
+    html += '</ul>';
+    $("#invoiceDocumentsList").html(html);
+    } else {
+    $("#invoiceDocumentsList").html('<div class="text-muted">No invoice documents available.</div>');
+    }
+    // Fetch payments for the lead
+    $.get('/Leads/GetPayments', { leadId: leadId }, function (data) {
+    console.log('Payments:', data);
+    if (data && data.length > 0) {
+    let html = '<ul class="list-group">';
+    data.forEach(function (p) {
+    const id = p.PaymentId ?? p.paymentId;
+    const status = p.Status ?? p.status;
+    html += `<li class="list-group-item d-flex justify-content-between align-items-center">
+    <span>Payment #${id} - ${status}</span>
+    <a href="/Payments/Receipt/${id}" class="btn btn-sm btn-outline-primary ms-2"><span class="fa fa-file-invoice"></span> View Receipt</a>
+    </li>`;
+    });
+    html += '</ul>';
+    $("#paymentsList").html(html);
+    } else {
+    $("#paymentsList").html('<div class="text-muted">No payments recorded.</div>');
+    }
+    checkNoDocuments();
+    });
+    });
+    if (typeof event !== 'undefined' && event && event.target) {
+    setActiveTab(event.target);
+    }
+    }
+
+    function checkNoDocuments() {
+    var hasQuotations = $("#quotationList ul li").length > 0;
+    var hasBookings = $("#bookingDocumentsList ul li").length > 0;
+    var hasInvoices = $("#invoiceDocumentsList ul li").length > 0;
+    var hasPayments = $("#paymentsList ul li").length > 0;
+    if (!hasQuotations && !hasBookings && !hasInvoices && !hasPayments) {
+    $("#noDocumentsMessage").show();
+    } else {
+    $("#noDocumentsMessage").hide();
+    }
+    }
+
+    function createQuotation(leadId) {
+    window.location.href = '/Quotations/Create?leadId=' + leadId;
+    }
+
+    function createInvoice(leadId) {
+    window.location.href = '/Invoices/Create?leadId=' + leadId;
+    }
+
+    function recordPayment(leadId) {
+    window.location.href = '/Payments/Create?leadId=' + leadId;
+    }
+
+    function loadNotes(leadId) {
+    showLoading();
+    $("#detailSubContent").load('/Leads/GetNotes?leadId=' + leadId, function (response, status) {
+    if (status === "error") {
+    showError("Failed to load notes");
+    }
+    });
+    if (typeof event !== 'undefined' && event && event.target) {
+    setActiveTab(event.target);
+    }
+    }
+
+    function loadUploads(leadId) {
+    showLoading();
+    $("#detailSubContent").load('/Leads/GetUploads?leadId=' + leadId, function (response, status) {
+    if (status === "error") {
+    showError("Failed to load uploads");
+    }
+    });
+    if (typeof event !== 'undefined' && event && event.target) {
+    setActiveTab(event.target);
+    }
+    }
+
+    function loadHistory(leadId) {
+    showLoading();
+    $("#detailSubContent").load('/Leads/GetHistory?leadId=' + leadId, function (response, status) {
+    if (status === "error") {
+    showError("Failed to load history");
+    }
+    });
+    if (typeof event !== 'undefined' && event && event.target) {
+    setActiveTab(event.target);
+    } else {
+    // Set Activities tab as active when loading initially
+    const activitiesTab = document.querySelector('a[href="#scrollspyHistory"]');
+    if (activitiesTab) {
+    setActiveTab(activitiesTab);
+    }
+    }
+    }
+
+    function loadSiteVisits(leadId) {
+    showLoading();
+    $("#detailSubContent").load('/Leads/GetSiteVisits?leadId=' + leadId, function (response, status) {
+    if (status === "error") {
+    showError("Failed to load site visit activities");
+    }
+    });
+    if (typeof event !== 'undefined' && event && event.target) {
+    setActiveTab(event.target);
+    }
+    }
+
+    // Helper Functions
+    function showLoading() {
+    $("#detailSubContent").html(`
+    <div class="text-center py-5">
+    <div class="spinner-border text-primary" role="status">
+    <span class="visually-hidden">Loading...</span>
+    </div>
+    <p class="mt-3 text-body-tertiary">Loading content...</p>
+    </div>
+    `);
+    }
+
+    function showError(message) {
+    $("#detailSubContent").html(`
+    <div class="alert alert-danger text-center" role="alert">
+    <i class="fa-solid fa-exclamation-triangle me-2"></i>${message}
+    </div>
+    `);
+    }
+
+    function setActiveTab(element) {
+    // Remove active class from all nav links
+    document.querySelectorAll('.nav-link').forEach(link => {
+    link.classList.remove('active');
+    });
+    // Add active class to clicked link
+    if (element && element.classList) {
+    element.classList.add('active');
+    }
+    }
+
+    // Action Functions
+    function openNoteModal() {
+    // Switch to Notes tab and focus on the note input
+    loadNotes(@Model.LeadId);
+    document.querySelectorAll('.nav-link').forEach(link => {
+    if (link.textContent.includes('Notes')) {
+    link.click();
+    }
+    });
+    setTimeout(() => {
+    document.getElementById('noteText')?.focus();
+    }, 500);
+    }
+
+    function openFollowUpModal(leadId) {
+    $("#fuLeadId").val(leadId);
+    var modal = new bootstrap.Modal(document.getElementById("followUpModal"));
+    modal.show();
+    }
+
+    function editLead(leadId) {
+    // Navigate to edit page or open edit modal
+    window.location.href = '/Leads/Edit/' + leadId;
+    }
+
+    function deleteLead(leadId) {
+    if (confirm('Are you sure you want to delete this lead?')) {
+    $.ajax({
+    url: '/Leads/Delete/' + leadId,
+    type: 'POST',
+    headers: {
+    'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val()
+    },
+    success: function () {
+    Swal.fire('Deleted', 'Lead deleted successfully', 'success');
+    window.location.href = '/Leads/Index';
+    },
+    error: function () {
+    Swal.fire('Error', 'Failed to delete lead', 'error');
+    }
+    });
+    }
+    }
+
+    function sendEmail(email) {
+    window.location.href = 'mailto:' + email;
+    }
+
+    function callLead(phone) {
+    window.location.href = 'tel:' + phone;
+    }
+
+    // ===========================================================
+    // AUTO NOVALIDATE — kills the native browser popup bubble
+    // ("Please fill out this field") on every form, including the
+    // Follow-up modal and any Notes/Uploads/SiteVisit forms that
+    // get injected later via AJAX. Only the custom red/green
+    // is-invalid / is-valid feedback (styled above) is shown.
+    // ===========================================================
+    (function () {
+    function killNativeBubble(form) {
+    if (form && form.tagName === 'FORM' && !form.hasAttribute('novalidate')) {
+    form.setAttribute('novalidate', 'novalidate');
+    }
+    }
+
+    // Turns native <input type="date"> / <input type="time"> fields into
+    // compact Flatpickr pickers themed with the two brand colors.
+    // IMPORTANT: the original input is kept (Flatpickr hides it) and still
+    // submits the exact same format a native date/time input would send
+    // (yyyy-MM-dd / HH:mm) — so server-side model binding is unaffected.
+    // A separate visible "alt" input shows the friendly dd-mm-yyyy /
+    // hh:mm AM-PM format to the user.
+    function initFlatpickrFields(root) {
+    if (typeof flatpickr === 'undefined' || !root || !root.querySelectorAll) { return; }
+
+    root.querySelectorAll('input[type="date"]').forEach(function (input) {
+    if (input.dataset.fpInit) { return; }
+    input.dataset.fpInit = '1';
+    var wasRequired = input.hasAttribute('required');
+    flatpickr(input, {
+    altInput: true,
+    altFormat: 'd-m-Y',
+    dateFormat: 'Y-m-d',
+    allowInput: true,
+    disableMobile: true,
+    altInputClass: (input.className + ' form-control flatpickr-alt-input').trim()
+    });
+    if (wasRequired && input._flatpickr && input._flatpickr.altInput) {
+    input._flatpickr.altInput.setAttribute('required', 'required');
+    }
+    });
+
+    root.querySelectorAll('input[type="time"]').forEach(function (input) {
+    if (input.dataset.fpInit) { return; }
+    input.dataset.fpInit = '1';
+    var wasRequired = input.hasAttribute('required');
+    flatpickr(input, {
+    altInput: true,
+    altFormat: 'h:i K',
+    dateFormat: 'H:i',
+    enableTime: true,
+    noCalendar: true,
+    time_24hr: false,
+    allowInput: true,
+    disableMobile: true,
+    altInputClass: (input.className + ' form-control flatpickr-alt-input').trim()
+    });
+    if (wasRequired && input._flatpickr && input._flatpickr.altInput) {
+    input._flatpickr.altInput.setAttribute('required', 'required');
+    }
+    });
+    }
+
+    function scanAndFix(root) {
+    if (!root || !root.querySelectorAll) { return; }
+    if (root.tagName === 'FORM') { killNativeBubble(root); }
+    root.querySelectorAll('form').forEach(killNativeBubble);
+    initFlatpickrFields(root.tagName ? root : document);
+    }
+
+    // Fix any forms already present (e.g. the Follow-up modal partial)
+    document.addEventListener('DOMContentLoaded', function () {
+    scanAndFix(document);
+    });
+    // In case this script runs after DOMContentLoaded already fired
+    scanAndFix(document);
+
+    // Watch the whole page for forms injected later (AJAX tabs, modals)
+    var observer = new MutationObserver(function (mutations) {
+    mutations.forEach(function (m) {
+    m.addedNodes.forEach(function (node) {
+    if (node.nodeType === 1) { scanAndFix(node); }
+    });
+    });
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
+    })();
+    // Attaches automatically to EVERY form on the page — including
+    // the Follow-up modal and any Notes/Uploads/SiteVisit forms
+    // loaded later via AJAX into #detailSubContent. Uses each
+    // field's own native HTML5 rules (required, type="email",
+    // type="tel", pattern, min/max) so no backend/server code or
+    // field names need to be known or changed here.
+    // ===========================================================
+    (function () {
+    function ensureFeedbackEl(field, isValid) {
+    var msg = field.validationMessage || (isValid ? "Looks good." : "This field is required.");
+    var next = field.nextElementSibling;
+    var feedback = (next && (next.classList.contains('invalid-feedback') || next.classList.contains('valid-feedback')))
+    ? next
+    : null;
+
+    if (!feedback) {
+    feedback = document.createElement('div');
+    field.insertAdjacentElement('afterend', feedback);
+    }
+
+    feedback.className = isValid ? 'valid-feedback' : 'invalid-feedback';
+    feedback.style.display = isValid ? 'none' : 'block';
+    feedback.textContent = isValid ? '' : msg;
+    }
+
+    function validateField(field) {
+    if (!field.willValidate) { return true; }
+
+    var isEmpty = (field.value === '' || field.value === null || field.value === undefined);
+    var isRequired = field.required || field.hasAttribute('required');
+
+    // Optional field with nothing entered yet: stay neutral —
+    // no red, no false green check, no blocking of submit.
+    if (isEmpty && !isRequired) {
+    field.classList.remove('is-invalid', 'is-valid');
+    var sib = field.nextElementSibling;
+    if (sib && (sib.classList.contains('invalid-feedback') || sib.classList.contains('valid-feedback'))) {
+    sib.style.display = 'none';
+    sib.textContent = '';
+    }
+    return true;
+    }
+
+    var valid = field.checkValidity();
+    field.classList.remove('is-invalid', 'is-valid');
+    field.classList.add(valid ? 'is-valid' : 'is-invalid');
+    ensureFeedbackEl(field, valid);
+    return valid;
+    }
+
+    function validatableFields(form) {
+    return Array.prototype.slice.call(
+    form.querySelectorAll('input, select, textarea')
+    ).filter(function (f) {
+    return f.willValidate && f.type !== 'hidden' && f.type !== 'submit' && f.type !== 'button';
+    });
+    }
+
+    // Live feedback as the user types / selects / blurs a field
+    document.addEventListener('input', function (e) {
+    var field = e.target;
+    if (field.matches && field.matches('input, select, textarea') && field.closest('form')) {
+    validateField(field);
+    }
+    }, true);
+
+    document.addEventListener('change', function (e) {
+    var field = e.target;
+    if (field.matches && field.matches('input, select, textarea') && field.closest('form')) {
+    validateField(field);
+    }
+    }, true);
+
+    document.addEventListener('blur', function (e) {
+    var field = e.target;
+    if (field.matches && field.matches('input, select, textarea') && field.closest('form')) {
+    validateField(field);
+    }
+    }, true);
+
+    // Block submit until every field is valid; mark all fields red/green
+    document.addEventListener('submit', function (e) {
+    var form = e.target;
+    if (!(form && form.tagName === 'FORM')) { return; }
+
+    var fields = validatableFields(form);
+    var allValid = true;
+    var firstInvalid = null;
+
+    fields.forEach(function (field) {
+    var ok = validateField(field);
+    if (!ok) {
+    allValid = false;
+    if (!firstInvalid) { firstInvalid = field; }
+    }
+    });
+
+    if (!allValid) {
+    e.preventDefault();
+    e.stopPropagation();
+    form.classList.add('was-validated');
+    if (firstInvalid) { firstInvalid.focus(); }
+    }
+    }, true);
+    })();
+
+    // Initialize on Page Load
+    window.addEventListener('load', function() {
+        // Wait for jQuery to be available
+        if (typeof $ !== 'undefined') {
+            // Set first tab as active
+            const firstTab = document.querySelector('.nav-link');
+            if (firstTab) {
+                firstTab.classList.add('active');
+            }
+
+            // Load Activities content immediately
+            loadHistory(@Model.LeadId);
+
+            // Auto-refresh Activities tab ONLY if it is currently active
+            window.addEventListener('focus', function() {
+                const activitiesTab = document.querySelector('a[href="#scrollspyHistory"]');
+                if (activitiesTab && activitiesTab.classList.contains('active')) {
+                    setTimeout(function() {
+                        loadHistory(@Model.LeadId);
+                    }, 100);
+                }
+            });
+
+            // Also refresh when page becomes visible ONLY if it is currently active
+            document.addEventListener('visibilitychange', function() {
+                if (!document.hidden) {
+                    const activitiesTab = document.querySelector('a[href="#scrollspyHistory"]');
+                    if (activitiesTab && activitiesTab.classList.contains('active')) {
+                        setTimeout(function() {
+                            loadHistory(@Model.LeadId);
+                        }, 100);
+                    }
+                }
+            });
+
+            // Handle browser back/forward navigation
+            window.addEventListener('pageshow', function(event) {
+                const activitiesTab = document.querySelector('a[href="#scrollspyHistory"]');
+                if (activitiesTab && activitiesTab.classList.contains('active')) {
+                    loadHistory(@Model.LeadId);
+                }
+            });
+        } else {
+            // Fallback if jQuery is not available
+            setTimeout(function() {
+                if (typeof $ !== 'undefined') {
+                    loadHistory(@Model.LeadId);
+                }
+            }, 1000);
+        }
+    });
+</script>
+
+@await Html.PartialAsync("_FollowUpModal", new FollowUpModel())

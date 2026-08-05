@@ -1,0 +1,54 @@
+html {
+  font-size: 14px;
+}
+
+@media (min-width: 768px) {
+  html {
+    font-size: 14px;
+  }
+}
+
+.btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-check-input:focus {
+  box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #2589C9;
+}
+
+html {
+  position: relative;
+  min-height: 100%;
+}
+
+body {
+  margin-bottom: 0;
+}
+
+/* Global: Pointer cursor for all select dropdowns and filter dropdowns */
+select,
+select.form-select,
+select.form-control,
+.form-select,
+#filterStage,
+#filterStatus,
+#filterBuilder,
+#filterAssignedTo,
+#dateRangeFilter,
+#filterFromDate,
+#filterToDate {
+    cursor: pointer !important;
+}
+
+/* Remove grey background from all select dropdowns */
+select.form-select,
+select.form-control,
+.form-select {
+    background-color: #FFFFFF !important;
+    opacity: 1 !important;
+}
+
+/* Dark mode select dropdowns */
+.dark-mode select.form-select,
+.dark-mode select.form-control,
+.dark-mode .form-select {
+    background-color: #2A3A4A !important;
+    opacity: 1 !important;
+    cursor: pointer !important;
+}

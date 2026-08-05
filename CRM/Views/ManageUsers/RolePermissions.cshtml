@@ -1,0 +1,644 @@
+@{
+    ViewData["Title"] = "Role Permissions - " + ViewBag.RoleName;
+    var modules = ViewBag.Modules as List<CRM.Models.ModuleModel>;
+    var permissions = ViewBag.Permissions as List<CRM.Models.PermissionModel>;
+    var rolePermissions = ViewBag.RolePermissions as Dictionary<int, Dictionary<string, bool>>;
+}
+
+<style>
+    :root {
+        --clr-gold: #D4A45A;
+        --clr-gold-dark: #B8883E;
+        --clr-gold-soft: rgba(212,164,90, 0.10);
+        --clr-blue: #1A6FA8;
+        --clr-blue-dark: #0F4C75;
+        --clr-blue-soft: rgba(26,111,168, 0.10);
+    }
+
+    .permission-card {
+        background: white;
+        border-radius: 10px;
+        padding: 0;
+        margin-bottom: 1rem;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+        border: 1px solid #E2E8F0;
+        overflow: hidden;
+        transition: box-shadow 0.25s ease;
+    }
+
+    .permission-card:hover {
+        box-shadow: 0 3px 12px rgba(26,111,168, 0.13);
+    }
+
+    .module-header {
+        background: linear-gradient(135deg, var(--clr-blue) 0%, var(--clr-blue-dark) 100%);
+        border-bottom: 3px solid var(--clr-gold);
+        color: white;
+        padding: 0.75rem 1rem;
+        display: flex;
+        align-items: center;
+        cursor: pointer;
+        transition: background 0.2s ease;
+        gap: 0.6rem;
+    }
+
+    .module-header:hover {
+        background: linear-gradient(135deg, #2589C9 0%, #125082 100%);
+    }
+
+    .module-header h5 {
+        margin: 0;
+        font-size: 0.95rem;
+        font-weight: 600;
+        flex-grow: 1;
+    }
+
+    .module-header i.module-icon {
+        color: var(--clr-gold);
+        font-size: 1rem;
+        width: 18px;
+        text-align: center;
+    }
+
+    .module-content {
+        transition: all 0.3s ease;
+        overflow: hidden;
+        padding: 0.75rem;
+        background: #FFFFFF;
+    }
+
+    .module-content.collapsed {
+        max-height: 0;
+        opacity: 0;
+        padding: 0;
+        margin-bottom: 0;
+    }
+
+    .expand-arrow {
+        transition: transform 0.3s ease;
+        margin-right: 0.5rem;
+        font-size: 0.8rem;
+        opacity: 0.85;
+    }
+
+    .expand-arrow.collapsed {
+        transform: rotate(-90deg);
+    }
+
+    .page-row {
+        background: white;
+        border-radius: 7px;
+        padding: 0.65rem 0.85rem;
+        margin-bottom: 0.4rem;
+        border-left: 3px solid var(--clr-gold);
+        border: 1px solid #E2E8F0;
+        border-left: 3px solid var(--clr-gold);
+    }
+
+    .page-row:last-child {
+        margin-bottom: 0;
+    }
+
+    .permission-checkbox {
+        transform: scale(1.1);
+        margin: 0 0.3rem 0 0;
+        accent-color: var(--clr-blue);
+        cursor: pointer;
+    }
+
+    .permission-label {
+        font-size: 0.8rem;
+        font-weight: 500;
+        color: #2A3A4A;
+        cursor: pointer;
+    }
+
+    .page-name {
+        font-weight: 600;
+        color: #2A3A4A;
+        font-size: 0.85rem;
+        margin-bottom: 0.45rem;
+    }
+
+    .page-name small {
+        font-weight: 400;
+        font-size: 0.72rem;
+        color: #8FA3B8;
+    }
+
+    .save-btn {
+        background: linear-gradient(135deg, var(--clr-gold) 0%, var(--clr-gold-dark) 100%);
+        border: none;
+        color: white !important;
+        padding: 0.55rem 1.5rem;
+        border-radius: 7px;
+        font-weight: 600;
+        font-size: 0.88rem;
+        box-shadow: 0 3px 10px rgba(212,164,90, 0.35);
+        transition: all 0.25s ease;
+    }
+
+    .save-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 16px rgba(212,164,90, 0.45);
+        color: white !important;
+    }
+
+    .save-btn:disabled {
+        color: white !important;
+        opacity: 0.75;
+    }
+
+    .btn-outline-primary {
+        color: var(--clr-blue);
+        border-color: var(--clr-blue);
+        font-size: 0.85rem;
+    }
+
+    .btn-outline-primary:hover {
+        background-color: var(--clr-blue);
+        border-color: var(--clr-blue);
+        color: #FFFFFF;
+    }
+
+    .btn-outline-secondary {
+        font-size: 0.85rem;
+    }
+
+    .btn-success.me-2 {
+        background-color: var(--clr-blue);
+        border-color: var(--clr-blue);
+        font-size: 0.85rem;
+    }
+
+    /* Module toggle button inside header */
+    #permissionsForm .btn-outline-light {
+        font-size: 0.78rem;
+        padding: 0.25rem 0.55rem;
+        border-radius: 5px;
+        border-color: rgba(255,255,255,0.5);
+        color: white;
+        background: rgba(255,255,255,0.12);
+        transition: background 0.2s;
+    }
+
+    #permissionsForm .btn-outline-light:hover {
+        background: rgba(255,255,255,0.25);
+    }
+
+    /* Alert tweaks */
+    .alert-info {
+        background: var(--clr-blue-soft);
+        border: 1px solid var(--clr-blue);
+        color: var(--clr-blue-dark);
+        font-size: 0.82rem;
+        padding: 0.6rem 0.9rem;
+        border-radius: 7px;
+    }
+
+    .alert-primary {
+        background: var(--clr-gold-soft);
+        border: 1px solid var(--clr-gold);
+        color: #B45309;
+        font-size: 0.82rem;
+        padding: 0.6rem 0.9rem;
+        border-radius: 7px;
+    }
+
+    /* Page header */
+    .perm-page-title {
+        color: var(--clr-blue);
+        font-weight: 700;
+    }
+
+    /* Dark mode */
+    .dark-mode .permission-card {
+        background: #1A2332 !important;
+        border-color: #2A3A4A !important;
+    }
+
+    .dark-mode .module-content {
+        background: #111827 !important;
+    }
+
+    .dark-mode .page-row {
+        background: #1A2332 !important;
+        border-color: #2A3A4A !important;
+        border-left-color: var(--clr-gold) !important;
+        color: #E2E8F0 !important;
+    }
+
+    .dark-mode .page-name {
+        color: #E2E8F0 !important;
+    }
+
+    .dark-mode .permission-label {
+        color: #8FA3B8 !important;
+    }
+
+    .dark-mode .alert-info,
+    .dark-mode .alert-primary {
+        color: #B8C8D8 !important;
+    }
+
+    /* Mobile Responsiveness */
+    @@media (max-width: 768px) {
+        .d-flex.justify-content-between.align-items-center.mb-4 {
+            flex-direction: column;
+            gap: 0.75rem;
+            align-items: flex-start !important;
+        }
+
+        .d-flex.justify-content-between.align-items-center.mb-4 > div.d-flex {
+            flex-wrap: wrap;
+            gap: 0.4rem;
+        }
+
+        .save-btn,
+        .btn-outline-secondary {
+            flex: 1;
+        }
+
+        .module-header {
+            padding: 0.65rem 0.75rem;
+        }
+
+        .module-header h5 {
+            font-size: 0.88rem;
+        }
+
+        .page-row {
+            padding: 0.55rem 0.65rem;
+        }
+    }
+
+    @@media (max-width: 576px) {
+        .permission-label {
+            font-size: 0.75rem;
+        }
+
+        .page-name {
+            font-size: 0.8rem;
+        }
+
+        .module-content {
+            padding: 0.5rem;
+        }
+    }
+</style>
+
+<div class="content">
+    <nav class="mb-3" aria-label="breadcrumb">
+        <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item"><a href="/Home">Home</a></li>
+            <li class="breadcrumb-item"><a href="/manageusers">Users</a></li>
+            <li class="breadcrumb-item"><a href="/ManageUsers/Roles">Roles</a></li>
+            <li class="breadcrumb-item active">@ViewBag.RoleName Permissions</li>
+        </ol>
+    </nav>
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-1 perm-page-title"><i class="fa-solid fa-shield-halved me-2"></i>Role Permissions</h1>
+            <p class="text-muted mb-0" style="font-size:0.88rem;">Configure permissions for <strong>@ViewBag.RoleName</strong> role</p>
+            @if (ViewBag.IsPartner == true)
+            {
+                <div class="alert alert-info mt-2 mb-0">
+                    <i class="fa-solid fa-info-circle me-2"></i>
+                    <strong>Partner Context:</strong> You are managing permissions for your partner agents. These permissions are separate from admin permissions.
+                </div>
+            }
+            else
+            {
+                <div class="alert alert-primary mt-2 mb-0">
+                    <i class="fa-solid fa-crown me-2"></i>
+                    <strong>Admin Context:</strong> You are managing global admin permissions for this role.
+                </div>
+            }
+        </div>
+        <div class="d-flex align-items-center">
+            <button type="button" class="btn btn-outline-primary me-2" onclick="toggleAllGlobal()" title="Toggle All Permissions" id="global-toggle-btn">
+                <i class="fa-solid fa-check-square" id="global-toggle-icon"></i> <span id="global-toggle-text">Select All</span>
+            </button>
+            <a href="/ManageUsers/Roles" class="btn btn-outline-secondary me-2">
+                <i class="fa-solid fa-arrow-left me-2"></i>Back
+            </a>
+            <button type="button" class="btn save-btn" onclick="savePermissions()">
+                <i class="fa-solid fa-save me-2"></i>Save Permissions
+            </button>
+        </div>
+    </div>
+
+    <form id="permissionsForm">
+        <input type="hidden" name="roleName" value="@ViewBag.RoleName" />
+        
+        @if (modules != null && modules.Any())
+        {
+            @foreach (var module in modules.OrderBy(m => m.SortOrder))
+            {
+                <div class="permission-card">
+                    <div class="module-header" onclick="toggleModule(@module.ModuleId)">
+                        <i class="@(string.IsNullOrEmpty(module.Icon) ? "fas fa-users" : module.Icon) module-icon"></i>
+                        <h5 class="mb-0 flex-grow-1">@module.DisplayName</h5>
+                        <i class="fas fa-chevron-down expand-arrow" id="arrow-@module.ModuleId"></i>
+                        <div onclick="event.stopPropagation();">
+                            <button type="button" class="btn btn-sm btn-outline-light" onclick="toggleAllModule(@module.ModuleId)" title="Toggle All" id="toggle-btn-@module.ModuleId">
+                                <i class="fa-solid fa-check-square" id="toggle-icon-@module.ModuleId"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div id="module-@module.ModuleId" class="module-content">
+                        @if (module.Pages != null && module.Pages.Any())
+                        {
+                            @foreach (var page in module.Pages.OrderBy(p => p.SortOrder))
+                            {
+                                <div class="page-row">
+                                    <div class="page-name">
+                                        <i class="fa-solid fa-file-alt me-2" style="color:var(--clr-blue); font-size:0.78rem;"></i>@(page.DisplayName)
+                                        <small class="text-muted">(@(page.Controller)/@(page.Action))</small>
+                                    </div>
+                                    
+                                    <div class="row g-1">
+                                        @if (permissions != null)
+                                        {
+                                            @foreach (var permission in permissions.OrderBy(p => p.SortOrder))
+                                            {
+                                                var isChecked = rolePermissions?.ContainsKey(page.PageId) == true && 
+                                                              rolePermissions[page.PageId].ContainsKey(permission.PermissionName) && 
+                                                              rolePermissions[page.PageId][permission.PermissionName];
+                                                
+                                                <div class="col-6 col-md-2">
+                                                    <div class="form-check d-flex align-items-center">
+                                                        <input class="form-check-input permission-checkbox" 
+                                                               type="checkbox" 
+                                                               name="permissions[@(page.PageId)][@(permission.PermissionId)]" 
+                                                               id="perm_@(page.PageId)_@(permission.PermissionId)"
+                                                               @(isChecked ? "checked" : "")
+                                                               data-page="@(page.PageId)" 
+                                                               data-permission="@permission.PermissionName">
+                                                        <label class="form-check-label permission-label" for="perm_@(page.PageId)_@(permission.PermissionId)">
+                                                            @permission.DisplayName
+                                                        </label>
+                                                    </div>
+                                                </div>
+                                            }
+                                        }
+                                    </div>
+                                </div>
+                            }
+                        }
+                        else
+                        {
+                            <div class="text-muted text-center py-3" style="font-size:0.85rem;">
+                                <i class="fa-solid fa-info-circle me-2"></i>No pages configured for this module
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+        }
+        else
+        {
+            <div class="permission-card text-center py-5">
+                <i class="fa-solid fa-exclamation-triangle text-warning mb-3" style="font-size: 3rem;"></i>
+                <h4>No Modules Found</h4>
+                <p class="text-muted">Please run the permission system setup script to initialize modules and pages.</p>
+            </div>
+        }
+    </form>
+</div>
+
+@section Scripts {
+<script>
+// Toggle module expand/collapse
+function toggleModule(moduleId) {
+    const moduleContent = document.getElementById(`module-${moduleId}`);
+    const arrow = document.getElementById(`arrow-${moduleId}`);
+    
+    if (moduleContent.classList.contains('collapsed')) {
+        moduleContent.classList.remove('collapsed');
+        arrow.classList.remove('collapsed');
+    } else {
+        moduleContent.classList.add('collapsed');
+        arrow.classList.add('collapsed');
+    }
+}
+
+function savePermissions() {
+    const formData = new FormData();
+    formData.append('roleName', '@ViewBag.RoleName');
+    
+    // Collect all permission checkboxes
+    const permissions = {};
+    const checkboxes = document.querySelectorAll('.permission-checkbox');
+    console.log('Found checkboxes:', checkboxes.length);
+    
+    checkboxes.forEach(checkbox => {
+        console.log('Checkbox name:', checkbox.name, 'checked:', checkbox.checked);
+        const pageId = checkbox.getAttribute('data-page');
+        const nameMatch = checkbox.name.match(/permissions\[(\d+)\]\[(\d+)\]/);
+        
+        if (nameMatch && nameMatch.length >= 3) {
+            const permissionId = nameMatch[2];
+            
+            if (!permissions[pageId]) {
+                permissions[pageId] = {};
+            }
+            permissions[pageId][permissionId] = checkbox.checked;
+            console.log('Added permission:', pageId, permissionId, checkbox.checked);
+        } else {
+            console.log('Name match failed for:', checkbox.name);
+        }
+    });
+    
+    console.log('Final permissions object:', permissions);
+    
+    // Convert to form data format expected by controller
+    Object.keys(permissions).forEach(pageId => {
+        Object.keys(permissions[pageId]).forEach(permissionId => {
+            const key = `permissions[${pageId}][${permissionId}]`;
+            const value = permissions[pageId][permissionId];
+            formData.append(key, value);
+            console.log('Added to formData:', key, '=', value);
+        });
+    });
+    
+    // Add anti-forgery token
+    const token = document.querySelector('input[name="__RequestVerificationToken"]');
+    if (token) {
+        formData.append('__RequestVerificationToken', token.value);
+    }
+    
+    // Show loading state
+    const saveBtn = document.querySelector('.save-btn');
+    const originalText = saveBtn.innerHTML;
+    saveBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-2"></i>Saving...';
+    saveBtn.disabled = true;
+    
+    fetch('/ManageUsers/SaveRolePermissions', {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Show success message and reload page
+            Swal.fire({
+                icon: 'success',
+                title: 'Success!',
+                text: data.message || 'Permissions saved successfully!',
+                timer: 1500,
+                showConfirmButton: false
+            }).then(() => {
+                // Reload page to show updated permissions
+                window.location.reload();
+            });
+        } else {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error!',
+                text: data.message || 'Failed to save permissions'
+            });
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        Swal.fire({
+            icon: 'error',
+            title: 'Error!',
+            text: 'An error occurred while saving permissions'
+        });
+    })
+    .finally(() => {
+        // Restore button state
+        saveBtn.innerHTML = originalText;
+        saveBtn.disabled = false;
+    });
+}
+
+// Toggle all checkboxes in a module
+function toggleAllModule(moduleId) {
+    const moduleElement = document.getElementById(`module-${moduleId}`);
+    const checkboxes = moduleElement.querySelectorAll('.permission-checkbox');
+    const toggleIcon = document.getElementById(`toggle-icon-${moduleId}`);
+    
+    // Check if all are currently selected
+    const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+    
+    // Toggle all checkboxes
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = !allChecked;
+    });
+    
+    // Update icon
+    updateToggleIcon(moduleId);
+}
+
+// Update toggle icon based on checkbox states
+function updateToggleIcon(moduleId) {
+    const moduleElement = document.getElementById(`module-${moduleId}`);
+    const checkboxes = moduleElement.querySelectorAll('.permission-checkbox');
+    const toggleIcon = document.getElementById(`toggle-icon-${moduleId}`);
+    
+    const checkedCount = Array.from(checkboxes).filter(cb => cb.checked).length;
+    const totalCount = checkboxes.length;
+    
+    if (checkedCount === 0) {
+        toggleIcon.className = 'fa-solid fa-square';
+    } else if (checkedCount === totalCount) {
+        toggleIcon.className = 'fa-solid fa-check-square';
+    } else {
+        toggleIcon.className = 'fa-solid fa-minus-square';
+    }
+    
+    // Update global toggle icon
+    updateGlobalToggleIcon();
+}
+
+// Toggle all checkboxes globally
+function toggleAllGlobal() {
+    const allCheckboxes = document.querySelectorAll('.permission-checkbox');
+    const allChecked = Array.from(allCheckboxes).every(cb => cb.checked);
+    
+    // Toggle all checkboxes
+    allCheckboxes.forEach(checkbox => {
+        checkbox.checked = !allChecked;
+    });
+    
+    // Update all module icons
+    document.querySelectorAll('[id^="module-"]').forEach(moduleElement => {
+        const moduleId = moduleElement.id.replace('module-', '');
+        updateToggleIcon(moduleId);
+    });
+}
+
+// Update global toggle icon based on all checkbox states
+function updateGlobalToggleIcon() {
+    const allCheckboxes = document.querySelectorAll('.permission-checkbox');
+    const globalToggleIcon = document.getElementById('global-toggle-icon');
+    const globalToggleText = document.getElementById('global-toggle-text');
+    const globalToggleBtn = document.getElementById('global-toggle-btn');
+    
+    const checkedCount = Array.from(allCheckboxes).filter(cb => cb.checked).length;
+    const totalCount = allCheckboxes.length;
+    
+    if (checkedCount === 0) {
+        globalToggleIcon.className = 'fa-solid fa-square';
+        globalToggleText.textContent = 'Select All';
+        globalToggleBtn.className = 'btn btn-outline-primary me-2';
+    } else if (checkedCount === totalCount) {
+        globalToggleIcon.className = 'fa-solid fa-check-square';
+        globalToggleText.textContent = 'Deselect All';
+        globalToggleBtn.className = 'btn btn-success me-2';
+    } else {
+        globalToggleIcon.className = 'fa-solid fa-minus-square';
+        globalToggleText.textContent = 'Select All';
+        globalToggleBtn.className = 'btn btn-outline-primary me-2';
+    }
+}
+
+// Handle View permission dependency and update toggle icons
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize toggle icons
+    document.querySelectorAll('[id^="module-"]').forEach(moduleElement => {
+        const moduleId = moduleElement.id.replace('module-', '');
+        updateToggleIcon(moduleId);
+    });
+    
+    // Initialize global toggle icon
+    updateGlobalToggleIcon();
+    
+    document.querySelectorAll('.permission-checkbox').forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            const pageId = this.getAttribute('data-page');
+            const permission = this.getAttribute('data-permission');
+            
+            // If unchecking View, uncheck all other permissions for this page
+            if (permission === 'View' && !this.checked) {
+                document.querySelectorAll(`[data-page="${pageId}"]:not([data-permission="View"])`).forEach(cb => {
+                    cb.checked = false;
+                });
+            }
+            // If checking any other permission, auto-check View
+            else if (permission !== 'View' && this.checked) {
+                const viewCheckbox = document.querySelector(`[data-page="${pageId}"][data-permission="View"]`);
+                if (viewCheckbox) {
+                    viewCheckbox.checked = true;
+                }
+            }
+            
+            // Update toggle icon for the module this checkbox belongs to
+            const moduleElement = this.closest('[id^="module-"]');
+            if (moduleElement) {
+                const moduleId = moduleElement.id.replace('module-', '');
+                updateToggleIcon(moduleId);
+            }
+        });
+    });
+});
+</script>
+}

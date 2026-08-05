@@ -1,0 +1,604 @@
+<div class="modal fade" id="addPropertyModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered pm-dialog">
+        <div class="modal-content pm-content">
+
+            <!-- Header -->
+            <div class="pm-header">
+                <div class="pm-header-left">
+                    <div class="pm-header-ico"><i class="fa-solid fa-building"></i></div>
+                    <span class="pm-title" id="modalTitle">Add New Property</span>
+                </div>
+                <button type="button" class="pm-close" data-bs-dismiss="modal" aria-label="Close">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <form id="propertyForm" novalidate>
+                <div class="pm-body">
+                    <input type="hidden" id="propertyId" value="0">
+
+                    <!-- Row 1: Property Name + Builder -->
+                    <div class="pm-row">
+                        <div class="pm-field">
+                            <label class="pm-label">Property Name <span class="pm-req">*</span></label>
+                            <input type="text" class="pm-input" id="propertyName" required
+                                   placeholder="Enter property name"
+                                   oninput="this.value=this.value.replace(/[^A-Za-z ]/g,'');this.setCustomValidity('');"
+                                   oninvalid="this.setCustomValidity('Property name is required')">
+                            <div class="pm-err">Please enter property name</div>
+                        </div>
+                        <div class="pm-field">
+                            <label class="pm-label">Builder <span class="pm-req">*</span></label>
+                            <input type="text" class="pm-input" id="builderName" required
+                                   placeholder="Enter builder name"
+                                   onkeypress="return /[a-zA-Z ]/.test(event.key)"
+                                   oninvalid="this.setCustomValidity('Builder name is required')"
+                                   oninput="this.setCustomValidity('')">
+                            <div class="pm-err">Please enter builder name</div>
+                        </div>
+                    </div>
+
+                    <!-- Row 2: Location (full width) -->
+                    <div class="pm-row">
+                        <div class="pm-field pm-field-full">
+                            <label class="pm-label">Location <span class="pm-req">*</span></label>
+                            <input type="text" class="pm-input" id="location" name="location" required
+                                   placeholder="Enter property location"
+                                   pattern="[A-Za-z0-9 ,.\-]{3,}"
+                                   title="Enter valid location (min 3 chars)">
+                            <div class="pm-err">Location is required (min 3 characters)</div>
+                        </div>
+                    </div>
+
+                    <!-- Row 3: Area + Price -->
+                    <div class="pm-row">
+                        <div class="pm-field">
+                            <label class="pm-label">Area (Sqft) <span class="pm-req">*</span></label>
+                            <input type="number" step="0.01" min="1" class="pm-input" id="areaSqft"
+                                   name="areaSqft" required placeholder="e.g. 1200">
+                            <div class="pm-err">Area is required (min 1)</div>
+                        </div>
+                        <div class="pm-field">
+                            <label class="pm-label">Avg. Price (Approx) <span class="pm-req">*</span></label>
+                            <input type="number" step="0.01" min="1" class="pm-input" id="price"
+                                   name="price" required placeholder="e.g. 5000000">
+                            <div class="pm-err">Price is required (min 1)</div>
+                        </div>
+                    </div>
+
+                    <!-- Row 4: Purchase Type + Image -->
+                    <div class="pm-row">
+                        <div class="pm-field">
+                            <label class="pm-label">Purchase Type <span class="pm-req">*</span></label>
+                            <select class="pm-input pm-select" id="purchaseType" name="purchaseType" required>
+                                <option value="">Select type</option>
+                                <option value="Sale">Sale</option>
+                                <option value="Rent">Rent</option>
+                                <option value="Lease">Lease</option>
+                            </select>
+                            <div class="pm-err">Purchase type is required</div>
+                        </div>
+                        <div class="pm-field">
+                            <label class="pm-label">Property Image</label>
+                            <div class="pm-file-wrap" id="pmFileWrap" onclick="document.getElementById('propertyImage').click()">
+                                <i class="fa-solid fa-image pm-file-ico"></i>
+                                <span class="pm-file-txt" id="pmFileTxt">Choose image</span>
+                                <input type="file" id="propertyImage" accept="image/*"
+                                       onchange="previewPropertyImage(this)" style="display:none;">
+                            </div>
+                            <div id="imagePreviewContainer" style="display:none; margin-top:4px;">
+                                <img id="imagePreview" src="" alt="Preview"
+                                     style="width:44px;height:44px;object-fit:cover;border-radius:5px;border:1.5px solid #E2E8F0;">
+                                <button type="button" class="pm-img-remove" onclick="removePropertyImage()" title="Remove">
+                                    <i class="fa-solid fa-xmark"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Row 5: Assigned To (full width) -->
+                    <div class="pm-row">
+                        <div class="pm-field pm-field-full">
+                            <label class="pm-label">Assigned To (Sales Person) <span class="pm-req">*</span></label>
+                            <div class="pm-dropdown-wrap">
+                                <input type="text" class="pm-input pm-input-dd" id="assignedToSearch"
+                                       autocomplete="off" readonly placeholder="Click to select sales person..."
+                                       onclick="toggleAssignedDropdown()">
+                                <i class="fa-solid fa-chevron-down pm-dd-arrow" id="pmDdArrow"></i>
+                                <input type="hidden" id="assignedTo" value="">
+                                <div class="pm-err" id="assignedToError" style="display:none;">
+                                    Assigned To is required
+                                </div>
+                                <div class="pm-dropdown" id="assignedToDropdown" style="display:none;">
+                                    <div class="pm-dd-search-wrap">
+                                        <i class="fa-solid fa-magnifying-glass pm-dd-search-ico"></i>
+                                        <input type="text" class="pm-dd-search" id="pmDdSearch"
+                                               placeholder="Search..." oninput="filterAssignedTo(this.value)">
+                                    </div>
+                                    <div class="pm-dd-list" id="pmDdList">
+                                        @if (ViewBag.Executives != null && ((IEnumerable<dynamic>)ViewBag.Executives).Any())
+                                        {
+                                            foreach (var exec in ViewBag.Executives)
+                                            {
+                                                <div class="pm-dd-item" data-value="@exec.UserId" data-name="@exec.Username">@exec.Username</div>
+                                            }
+                                        }
+                                    </div>
+                                    <div class="pm-dd-empty" id="pmDdEmpty" style="display:none;">No results found</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- Footer -->
+                <div class="pm-footer">
+                    <button type="button" class="pm-btn pm-btn-cancel" data-bs-dismiss="modal">
+                        <i class="fa-solid fa-xmark"></i> Cancel
+                    </button>
+                    <button type="submit" class="pm-btn pm-btn-save" id="savePropertyBtn">
+                        <span class="spinner-border spinner-border-sm d-none" id="saveSpinner"
+                              style="width:10px;height:10px;border-width:1.5px;"></span>
+                        <i class="fa-solid fa-floppy-disk pm-save-ico" id="pmSaveIco"></i>
+                        <span id="pmSaveTxt">Save Property</span>
+                    </button>
+                </div>
+            </form>
+
+        </div>
+    </div>
+</div>
+
+<style>
+    /* ── Property Modal ─────────────────────────────────────── */
+    .pm-dialog {
+        max-width: 520px !important;
+        width: 100% !important;
+    }
+    .pm-content {
+        border: none !important;
+        border-radius: 8px !important;
+        overflow: hidden !important;
+        box-shadow: 0 8px 36px rgba(0,0,0,0.17) !important;
+        font-family: inherit;
+    }
+
+    /* Header */
+    .pm-header {
+        background: linear-gradient(125deg, #1A6FA8 0%, #125082 55%, #0F4C75 100%);
+        padding: 8px 12px;
+        display: flex; align-items: center; justify-content: space-between;
+    }
+    .pm-header-left { display: flex; align-items: center; gap: 7px; }
+    .pm-header-ico {
+        width: 26px; height: 26px; border-radius: 5px; flex-shrink: 0;
+        background: rgba(212,164,90,0.2); border: 1px solid rgba(212,164,90,0.4);
+        display: flex; align-items: center; justify-content: center;
+        color: #D4A45A; font-size: 11px;
+    }
+    .pm-title { color: #FFFFFF; font-size: 12.5px; font-weight: 700; }
+    .pm-close {
+        background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2);
+        color: #FFFFFF; border-radius: 4px; width: 22px; height: 22px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 10px; cursor: pointer; transition: background 0.15s;
+    }
+    .pm-close:hover { background: rgba(255,255,255,0.22); }
+
+    /* Body */
+    .pm-body {
+        padding: 9px 12px 4px;
+        background: #FFFFFF;
+        max-height: 68vh;
+        overflow-y: auto;
+    }
+    .pm-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 7px 10px;
+        margin-bottom: 7px;
+    }
+    .pm-field-full { grid-column: 1 / -1; }
+    .pm-field { display: flex; flex-direction: column; }
+
+    /* Labels */
+    .pm-label {
+        font-size: 10.5px !important; font-weight: 700 !important;
+        color: #2A3A4A !important; margin-bottom: 2px !important;
+        display: block;
+    }
+    .pm-req { color: #DC2626; font-size: 10px; }
+
+    /* Inputs */
+    .pm-input {
+        height: 28px !important;
+        font-size: 11px !important;
+        padding: 3px 8px !important;
+        border: 1px solid #E2E8F0 !important;
+        border-radius: 5px !important;
+        background: #FFFFFF !important;
+        color: #2A3A4A !important;
+        width: 100%;
+        transition: border-color 0.15s, box-shadow 0.15s;
+        box-sizing: border-box;
+    }
+    .pm-input:focus {
+        border-color: #1A6FA8 !important;
+        box-shadow: 0 0 0 2px rgba(26,111,168,0.1) !important;
+        background: #FFFFFF !important;
+        outline: none;
+    }
+    .pm-input::placeholder { color: #B8C8D8 !important; font-size: 10.5px !important; }
+    .pm-select { cursor: pointer; }
+
+    /* Validation */
+    .pm-input.is-invalid { border-color: #DC2626 !important; background: #FFFFFF !important; }
+    .pm-input.is-valid   { border-color: #16A34A !important; }
+    .pm-err {
+        font-size: 10px; color: #DC2626; margin-top: 2px; display: none;
+    }
+    .was-validated .pm-input:invalid ~ .pm-err,
+    .pm-input.is-invalid ~ .pm-err { display: block; }
+    .was-validated .pm-input:invalid { border-color: #DC2626 !important; background: #FFFFFF !important; }
+    .was-validated .pm-input:valid   { border-color: #16A34A !important; }
+    .was-validated .pm-select:invalid { border-color: #DC2626 !important; }
+    .was-validated .pm-select:valid   { border-color: #16A34A !important; }
+
+    /* File input */
+    .pm-file-wrap {
+        height: 28px; border: 1px dashed #B8C8D8; border-radius: 5px;
+        background: #FFFFFF; display: flex; align-items: center; gap: 5px;
+        padding: 0 8px; cursor: pointer; font-size: 11px; color: #6B7B8D;
+        transition: border-color 0.15s, background 0.15s;
+    }
+    .pm-file-wrap:hover { border-color: #1A6FA8; background: #F0F4F8; color: #1A6FA8; }
+    .pm-file-ico { font-size: 10px; color: #B8C8D8; flex-shrink: 0; }
+    .pm-file-txt { font-size: 10.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .pm-img-remove {
+        background: #FEE2E2; border: none; color: #DC2626; border-radius: 3px;
+        width: 18px; height: 18px; display: inline-flex; align-items: center;
+        justify-content: center; font-size: 9px; cursor: pointer; margin-left: 4px;
+        vertical-align: middle; transition: background 0.15s;
+    }
+    .pm-img-remove:hover { background: #DC2626; color: #FFFFFF; }
+
+    /* Dropdown */
+    .pm-dropdown-wrap { position: relative; }
+    .pm-input-dd { cursor: pointer; padding-right: 24px !important; }
+    .pm-dd-arrow {
+        position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
+        font-size: 9px; color: #8FA3B8; pointer-events: none;
+        transition: transform 0.2s;
+    }
+    .pm-dd-arrow.open { transform: translateY(-50%) rotate(180deg); }
+    .pm-dropdown {
+        position: absolute; top: calc(100% + 2px); left: 0; right: 0;
+        background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 6px;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.12); z-index: 1100;
+        overflow: hidden;
+    }
+    .pm-dd-search-wrap {
+        display: flex; align-items: center; gap: 5px;
+        padding: 5px 8px; border-bottom: 1px solid #F0F4F8;
+    }
+    .pm-dd-search-ico { font-size: 10px; color: #8FA3B8; flex-shrink: 0; }
+    .pm-dd-search {
+        border: none; outline: none; font-size: 10.5px; color: #2A3A4A;
+        background: transparent; width: 100%; padding: 0;
+    }
+    .pm-dd-list { max-height: 140px; overflow-y: auto; }
+    .pm-dd-item {
+        padding: 5px 10px; font-size: 11px; color: #2A3A4A; cursor: pointer;
+        border-bottom: 1px solid #F0F4F8; transition: background 0.12s;
+    }
+    .pm-dd-item:last-child { border-bottom: none; }
+    .pm-dd-item:hover { background: #F0F4F8; color: #1A6FA8; }
+    .pm-dd-item.selected { background: #E2E8F0; color: #125082; font-weight: 600; }
+    .pm-dd-empty { padding: 8px 10px; font-size: 10.5px; color: #8FA3B8; text-align: center; }
+
+    /* Footer */
+    .pm-footer {
+        padding: 7px 12px; background: #FFFFFF;
+        border-top: 1px solid #F0F4F8;
+        display: flex; align-items: center; justify-content: flex-end; gap: 6px;
+    }
+    .pm-btn {
+        display: inline-flex; align-items: center; gap: 4px;
+        padding: 4px 13px; border-radius: 5px; font-size: 11px; font-weight: 700;
+        cursor: pointer; border: 1.5px solid; transition: all 0.15s; white-space: nowrap;
+    }
+    .pm-btn i { font-size: 10px; }
+    .pm-btn-cancel {
+        background: #FFFFFF; border-color: #E2E8F0; color: #6B7B8D;
+    }
+    .pm-btn-cancel:hover { border-color: #B8C8D8; background: #F0F4F8; }
+    .pm-btn-save {
+        background: #1A6FA8; border-color: #125082; color: #FFFFFF;
+    }
+    .pm-btn-save:hover { background: #125082; }
+    .pm-btn-save:disabled { opacity: 0.6; cursor: not-allowed; }
+    .pm-save-ico { font-size: 10px; }
+
+    /* Dark mode */
+    .dark-mode .pm-body    { background: #1A2332 !important; }
+    .dark-mode .pm-footer  { background: #121F2E !important; border-color: #2A3A4A !important; }
+    .dark-mode .pm-input   { background: #1E2A3A !important; border-color: #2A3A4A !important; color: #B8C8D8 !important; }
+    .dark-mode .pm-input:focus { background: #1A2332 !important; border-color: #1A6FA8 !important; }
+    .dark-mode .pm-input::placeholder { color: #6B7B8D !important; }
+    .dark-mode .pm-label   { color: #8FA3B8 !important; }
+    .dark-mode .pm-file-wrap { background: #1E2A3A !important; border-color: #2A3A4A !important; color: #8FA3B8 !important; }
+    .dark-mode .pm-file-wrap:hover { background: #1E2A3A !important; }
+    .dark-mode .pm-dropdown { background: #1A2332 !important; border-color: #2A3A4A !important; }
+    .dark-mode .pm-dd-search-wrap { border-color: #2A3A4A !important; }
+    .dark-mode .pm-dd-search { color: #B8C8D8 !important; }
+    .dark-mode .pm-dd-item { color: #B8C8D8 !important; border-color: #2A3A4A !important; }
+    .dark-mode .pm-dd-item:hover { background: #1E2A3A !important; color: #8FA3B8 !important; }
+    .dark-mode .pm-dd-item.selected { background: #2A3A4A !important; color: #8FA3B8 !important; }
+    .dark-mode .pm-btn-cancel { background: #1E2A3A !important; border-color: #2A3A4A !important; color: #8FA3B8 !important; }
+    .dark-mode #assignedToSearch[readonly] { background: #1E2A3A !important; cursor: pointer; }
+    .dark-mode .pm-input.is-invalid { background: #111827 !important; }
+
+    /* Responsive */
+    @@media (max-width: 768px) {
+        .pm-dialog { max-width: 96vw !important; margin: 8px auto !important; }
+        .pm-row { grid-template-columns: 1fr; gap: 6px; }
+        .pm-field-full { grid-column: 1; }
+        .pm-body { max-height: 72vh; }
+    }
+    @@media (max-width: 400px) {
+        .pm-btn { padding: 4px 9px; font-size: 10.5px; }
+    }
+</style>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const propertyForm   = document.getElementById('propertyForm');
+        const addPropertyModal = document.getElementById('addPropertyModal');
+
+        initAssignedToDropdown();
+
+        if (propertyForm) {
+            propertyForm.addEventListener('submit', function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+
+                // Validate assigned to
+                const assignedTo = document.getElementById('assignedTo').value;
+                const assignedToSearch = document.getElementById('assignedToSearch');
+                const assignedToError  = document.getElementById('assignedToError');
+
+                if (!assignedTo || !assignedTo.trim()) {
+                    assignedToSearch.classList.add('is-invalid');
+                    assignedToSearch.classList.remove('is-valid');
+                    assignedToError.style.display = 'block';
+                    propertyForm.classList.add('was-validated');
+                    return;
+                } else {
+                    assignedToSearch.classList.remove('is-invalid');
+                    assignedToSearch.classList.add('is-valid');
+                    assignedToError.style.display = 'none';
+                }
+
+                if (!propertyForm.checkValidity()) {
+                    propertyForm.classList.add('was-validated');
+                    return;
+                }
+
+                saveProperty();
+            });
+        }
+
+        if (addPropertyModal) {
+            addPropertyModal.addEventListener('hidden.bs.modal', function () {
+                resetPropertyForm();
+            });
+        }
+
+        // Close dropdown on outside click
+        document.addEventListener('click', function (e) {
+            const wrap = document.querySelector('.pm-dropdown-wrap');
+            if (wrap && !wrap.contains(e.target)) closeAssignedDropdown();
+        });
+    });
+
+    function initAssignedToDropdown() {
+        const items = document.querySelectorAll('#pmDdList .pm-dd-item');
+        items.forEach(function (item) {
+            item.addEventListener('click', function (e) {
+                e.stopPropagation();
+                selectAssigned(this.getAttribute('data-value'), this.getAttribute('data-name'));
+            });
+        });
+    }
+
+    function toggleAssignedDropdown() {
+        const dd = document.getElementById('assignedToDropdown');
+        const arrow = document.getElementById('pmDdArrow');
+        if (dd.style.display === 'none' || !dd.style.display) {
+            dd.style.display = 'block';
+            arrow.classList.add('open');
+            setTimeout(function () { document.getElementById('pmDdSearch').focus(); }, 60);
+        } else {
+            closeAssignedDropdown();
+        }
+    }
+
+    function closeAssignedDropdown() {
+        const dd = document.getElementById('assignedToDropdown');
+        const arrow = document.getElementById('pmDdArrow');
+        if (dd) { dd.style.display = 'none'; }
+        if (arrow) { arrow.classList.remove('open'); }
+    }
+
+    function filterAssignedTo(q) {
+        const items = document.querySelectorAll('#pmDdList .pm-dd-item');
+        const empty = document.getElementById('pmDdEmpty');
+        q = q.toLowerCase();
+        let visible = 0;
+        items.forEach(function (item) {
+            const match = item.getAttribute('data-name').toLowerCase().includes(q);
+            item.style.display = match ? '' : 'none';
+            if (match) visible++;
+        });
+        empty.style.display = visible === 0 ? 'block' : 'none';
+    }
+
+    function selectAssigned(value, name) {
+        document.getElementById('assignedTo').value = value;
+        document.getElementById('assignedToSearch').value = name;
+        document.getElementById('assignedToSearch').classList.remove('is-invalid');
+        document.getElementById('assignedToSearch').classList.add('is-valid');
+        document.getElementById('assignedToError').style.display = 'none';
+
+        // Mark selected item
+        document.querySelectorAll('#pmDdList .pm-dd-item').forEach(function (i) {
+            i.classList.toggle('selected', i.getAttribute('data-value') == value);
+        });
+
+        closeAssignedDropdown();
+    }
+
+    function saveProperty() {
+        const saveBtn = document.getElementById('savePropertyBtn');
+        const spinner = document.getElementById('saveSpinner');
+        const saveIco = document.getElementById('pmSaveIco');
+        const saveTxt = document.getElementById('pmSaveTxt');
+
+        saveBtn.disabled = true;
+        spinner.classList.remove('d-none');
+        if (saveIco) saveIco.style.display = 'none';
+        if (saveTxt) saveTxt.textContent = 'Saving...';
+
+        const formData = new FormData();
+        formData.append('propertyId',   document.getElementById('propertyId').value);
+        formData.append('propertyName', document.getElementById('propertyName').value);
+        formData.append('builderName',  document.getElementById('builderName').value);
+        formData.append('location',     document.getElementById('location').value || '');
+        formData.append('areaSqft',     document.getElementById('areaSqft').value || '');
+        formData.append('price',        document.getElementById('price').value || '');
+        formData.append('purchaseType', document.getElementById('purchaseType').value || '');
+        formData.append('assignedTo',   document.getElementById('assignedTo').value || '');
+
+        const token = document.querySelector('input[name="__RequestVerificationToken"]');
+        if (token) formData.append('__RequestVerificationToken', token.value);
+
+        const imageFile = document.getElementById('propertyImage').files[0];
+        if (imageFile) formData.append('propertyImage', imageFile);
+
+        fetch('/Properties/SaveProperty', { method: 'POST', body: formData })
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                saveBtn.disabled = false;
+                spinner.classList.add('d-none');
+                if (saveIco) saveIco.style.display = '';
+                if (saveTxt) saveTxt.textContent = 'Save Property';
+
+                if (data.success) {
+                    showToast(data.message || 'Property saved successfully!', 'success');
+                    bootstrap.Modal.getInstance(document.getElementById('addPropertyModal')).hide();
+                    resetPropertyForm();
+                    window.dispatchEvent(new Event('property-saved'));
+                } else {
+                    showToast(data.message || 'Error saving property', 'error');
+                }
+            })
+            .catch(function () {
+                saveBtn.disabled = false;
+                spinner.classList.add('d-none');
+                if (saveIco) saveIco.style.display = '';
+                if (saveTxt) saveTxt.textContent = 'Save Property';
+                showToast('Error saving property', 'error');
+            });
+    }
+
+    function resetPropertyForm() {
+        const form = document.getElementById('propertyForm');
+        if (!form) return;
+        form.reset();
+        form.classList.remove('was-validated');
+        document.getElementById('propertyId').value = '0';
+        document.getElementById('modalTitle').textContent = 'Add New Property';
+
+        // Assigned to
+        var ats = document.getElementById('assignedToSearch');
+        var ate = document.getElementById('assignedToError');
+        ats.value = ''; ats.classList.remove('is-valid', 'is-invalid');
+        document.getElementById('assignedTo').value = '';
+        ate.style.display = 'none';
+        document.querySelectorAll('#pmDdList .pm-dd-item').forEach(function (i) { i.classList.remove('selected'); });
+        closeAssignedDropdown();
+
+        // Image
+        document.getElementById('imagePreviewContainer').style.display = 'none';
+        document.getElementById('imagePreview').src = '';
+        document.getElementById('pmFileTxt').textContent = 'Choose image';
+        document.getElementById('propertyImage').value = '';
+    }
+
+    function previewPropertyImage(input) {
+        const preview   = document.getElementById('imagePreview');
+        const container = document.getElementById('imagePreviewContainer');
+        const fileTxt   = document.getElementById('pmFileTxt');
+        if (input.files && input.files[0]) {
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                preview.src = e.target.result;
+                container.style.display = 'block';
+            };
+            reader.readAsDataURL(input.files[0]);
+            fileTxt.textContent = input.files[0].name;
+        }
+    }
+
+    function removePropertyImage() {
+        document.getElementById('propertyImage').value = '';
+        document.getElementById('imagePreview').src = '';
+        document.getElementById('imagePreviewContainer').style.display = 'none';
+        document.getElementById('pmFileTxt').textContent = 'Choose image';
+    }
+
+    window.populatePropertyModal = function (data) {
+        document.getElementById('modalTitle').textContent = 'Edit Property';
+        document.getElementById('propertyId').value   = data.propertyId;
+        document.getElementById('propertyName').value = data.propertyName || '';
+        document.getElementById('builderName').value  = data.builderName  || '';
+        document.getElementById('location').value     = data.location     || '';
+        document.getElementById('areaSqft').value     = data.areaSqft     || '';
+        document.getElementById('price').value        = data.price        || '';
+        document.getElementById('purchaseType').value = data.purchaseType || '';
+        document.getElementById('assignedTo').value   = data.assignedTo   || '';
+
+        if (data.assignedTo) {
+            const nm = getExecutiveNameById(data.assignedTo);
+            document.getElementById('assignedToSearch').value = nm;
+            if (nm) {
+                document.getElementById('assignedToSearch').classList.add('is-valid');
+                document.querySelectorAll('#pmDdList .pm-dd-item').forEach(function (i) {
+                    i.classList.toggle('selected', i.getAttribute('data-value') == data.assignedTo);
+                });
+            }
+        }
+
+        if (data.propertyImage && data.propertyImage.length > 0) {
+            try {
+                const bytes = new Uint8Array(data.propertyImage);
+                let bin = '';
+                for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+                const b64 = btoa(bin);
+                document.getElementById('imagePreview').src = 'data:image/jpeg;base64,' + b64;
+                document.getElementById('imagePreviewContainer').style.display = 'block';
+                document.getElementById('pmFileTxt').textContent = 'Image loaded';
+            } catch (e) { console.error('Image error', e); }
+        }
+    };
+
+    function getExecutiveNameById(id) {
+        const items = document.querySelectorAll('#pmDdList .pm-dd-item');
+        for (let i = 0; i < items.length; i++) {
+            if (items[i].getAttribute('data-value') == id)
+                return items[i].getAttribute('data-name') || items[i].textContent.trim();
+        }
+        return '';
+    }
+</script>

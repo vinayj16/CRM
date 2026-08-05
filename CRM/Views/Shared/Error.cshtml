@@ -1,0 +1,152 @@
+@model CRM.Models.ErrorViewModel
+@{
+    Layout = null;
+    ViewData["Title"] = Model?.Title ?? "Error";
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>@ViewData["Title"] - PropTech CRM</title>
+    <style>
+        :root {
+            --brand-a: #1A6FA8;
+            --brand-b: #125082;
+            --ink: #1E2A3A;
+            --muted: #6B7B8D;
+            --surface: #FFFFFF;
+            --border: #E2E8F0;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+            color: var(--ink);
+            background:
+                radial-gradient(1200px 500px at -10% -10%, rgba(26,111,168, 0.18), transparent 60%),
+                radial-gradient(900px 400px at 110% 0%, rgba(18,80,130, 0.2), transparent 55%),
+                #F0F4F8;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .card {
+            width: 100%;
+            max-width: 760px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            box-shadow: 0 18px 40px rgba(17,24,39, 0.12);
+            overflow: hidden;
+        }
+
+        .card-top {
+            background: linear-gradient(135deg, var(--brand-a), var(--brand-b));
+            color: #FFFFFF;
+            padding: 20px 24px;
+        }
+
+        .code-pill {
+            display: inline-block;
+            padding: 6px 10px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 700;
+            background: rgba(255, 255, 255, 0.24);
+        }
+
+        .content {
+            padding: 28px 24px 24px;
+        }
+
+        h1 {
+            margin: 0 0 10px;
+            font-size: clamp(24px, 4vw, 34px);
+            line-height: 1.2;
+        }
+
+        p {
+            margin: 0;
+            color: var(--muted);
+            line-height: 1.6;
+        }
+
+        .meta {
+            margin-top: 18px;
+            padding: 12px;
+            border: 1px dashed #B8C8D8;
+            border-radius: 10px;
+            background: #FFFFFF;
+            font-size: 13px;
+            color: #2A3A4A;
+        }
+
+        .actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 22px;
+        }
+
+        .btn {
+            text-decoration: none;
+            border: 0;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            padding: 11px 16px;
+            border-radius: 10px;
+            transition: transform 0.15s ease, box-shadow 0.2s ease;
+        }
+
+        .btn:hover {
+            transform: translateY(-1px);
+        }
+
+        .btn-primary {
+            color: #FFFFFF;
+            background: linear-gradient(135deg, var(--brand-a), var(--brand-b));
+            box-shadow: 0 8px 18px rgba(18,80,130, 0.3);
+        }
+
+        .btn-ghost {
+            color: #125082;
+            background: #F0F4F8;
+        }
+    </style>
+</head>
+<body>
+    <main class="card" role="main" aria-labelledby="error-title">
+        <div class="card-top">
+            <span class="code-pill">Error @(Model?.StatusCode?.ToString() ?? "500")</span>
+        </div>
+        <div class="content">
+            <h1 id="error-title">@(Model?.Title ?? "Oops! Something went wrong.")</h1>
+            <p>@(Model?.UserMessage ?? "We will fix this as soon as possible.")</p>
+
+            @if (Model?.ShowRequestId == true)
+            {
+                <div class="meta">
+                    Error ID: <strong>@Model.RequestId</strong>
+                </div>
+            }
+
+            <div class="actions">
+                <a class="btn btn-primary" href="/home">Go to Dashboard</a>
+                <button class="btn btn-ghost" type="button" onclick="window.location.reload();">Try Again</button>
+            </div>
+        </div>
+    </main>
+</body>
+</html>
+
+
+

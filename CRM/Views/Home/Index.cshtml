@@ -1,0 +1,446 @@
+@{
+    ViewData["Title"] = "Dashboard";
+}
+
+<style>
+    @@keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+    @@keyframes countUp { from { opacity: 0; } to { opacity: 1; } }
+    @@keyframes slideInLeft { from { opacity: 0; transform: translateX(-50px); } to { opacity: 1; transform: translateX(0); } }
+    @@keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
+
+    
+    .dashboard-card {
+        background: white;
+        border-radius: 12px;
+        padding: 0.75rem 1rem;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        border: 1px solid rgba(0,0,0,0.05);
+        transition: all 0.3s;
+    }
+    .dashboard-card:hover { transform: translateY(-5px); box-shadow: 0 12px 40px rgba(0,0,0,0.15); }
+    .stat-card { position: relative; overflow: hidden; min-height: 40px; }
+    .stat-number { font-size: 1.25rem; font-weight: 700; margin: 0; line-height: 1.1; }
+    .stat-label { color: #6B7B8D; font-size: 0.7rem; margin-top: 0.2rem; }
+    .stat-icon { font-size: 1.2rem; opacity: 0.15; position: absolute; right: 0.75rem; top: 0.75rem; }
+    .earning-card .stat-number { color: var(--blue); }
+    .expense-card .stat-number { color: var(--gold-dark); }
+    .profit-card .stat-number { color: var(--blue); }
+    .leads-card .stat-number { color: var(--gold); }
+    .chart-card { min-height: 350px; }
+    .chart-card canvas { height: 280px !important; }
+    .table-card { min-height: 350px; }
+    .table-responsive { max-height: 280px; overflow-y: auto; }
+    .table-responsive::-webkit-scrollbar { width: 6px; }
+    .table-responsive::-webkit-scrollbar-track { background: #F0F4F8; border-radius: 10px; }
+    .table-responsive::-webkit-scrollbar-thumb { background: #6B7B8D; border-radius: 10px; }
+    .table-responsive::-webkit-scrollbar-thumb:hover { background: #2A3A4A; }
+    .table-responsive::-webkit-scrollbar { width: 4px; }
+    .table-responsive::-webkit-scrollbar-thumb { background: #6B7B8D; border-radius: 10px; }
+    .animated-row { animation: slideInLeft 0.5s ease-out; }
+    .dark-mode .dashboard-card { background: #1E2A3A !important; border-color: #2A3A4A !important; color: #E2E8F0 !important; }
+    .dark-mode .stat-label { color: #8FA3B8 !important; }
+    .card-1 { animation-delay: 0.1s; }
+    .card-2 { animation-delay: 0.2s; }
+    .card-3 { animation-delay: 0.3s; }
+    .card-4 { animation-delay: 0.4s; }
+    .chart-1 { animation-delay: 0.5s; }
+    .chart-2 { animation-delay: 0.6s; }
+    .chart-3 { animation-delay: 0.7s; }
+    .chart-4 { animation-delay: 0.8s; }
+    
+    .btn-outline-primary {
+        border: 1px solid #1A6FA8 !important;
+        color: #1A6FA8 !important;
+        background: transparent !important;
+        padding: 0.375rem 0.75rem !important;
+        font-size: 0.875rem !important;
+        border-radius: 0.375rem !important;
+        text-decoration: none !important;
+        transition: all 0.2s !important;
+    }
+    
+    .btn-outline-primary:hover {
+        background: #1A6FA8 !important;
+        color: white !important;
+        border-color: #1A6FA8 !important;
+    }
+    
+    .dark-mode .btn-outline-primary {
+        border-color: #1A6FA8 !important;
+        color: #1A6FA8 !important;
+    }
+    
+    .dark-mode .btn-outline-primary:hover {
+        background: #1A6FA8 !important;
+        color: white !important;
+    }
+</style>
+
+<div class="content">
+    <!-- Hero Welcome Section -->
+    <div class="hero-welcome card mb-4 border-0 overflow-hidden" style="background:linear-gradient(135deg,#1A6FA8 0%,#D4A45A 100%);border-radius:16px;box-shadow:0 8px 32px rgba(26,111,168,0.15);">
+        <div class="card-body p-4">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="avatar-placeholder rounded-circle d-flex align-items-center justify-content-center" style="width:64px;height:64px;flex-shrink:0;background:rgba(255,255,255,0.25);">
+                            <i class="fa-solid fa-user text-white" style="font-size:1.8rem;"></i>
+                        </div>
+                        <div>
+                            <h2 class="text-white mb-1 fw-bold" style="font-size:1.8rem;">Welcome, @ViewBag.Username!</h2>
+                            <p class="text-white-50 mb-0"><i class="fa-solid fa-briefcase me-2"></i>@ViewBag.CompanyName</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4 text-md-end mt-3 mt-md-0">
+                    <div class="d-flex align-items-center justify-content-md-end gap-3">
+                        @if (!string.IsNullOrEmpty(ViewBag.CompanyLogo as string))
+                        {
+                            <div class="company-badge-hero d-flex align-items-center gap-2 rounded-3 px-3 py-2" style="background:rgba(255,255,255,0.15);">
+                                <img src="@ViewBag.CompanyLogo" style="height:36px;width:auto;max-width:100px;object-fit:contain;border-radius:4px;" alt="Logo" />
+                                <span class="text-white fw-semibold" style="font-size:0.95rem;">@ViewBag.CompanyName</span>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="company-badge-hero d-flex align-items-center gap-2 rounded-3 px-3 py-2" style="background:rgba(255,255,255,0.15);">
+                                <i class="fa-solid fa-building text-white" style="font-size:1.4rem;"></i>
+                                <span class="text-white fw-semibold" style="font-size:0.95rem;">@ViewBag.CompanyName</span>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="dashboard-card stat-card earning-card card-1">
+                <i class="fa-solid fa-indian-rupee-sign stat-icon"></i>
+                <h2 class="stat-number" id="totalEarning">₹0</h2>
+                <p class="stat-label">Total Earnings</p>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="dashboard-card stat-card expense-card card-2">
+                <i class="fa-solid fa-money-bill-trend-up stat-icon"></i>
+                <h2 class="stat-number" id="totalExpenses">₹0</h2>
+                <p class="stat-label">Total Expenses</p>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="dashboard-card stat-card profit-card card-3">
+                <i class="fa-solid fa-chart-line stat-icon"></i>
+                <h2 class="stat-number" id="totalProfit">₹0</h2>
+                <p class="stat-label">Total Profit</p>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="dashboard-card stat-card leads-card card-4">
+                <i class="fa-solid fa-users stat-icon"></i>
+                <h2 class="stat-number" id="totalLeads">0</h2>
+                <p class="stat-label">Total Leads</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-4">
+        <!-- Sales Report -->
+        <div class="col-lg-8">
+            <div class="dashboard-card chart-card chart-1">
+                <h5 class="mb-3"><i class="fa-solid fa-chart-column me-2"></i>Sales Report (Last 6 Months)</h5>
+                <canvas id="salesReportChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Sales Status -->
+        <div class="col-lg-4">
+            <div class="dashboard-card chart-card chart-2">
+                <h5 class="mb-3"><i class="fa-solid fa-chart-pie me-2"></i>Sales Status</h5>
+                <canvas id="salesStatusChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-4">
+        <!-- Sales Growth -->
+        <div class="col-lg-6">
+            <div class="dashboard-card chart-card chart-3">
+                <h5 class="mb-3"><i class="fa-solid fa-arrow-trend-up me-2"></i>Sales Growth</h5>
+                <canvas id="salesGrowthChart"></canvas>
+            </div>
+        </div>
+
+        <!-- All Leads List -->
+        <div class="col-lg-6">
+            <div class="dashboard-card table-card chart-4">
+                <div class="mb-3">
+                    <h5 class="mb-0"><i class="fa-solid fa-users me-2"></i>Leads List</h5>
+                </div>
+                <div class="table-responsive" style="max-height: 280px; overflow-y: auto;">
+                    <table class="table table-sm" id="allLeadsTable">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Contact</th>
+                                <th>Stage</th>
+                                <th>Date</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-4">
+        <!-- Recent Activities -->
+        <div class="col-lg-12">
+            <div class="dashboard-card table-card chart-5">
+                <h5 class="mb-3"><i class="fa-solid fa-clock me-2"></i>Recent Activities</h5>
+                <div class="table-responsive">
+                    <table class="table table-sm" id="recentActivitiesTable">
+                        <thead>
+                            <tr>
+                                <th>Activity</th>
+                                <th>Amount</th>
+                                <th>Status</th>
+                                <th>Date</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        let charts = {};
+
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(() => {
+                loadDashboardData();
+            }, 100);
+        });
+
+        function loadDashboardData() {
+            // Fetch real data from Dashboard API (same as Admin dashboard)
+            fetch('/Home/GetDashboardData')
+                .then(response => response.json())
+                .then(data => {
+                    const dashboardData = {
+                        totalEarning: data.totalProfit || 0,
+                        totalExpenses: data.totalExpenses || 0,
+                        totalProfit: data.totalProfit || 0,
+                        totalLeads: data.totalLeads || 0,
+                        salesReport: data.monthlyLeads?.map(function(item) {
+                            return { month: item.month, sales: item.count * 5000 };
+                        }) || [
+                            {month: 'Jan', sales: 0},
+                            {month: 'Feb', sales: 0},
+                            {month: 'Mar', sales: 0},
+                            {month: 'Apr', sales: 0},
+                            {month: 'May', sales: 0},
+                            {month: 'Jun', sales: 0}
+                        ],
+                        salesStatus: {paidCount: data.pipeline?.find(function(p) { return p.stage === 'Booked'; })?.count || 0, pendingCount: data.pipeline?.find(function(p) { return p.stage === 'Negotiation'; })?.count || 0, overdueCount: 0},
+                        recentActivities: data.newLeads?.map(function(lead) {
+                            return { id: lead.leadId, type: 'Lead: ' + (lead.name || 'New Lead'), amount: 0, status: lead.stage || 'New', date: lead.createdOn || '' };
+                        }) || [],
+                        allLeads: data.newLeads?.map(function(lead) {
+                            return { id: lead.leadId, encodedId: lead.encodedId, name: lead.name || 'N/A', contact: lead.contact || 'N/A', stage: lead.stage || 'New', date: lead.createdOn || '' };
+                        }) || []
+                    };
+                    animateStats(dashboardData);
+                    renderSalesReportChart(dashboardData.salesReport);
+                    renderSalesStatusChart(dashboardData.salesStatus);
+                    renderSalesGrowthChart(dashboardData.salesReport);
+                    renderAllLeads(dashboardData.allLeads);
+                    renderRecentActivities(dashboardData.recentActivities);
+                })
+                .catch(function(error) {
+                    console.error('Error loading dashboard data:', error);
+                    // Fallback empty data
+                    animateStats({ totalEarning: 0, totalExpenses: 0, totalProfit: 0, totalLeads: 0 });
+                    renderSalesReportChart([]);
+                    renderSalesStatusChart({paidCount: 0, pendingCount: 0, overdueCount: 0});
+                    renderSalesGrowthChart([]);
+                    renderAllLeads([]);
+                    renderRecentActivities([]);
+                });
+        }
+
+        function animateStats(data) {
+            animateNumber('totalEarning', data.totalEarning, '₹');
+            animateNumber('totalExpenses', data.totalExpenses, '₹');
+            animateNumber('totalProfit', data.totalProfit, '₹');
+            animateNumber('totalLeads', data.totalLeads, '');
+        }
+
+        function animateNumber(elementId, targetValue, prefix = '') {
+            const element = document.getElementById(elementId);
+            const duration = 2000;
+            const startTime = performance.now();
+            const startValue = 0;
+
+            function updateNumber(currentTime) {
+                const elapsed = currentTime - startTime;
+                const progress = Math.min(elapsed / duration, 1);
+                const easeOutQuart = 1 - Math.pow(1 - progress, 4);
+                const currentValue = Math.floor(startValue + (targetValue - startValue) * easeOutQuart);
+                
+                element.textContent = prefix + formatNumber(currentValue);
+                
+                if (progress < 1) {
+                    requestAnimationFrame(updateNumber);
+                }
+            }
+            
+            requestAnimationFrame(updateNumber);
+        }
+
+        function renderSalesReportChart(data) {
+            const ctx = document.getElementById('salesReportChart').getContext('2d');
+            if (charts.salesReport) charts.salesReport.destroy();
+            charts.salesReport = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: data.map(d => d.month),
+                    datasets: [{
+                        label: 'Sales',
+                        data: data.map(d => d.sales),
+                        backgroundColor: '#1A6FA8',
+                        borderRadius: 8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: { y: { beginAtZero: true } },
+                    animation: {
+                        duration: 2000,
+                        easing: 'easeOutBounce'
+                    }
+                }
+            });
+        }
+
+        function renderSalesStatusChart(data) {
+            const ctx = document.getElementById('salesStatusChart').getContext('2d');
+            if (charts.salesStatus) charts.salesStatus.destroy();
+            charts.salesStatus = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Paid', 'Pending', 'Overdue'],
+                    datasets: [{
+                        data: [data.paidCount, data.pendingCount, data.overdueCount],
+                        backgroundColor: ['#16A34A', '#F59E0B', '#DC2626']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    animation: {
+                        duration: 2000,
+                        easing: 'easeOutElastic'
+                    }
+                }
+            });
+        }
+
+        function renderSalesGrowthChart(data) {
+            const ctx = document.getElementById('salesGrowthChart').getContext('2d');
+            if (charts.salesGrowth) charts.salesGrowth.destroy();
+            charts.salesGrowth = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: data.map(d => d.month),
+                    datasets: [{
+                        label: 'Sales Growth',
+                        data: data.map(d => d.sales),
+                        borderColor: '#16A34A',
+                        backgroundColor: 'rgba(22,163,74, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: { y: { beginAtZero: true } },
+                    animation: {
+                        duration: 2000,
+                        easing: 'easeInOutQuart'
+                    }
+                }
+            });
+        }
+
+        function renderAllLeads(data) {
+            const tbody = document.querySelector('#allLeadsTable tbody');
+            tbody.innerHTML = '';
+            
+            data.forEach((lead, index) => {
+                setTimeout(() => {
+                    const row = document.createElement('tr');
+                    row.className = 'animated-row';
+                    row.style.cursor = 'pointer';
+                    row.onclick = () => {
+                        const encodedId = lead.encodedId || lead.id || '';
+                        window.location.href = encodedId ? `/leaddetails/${encodedId}` : '/leads';
+                    };
+                    
+                    let badgeClass = 'secondary';
+                    if (lead.stage === 'New') badgeClass = 'info';
+                    else if (lead.stage === 'Contacted') badgeClass = 'warning';
+                    else if (lead.stage === 'Qualified') badgeClass = 'success';
+                    else if (lead.stage === 'Site Visit') badgeClass = 'primary';
+                    else if (lead.stage === 'Quotation') badgeClass = 'info';
+                    else if (lead.stage === 'Negotiation') badgeClass = 'warning';
+                    
+                    row.innerHTML = `
+                        <td><strong>${lead.name}</strong></td>
+                        <td><small>${lead.contact}</small></td>
+                        <td><span class="badge bg-${badgeClass}">${lead.stage}</span></td>
+                        <td><small>${lead.date}</small></td>
+                    `;
+                    tbody.appendChild(row);
+                }, index * 50); // Reduced delay for faster loading with more items
+            });
+        }
+
+        function renderRecentActivities(data) {
+            const tbody = document.querySelector('#recentActivitiesTable tbody');
+            tbody.innerHTML = '';
+            
+            data.forEach((activity, index) => {
+                setTimeout(() => {
+                    const row = document.createElement('tr');
+                    row.className = 'animated-row';
+                    row.innerHTML = `
+                        <td><strong>${activity.type}</strong></td>
+                        <td>${activity.amount > 0 ? '<strong>₹' + formatNumber(activity.amount) + '</strong>' : '-'}</td>
+                        <td><span class="badge bg-${activity.status === 'Paid' ? 'success' : activity.status === 'Pending' ? 'warning' : activity.status === 'New' ? 'info' : 'danger'}">${activity.status}</span></td>
+                        <td><small>${activity.date}</small></td>
+                    `;
+                    tbody.appendChild(row);
+                }, index * 200);
+            });
+        }
+
+        function formatNumber(num) {
+            return new Intl.NumberFormat('en-IN').format(num);
+        }
+    </script>
+}
+
+

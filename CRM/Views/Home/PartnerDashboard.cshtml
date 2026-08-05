@@ -1,0 +1,687 @@
+@{
+    ViewData["Title"] = "Partner Dashboard";
+}
+
+<style>
+    @@keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+    @@keyframes slideInLeft { from { opacity: 0; transform: translateX(-50px); } to { opacity: 1; transform: translateX(0); } }
+
+    @@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
+    
+    .subscription-banner {
+        background: linear-gradient(135deg, #1A6FA8 0%, #125082 100%);
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        color: white;
+        box-shadow: 0 8px 30px rgba(18,80,130, 0.3);
+        animation: fadeInUp 0.5s ease-out;
+    }
+    .subscription-banner.trial {
+        background: linear-gradient(135deg, #F59E0B 0%, #F59E0B 100%);
+    }
+    .subscription-banner h4 {
+        margin-bottom: 0.5rem;
+        font-weight: 600;
+    }
+    .subscription-banner p {
+        margin-bottom: 0;
+        opacity: 0.95;
+    }
+    .subscription-banner .btn {
+        background: white;
+        color: #1A6FA8;
+        border: none;
+        padding: 0.5rem 1.5rem;
+        border-radius: 8px;
+        font-weight: 600;
+        transition: all 0.3s;
+        animation: pulse 2s infinite;
+    }
+    .subscription-banner.trial .btn {
+        color: #F59E0B;
+    }
+    .subscription-banner .btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    }
+    
+    .dashboard-card {
+        background: white;
+        border-radius: 12px;
+        padding: 1.25rem;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        border: 1px solid rgba(0,0,0,0.05);
+        transition: all 0.3s;
+        animation: fadeInUp 0.6s ease-out;
+    }
+    .dashboard-card:hover { transform: translateY(-5px); box-shadow: 0 12px 40px rgba(0,0,0,0.15); }
+    .stat-card { position: relative; overflow: hidden; min-height: 0; }
+    .stat-number { font-size: 2rem; font-weight: 700; margin: 0; }
+    .stat-label { color: #6B7B8D; font-size: 0.85rem; margin-top: 0.5rem; }
+    .stat-icon { font-size: 1.5rem; color: var(--blue); opacity: 0.8; position: absolute; right: 1rem; top: 1rem; }
+    .leads-card .stat-number { color: var(--gold); }
+    .commission-card .stat-number { color: var(--blue); }
+    .conversion-card .stat-number { color: var(--blue); }
+    .revenue-card .stat-number { color: var(--gold-dark); }
+    .chart-card { min-height: 350px; }
+    .chart-card canvas { height: 280px !important; }
+    .table-card { min-height: 350px; }
+    .table-responsive { max-height: 280px; overflow-y: auto; }
+    .table-responsive::-webkit-scrollbar { width: 4px; }
+    .table-responsive::-webkit-scrollbar-thumb { background: #6B7B8D; border-radius: 10px; }
+    .animated-row { animation: slideInLeft 0.5s ease-out; }
+    .dark-mode .dashboard-card { background: #1E2A3A !important; border-color: #2A3A4A !important; color: #E2E8F0 !important; }
+    .dark-mode .stat-label { color: #8FA3B8 !important; }
+    .dark-mode .stat-icon { color: var(--blue) !important; opacity: 0.8 !important; }
+    .card-1 { animation-delay: 0.1s; }
+    .card-2 { animation-delay: 0.2s; }
+    .card-3 { animation-delay: 0.3s; }
+    .card-4 { animation-delay: 0.4s; }
+    .chart-1 { animation-delay: 0.5s; }
+    .chart-2 { animation-delay: 0.6s; }
+    .chart-3 { animation-delay: 0.7s; }
+    .chart-4 { animation-delay: 0.8s; }
+
+    @@media (max-width: 767px) {
+        .stat-card { min-height: 0; padding: 1rem; }
+        .stat-number { font-size: 1.5rem; }
+        .stat-icon { font-size: 1.5rem; top: 0.75rem; right: 0.75rem; }
+        .dashboard-card { padding: 1rem; }
+    }
+</style>
+
+<div class="content">
+    <!-- Hero Welcome Section -->
+    <div class="hero-welcome card mb-4 border-0 overflow-hidden" style="background:linear-gradient(135deg,#1A6FA8 0%,#D4A45A 100%);border-radius:16px;box-shadow:0 8px 32px rgba(26,111,168,0.15);">
+        <div class="card-body p-4">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="avatar-placeholder rounded-circle d-flex align-items-center justify-content-center" style="width:64px;height:64px;flex-shrink:0;background:rgba(255,255,255,0.25);">
+                            <i class="fa-solid fa-user text-white" style="font-size:1.8rem;"></i>
+                        </div>
+                        <div>
+                            <h2 class="text-white mb-1 fw-bold" style="font-size:1.8rem;">Welcome, @ViewBag.Username!</h2>
+                            <p class="text-white-50 mb-0"><i class="fa-solid fa-briefcase me-2"></i>@ViewBag.CompanyName</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4 text-md-end mt-3 mt-md-0">
+                    <div class="d-flex align-items-center justify-content-md-end gap-3">
+                        @if (!string.IsNullOrEmpty(ViewBag.CompanyLogo as string))
+                        {
+                            <div class="company-badge-hero d-flex align-items-center gap-2 rounded-3 px-3 py-2" style="background:rgba(255,255,255,0.15);">
+                                <img src="@ViewBag.CompanyLogo" style="height:36px;width:auto;max-width:100px;object-fit:contain;border-radius:4px;" alt="Logo" />
+                                <span class="text-white fw-semibold" style="font-size:0.95rem;">@ViewBag.CompanyName</span>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="company-badge-hero d-flex align-items-center gap-2 rounded-3 px-3 py-2" style="background:rgba(255,255,255,0.15);">
+                                <i class="fa-solid fa-building text-white" style="font-size:1.4rem;"></i>
+                                <span class="text-white fw-semibold" style="font-size:0.95rem;">@ViewBag.CompanyName</span>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Subscription Banner (will be shown via JavaScript based on subscription status) -->
+    <div id="subscriptionBanner" style="display: none;"></div>
+
+    <div class="row g-3 mb-4" id="statsRow">
+        <div class="col-md-3">
+            <div class="dashboard-card stat-card leads-card card-1">
+                <i class="fa-solid fa-users stat-icon"></i>
+                <h2 class="stat-number" id="totalLeads">0</h2>
+                <p class="stat-label">My Leads</p>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="dashboard-card stat-card commission-card card-2">
+                <i class="fa-solid fa-indian-rupee-sign stat-icon"></i>
+                <h2 class="stat-number" id="totalCommission">₹0</h2>
+                <p class="stat-label">Total Commission</p>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="dashboard-card stat-card conversion-card card-3">
+                <i class="fa-solid fa-chart-line stat-icon"></i>
+                <h2 class="stat-number" id="conversionRate">0%</h2>
+                <p class="stat-label">Conversion Rate</p>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="dashboard-card stat-card revenue-card card-4">
+                <i class="fa-solid fa-indian-rupee-sign stat-icon"></i>
+                <h2 class="stat-number" id="monthlyRevenue">₹0</h2>
+                <p class="stat-label">This Month Revenue</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-4">
+        <!-- Lead Performance -->
+        <div class="col-lg-8">
+            <div class="dashboard-card chart-card chart-1">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="mb-0"><i class="fa-solid fa-chart-column me-2"></i>Lead Performance</h5>
+                    <div class="btn-group btn-group-sm" role="group" id="partnerToggle">
+                        <button type="button" class="btn btn-outline-primary active" data-months="6" onclick="switchPartnerPeriod(6)">6M</button>
+                        <button type="button" class="btn btn-outline-primary" data-months="12" onclick="switchPartnerPeriod(12)">12M</button>
+                    </div>
+                </div>
+                <canvas id="leadPerformanceChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Lead Status -->
+        <div class="col-lg-4">
+            <div class="dashboard-card chart-card chart-2">
+                <h5 class="mb-3"><i class="fa-solid fa-chart-pie me-2"></i>Lead Status</h5>
+                <canvas id="leadStatusChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-4">
+        <!-- Commission Trend -->
+        <div class="col-lg-6">
+            <div class="dashboard-card chart-card chart-3">
+                <h5 class="mb-3"><i class="fa-solid fa-arrow-trend-up me-2"></i>Commission Trend</h5>
+                <canvas id="commissionTrendChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Recent Leads -->
+        <div class="col-lg-6">
+            <div class="dashboard-card table-card chart-4">
+                <h5 class="mb-3"><i class="fa-solid fa-clock me-2"></i>Recent Leads</h5>
+                <div class="table-responsive">
+                    <table class="table table-sm" id="recentLeadsTable">
+                        <thead>
+                            <tr>
+                                <th>Lead</th>
+                                <th>Status</th>
+                                <th>Value</th>
+                                <th>Date</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Access Links -->
+    <div class="row g-3 mt-3">
+        <div class="col-12">
+            <div class="dashboard-card" style="animation-delay:0.9s;">
+                <h5 class="mb-3"><i class="fa-solid fa-bolt me-2"></i>Quick Access</h5>
+                <div class="d-flex flex-wrap gap-2" id="quickAccessLinks">
+                    <a href="/Leads/Index" class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-user-plus me-1"></i>My Leads</a>
+                    <a href="/PartnerTracking/Index" class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-activity me-1"></i>Lead Tracking</a>
+                    <a href="/SalesPipelines" class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-filter me-1"></i>Pipeline</a>
+                    <a href="/Expenses/Index" class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-minus-circle me-1"></i>Expenses</a>
+                    <a href="/Revenue/Index" class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-plus-circle me-1"></i>Revenue</a>
+                    <a href="/Profile" class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-user me-1"></i>My Profile</a>
+                    <a href="/Subscription/MyPlan" class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-award me-1"></i>My Plan</a>
+                    <button type="button" class="btn btn-outline-secondary btn-sm" onclick="openCustomizeModal()"><i class="fa-solid fa-sliders me-1"></i>Customize</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Customize Dashboard Modal -->
+<div class="modal fade" id="customizeModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header" style="background:linear-gradient(135deg,#1A6FA8,#125082);color:white;">
+                <h5 class="modal-title"><i class="fa-solid fa-sliders me-2"></i>Customize Dashboard</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-muted mb-3">Toggle dashboard widgets on/off. Changes are saved per user.</p>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <div class="card" style="border:1px solid #E2E8F0;">
+                            <div class="card-header bg-light py-2"><strong>Partner Widgets</strong></div>
+                            <div class="card-body py-2">
+                                <div class="form-check form-switch mb-2">
+                                    <input class="form-check-input" type="checkbox" id="showPartnerStats" checked>
+                                    <label class="form-check-label" for="showPartnerStats">Stats Cards</label>
+                                </div>
+                                <div class="form-check form-switch mb-2">
+                                    <input class="form-check-input" type="checkbox" id="showPartnerLeadChart" checked>
+                                    <label class="form-check-label" for="showPartnerLeadChart">Lead Performance Chart</label>
+                                </div>
+                                <div class="form-check form-switch mb-2">
+                                    <input class="form-check-input" type="checkbox" id="showPartnerLeadStatus" checked>
+                                    <label class="form-check-label" for="showPartnerLeadStatus">Lead Status Chart</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card" style="border:1px solid #E2E8F0;">
+                            <div class="card-header bg-light py-2"><strong>More Widgets</strong></div>
+                            <div class="card-body py-2">
+                                <div class="form-check form-switch mb-2">
+                                    <input class="form-check-input" type="checkbox" id="showPartnerCommissions" checked>
+                                    <label class="form-check-label" for="showPartnerCommissions">Commission Trend</label>
+                                </div>
+                                <div class="form-check form-switch mb-2">
+                                    <input class="form-check-input" type="checkbox" id="showQuickAccess" checked>
+                                    <label class="form-check-label" for="showQuickAccess">Quick Access Links</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" onclick="saveDashboardSettings()" style="background:#1A6FA8;border-color:#1A6FA8;">Save Settings</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        let charts = {};
+
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(() => {
+                loadPartnerDashboardData();
+            }, 100);
+        });
+
+        var partnerMonths = 6;
+
+        function switchPartnerPeriod(months) {
+            partnerMonths = months;
+            var group = document.getElementById('partnerToggle');
+            if (group) {
+                group.querySelectorAll('.btn').forEach(function(b) {
+                    b.classList.remove('active');
+                    if (parseInt(b.getAttribute('data-months')) === months) b.classList.add('active');
+                });
+            }
+            loadPartnerDashboardData();
+        }
+
+        function loadPartnerDashboardData() {
+            fetch('/Home/GetPartnerDashboardData?months=' + partnerMonths)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        console.error('Partner dashboard data error:', data.error);
+                        return;
+                    }
+
+                    animateStats(data);
+                    renderLeadPerformanceChart(data.leadPerformance || []);
+                    renderLeadStatusChart(data.leadStatus || { newLeads: 0, contacted: 0, qualified: 0, converted: 0 });
+                    renderCommissionTrendChart(data.commissionTrend || []);
+                    renderRecentLeads(data.recentLeads || []);
+                })
+                .catch(error => {
+                    console.error('Failed to load partner dashboard data:', error);
+                });
+        }
+
+        function safeNum(val) {
+            return (typeof val === 'number' && !isNaN(val)) ? val : 0;
+        }
+
+        function animateStats(data) {
+            if (!data || data.error) {
+                document.getElementById('totalLeads').textContent = '0';
+                document.getElementById('totalCommission').textContent = '\u20b90';
+                document.getElementById('conversionRate').textContent = '0%';
+                document.getElementById('monthlyRevenue').textContent = '\u20b90';
+                return;
+            }
+            animateNumber('totalLeads', safeNum(data.totalLeads), '');
+            animateNumber('totalCommission', safeNum(data.totalCommission), '\u20b9');
+            animateNumber('conversionRate', safeNum(data.conversionRate), '', '%');
+            animateNumber('monthlyRevenue', safeNum(data.monthlyRevenue), '\u20b9');
+        }
+
+        function animateNumber(elementId, targetValue, prefix, suffix) {
+            if (!suffix) suffix = '';
+            var element = document.getElementById(elementId);
+            if (!element) return;
+            targetValue = safeNum(targetValue);
+            var duration = 2000;
+            var startTime = performance.now();
+            var startValue = 0;
+
+            function updateNumber(currentTime) {
+                var elapsed = currentTime - startTime;
+                var progress = Math.min(elapsed / duration, 1);
+                var easeOutQuart = 1 - Math.pow(1 - progress, 4);
+                var currentValue = Math.floor(startValue + (targetValue - startValue) * easeOutQuart);
+                element.textContent = prefix + formatNumber(currentValue) + suffix;
+                if (progress < 1) {
+                    requestAnimationFrame(updateNumber);
+                }
+            }
+            requestAnimationFrame(updateNumber);
+        }
+
+        function renderLeadPerformanceChart(data) {
+            setTimeout(() => {
+                const ctx = document.getElementById('leadPerformanceChart').getContext('2d');
+                if (charts.leadPerformance) charts.leadPerformance.destroy();
+                charts.leadPerformance = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: data.map(d => d.month),
+                        datasets: [{
+                            label: 'Total Leads',
+                            data: data.map(d => d.leads),
+                            backgroundColor: '#F59E0B',
+                            borderRadius: 8
+                        }, {
+                            label: 'Conversions',
+                            data: data.map(d => d.conversions),
+                            backgroundColor: '#16A34A',
+                            borderRadius: 8
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: { y: { beginAtZero: true } },
+                        animation: {
+                            duration: 2000,
+                            easing: 'easeOutBounce'
+                        }
+                    }
+                });
+            }, 500);
+        }
+
+        function renderLeadStatusChart(data) {
+            setTimeout(() => {
+                const ctx = document.getElementById('leadStatusChart').getContext('2d');
+                if (charts.leadStatus) charts.leadStatus.destroy();
+                charts.leadStatus = new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['New', 'Contacted', 'Qualified', 'Converted'],
+                        datasets: [{
+                            data: [data.newLeads, data.contacted, data.qualified, data.converted],
+                            backgroundColor: ['#F59E0B', '#2589C9', '#1A6FA8', '#16A34A']
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        animation: {
+                            animateRotate: true,
+                            animateScale: true,
+                            duration: 2000,
+                            easing: 'easeOutBounce'
+                        },
+                        plugins: {
+                            legend: {
+                                position: 'bottom'
+                            }
+                        }
+                    }
+                });
+            }, 600);
+        }
+
+        function renderCommissionTrendChart(data) {
+            setTimeout(() => {
+                const ctx = document.getElementById('commissionTrendChart').getContext('2d');
+                if (charts.commissionTrend) charts.commissionTrend.destroy();
+                charts.commissionTrend = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: data.map(d => d.month),
+                        datasets: [{
+                            label: 'Commission',
+                            data: data.map(d => d.commission),
+                            borderColor: '#16A34A',
+                            backgroundColor: 'rgba(22,163,74, 0.1)',
+                            tension: 0.4,
+                            fill: true
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: { y: { beginAtZero: true } },
+                        animation: {
+                            duration: 2000,
+                            easing: 'easeInOutQuart'
+                        }
+                    }
+                });
+            }, 700);
+        }
+
+        function renderRecentLeads(data) {
+            const tbody = document.querySelector('#recentLeadsTable tbody');
+            tbody.innerHTML = '';
+
+            if (!data || data.length === 0) {
+                const row = document.createElement('tr');
+                row.innerHTML = '<td colspan="4" class="text-center text-muted">No recent leads found</td>';
+                tbody.appendChild(row);
+                return;
+            }
+            
+            data.forEach((lead, index) => {
+                setTimeout(() => {
+                    const row = document.createElement('tr');
+                    row.className = 'animated-row';
+                    const statusColor = lead.status === 'Converted' ? 'success' : 
+                                       lead.status === 'Qualified' ? 'primary' : 
+                                       lead.status === 'Contacted' ? 'warning' : 'secondary';
+                    row.innerHTML = `
+                        <td><strong>${lead.name}</strong></td>
+                        <td><span class="badge bg-${statusColor}">${lead.status}</span></td>
+                        <td><strong>₹${formatNumber(lead.value)}</strong></td>
+                        <td><small>${lead.date}</small></td>
+                    `;
+                    tbody.appendChild(row);
+                }, index * 200);
+            });
+        }
+
+        function formatNumber(num) {
+            if (typeof num !== 'number' || isNaN(num)) return '0';
+            return new Intl.NumberFormat('en-IN').format(num);
+        }
+
+        // Check subscription status and show banner
+        async function checkSubscriptionStatus() {
+            try {
+                const response = await fetch('/Home/GetPartnerSubscriptionStatus');
+                const data = await response.json();
+                
+                if (!data.hasSubscription) {
+                    showSubscriptionBanner(
+                        '<i class="fa-solid fa-xmark"></i> No Active Subscription',
+                        'You don\'t have an active subscription plan. Subscribe now to start using all features.',
+                        false,
+                        '/Subscription/MyPlan',
+                        'danger'
+                    );
+                } else if (data.billingCycle === 'Trial') {
+                    const daysLeft = Math.ceil((new Date(data.endDate) - new Date()) / (1000 * 60 * 60 * 24));
+                    
+                    if (daysLeft <= 0) {
+                        // Trial expired
+                        showSubscriptionBanner(
+                            '⏰ Trial Period Ended',
+                            `Your free trial has expired. Upgrade to a paid plan to continue using all features without interruption.`,
+                            false,
+                            '/Subscription/MyPlan',
+                            'danger'
+                        );
+                    } else if (daysLeft === 1) {
+                        // Last day
+                        showSubscriptionBanner(
+                            '<i class="fa-solid fa-bell"></i> Trial Ending Tomorrow!',
+                            `Your ${data.planName} trial ends tomorrow. Upgrade now to avoid any service interruption.`,
+                            true,
+                            '/Subscription/MyPlan',
+                            'warning'
+                        );
+                    } else {
+                        // Trial active
+                        showSubscriptionBanner(
+                            `<i class="fa-solid fa-star"></i> Free Trial Active - ${daysLeft} days remaining`,
+                            `You're on a ${data.planName} trial plan. Upgrade before ${new Date(data.endDate).toLocaleDateString()} to continue without interruption.`,
+                            true,
+                            '/Subscription/MyPlan',
+                            'trial'
+                        );
+                    }
+                } else if (data.daysUntilExpiry <= 7 && data.daysUntilExpiry > 0) {
+                    showSubscriptionBanner(
+                        `<i class="fa-solid fa-circle-exclamation"></i> Subscription Expiring Soon`,
+                        `Your ${data.planName} plan expires in ${data.daysUntilExpiry} days on ${new Date(data.endDate).toLocaleDateString()}. Renew now to avoid service interruption.`,
+                        false,
+                        '/Subscription/MyPlan',
+                        'warning'
+                    );
+                } else if (data.daysUntilExpiry <= 0) {
+                    // Subscription expired
+                    showSubscriptionBanner(
+                        '<i class="fa-solid fa-xmark"></i> Subscription Expired',
+                        `Your ${data.planName} plan has expired. Renew immediately to restore access to all features.`,
+                        false,
+                        '/Subscription/MyPlan',
+                        'danger'
+                    );
+                }
+            } catch (error) {
+                console.error('Error checking subscription:', error);
+            }
+        }
+
+        function showSubscriptionBanner(title, message, isTrial, actionUrl, type = 'trial') {
+            const banner = document.getElementById('subscriptionBanner');
+            let bgClass = '';
+            
+            switch(type) {
+                case 'trial':
+                    bgClass = 'subscription-banner trial';
+                    break;
+                case 'warning':
+                    bgClass = 'subscription-banner';
+                    banner.style.background = 'linear-gradient(135deg, #F59E0B 0%, #F59E0B 100%)';
+                    break;
+                case 'danger':
+                    bgClass = 'subscription-banner';
+                    banner.style.background = 'linear-gradient(135deg, #DC2626 0%, #DC2626 100%)';
+                    break;
+                default:
+                    bgClass = 'subscription-banner';
+            }
+            
+            banner.className = bgClass;
+            banner.innerHTML = `
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+                    <div>
+                        <h4><i class="fas fa-crown me-2"></i>${title}</h4>
+                        <p>${message}</p>
+                    </div>
+                    <a href="${actionUrl}" class="btn">
+                        <i class="fas fa-arrow-right me-2"></i>${isTrial ? 'Upgrade Now' : 'View Plans'}
+                    </a>
+                </div>
+            `;
+            banner.style.display = 'block';
+        }
+
+        function loadDashboardSettings() {
+            fetch('/Home/GetDashboardSettings')
+                .then(r => r.json())
+                .then(data => {
+                    if (!data.success) return;
+                    var s = data.settings;
+                    applyWidgetSetting('#statsRow .col-md-3', s.showPartnerStats);
+                    applyWidgetSetting('#leadPerformanceChart', s.showPartnerLeadChart);
+                    applyWidgetSetting('#leadStatusChart', s.showPartnerLeadStatus);
+                    applyWidgetSetting('#commissionTrendChart', s.showPartnerCommissions);
+                    applyWidgetSetting('#quickAccessLinks', s.showQuickAccess);
+                    populateCustomizeModal(s);
+                })
+                .catch(err => console.error('Error loading dashboard settings:', err));
+        }
+
+        function applyWidgetSetting(selector, show) {
+            var el = document.querySelector(selector);
+            if (!el) return;
+            var parentCard = el.closest('.dashboard-card') || el.closest('.row.g-3.mb-4') || el.closest('.row.g-3') || el.closest('.row.g-3.mt-3');
+            if (parentCard) {
+                parentCard.style.display = show ? '' : 'none';
+            }
+        }
+
+        function populateCustomizeModal(s) {
+            var keys = ['showPartnerStats', 'showPartnerLeadChart', 'showPartnerLeadStatus', 'showPartnerCommissions', 'showQuickAccess'];
+            keys.forEach(function(k) {
+                var el = document.getElementById(k);
+                if (el && s[k] !== undefined) el.checked = s[k];
+            });
+        }
+
+        function openCustomizeModal() {
+            var modal = new bootstrap.Modal(document.getElementById('customizeModal'));
+            modal.show();
+        }
+
+        function saveDashboardSettings() {
+            var settings = {
+                showPartnerStats: document.getElementById('showPartnerStats').checked,
+                showPartnerLeadChart: document.getElementById('showPartnerLeadChart').checked,
+                showPartnerLeadStatus: document.getElementById('showPartnerLeadStatus').checked,
+                showPartnerCommissions: document.getElementById('showPartnerCommissions').checked,
+                showQuickAccess: document.getElementById('showQuickAccess').checked
+            };
+
+            fetch('/Home/SaveDashboardSettings', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(settings)
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    var modal = bootstrap.Modal.getInstance(document.getElementById('customizeModal'));
+                    if (modal) modal.hide();
+                    showToast('Dashboard layout saved!', 'success');
+                    setTimeout(() => location.reload(), 1200);
+                } else {
+                    showToast('Error saving layout: ' + data.message, 'error');
+                }
+            })
+            .catch(err => showToast('Error saving layout', 'error'));
+        }
+
+        // Check subscription on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            checkSubscriptionStatus();
+            loadDashboardSettings();
+        });
+    </script>
+}
+
+

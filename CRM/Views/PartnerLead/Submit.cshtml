@@ -1,0 +1,46 @@
+@model CRM.Models.PartnerLeadModel
+@{
+    ViewData["Title"] = "Submit Partner Lead";
+}
+<div class="container mt-4">
+    <h2>Submit Lead</h2>
+    @if (ViewBag.Message != null)
+    {
+        <div class="alert alert-success">@ViewBag.Message</div>
+    }
+    <form asp-action="Submit" method="post">
+        @Html.AntiForgeryToken()
+        <div class="row mb-3">
+            <div class="col-md-6">
+                <label>Partner ID</label>
+                <input asp-for="PartnerId" class="form-control" required />
+            </div>
+            <div class="col-md-6">
+                <label>Lead Name</label>
+                <input asp-for="LeadName" class="form-control" required />
+            </div>
+        </div>
+        <div class="row mb-3">
+            <div class="col-md-6">
+                <label>Contact</label>
+                <input asp-for="Contact" class="form-control" required maxlength="10" pattern="[0-9]{10}" title="Please enter exactly 10 digits" />
+            </div>
+            <div class="col-md-6">
+                <label>Property Interest</label>
+                <input asp-for="PropertyInterest" class="form-control" />
+            </div>
+        </div>
+        <button type="submit" class="btn btn-primary">Submit Lead</button>
+    </form>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        document.querySelector('input[name="Contact"]').addEventListener('input', function() {
+            this.value = this.value.replace(/[^0-9]/g, '').slice(0, 10);
+        });
+    });
+</script>
+
+
+

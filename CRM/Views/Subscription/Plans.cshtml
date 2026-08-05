@@ -1,0 +1,766 @@
+@model IEnumerable<CRM.Models.SubscriptionPlanModel>
+@{
+    ViewData["Title"] = "Subscription Plans";
+}
+
+<style>
+/* =============================================
+   SUBSCRIPTION PLANS — COMPACT DESIGN
+   #D4A45A (gold)  ·  #1A6FA8 (blue)
+   ============================================= */
+:root {
+    --sp-gold:      #D4A45A;
+    --sp-gold-l:    #E8C27E;
+    --sp-gold-dim:  rgba(212,164,90,.13);
+    --sp-blue:      #1A6FA8;
+    --sp-blue-dim:  rgba(26,111,168,.1);
+    --sp-green:     #16A34A;
+    --sp-green-dim: rgba(22,163,74,.12);
+    --sp-red:       #DC2626;
+    --sp-red-dim:   rgba(220,38,38,.12);
+    --sp-amber:     #F59E0B;
+    --sp-amber-dim: rgba(245,158,11,.12);
+    --sp-border:    rgba(26,111,168,.14);
+    --sp-text:      #1E2A3A;
+    --sp-muted:     #6B7B8D;
+    --sp-bg:        #F0F4F8;
+    --sp-card-bg:   #FFFFFF;
+    --sp-radius:    10px;
+    --sp-rsm:       6px;
+    --sp-shadow:    0 1px 6px rgba(26,111,168,.08);
+    --sp-shad-h:    0 4px 16px rgba(26,111,168,.15);
+}
+
+.breadcrumb {
+    padding: 0px !important;
+    margin-bottom: 0px !important;
+    font-size: 0.9rem !important;
+    background-color: transparent !important;
+}
+}
+
+.sp-breadcrumb .breadcrumb-item a {
+    color: #FFFFFFff !important;
+    text-decoration: none;
+}
+
+.breadcrumb-item.active {
+    color: #FFFFFF !important;
+}
+.breadcrumb-item, .breadcrumb-item a
+Specificity: (0,1,0)
+ {
+    color: #FFFFFF !important;
+}
+
+/* ---- Page Header ---- */
+.sp-header {
+    background: linear-gradient(135deg, var(--sp-blue) 0%, #125082 100%);
+    border-radius: var(--sp-radius);
+    padding: 14px 18px;
+    margin-bottom: 16px;
+    box-shadow: 0 2px 12px rgba(26,111,168,.22);
+    position: relative;
+    overflow: hidden;
+}
+.sp-header::before {
+    content:'';position:absolute;inset:0;
+    background:radial-gradient(circle at 80% 50%,rgba(212,164,90,.18) 0%,transparent 60%);
+    pointer-events:none;
+}
+.sp-header-icon {
+    width:38px;height:38px;flex-shrink:0;
+    background:rgba(212,164,90,.22);border-radius:8px;
+    display:flex;align-items:center;justify-content:center;
+    color:var(--sp-gold-l);font-size:1.05rem;
+}
+.sp-page-title  { font-size:.95rem;font-weight:700;color:#FFFFFF;margin-bottom:1px; }
+.sp-page-sub    { font-size:.72rem;color:rgba(255,255,255,.62); }
+.sp-create-btn  {
+    background:linear-gradient(135deg,var(--sp-gold) 0%,#B8883E 100%);
+    color:#FFFFFF;border:none;border-radius:var(--sp-rsm);
+    padding:7px 16px;font-size:.78rem;font-weight:700;
+    cursor:pointer;box-shadow:0 2px 8px rgba(212,164,90,.35);
+    transition:all .18s;white-space:nowrap;
+    display:inline-flex;align-items:center;gap:5px;
+}
+.sp-create-btn:hover { transform:translateY(-1px);box-shadow:0 3px 12px rgba(212,164,90,.45); }
+
+/* Breadcrumb inside header */
+.sp-breadcrumb { font-size:.68rem;margin-bottom:4px; }
+.sp-breadcrumb .breadcrumb-item a { color:rgba(255,255,255,.6);text-decoration:none; }
+.sp-breadcrumb .breadcrumb-item.active { color:rgba(255,255,255,.85); }
+.sp-breadcrumb .breadcrumb-item+.breadcrumb-item::before { color:rgba(255,255,255,.4); }
+
+/* ---- Plan Cards ---- */
+.sp-card {
+    background:var(--sp-card-bg);
+    border:1px solid var(--sp-border);
+    border-radius:var(--sp-radius);
+    box-shadow:var(--sp-shadow);
+    position:relative;overflow:hidden;
+    transition:transform .18s,box-shadow .18s;
+    display:flex;flex-direction:column;
+}
+.sp-card:hover { transform:translateY(-2px);box-shadow:var(--sp-shad-h); }
+.sp-card-accent {
+    position:absolute;top:0;left:0;right:0;height:3px;
+    border-radius:var(--sp-radius) var(--sp-radius) 0 0;
+}
+.sp-card-accent.basic      { background:var(--sp-blue); }
+.sp-card-accent.standard   { background:var(--sp-green); }
+.sp-card-accent.enterprise { background:var(--sp-gold); }
+.sp-card-accent.premium    { background:#8FA3B8; }
+.sp-card-accent.ultimate   { background:var(--sp-red); }
+
+.sp-card-body { padding:12px 12px 10px;flex:1;display:flex;flex-direction:column; }
+
+/* Plan top row */
+.sp-plan-top { margin-bottom:8px; }
+.sp-plan-name { font-size:.88rem;font-weight:700;color:var(--sp-text);line-height:1.2;margin-bottom:3px; }
+.sp-plan-desc { font-size:.67rem;color:var(--sp-muted);line-height:1.4;margin-bottom:5px; }
+
+/* Type + Status badges */
+.sp-badges { display:flex;align-items:center;gap:4px;flex-wrap:wrap; }
+.sp-type-badge {
+    font-size:.6rem;font-weight:700;padding:2px 7px;border-radius:4px;
+    text-transform:uppercase;letter-spacing:.04em;
+}
+.sp-type-badge.basic      { background:rgba(26,111,168,.12);color:var(--sp-blue); }
+.sp-type-badge.standard   { background:var(--sp-green-dim);color:#16A34A; }
+.sp-type-badge.enterprise { background:var(--sp-gold-dim);color:#B8883E; }
+.sp-type-badge.premium    { background:rgba(143,163,184,.12);color:#6B7B8D; }
+.sp-type-badge.ultimate   { background:var(--sp-red-dim);color:#DC2626; }
+.sp-status-badge {
+    font-size:.6rem;font-weight:700;padding:2px 7px;border-radius:4px;
+}
+.sp-status-active   { background:var(--sp-green-dim);color:#16A34A; }
+.sp-status-inactive { background:rgba(107,123,141,.12);color:#6B7B8D; }
+
+/* Pricing row */
+.sp-pricing {
+    background:var(--sp-blue-dim);border-radius:var(--sp-rsm);
+    padding:6px 10px;margin-bottom:8px;
+    display:flex;align-items:center;justify-content:space-around;
+    border:1px solid rgba(26,111,168,.12);
+}
+.sp-price-col { text-align:center; }
+.sp-price-lbl { font-size:.6rem;font-weight:700;color:var(--sp-blue);text-transform:uppercase;letter-spacing:.04em; }
+.sp-price-val { font-size:.95rem;font-weight:800;color:var(--sp-text);line-height:1.1; }
+.sp-price-val span { font-size:.7rem;font-weight:600;color:var(--sp-muted); }
+.sp-price-div { width:1px;height:28px;background:rgba(26,111,168,.18); }
+
+/* Feature section */
+.sp-feat-section { margin-bottom:6px; }
+.sp-feat-heading {
+    font-size:.62rem;font-weight:700;color:var(--sp-blue);
+    text-transform:uppercase;letter-spacing:.06em;
+    margin-bottom:4px;padding-bottom:2px;
+    border-bottom:1px solid var(--sp-border);
+}
+.sp-feat-item {
+    display:flex;align-items:center;gap:5px;
+    font-size:.7rem;color:var(--sp-text);margin-bottom:3px;
+}
+.sp-fi {
+    width:18px;height:18px;border-radius:4px;
+    display:inline-flex;align-items:center;justify-content:center;
+    font-size:.62rem;flex-shrink:0;
+}
+.sp-fi-ok  { background:var(--sp-green-dim);color:#16A34A; }
+.sp-fi-lim { background:var(--sp-amber-dim);color:#B45309; }
+.sp-fi-no  { background:var(--sp-red-dim);color:#DC2626; }
+
+/* Actions */
+.sp-actions { display:flex;gap:5px;margin-top:auto;padding-top:8px;border-top:1px solid var(--sp-border); }
+.sp-act-btn {
+    flex:1;border:none;border-radius:var(--sp-rsm);
+    font-size:.7rem;font-weight:600;padding:5px 8px;
+    cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;justify-content:center;gap:4px;
+    text-decoration:none;
+}
+.sp-act-edit    { background:var(--sp-blue-dim);color:var(--sp-blue);border:1px solid rgba(26,111,168,.2); }
+.sp-act-edit:hover { background:var(--sp-blue);color:#FFFFFF; }
+.sp-act-deact   { background:var(--sp-red-dim);color:var(--sp-red);border:1px solid rgba(220,38,38,.2); }
+.sp-act-deact:hover { background:var(--sp-red);color:#FFFFFF; }
+.sp-act-actv    { background:var(--sp-green-dim);color:#16A34A;border:1px solid rgba(22,163,74,.2); }
+.sp-act-actv:hover { background:var(--sp-green);color:#FFFFFF; }
+
+/* ---- Empty state ---- */
+.sp-empty {
+    text-align:center;padding:48px 24px;
+    background:var(--sp-card-bg);
+    border-radius:var(--sp-radius);
+    border:1px dashed var(--sp-border);
+}
+.sp-empty-icon {
+    width:60px;height:60px;border-radius:50%;
+    background:var(--sp-blue-dim);
+    display:inline-flex;align-items:center;justify-content:center;
+    font-size:1.5rem;color:var(--sp-blue);margin-bottom:12px;
+}
+.sp-empty h5 { font-size:.9rem;font-weight:700;color:var(--sp-text);margin-bottom:4px; }
+.sp-empty p  { font-size:.75rem;color:var(--sp-muted);margin-bottom:14px; }
+
+/* =============================================
+   MODAL
+   ============================================= */
+@@media (min-width:992px) {
+    #createPlanModal .modal-dialog { max-width:min(900px,90vw) !important;width:min(900px,90vw) !important; }
+}
+@@media (max-width:991px) {
+    #createPlanModal .modal-dialog { margin:.5rem;max-width:calc(100% - 1rem); }
+}
+
+.sp-modal-content  { border:1px solid var(--sp-border);border-radius:var(--sp-radius);overflow:hidden;box-shadow:0 8px 32px rgba(26,111,168,.2); }
+.sp-modal-header   { background:linear-gradient(135deg,var(--sp-blue) 0%,#125082 100%);padding:12px 16px;display:flex;align-items:center;justify-content:space-between;color:#FFFFFF; }
+.sp-modal-header .modal-title { font-size:.9rem;font-weight:700;color:#FFFFFF; }
+.sp-modal-icon     { width:28px;height:28px;background:rgba(212,164,90,.25);border-radius:6px;display:flex;align-items:center;justify-content:center;color:var(--sp-gold-l);font-size:.8rem; }
+.sp-modal-close    { background:rgba(255,255,255,.12);border:none;color:#FFFFFF;width:26px;height:26px;border-radius:5px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:.75rem;transition:background .15s; }
+.sp-modal-close:hover { background:rgba(255,255,255,.22); }
+    .sp-modal-body     { padding:14px 16px;background:var(--sp-bg);max-height:70vh;overflow-y:auto; }
+    .sp-modal-footer   { padding:10px 16px;background:#FFFFFF;border-top:1px solid var(--sp-border);display:flex;justify-content:flex-end;gap:8px; }
+
+    @@media (max-width: 991px) {
+        .sp-card { margin-bottom: 1rem; }
+        .sp-actions { flex-direction: column; gap: 0.5rem; }
+        .sp-act-btn { width: 100%; justify-content: center; }
+    }
+
+    @@media (max-width: 575px) {
+        .sp-header { padding: 12px 14px; }
+        .sp-page-title { font-size: 1.1rem; }
+        .sp-card-body { padding: 10px; }
+        .sp-plan-name { font-size: 1rem; }
+        .sp-price-val { font-size: 1.5rem; }
+        .sp-feat-item { font-size: 0.85rem; }
+        .sp-actions { flex-direction: column; }
+        .sp-act-btn { width: 100%; padding: 0.6rem; font-size: 0.85rem; }
+        .table-responsive { 
+            max-height: none !important; 
+            overflow-x: auto !important;
+            -webkit-overflow-scrolling: touch !important;
+        }
+    }
+
+/* Section headings in modal */
+.sp-section-lbl {
+    font-size:.68rem;font-weight:700;color:var(--sp-blue);
+    text-transform:uppercase;letter-spacing:.07em;
+    margin:10px 0 6px;padding-bottom:4px;
+    border-bottom:1px solid var(--sp-border);
+}
+
+/* Form inputs */
+.sp-label { font-size:.72rem;font-weight:700;color:var(--sp-text);display:block;margin-bottom:3px; }
+.sp-req   { color:var(--sp-red); }
+.sp-input, .sp-select, .sp-textarea {
+    display:block;width:100%;
+    padding:6px 9px;font-size:.78rem;color:var(--sp-text);
+    background:#FFFFFF;border:1.5px solid var(--sp-border);
+    border-radius:var(--sp-rsm);outline:none;
+    transition:border-color .15s,box-shadow .15s;line-height:1.4;
+}
+.sp-input:focus,.sp-select:focus,.sp-textarea:focus {
+    border-color:var(--sp-blue);box-shadow:0 0 0 3px var(--sp-blue-dim);
+}
+.sp-textarea { resize:none; }
+.sp-invalid { font-size:.65rem;color:var(--sp-red);display:none;font-weight:600;margin-top:2px; }
+.was-validated .sp-input:invalid ~ .sp-invalid,
+.was-validated .sp-select:invalid ~ .sp-invalid,
+.was-validated .sp-textarea:invalid ~ .sp-invalid { display:block; }
+.was-validated .sp-input:invalid,
+.was-validated .sp-select:invalid,
+.was-validated .sp-textarea:invalid { border-color:var(--sp-red);background:var(--sp-red-dim); }
+.was-validated .sp-input:valid,
+.was-validated .sp-select:valid { border-color:var(--sp-green); }
+
+/* Feature checkboxes */
+.sp-checks { display:flex;flex-wrap:wrap;gap:6px; }
+.sp-check-pill {
+    display:inline-flex;align-items:center;gap:5px;
+    background:#FFFFFF;border:1.5px solid var(--sp-border);
+    border-radius:20px;padding:4px 10px;cursor:pointer;
+    font-size:.72rem;font-weight:600;color:var(--sp-text);
+    transition:all .15s;user-select:none;
+}
+.sp-check-pill input { display:none; }
+.sp-check-pill:has(input:checked) {
+    background:var(--sp-blue-dim);border-color:var(--sp-blue);color:var(--sp-blue);
+}
+.sp-check-dot {
+    width:14px;height:14px;border-radius:50%;
+    border:1.5px solid #B8C8D8;display:flex;align-items:center;justify-content:center;
+    font-size:.5rem;color:transparent;transition:all .15s;flex-shrink:0;
+}
+.sp-check-pill:has(input:checked) .sp-check-dot {
+    background:var(--sp-blue);border-color:var(--sp-blue);color:#FFFFFF;
+}
+
+/* Modal footer buttons */
+.sp-btn-cancel { background:#F0F4F8;color:var(--sp-muted);border:1px solid #E2E8F0;border-radius:var(--sp-rsm);padding:6px 16px;font-size:.8rem;font-weight:600;cursor:pointer;transition:all .15s; }
+.sp-btn-cancel:hover { background:#E2E8F0; }
+.sp-btn-create { background:linear-gradient(135deg,var(--sp-blue) 0%,#125082 100%);color:#FFFFFF;border:none;border-radius:var(--sp-rsm);padding:6px 18px;font-size:.8rem;font-weight:700;cursor:pointer;box-shadow:0 2px 8px rgba(26,111,168,.25);transition:all .15s; }
+.sp-btn-create:hover { box-shadow:0 3px 12px rgba(26,111,168,.38); }
+
+/* =============================================
+   DARK MODE
+   ============================================= */
+html.dark-mode {
+    --sp-text:    #E2E8F0;
+    --sp-muted:   #8FA3B8;
+    --sp-bg:      #121F2E;
+    --sp-card-bg: #1E2A3A;
+    --sp-border:  rgba(26,111,168,.22);
+    --sp-shadow:  0 1px 6px rgba(0,0,0,.28);
+    --sp-shad-h:  0 4px 16px rgba(0,0,0,.45);
+}
+html.dark-mode .sp-card,
+html.dark-mode .sp-modal-content { background:#1E2A3A; }
+html.dark-mode .sp-modal-body    { background:#121F2E; }
+html.dark-mode .sp-modal-footer  { background:#1E2A3A;border-color:rgba(26,111,168,.22); }
+html.dark-mode .sp-input,
+html.dark-mode .sp-select,
+html.dark-mode .sp-textarea      { background:#1E2A3A;color:var(--sp-text);border-color:rgba(26,111,168,.25); }
+html.dark-mode .was-validated .sp-input:invalid,
+html.dark-mode .was-validated .sp-select:invalid { background:rgba(220,38,38,.08); }
+html.dark-mode .sp-label         { color:var(--sp-text); }
+html.dark-mode .sp-check-pill    { background:#1E2A3A; }
+html.dark-mode .sp-check-pill:has(input:checked) { background:rgba(26,111,168,.22); }
+html.dark-mode .sp-pricing       { background:rgba(26,111,168,.14); }
+html.dark-mode .sp-plan-name     { color:var(--sp-text); }
+html.dark-mode .sp-feat-item     { color:var(--sp-text); }
+html.dark-mode .sp-price-val     { color:var(--sp-text); }
+html.dark-mode .sp-btn-cancel    { background:#2A3A4A;color:var(--sp-muted);border-color:rgba(26,111,168,.22); }
+html.dark-mode .sp-btn-cancel:hover { background:#2A3A4A; }
+html.dark-mode .sp-empty         { background:#1E2A3A; }
+html.dark-mode .sp-empty h5      { color:var(--sp-text); }
+
+/* SweetAlert dark mode */
+html.dark-mode .swal2-popup { background-color:#1E2A3A !important;color:var(--sp-text) !important; }
+html.dark-mode .swal2-title { color:var(--sp-text) !important; }
+html.dark-mode .swal2-html-container,
+html.dark-mode .swal2-html-container * { color:var(--sp-text) !important; }
+
+/* =============================================
+   RESPONSIVE
+   ============================================= */
+@@media (max-width:575px) {
+    .sp-card-body { padding:10px 10px 8px; }
+    .sp-pricing   { padding:5px 8px; }
+    .sp-price-val { font-size:.82rem; }
+    .sp-checks    { gap:4px; }
+    .sp-check-pill { font-size:.68rem;padding:3px 8px; }
+}
+.home{
+    color:#FFFFFFff !important;
+}
+</style>
+
+<div class="container-fluid px-3 py-2">
+
+    <!-- Header -->
+    <div class="sp-header">
+        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+            <div class="d-flex align-items-center gap-2">
+                <div class="sp-header-icon"><i class="fa-solid fa-layer-group"></i></div>
+                <div>
+                    <nav class="sp-breadcrumb" aria-label="breadcrumb">
+                        <ol class="breadcrumb mb-0">
+                            <li class="breadcrumb-item"><a href="/Home/Index">
+                                
+                                <span class="home">Home</span></a></li>
+                            <li class="breadcrumb-item active">Subscription Plans</li>
+                        </ol>
+                    </nav>
+                    <h5 class="sp-page-title mb-0">Subscription Plans</h5>
+                    <span class="sp-page-sub">Create and manage pricing plans for your partners</span>
+                </div>
+            </div>
+            <button type="button" class="sp-create-btn" data-bs-toggle="modal" data-bs-target="#createPlanModal">
+                <i class="fa-solid fa-plus"></i>Create New Plan
+            </button>
+        </div>
+    </div>
+
+    <!-- Plans Grid -->
+    <div id="plansContainer">
+        @if (Model.Any())
+        {
+            <div class="row g-2">
+                @foreach (var plan in Model)
+                {
+                    var typeClass = plan.PlanType.ToLower();
+                    <div class="col-6 col-sm-6 col-md-4 col-lg-3 col-xl-2">
+                        <div class="sp-card h-100">
+                            <div class="sp-card-accent @typeClass"></div>
+                            <div class="sp-card-body">
+
+                                <!-- Name + desc + badges -->
+                                <div class="sp-plan-top">
+                                    <div class="sp-plan-name">@plan.PlanName</div>
+                                    @if (!string.IsNullOrEmpty(plan.Description))
+                                    {
+                                        <div class="sp-plan-desc">@(plan.Description.Length > 60 ? plan.Description.Substring(0,60) + "…" : plan.Description)</div>
+                                    }
+                                    <div class="sp-badges">
+                                        <span class="sp-type-badge @typeClass">@plan.PlanType</span>
+                                        <span class="sp-status-badge @(plan.IsActive ? "sp-status-active" : "sp-status-inactive")">
+                                            @(plan.IsActive ? "Active" : "Inactive")
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <!-- Pricing -->
+                                <div class="sp-pricing">
+                                    <div class="sp-price-col">
+                                        <div class="sp-price-lbl">Monthly</div>
+                                        <div class="sp-price-val"><span>₹</span>@plan.MonthlyPrice.ToString("N0")</div>
+                                    </div>
+                                    <div class="sp-price-div"></div>
+                                    <div class="sp-price-col">
+                                        <div class="sp-price-lbl">Yearly</div>
+                                        <div class="sp-price-val"><span>₹</span>@plan.YearlyPrice.ToString("N0")</div>
+                                    </div>
+                                </div>
+
+                                <!-- Limits -->
+                                <div class="sp-feat-section">
+                                    <div class="sp-feat-heading">Limits</div>
+                                    <div class="sp-feat-item">
+                                        <span class="sp-fi @(plan.MaxAgents == -1 ? "sp-fi-ok" : "sp-fi-lim")"><i class="fa-solid fa-users"></i></span>
+                                        @(plan.MaxAgents == -1 ? "Unlimited" : plan.MaxAgents.ToString()) Agents
+                                    </div>
+                                    <div class="sp-feat-item">
+                                        <span class="sp-fi @(plan.MaxLeadsPerMonth == -1 ? "sp-fi-ok" : "sp-fi-lim")"><i class="fa-solid fa-chart-line"></i></span>
+                                        @(plan.MaxLeadsPerMonth == -1 ? "Unlimited" : plan.MaxLeadsPerMonth.ToString()) Leads/mo
+                                    </div>
+                                    <div class="sp-feat-item">
+                                        <span class="sp-fi @(plan.MaxStorageGB == -1 ? "sp-fi-ok" : "sp-fi-lim")"><i class="fa-solid fa-database"></i></span>
+                                        @(plan.MaxStorageGB == -1 ? "Unlimited" : plan.MaxStorageGB.ToString() + " GB") Storage
+                                    </div>
+                                </div>
+
+                                @{
+                                    var hasInteg = plan.HasWhatsAppIntegration || plan.HasFacebookIntegration || plan.HasEmailIntegration || plan.HasCustomAPIAccess;
+                                    var hasRep   = plan.HasAdvancedReports || plan.HasCustomReports || plan.HasDataExport || plan.HasPrioritySupport;
+                                }
+
+                                @if (hasInteg)
+                                {
+                                    <div class="sp-feat-section">
+                                        <div class="sp-feat-heading">Integrations</div>
+                                        @if (plan.HasWhatsAppIntegration) {
+                                            <div class="sp-feat-item"><span class="sp-fi sp-fi-ok"><i class="fa-brands fa-whatsapp"></i></span>WhatsApp</div>
+                                        }
+                                        @if (plan.HasFacebookIntegration) {
+                                            <div class="sp-feat-item"><span class="sp-fi sp-fi-ok"><i class="fa-brands fa-facebook"></i></span>Facebook</div>
+                                        }
+                                        @if (plan.HasEmailIntegration) {
+                                            <div class="sp-feat-item"><span class="sp-fi sp-fi-ok"><i class="fa-solid fa-envelope"></i></span>Email</div>
+                                        }
+                                        @if (plan.HasCustomAPIAccess) {
+                                            <div class="sp-feat-item"><span class="sp-fi sp-fi-ok"><i class="fa-solid fa-code"></i></span>Custom API</div>
+                                        }
+                                    </div>
+                                }
+
+                                @if (hasRep)
+                                {
+                                    <div class="sp-feat-section">
+                                        <div class="sp-feat-heading">Reports & Support</div>
+                                        @if (plan.HasAdvancedReports) {
+                                            <div class="sp-feat-item"><span class="sp-fi sp-fi-ok"><i class="fa-solid fa-chart-bar"></i></span>Advanced Reports</div>
+                                        }
+                                        @if (plan.HasCustomReports) {
+                                            <div class="sp-feat-item"><span class="sp-fi sp-fi-ok"><i class="fa-solid fa-file-chart"></i></span>Custom Reports</div>
+                                        }
+                                        @if (plan.HasDataExport) {
+                                            <div class="sp-feat-item"><span class="sp-fi sp-fi-ok"><i class="fa-solid fa-download"></i></span>Data Export</div>
+                                        }
+                                        @if (plan.HasPrioritySupport) {
+                                            <div class="sp-feat-item"><span class="sp-fi sp-fi-ok"><i class="fa-solid fa-headset"></i></span>@plan.SupportLevel Support</div>
+                                        }
+                                    </div>
+                                }
+
+                                <!-- Actions -->
+                                <div class="sp-actions">
+                                    <a href="/Subscription/EditPlan/@plan.PlanId" class="sp-act-btn sp-act-edit">
+                                        <i class="fa-solid fa-edit"></i>Edit
+                                    </a>
+                                    <button type="button"
+                                        class="sp-act-btn @(plan.IsActive ? "sp-act-deact" : "sp-act-actv")"
+                                        onclick="togglePlanStatus(@plan.PlanId, @plan.IsActive.ToString().ToLower())">
+                                        <i class="fa-solid fa-@(plan.IsActive ? "pause" : "play")"></i>
+                                        @(plan.IsActive ? "Deactivate" : "Activate")
+                                    </button>
+                                </div>
+
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="sp-empty">
+                <div class="sp-empty-icon"><i class="fa-solid fa-layer-group"></i></div>
+                <h5>No Subscription Plans</h5>
+                <p>Create your first subscription plan to get started</p>
+                <button type="button" class="sp-create-btn" data-bs-toggle="modal" data-bs-target="#createPlanModal">
+                    <i class="fa-solid fa-plus me-1"></i>Create Plan
+                </button>
+            </div>
+        }
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+function togglePlanStatus(planId, isActive) {
+    if (isActive) {
+        fetch('/Subscription/CheckPlanSubscribers?planId=' + planId)
+            .then(response => response.json())
+            .then(data => {
+                if (data.hasActiveSubscribers) {
+                    Swal.fire({
+                        title: 'Cannot Deactivate Plan',
+                        html: `This plan has <strong>${data.count}</strong> active subscribers and cannot be deactivated.<br><br><strong>Active Subscribers:</strong><ul style="text-align: left; margin-top: 10px;">${data.subscribers.map(s => `<li style="margin-bottom: 5px;">${s.companyName} (expires: ${new Date(s.endDate).toLocaleDateString()})</li>`).join('')}</ul>`,
+                        icon: 'error',
+                        confirmButtonText: 'Create New Plan Instead',
+                        showCancelButton: true,
+                        cancelButtonText: 'Cancel'
+                    }).then((result) => {
+                        if (result.isConfirmed) { window.location.href = '/Subscription/CreatePlan'; }
+                    });
+                } else {
+                    Swal.fire({
+                        title: 'Deactivate Plan?',
+                        text: 'Are you sure you want to deactivate this plan?',
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonText: 'Yes, Deactivate',
+                        cancelButtonText: 'Cancel',
+                        confirmButtonColor: '#DC2626'
+                    }).then((result) => {
+                        if (result.isConfirmed) { submitToggleForm(planId, false); }
+                    });
+                }
+            })
+            .catch(() => Swal.fire('Error', 'Failed to check active subscribers', 'error'));
+    } else {
+        Swal.fire({
+            title: 'Activate Plan?',
+            text: 'Are you sure you want to activate this plan?',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Yes, Activate',
+            cancelButtonText: 'Cancel',
+            confirmButtonColor: '#16A34A'
+        }).then((result) => {
+            if (result.isConfirmed) { submitToggleForm(planId, true); }
+        });
+    }
+}
+
+function submitToggleForm(planId, isActive) {
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = '/Subscription/TogglePlan';
+    const tokenInput = document.createElement('input');
+    tokenInput.type = 'hidden';
+    tokenInput.name = '__RequestVerificationToken';
+    tokenInput.value = document.querySelector('input[name="__RequestVerificationToken"]').value;
+    const planIdInput = document.createElement('input');
+    planIdInput.type = 'hidden';
+    planIdInput.name = 'id';
+    planIdInput.value = planId;
+    const statusInput = document.createElement('input');
+    statusInput.type = 'hidden';
+    statusInput.name = 'isActive';
+    statusInput.value = isActive.toString();
+    form.appendChild(tokenInput);
+    form.appendChild(planIdInput);
+    form.appendChild(statusInput);
+    document.body.appendChild(form);
+    form.submit();
+}
+</script>
+
+<!-- Create Plan Modal -->
+<div class="modal fade" id="createPlanModal" tabindex="-1" aria-labelledby="createPlanModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content sp-modal-content">
+            <form id="createPlanForm" method="post" novalidate>
+                @Html.AntiForgeryToken()
+
+                <div class="sp-modal-header">
+                    <div class="d-flex align-items-center gap-2">
+                        <div class="sp-modal-icon"><i class="fa-solid fa-layer-group"></i></div>
+                        <h5 class="modal-title mb-0" id="createPlanModalLabel">Create Subscription Plan</h5>
+                    </div>
+                    <button type="button" class="sp-modal-close" data-bs-dismiss="modal"><i class="fas fa-times"></i></button>
+                </div>
+
+                <div class="sp-modal-body">
+
+                    <!-- Basic Info -->
+                    <div class="sp-section-lbl">Plan Details</div>
+                    <div class="row g-2">
+                        <div class="col-sm-4">
+                            <label class="sp-label">Plan Name <span class="sp-req">*</span></label>
+                            <input name="PlanName" class="sp-input" required placeholder="e.g. Basic Plan">
+                            <div class="sp-invalid">Plan name is required</div>
+                        </div>
+                        <div class="col-sm-4">
+                            <label class="sp-label">Plan Type <span class="sp-req">*</span></label>
+                            <select name="PlanType" class="sp-select" required>
+                                <option value="">Select Type</option>
+                                <option value="Basic">Basic</option>
+                                <option value="Standard">Standard</option>
+                                <option value="Enterprise">Enterprise</option>
+                                <option value="Premium">Premium</option>
+                                <option value="Ultimate">Ultimate</option>
+                            </select>
+                            <div class="sp-invalid">Select plan type</div>
+                        </div>
+                        <div class="col-sm-4">
+                            <label class="sp-label">Support Level <span class="sp-req">*</span></label>
+                            <select name="SupportLevel" class="sp-select" required>
+                                <option value="">Select Level</option>
+                                <option value="Email">Email</option>
+                                <option value="Chat">Chat</option>
+                                <option value="Phone">Phone</option>
+                                <option value="Dedicated">Dedicated</option>
+                            </select>
+                            <div class="sp-invalid">Select support level</div>
+                        </div>
+                        <div class="col-sm-4">
+                            <label class="sp-label">Monthly Price (₹) <span class="sp-req">*</span></label>
+                            <input name="MonthlyPrice" type="number" step="0.01" class="sp-input" required placeholder="0">
+                            <div class="sp-invalid">Enter monthly price</div>
+                        </div>
+                        <div class="col-sm-4">
+                            <label class="sp-label">Yearly Price (₹) <span class="sp-req">*</span></label>
+                            <input name="YearlyPrice" type="number" step="0.01" class="sp-input" required placeholder="0">
+                            <div class="sp-invalid">Enter yearly price</div>
+                        </div>
+                        <div class="col-sm-4">
+                            <label class="sp-label">Sort Order <span class="sp-req">*</span></label>
+                            <input name="SortOrder" type="number" class="sp-input" value="0" required>
+                            <div class="sp-invalid">Enter sort order</div>
+                        </div>
+                        <div class="col-12">
+                            <label class="sp-label">Description <span class="sp-req">*</span></label>
+                            <textarea name="Description" class="sp-textarea" rows="2" required placeholder="Brief plan description..."></textarea>
+                            <div class="sp-invalid">Description is required</div>
+                        </div>
+                    </div>
+
+                    <!-- Limits -->
+                    <div class="sp-section-lbl">Limits</div>
+                    <div class="row g-2">
+                        <div class="col-sm-4">
+                            <label class="sp-label">Max Agents <span class="sp-req">*</span></label>
+                            <input name="MaxAgents" type="number" class="sp-input" value="2" required>
+                            <div class="sp-invalid">Enter max agents</div>
+                        </div>
+                        <div class="col-sm-4">
+                            <label class="sp-label">Max Leads/Month <span class="sp-req">*</span></label>
+                            <input name="MaxLeadsPerMonth" type="number" class="sp-input" value="500" required>
+                            <div class="sp-invalid">Enter max leads</div>
+                        </div>
+                        <div class="col-sm-4">
+                            <label class="sp-label">Max Storage (GB) <span class="sp-req">*</span></label>
+                            <input name="MaxStorageGB" type="number" class="sp-input" value="1" required>
+                            <div class="sp-invalid">Enter max storage</div>
+                        </div>
+                    </div>
+
+                    <!-- Features -->
+                    <div class="sp-section-lbl">Features</div>
+                    <div class="sp-checks">
+                        <label class="sp-check-pill">
+                            <input name="HasWhatsAppIntegration" type="checkbox" value="true" checked>
+                            <input name="HasWhatsAppIntegration" type="hidden" value="false">
+                            <span class="sp-check-dot"><i class="fas fa-check"></i></span>
+                            <i class="fa-brands fa-whatsapp me-1"></i>WhatsApp
+                        </label>
+                        <label class="sp-check-pill">
+                            <input name="HasFacebookIntegration" type="checkbox" value="true" checked>
+                            <input name="HasFacebookIntegration" type="hidden" value="false">
+                            <span class="sp-check-dot"><i class="fas fa-check"></i></span>
+                            <i class="fa-brands fa-facebook me-1"></i>Facebook
+                        </label>
+                        <label class="sp-check-pill">
+                            <input name="HasEmailIntegration" type="checkbox" value="true" checked>
+                            <input name="HasEmailIntegration" type="hidden" value="false">
+                            <span class="sp-check-dot"><i class="fas fa-check"></i></span>
+                            <i class="fa-solid fa-envelope me-1"></i>Email
+                        </label>
+                        <label class="sp-check-pill">
+                            <input name="HasCustomAPIAccess" type="checkbox" value="true" checked>
+                            <input name="HasCustomAPIAccess" type="hidden" value="false">
+                            <span class="sp-check-dot"><i class="fas fa-check"></i></span>
+                            <i class="fa-solid fa-code me-1"></i>Custom API
+                        </label>
+                        <label class="sp-check-pill">
+                            <input name="HasDataExport" type="checkbox" value="true" checked>
+                            <input name="HasDataExport" type="hidden" value="false">
+                            <span class="sp-check-dot"><i class="fas fa-check"></i></span>
+                            <i class="fa-solid fa-download me-1"></i>Data Export
+                        </label>
+                    </div>
+
+                    <!-- Hidden fields (backend required) -->
+                    <input type="hidden" name="HasAdvancedReports" value="false" />
+                    <input type="hidden" name="HasCustomReports" value="false" />
+                    <input type="hidden" name="HasPrioritySupport" value="false" />
+                    <input type="hidden" name="HasPhoneSupport" value="false" />
+                    <input type="hidden" name="HasDedicatedManager" value="false" />
+
+                </div>
+
+                <div class="sp-modal-footer">
+                    <button type="button" class="sp-btn-cancel" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="sp-btn-create"><i class="fa-solid fa-plus me-1"></i>Create Plan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    document.getElementById('createPlanForm').addEventListener('submit', function (e) {
+        e.preventDefault();
+        if (!this.checkValidity()) {
+            e.stopPropagation();
+            this.classList.add('was-validated');
+            return;
+        }
+        const formData = new FormData(this);
+        fetch('/Subscription/CreatePlan', {
+            method: 'POST',
+            headers: { 'X-Requested-With': 'XMLHttpRequest' },
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showToast(data.message || 'Plan created successfully!', 'success');
+                document.getElementById('createPlanModal').querySelector('.sp-modal-close').click();
+                location.reload();
+            } else {
+                const errors = data.errors || ['An error occurred'];
+                showToast(errors.join(', '), 'error');
+            }
+        })
+        .catch(() => showToast('An error occurred while creating plan', 'error'));
+    });
+});
+</script>
+}

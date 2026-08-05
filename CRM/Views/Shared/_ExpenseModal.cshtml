@@ -1,0 +1,169 @@
+<!-- Expense Modal -->
+<div class="modal fade" id="expenseModal" tabindex="-1" aria-labelledby="expenseModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" style="width: 50%; max-width: 50%;">
+        <div class="modal-content" style="border: none; border-radius: 15px; box-shadow: 0 10px 40px rgba(0,0,0,0.15);">
+            <div class="modal-header" style="padding: 1.5rem; border-bottom: 3px solid #DC2626; border-radius: 15px 15px 0 0;">
+                <h5 class="modal-title" id="expenseModalLabel" style="margin: 0; font-weight: 600; color: #DC2626 !important; -webkit-text-fill-color: #DC2626 !important;"><i class="fa-solid fa-money-bill-wave me-2"></i>Add Expense</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="expenseForm" novalidate>
+                <div class="modal-body" style="padding: 2rem;">
+                    <input type="hidden" id="expenseId" name="ExpenseId" value="0" />
+                    
+                    <div class="mb-3">
+                        <label class="form-label" style="font-weight: 600; color: #2A3A4A;">Category Type <span class="text-danger">*</span></label>
+                        <select id="expenseType" name="Type" class="form-select" style="border-radius: 8px; border: 1px solid #E2E8F0; padding: 0.75rem;" required>
+                            <option value="Land">Land cost / Purchase price</option>
+                            <option value="Construction">Construction / Development</option>
+                            <option value="Legal">Legal / Registration</option>
+                            <option value="Marketing">Marketing / Sales</option>
+                            <option value="Agent">Agent / Channel Partner Commission</option>
+                            <option value="Tax">Taxes (GST, Stamp Duty)</option>
+                            <option value="Maintenance">Maintenance / Utilities / Operations</option>
+                            <option value="Other">Other</option>
+                        </select>
+                        <div class="invalid-feedback">Please select a category type.</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label" style="font-weight: 600; color: #2A3A4A;">Description <span class="text-danger">*</span></label>
+                        <input id="expenseDescription" name="Description" class="form-control" style="border-radius: 8px; border: 1px solid #E2E8F0; padding: 0.75rem;" required />
+                        <div class="invalid-feedback">Please enter a description.</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label" style="font-weight: 600; color: #2A3A4A;">Amount <span class="text-danger">*</span></label>
+                        <input id="expenseAmount" name="Amount" class="form-control" type="number" step="0.01" min="0" style="border-radius: 8px; border: 1px solid #E2E8F0; padding: 0.75rem;" required />
+                        <div class="invalid-feedback">Please enter a valid amount.</div>
+                    </div>
+                </div>
+                <div class="modal-footer" style="border-top: 1px solid #E8EDF2; padding: 1.5rem; gap: 10px;">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal" style="border-radius: 8px; padding: 0.75rem 1.5rem; font-weight: 500;">Cancel</button>
+                    <button type="submit" class="btn" style="background: linear-gradient(135deg, #1A6FA8 0%, #125082 100%); color: white; border: none; border-radius: 8px; padding: 0.75rem 1.5rem; font-weight: 500;">Save Expense</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<style>
+/* Hide validation feedback until form is validated */
+.invalid-feedback {
+    display: none;
+}
+
+.was-validated .form-control:invalid ~ .invalid-feedback,
+.was-validated .form-select:invalid ~ .invalid-feedback,
+.form-control.is-invalid ~ .invalid-feedback,
+.form-select.is-invalid ~ .invalid-feedback {
+    display: block;
+}
+
+@@media (max-width: 768px) {
+    #expenseModal .modal-dialog {
+        width: 95% !important;
+        max-width: 95% !important;
+        margin: 0.5rem !important;
+    }
+    
+    #expenseModal .modal-header {
+        padding: 1rem !important;
+    }
+    
+    #expenseModal .modal-body {
+        padding: 1rem !important;
+    }
+    
+    #expenseModal .modal-footer {
+        padding: 1rem !important;
+        flex-direction: row !important;
+        gap: 0.5rem !important;
+    }
+    
+    #expenseModal .modal-footer .btn {
+        flex: 1 !important;
+        margin: 0 !important;
+    }
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const expenseModal = document.getElementById('expenseModal');
+    const expenseForm = document.getElementById('expenseForm');
+    
+    // Handle form submission
+    expenseForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        // Validate form
+        if (!expenseForm.checkValidity()) {
+            expenseForm.classList.add('was-validated');
+            return;
+        }
+        
+        const formData = new FormData(expenseForm);
+        const expenseId = document.getElementById('expenseId').value;
+        const url = expenseId === '0' ? '/Expenses/CreateModal' : '/Expenses/EditModal';
+        
+        fetch(url, {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                bootstrap.Modal.getInstance(expenseModal).hide();
+                location.reload(); // Refresh the page to show updated data
+            } else {
+                Swal.fire({ icon: 'error', title: 'Error', text: data.message || 'Failed to save expense' });
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            Swal.fire({ icon: 'error', title: 'Error', text: 'An error occurred while saving expense' });
+        });
+    });
+    
+    // Reset form when modal is hidden
+    expenseModal.addEventListener('hidden.bs.modal', function() {
+        expenseForm.reset();
+        expenseForm.classList.remove('was-validated');
+        document.getElementById('expenseId').value = '0';
+        document.getElementById('expenseModalLabel').textContent = 'Add Expense';
+    });
+});
+
+// Function to open modal for creating new expense
+function openExpenseModal() {
+    document.getElementById('expenseModalLabel').textContent = 'Add Expense';
+    document.getElementById('expenseId').value = '0';
+    document.getElementById('expenseForm').reset();
+    document.getElementById('expenseForm').classList.remove('was-validated');
+    new bootstrap.Modal(document.getElementById('expenseModal')).show();
+}
+
+// Function to open modal for editing existing expense
+function editExpense(expenseId) {
+    fetch(`/Expenses/GetExpense/${expenseId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                document.getElementById('expenseModalLabel').textContent = 'Edit Expense';
+                document.getElementById('expenseId').value = data.data.expenseId;
+                document.getElementById('expenseType').value = data.data.type;
+                document.getElementById('expenseDescription').value = data.data.description;
+                document.getElementById('expenseAmount').value = data.data.amount;
+                new bootstrap.Modal(document.getElementById('expenseModal')).show();
+            } else {
+                Swal.fire({ icon: 'error', title: 'Error', text: data.message || 'Failed to load expense data' });
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            Swal.fire({ icon: 'error', title: 'Error', text: 'An error occurred while loading expense data' });
+        });
+}
+</script>
+
+

@@ -1,0 +1,306 @@
+@{
+    ViewData["Title"] = "Company Chat";
+    var currentUserId = ViewBag.CurrentUserId as int? ?? 0;
+    var currentUsername = ViewBag.CurrentUsername as string ?? "User";
+    var currentRole = ViewBag.CurrentRole as string ?? "";
+}
+<style>
+    .chat-container { display: flex; height: calc(100vh - 140px); gap: 0; border-radius: 12px; overflow: hidden; background: var(--card-bg); border: 1px solid var(--border-color); }
+    .chat-sidebar { width: 300px; min-width: 300px; border-right: 1px solid var(--border-color); display: flex; flex-direction: column; background: var(--card-bg); }
+    .chat-main { flex: 1; display: flex; flex-direction: column; background: var(--card-bg); }
+    .chat-sidebar-header { padding: 16px; border-bottom: 1px solid var(--border-color); background: var(--body-bg); }
+    .chat-sidebar-header h5 { margin: 0; font-weight: 600; }
+    .chat-member-list { flex: 1; overflow-y: auto; }
+    .chat-member { display: flex; align-items: center; gap: 10px; padding: 10px 16px; cursor: pointer; transition: all 0.15s; border-bottom: 1px solid rgba(0,0,0,0.03); }
+    .chat-member:hover { background: rgba(26,111,168,0.06); }
+    .chat-member.active { background: rgba(26,111,168,0.12); border-left: 3px solid var(--blue); }
+    .chat-member-avatar { width: 38px; height: 38px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; color: #FFFFFF; flex-shrink: 0; position: relative; }
+    .chat-member-avatar .online-dot { width: 10px; height: 10px; border-radius: 50%; background: #16A34A; border: 2px solid var(--card-bg); position: absolute; bottom: -1px; right: -1px; }
+    .chat-member-info { flex: 1; min-width: 0; }
+    .chat-member-name { font-weight: 600; font-size: 13px; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .chat-member-role { font-size: 11px; color: var(--text-muted); }
+    .chat-member-unread { background: var(--blue); color: #FFFFFF; border-radius: 50%; min-width: 18px; height: 18px; font-size: 10px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+    .chat-placeholder { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: var(--text-muted); gap: 12px; }
+    .chat-placeholder i { font-size: 48px; opacity: 0.3; }
+    .chat-messages { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 8px; }
+    .chat-message { max-width: 70%; padding: 8px 14px; border-radius: 12px; font-size: 14px; line-height: 1.5; word-wrap: break-word; }
+    .chat-message.mine { align-self: flex-end; background: var(--blue); color: #FFFFFF; border-bottom-right-radius: 4px; }
+    .chat-message.theirs { align-self: flex-start; background: var(--body-bg); color: var(--text-primary); border-bottom-left-radius: 4px; }
+    .chat-message .msg-time { font-size: 10px; opacity: 0.7; margin-top: 4px; text-align: right; }
+    .chat-message .msg-file { display: flex; align-items: center; gap: 6px; padding: 6px 10px; background: rgba(255,255,255,0.15); border-radius: 6px; margin-top: 4px; font-size: 12px; }
+    .chat-message.theirs .msg-file { background: rgba(0,0,0,0.05); }
+    .chat-input { padding: 12px 16px; border-top: 1px solid var(--border-color); background: var(--body-bg); display: flex; gap: 8px; align-items: flex-end; }
+    .chat-input textarea { flex: 1; border: 1px solid var(--border-color); border-radius: 8px; padding: 8px 12px; resize: none; font-size: 13px; max-height: 80px; background: var(--card-bg); color: var(--text-primary); }
+    .chat-input textarea:focus { outline: none; border-color: var(--blue); }
+    .chat-input .btn-icon { width: 36px; height: 36px; border-radius: 50%; border: 1px solid var(--border-color); display: flex; align-items: center; justify-content: center; cursor: pointer; background: var(--card-bg); color: var(--text-muted); transition: all 0.15s; }
+    .chat-input .btn-icon:hover { background: var(--blue); color: #FFFFFF; border-color: var(--blue); }
+    .chat-input .btn-send { background: var(--blue); color: #FFFFFF; border: none; border-radius: 8px; padding: 8px 20px; font-weight: 600; font-size: 13px; cursor: pointer; transition: all 0.15s; }
+    .chat-input .btn-send:hover { background: var(--blue-dark); }
+    .chat-header { padding: 12px 16px; border-bottom: 1px solid var(--border-color); background: var(--body-bg); display: flex; align-items: center; gap: 10px; }
+    .chat-header h6 { margin: 0; font-weight: 600; }
+    .chat-header .status { font-size: 11px; color: var(--text-muted); }
+
+    @@media (max-width: 768px) {
+        .chat-container { flex-direction: column; height: calc(100vh - 100px); }
+        .chat-sidebar { width: 100%; min-width: unset; max-height: 200px; }
+        .chat-main { height: 100%; }
+    }
+
+    html.dark-mode .chat-message.theirs { background: #1E2A3A; }
+    html.dark-mode .chat-member:hover { background: rgba(255,255,255,0.04); }
+    html.dark-mode .chat-member.active { background: rgba(26,111,168,0.2); }
+</style>
+
+<div class="content">
+    <div class="page-hd"><i class="fa-solid fa-comments"></i><h4>Company Chat</h4></div>
+    <nav class="mb-3" aria-label="breadcrumb">
+        <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item"><a href="/home">Home</a></li>
+            <li class="breadcrumb-item active">Company Chat</li>
+        </ol>
+    </nav>
+
+    <div class="chat-container">
+        <!-- Sidebar - Member List -->
+        <div class="chat-sidebar">
+            <div class="chat-sidebar-header">
+                <h5><i class="fa-solid fa-comments me-2" style="color:var(--blue);"></i>Team Chat</h5>
+                <small class="text-muted">Chat with your team members</small>
+            </div>
+            <div class="chat-member-list" id="memberList">
+                <div class="text-center py-4 text-muted"><i class="fa-solid fa-spinner fa-spin"></i> Loading members...</div>
+            </div>
+        </div>
+
+        <!-- Main Chat Area -->
+        <div class="chat-main">
+            <div id="chatPlaceholder" class="chat-placeholder">
+                <i class="fa-solid fa-comment-dots"></i>
+                <span>Select a team member to start chatting</span>
+            </div>
+
+            <div id="chatArea" style="display:none;flex-direction:column;height:100%;">
+                <div class="chat-header" id="chatHeader">
+                    <div class="chat-member-avatar" id="chatAvatar" style="width:32px;height:32px;font-size:12px;">U</div>
+                    <div>
+                        <h6 id="chatName">User</h6>
+                        <span class="status" id="chatStatus">offline</span>
+                    </div>
+                </div>
+
+                <div class="chat-messages" id="chatMessages"></div>
+
+                <div class="chat-input">
+                    <label for="fileInput" class="btn-icon" title="Attach file">
+                        <i class="fa-solid fa-paperclip"></i>
+                    </label>
+                    <input type="file" id="fileInput" style="display:none" accept=".pdf,.jpg,.jpeg,.png,.gif,.doc,.docx,.xls,.xlsx">
+                    <textarea id="msgInput" rows="1" placeholder="Type a message..." onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMessage();}"></textarea>
+                    <button class="btn-send" onclick="sendMessage()"><i class="fa-solid fa-paper-plane me-1"></i>Send</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    var currentUserId = @currentUserId;
+    var currentUsername = '@currentUsername';
+    var activeRecipientId = 0;
+    var activeRecipientName = '';
+    var members = [];
+
+    document.addEventListener('DOMContentLoaded', function() {
+        loadMembers();
+        loadConversations();
+
+        // Reuse the global SignalR connection from _Layout.cshtml
+        // Use a flag to prevent duplicate handler registration on page re-visits
+        if (window.chatConnection && !window._chatHandlersAttached) {
+            window.chatConnection.on('ReceiveCompanyMessage', function(msg) {
+                // Only append if this is the active conversation
+                if (msg.senderId === activeRecipientId || msg.recipientId === activeRecipientId) {
+                    var container = document.getElementById('chatMessages');
+                    msg.isMine = (msg.senderId === currentUserId);
+                    appendMessage(msg, container);
+                    container.scrollTop = container.scrollHeight;
+                }
+                // Update conversation list for unread badges
+                loadConversations();
+            });
+            window._chatHandlersAttached = true;
+        }
+
+        // Clean up on page unload
+        window.addEventListener('beforeunload', function() {
+            if (window.chatConnection) {
+                window.chatConnection.invoke('LeaveCompanyChat').catch(function() {});
+            }
+        });
+    });
+
+    function loadMembers() {
+        fetch('/CompanyChat/GetCompanyMembers')
+            .then(r => r.json())
+            .then(data => {
+                if (!data.success) return;
+                members = data.members;
+                renderMembers(data.members);
+            });
+    }
+
+    function renderMembers(members) {
+        var list = document.getElementById('memberList');
+        if (!members || members.length === 0) {
+            list.innerHTML = '<div class="text-center py-4 text-muted"><i class="fa-solid fa-users me-2"></i>No team members found</div>';
+            return;
+        }
+        list.innerHTML = members.map(function(m) {
+            var color = getAvatarColor(m.userId);
+            var statusDot = m.isOnline ? '<span class="online-dot"></span>' : '';
+            var isActive = m.userId === activeRecipientId ? 'active' : '';
+            return '<div class="chat-member ' + isActive + '" data-id="' + m.userId + '" data-name="' + m.username + '" onclick="selectMember(' + m.userId + ',\'' + m.username + '\')">' +
+                '<div class="chat-member-avatar" style="background:' + color + ';">' + m.initial + statusDot + '</div>' +
+                '<div class="chat-member-info">' +
+                '<div class="chat-member-name">' + m.username + ' <small class="text-muted">(' + m.role + ')</small></div>' +
+                '<div class="chat-member-role">' + (m.isOnline ? '<span style="color:#16A34A;">Online</span>' : '<span class="text-muted">Offline</span>') + '</div>' +
+                '</div>' +
+                '<span class="chat-member-unread" id="unread-' + m.userId + '" style="display:none;">0</span>' +
+                '</div>';
+        }).join('');
+    }
+
+    function loadConversations() {
+        fetch('/CompanyChat/GetRecentConversations')
+            .then(r => r.json())
+            .then(data => {
+                if (!data.success) return;
+                data.conversations.forEach(function(c) {
+                    var el = document.querySelector('.chat-member[data-id="' + c.userId + '"] .chat-member-name');
+                    if (el) {
+                        el.innerHTML = c.username + ' <small class="text-muted">(' + c.role + ')</small>';
+                    }
+                    var badge = document.getElementById('unread-' + c.userId);
+                    if (badge) {
+                        if (c.unread > 0) { badge.style.display = ''; badge.textContent = c.unread; }
+                        else { badge.style.display = 'none'; }
+                    }
+                });
+            });
+    }
+
+    function selectMember(userId, name) {
+        activeRecipientId = userId;
+        activeRecipientName = name;
+
+        document.querySelectorAll('.chat-member').forEach(function(el) {
+            el.classList.remove('active');
+        });
+        var memberEl = document.querySelector('.chat-member[data-id="' + userId + '"]');
+        if (memberEl) memberEl.classList.add('active');
+
+        document.getElementById('chatPlaceholder').style.display = 'none';
+        document.getElementById('chatArea').style.display = 'flex';
+
+        var member = members.find(function(m) { return m.userId === userId; });
+        var color = getAvatarColor(userId);
+        document.getElementById('chatAvatar').style.background = color;
+        document.getElementById('chatAvatar').textContent = member ? member.initial : 'U';
+        document.getElementById('chatName').textContent = name;
+        document.getElementById('chatStatus').textContent = member && member.isOnline ? 'Online' : 'Offline';
+        document.getElementById('chatStatus').style.color = member && member.isOnline ? '#16A34A' : '';
+
+        loadConversation(userId);
+
+        var badge = document.getElementById('unread-' + userId);
+        if (badge) badge.style.display = 'none';
+    }
+
+    function loadConversation(userId) {
+        fetch('/CompanyChat/GetConversation?recipientId=' + userId)
+            .then(r => r.json())
+            .then(data => {
+                if (!data.success) return;
+                var container = document.getElementById('chatMessages');
+                container.innerHTML = '';
+                data.messages.forEach(function(m) {
+                    appendMessage(m, container);
+                });
+                container.scrollTop = container.scrollHeight;
+            });
+    }
+
+    function appendMessage(m, container) {
+        if (!container) container = document.getElementById('chatMessages');
+        var div = document.createElement('div');
+        div.className = 'chat-message ' + (m.isMine ? 'mine' : 'theirs');
+        var html = '';
+        if (m.messageText) html += '<div>' + escapeHtml(m.messageText) + '</div>';
+        if (m.filePath) {
+            var isImage = m.fileType && m.fileType.startsWith('image/');
+            if (isImage) {
+                html += '<div style="margin-top:6px;"><img src="' + m.filePath + '" style="max-width:200px;border-radius:6px;cursor:pointer;" onclick="window.open(this.src)" /></div>';
+            } else {
+                html += '<div class="msg-file"><i class="fa-solid fa-file"></i><a href="' + m.filePath + '" target="_blank" style="color:inherit;">' + (m.fileName || 'Download') + '</a></div>';
+            }
+        }
+        html += '<div class="msg-time">' + m.sentAt + (m.isMine && m.isRead ? ' <i class="fa-solid fa-check-double" style="font-size:10px;"></i>' : '') + '</div>';
+        div.innerHTML = html;
+        container.appendChild(div);
+    }
+
+    function sendMessage() {
+        var input = document.getElementById('msgInput');
+        var fileInput = document.getElementById('fileInput');
+        var text = input.value.trim();
+        var file = fileInput.files[0];
+
+        if (!text && !file) return;
+        if (!activeRecipientId) { showToast('Select a team member first', 'warning'); return; }
+
+        var formData = new FormData();
+        formData.append('recipientId', activeRecipientId);
+        formData.append('message', text);
+        if (file) formData.append('attachment', file);
+
+        var btn = document.querySelector('.btn-send');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+
+        fetch('/CompanyChat/SendMessage', { method: 'POST', body: formData })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    input.value = '';
+                    fileInput.value = '';
+                    var container = document.getElementById('chatMessages');
+                    appendMessage(data.message, container);
+                    container.scrollTop = container.scrollHeight;
+                } else {
+                    showToast(data.message || 'Failed to send', 'error');
+                }
+            })
+            .catch(function() { showToast('Failed to send message', 'error'); })
+            .finally(function() {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fa-solid fa-paper-plane me-1"></i>Send';
+            });
+    }
+
+    function escapeHtml(text) {
+        var div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    function getAvatarColor(id) {
+        var colors = ['#1A6FA8','#D4A45A','#16A34A','#F59E0B','#DC2626','#8FA3B8','#D4A45A','#2589C9','#B8883E','#2589C9'];
+        return colors[id % colors.length];
+    }
+
+    function showToast(msg, type) {
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({ icon: type || 'info', title: msg, toast: true, position: 'top-end', showConfirmButton: false, timer: 3000 });
+        }
+    }
+</script>

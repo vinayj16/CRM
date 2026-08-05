@@ -1,0 +1,739 @@
+@{
+    ViewData["Title"] = "Privacy Policy";
+    Layout = "_LandingLayout";
+    var branding = ViewBag.Branding as CRM.Models.BrandingModel;
+    var settings = ViewBag.Settings as Dictionary<string, string>;
+    var companyName = settings?.GetValueOrDefault("CompanyName", "Our Company");
+    var companyEmail = settings?.GetValueOrDefault("CompanyEmail", "support@company.com");
+    var companyAddress = settings?.GetValueOrDefault("CompanyAddress", "");
+    var customContent = !string.IsNullOrWhiteSpace(branding?.PrivacyPolicy) ? branding.PrivacyPolicy : settings?.GetValueOrDefault("PrivacyContent", "");
+}
+
+@section Scripts {
+<style>
+/* ═══════════ TOKENS ═══════════ */
+:root {
+    --blue:    #1A6FA8;
+    --blue-d:  #125082;
+    --blue-l:  #F0F4F8;
+    --gold:    #D4A45A;
+    --gold-d:  #B8883E;
+    --gold-l:  #F0F4F8;
+    --dark:    #162436;
+    --text:    #2A3A4A;
+    --muted:   #6B7B8D;
+    --border:  #E2E8F0;
+    --bg:      #FFFFFF;
+    --white:   #FFFFFF;
+    --grad:    linear-gradient(135deg, var(--blue) 0%, var(--dark) 100%);
+    --nav-h:   60px;
+    --r:       10px;
+    --sh:      0 4px 24px rgba(26,111,168,.10);
+    --sh2:     0 12px 40px rgba(26,111,168,.18);
+}
+
+/* ── BASE ── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; overflow-x: hidden; }
+body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    font-size: 14px; color: var(--text);
+    background: var(--bg); overflow-x: hidden;
+}
+img { max-width: 100%; display: block; }
+a { color: inherit; text-decoration: none; }
+.pp-wrap { max-width: 900px; margin: 0 auto; padding: 0 20px; }
+.fw-wrap { max-width: 1200px; margin: 0 auto; padding: 0 20px; }
+
+/* ═══════════ NAVBAR (same as index) ═══════════ */
+#ppNav {
+    position: sticky; top: 0; left: 0; right: 0; z-index: 1050;
+    height: var(--nav-h); background: var(--dark);
+    box-shadow: 0 2px 16px rgba(0,0,0,.3);
+    display: flex; align-items: center;
+}
+.nav-inner {
+    max-width: 1200px; margin: 0 auto; width: 100%;
+    padding: 0 20px; display: flex; align-items: center; gap: 8px;
+}
+.nav-brand { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+.nav-logo  { max-height: 38px; max-width: 130px; object-fit: contain; }
+.nav-name  { font-size: 1.05rem; font-weight: 800; color: #FFFFFF; white-space: nowrap; }
+.nav-links { display: flex; align-items: center; gap: 4px; margin-left: auto; }
+.nav-lnk {
+    padding: 6px 11px; font-size: 13px; font-weight: 500;
+    color: rgba(255,255,255,.8); border-radius: 6px; transition: all .2s; white-space: nowrap;
+}
+.nav-lnk:hover { color: var(--gold); background: rgba(212,164,90,.12); }
+.nav-login {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 7px 16px; border-radius: 6px;
+    background: var(--gold); color: var(--dark);
+    font-size: 13px; font-weight: 700; margin-left: 8px;
+    transition: background .2s; white-space: nowrap;
+}
+.nav-login:hover { background: var(--gold-d); }
+.nav-burger {
+    display: none; flex-direction: column; gap: 4px;
+    background: none; border: none; cursor: pointer; padding: 6px; margin-left: auto;
+}
+.nav-burger span { display: block; width: 20px; height: 2px; background: #FFFFFF; border-radius: 2px; transition: all .3s; }
+
+@@media (max-width: 991px) {
+    .nav-burger { display: flex; }
+    .nav-links {
+        position: fixed; top: var(--nav-h); left: 0; right: 0;
+        background: var(--dark); flex-direction: column; align-items: stretch; gap: 0;
+        padding: 10px 20px 16px; margin: 0;
+        transform: translateY(-110%); transition: transform .3s ease; z-index: 1049;
+        box-shadow: 0 8px 24px rgba(0,0,0,.3);
+    }
+    .nav-links.open { transform: translateY(0); }
+    .nav-lnk { padding: 11px 0; border-bottom: 1px solid rgba(255,255,255,.08); border-radius: 0; }
+    .nav-login { margin: 12px 0 0; justify-content: center; }
+}
+
+/* ═══════════ HERO STRIP ═══════════ */
+.pp-hero {
+    background: var(--grad);
+    padding: 28px 0 0;
+    position: relative; overflow: hidden;
+}
+.pp-hero::before {
+    content: '';
+    position: absolute; top: -60px; right: -60px;
+    width: 260px; height: 260px;
+    background: rgba(212,164,90,.08);
+    border-radius: 50%;
+}
+.pp-hero::after {
+    content: '';
+    position: absolute; bottom: 0; left: 40px;
+    width: 140px; height: 140px;
+    background: rgba(255,255,255,.04);
+    border-radius: 50%;
+}
+.pp-hero-inner {
+    display: flex; align-items: flex-end; justify-content: space-between;
+    flex-wrap: wrap; gap: 12px;
+}
+.pp-hero-left { position: relative; z-index: 1; }
+.pp-breadcrumb {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 11px; font-weight: 600; color: rgba(255,255,255,.55);
+    text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 8px;
+}
+.pp-breadcrumb a { color: var(--gold); transition: opacity .2s; }
+.pp-breadcrumb a:hover { opacity: .8; }
+.pp-breadcrumb span { color: rgba(255,255,255,.3); }
+.pp-hero h1 {
+    font-size: 1.9rem; font-weight: 900; color: #FFFFFF;
+    line-height: 1.15; margin-bottom: 6px;
+    display: flex; align-items: center; gap: 12px;
+}
+.pp-hero h1 .icon-wrap {
+    width: 42px; height: 42px; border-radius: 10px;
+    background: rgba(212,164,90,.25); border: 1px solid rgba(212,164,90,.4);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px; color: var(--gold); flex-shrink: 0;
+}
+.pp-hero-sub { font-size: 12px; color: rgba(255,255,255,.55); margin-bottom: 20px; }
+.pp-back-btn {
+    display: inline-flex; align-items: center; gap: 7px;
+    padding: 8px 18px; border-radius: 7px;
+    background: transparent; color: rgba(255,255,255,.85);
+    border: 1.5px solid rgba(255,255,255,.3);
+    font-size: 12px; font-weight: 600; transition: all .25s;
+    position: relative; z-index: 1;
+}
+.pp-back-btn:hover { background: rgba(255,255,255,.1); border-color: rgba(255,255,255,.6); color: #FFFFFF; }
+
+/* Wave bottom */
+.pp-hero-wave { display: block; width: 100%; margin-bottom: -2px; }
+
+/* ═══════════ TOC SIDEBAR LAYOUT ═══════════ */
+.pp-layout {
+    display: grid;
+    grid-template-columns: 220px 1fr;
+    gap: 28px;
+    max-width: 1100px; margin: 0 auto;
+    padding: 32px 20px 52px;
+    align-items: start;
+}
+
+/* ── TOC ── */
+.pp-toc {
+    position: sticky; top: calc(var(--nav-h) + 16px);
+    background: #FFFFFF; border-radius: var(--r);
+    border: 1.5px solid var(--border);
+    box-shadow: var(--sh); overflow: hidden;
+}
+.pp-toc-head {
+    padding: 12px 16px;
+    background: linear-gradient(90deg, var(--blue), var(--dark));
+    font-size: 10px; font-weight: 800; letter-spacing: 2px;
+    text-transform: uppercase; color: var(--gold);
+}
+.pp-toc-list { list-style: none; padding: 8px 0; }
+.pp-toc-list li a {
+    display: flex; align-items: center; gap: 8px;
+    padding: 7px 14px; font-size: 12px; font-weight: 500;
+    color: var(--muted); transition: all .2s; border-left: 2px solid transparent;
+}
+.pp-toc-list li a:hover,
+.pp-toc-list li a.active {
+    color: var(--blue); background: var(--blue-l);
+    border-left-color: var(--blue);
+}
+.pp-toc-list li a .toc-num {
+    width: 18px; height: 18px; border-radius: 50%;
+    background: var(--border); color: var(--muted);
+    font-size: 9px; font-weight: 800;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; transition: all .2s;
+}
+.pp-toc-list li a:hover .toc-num,
+.pp-toc-list li a.active .toc-num {
+    background: var(--blue); color: #FFFFFF;
+}
+
+/* ── CONTENT ── */
+.pp-content { min-width: 0; }
+
+/* Custom content (from admin) */
+.pp-custom-content {
+    background: #FFFFFF; border-radius: var(--r);
+    border: 1.5px solid var(--border);
+    box-shadow: var(--sh); padding: 28px 32px;
+    line-height: 1.8; font-size: 14px; color: var(--text);
+}
+.pp-custom-content h1, .pp-custom-content h2, .pp-custom-content h3 { color: var(--blue); margin: 20px 0 10px; }
+.pp-custom-content a { color: var(--blue); }
+.pp-custom-content p { margin-bottom: 12px; }
+
+/* Section cards */
+.pp-section {
+    background: #FFFFFF; border-radius: var(--r);
+    border: 1.5px solid var(--border);
+    box-shadow: var(--sh);
+    margin-bottom: 16px; overflow: hidden;
+    transition: box-shadow .25s;
+    scroll-margin-top: calc(var(--nav-h) + 20px);
+}
+.pp-section:hover { box-shadow: var(--sh2); }
+.pp-section-head {
+    display: flex; align-items: center; gap: 12px;
+    padding: 14px 20px;
+    background: linear-gradient(90deg, var(--blue-l), #FFFFFF);
+    border-bottom: 1.5px solid var(--border);
+}
+.pp-sec-num {
+    width: 28px; height: 28px; border-radius: 50%;
+    background: var(--blue); color: #FFFFFF;
+    font-size: 11px; font-weight: 800;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+}
+.pp-sec-icon {
+    width: 28px; height: 28px; border-radius: 7px;
+    background: rgba(212,164,90,.15); border: 1px solid rgba(212,164,90,.3);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; color: var(--gold-d); flex-shrink: 0;
+}
+.pp-section-head h4 {
+    font-size: 13px; font-weight: 800; color: var(--dark);
+    margin: 0; text-transform: uppercase; letter-spacing: .5px;
+}
+.pp-section-body { padding: 16px 20px; }
+.pp-section-body p {
+    font-size: 13px; color: var(--muted); line-height: 1.8; margin-bottom: 8px;
+}
+.pp-section-body p:last-child { margin-bottom: 0; }
+.pp-section-body strong { color: var(--text); }
+.pp-section-body a { color: var(--blue); font-weight: 600; }
+.pp-section-body a:hover { color: var(--blue-d); }
+.pp-section-body ul {
+    margin: 8px 0 8px 18px; list-style: none; padding: 0;
+}
+.pp-section-body ul li {
+    font-size: 13px; color: var(--muted); line-height: 1.8;
+    padding-left: 20px; position: relative; margin-bottom: 2px;
+}
+.pp-section-body ul li::before {
+    content: '›'; position: absolute; left: 0;
+    color: var(--gold); font-weight: 800; font-size: 16px; line-height: 1.4;
+}
+
+/* Highlight box */
+.pp-highlight {
+    background: linear-gradient(90deg, var(--gold-l), #FFFFFF);
+    border: 1px solid rgba(212,164,90,.3);
+    border-left: 3px solid var(--gold);
+    border-radius: 7px; padding: 12px 16px;
+    font-size: 12px; color: var(--text); line-height: 1.7;
+    margin-top: 10px;
+    display: flex; align-items: flex-start; gap: 10px;
+}
+.pp-highlight i { color: var(--gold-d); margin-top: 2px; flex-shrink: 0; }
+
+/* Last updated badge */
+.pp-updated {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 5px 12px; border-radius: 20px;
+    background: var(--blue-l); border: 1px solid rgba(26,111,168,.2);
+    font-size: 11px; font-weight: 600; color: var(--blue);
+    margin-bottom: 20px;
+}
+.pp-updated i { font-size: 10px; }
+
+/* Contact card */
+.pp-contact-card {
+    background: var(--grad); border-radius: var(--r);
+    padding: 20px 24px; margin-top: 16px;
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 16px; flex-wrap: wrap;
+}
+.pp-contact-card h5 { color: #FFFFFF; font-size: 14px; font-weight: 800; margin-bottom: 4px; }
+.pp-contact-card p  { color: rgba(255,255,255,.65); font-size: 12px; margin: 0; }
+.pp-contact-card a.cc-btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 9px 18px; border-radius: 7px;
+    background: var(--gold); color: var(--dark);
+    font-size: 12px; font-weight: 700; flex-shrink: 0;
+    transition: background .2s;
+}
+.pp-contact-card a.cc-btn:hover { background: var(--gold-d); }
+
+@@media (max-width: 900px) {
+    .pp-layout { grid-template-columns: 1fr; }
+    .pp-toc { position: static; }
+}
+@@media (max-width: 575px) {
+    .pp-hero h1 { font-size: 1.4rem; }
+    .pp-section-head { padding: 12px 14px; }
+    .pp-section-body { padding: 14px; }
+    .pp-custom-content { padding: 18px; }
+    .pp-contact-card { flex-direction: column; align-items: flex-start; }
+}
+
+/* ═══════════ FOOTER (same tokens as Index_Final) ═══════════ */
+.pp-footer { background: var(--dark); color: rgba(255,255,255,.75); margin-top: 0; }
+.footer-body { padding: 42px 0 32px; }
+.footer-grid { display: grid; grid-template-columns: 2fr 1fr 1.5fr; gap: 32px; }
+.footer-col-title {
+    font-size: 10px; font-weight: 800; letter-spacing: 2px; text-transform: uppercase;
+    color: var(--gold); margin-bottom: 16px; padding-bottom: 8px;
+    border-bottom: 2px solid rgba(26,111,168,.3); display: block;
+}
+.footer-logo  { max-height: 44px; max-width: 160px; object-fit: contain; margin-bottom: 12px; }
+.footer-bname { font-size: 1.2rem; font-weight: 800; color: #FFFFFF; display: block; margin-bottom: 10px; }
+.footer-brand p { font-size: 12px; line-height: 1.7; color: #FFFFFFff; margin-bottom: 14px; }
+.footer-socials { display: flex; gap: 7px; flex-wrap: wrap; }
+.fsoc {
+    width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    font-size: 13px; transition: all .25s; color: #FFFFFF; flex-shrink: 0;
+}
+.fsoc:hover { transform: translateY(-3px); box-shadow: 0 4px 12px rgba(0,0,0,.3); }
+.fsoc-tw{background:#2589C9}.fsoc-fb{background:#2589C9}
+.fsoc-ig{background:linear-gradient(45deg,#DC2626,#DC2626)}.fsoc-li{background:#1A6FA8}.fsoc-wa{background:#16A34A}
+.footer-lnk {
+    display: flex; align-items: center; gap: 7px;
+    font-size: 12px; color: #FFFFFFff; padding: 4px 0; transition: color .2s;
+}
+.footer-lnk i { font-size: 9px; color: var(--blue); }
+.footer-lnk:hover { color: #D4A45A; }
+.footer-contact {
+    display: flex; align-items: flex-start; gap: 8px;
+    font-size: 12px; color: #FFFFFFff; margin-bottom: 10px; line-height: 1.5;
+}
+.footer-contact i { color: var(--blue); margin-top: 2px; flex-shrink: 0; }
+.footer-contact a { color: #D4A45A; transition: color .2s; }
+.footer-contact a:hover { color: #FFFFFFff; }
+@@media (max-width: 991px) { .footer-grid { grid-template-columns: 1fr 1fr; } }
+@@media (max-width: 575px)  { .footer-grid { grid-template-columns: 1fr; } }
+.footer-strip { background: rgba(0,0,0,.4); padding: 12px 0; }
+.footer-strip-inner { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
+.footer-copy { font-size: 13px; color: #FFFFFFff; }
+.footer-copy a { color: r#D4A45A; transition: color .2s; }
+.footer-copy a:hover { color: #FFFFFFff; }
+.footer-legal { display: flex; gap: 14px; flex-wrap: wrap; }
+.footer-legal a { font-size: 13px; color: #FFFFFFff; transition: color .2s; }
+.footer-legal a:hover { color: #D4A45A; }
+@@media (max-width: 575px) { .footer-strip-inner { flex-direction: column; align-items: flex-start; } .footer-legal { gap: 8px; } }
+
+/* back to top */
+.back-top {
+    position: fixed; bottom: 22px; right: 22px; z-index: 900;
+    width: 40px; height: 40px; border-radius: 8px;
+    background: var(--gold); color: var(--dark);
+    display: none; align-items: center; justify-content: center;
+    font-size: 15px; font-weight: 700;
+    box-shadow: 0 4px 16px rgba(212,164,90,.4); transition: all .3s;
+}
+.back-top:hover { background: var(--gold-d); transform: translateY(-3px); }
+.back-top.show { display: flex; }
+</style>
+}
+
+<!-- ═══ HERO STRIP ═══ -->
+<div class="pp-hero">
+    <div class="fw-wrap">
+        <div class="pp-hero-inner">
+            <div class="pp-hero-left">
+                <div class="pp-breadcrumb">
+                    <a href="/Home/Landing"><i class="fa fa-home"></i> Home</a>
+                    <span>/</span>
+                    <span>Privacy Policy</span>
+                </div>
+                <h1>
+                    <span class="icon-wrap"><i class="fa fa-shield-alt"></i></span>
+                    Privacy Policy
+                </h1>
+                <p class="pp-hero-sub">How we collect, use, and protect your personal information</p>
+            </div>
+            <a href="/Home/Landing" class="pp-back-btn">
+                <i class="fa fa-arrow-left"></i> Back to Home
+            </a>
+        </div>
+    </div>
+    <svg class="pp-hero-wave" viewBox="0 0 1440 32" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
+        <path d="M0,32 C360,0 1080,0 1440,32 L1440,32 L0,32 Z" fill="#FFFFFF"/>
+    </svg>
+</div>
+
+<!-- ═══ MAIN LAYOUT ═══ -->
+<div class="pp-layout">
+
+    <!-- TOC (only for default content) -->
+    @if (string.IsNullOrWhiteSpace(customContent)) {
+    <aside class="pp-toc">
+        <div class="pp-toc-head">Contents</div>
+        <ul class="pp-toc-list">
+            <li><a href="#s1" class="toc-lnk"><span class="toc-num">1</span> Your Information</a></li>
+            <li><a href="#s2" class="toc-lnk"><span class="toc-num">2</span> Consent</a></li>
+            <li><a href="#s3" class="toc-lnk"><span class="toc-num">3</span> Disclosure</a></li>
+            <li><a href="#s4" class="toc-lnk"><span class="toc-num">4</span> Payment</a></li>
+            <li><a href="#s5" class="toc-lnk"><span class="toc-num">5</span> Third-Party</a></li>
+            <li><a href="#s6" class="toc-lnk"><span class="toc-num">6</span> Security</a></li>
+            <li><a href="#s7" class="toc-lnk"><span class="toc-num">7</span> Cookies</a></li>
+            <li><a href="#s8" class="toc-lnk"><span class="toc-num">8</span> Changes</a></li>
+            <li><a href="#sq" class="toc-lnk"><span class="toc-num"><i class="fa fa-envelope" style="font-size:8px"></i></span> Contact</a></li>
+        </ul>
+    </aside>
+    }
+
+    <!-- CONTENT -->
+    <div class="pp-content">
+
+        @if (!string.IsNullOrWhiteSpace(customContent)) {
+            <!-- Custom admin content -->
+            <div class="pp-updated">
+                <i class="fa fa-clock"></i> Last updated: @DateTime.Now.Year
+            </div>
+            <div class="pp-custom-content">
+                @Html.Raw(customContent)
+            </div>
+        } else {
+            <!-- Default content - all original backend variables intact -->
+            <div class="pp-updated">
+                <i class="fa fa-clock"></i> Last updated: @DateTime.Now.Year
+            </div>
+
+            <p style="font-size:13px;color:var(--muted);margin-bottom:20px;line-height:1.8">
+                This privacy policy applies to all visitors, users and clients of <strong style="color:var(--dark)">@companyName</strong>.
+                Please read this policy carefully to understand our practices.
+            </p>
+
+            <!-- S1 -->
+            <div class="pp-section" id="s1">
+                <div class="pp-section-head">
+                    <span class="pp-sec-num">1</span>
+                    <span class="pp-sec-icon"><i class="fa fa-database"></i></span>
+                    <h4>What Do We Do With Your Information?</h4>
+                </div>
+                <div class="pp-section-body">
+                    <p>When you purchase something from our services, we collect the personal information you give us such as your Full Name, Address and Email address. When you browse our services, we also automatically receive your computer's internet protocol (IP) address.</p>
+                    <p>With your permission, we may send you emails about our services, new applications and other updates.</p>
+                    <div class="pp-highlight">
+                        <i class="fa fa-info-circle"></i>
+                        <span>We only collect information that is necessary to provide you with our services and improve your experience.</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- S2 -->
+            <div class="pp-section" id="s2">
+                <div class="pp-section-head">
+                    <span class="pp-sec-num">2</span>
+                    <span class="pp-sec-icon"><i class="fa fa-check-circle"></i></span>
+                    <h4>Consent</h4>
+                </div>
+                <div class="pp-section-body">
+                    <p>When you provide us with personal information to complete a transaction, we imply that you consent to our collecting it and using it for that specific reason only. If we ask for your personal information for a secondary reason, like marketing, we will ask you directly for your expressed consent.</p>
+                    <p>If after you opt-in, you change your mind, you may withdraw your consent at anytime by contacting us at
+                        <a href="mailto:@companyEmail"><strong>@companyEmail</strong></a>
+                        @if (!string.IsNullOrEmpty(companyAddress)) { <text> or by mail at <strong>@companyAddress</strong></text> }.
+                    </p>
+                </div>
+            </div>
+
+            <!-- S3 -->
+            <div class="pp-section" id="s3">
+                <div class="pp-section-head">
+                    <span class="pp-sec-num">3</span>
+                    <span class="pp-sec-icon"><i class="fa fa-gavel"></i></span>
+                    <h4>Disclosure</h4>
+                </div>
+                <div class="pp-section-body">
+                    <p>We may disclose your personal information if we are required by law to do so or if you violate our Terms of Service.</p>
+                    <div class="pp-highlight">
+                        <i class="fa fa-balance-scale"></i>
+                        <span>Your data is only disclosed when legally required or in cases of clear policy violations.</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- S4 -->
+            <div class="pp-section" id="s4">
+                <div class="pp-section-head">
+                    <span class="pp-sec-num">4</span>
+                    <span class="pp-sec-icon"><i class="fa fa-credit-card"></i></span>
+                    <h4>Payment</h4>
+                </div>
+                <div class="pp-section-body">
+                    <p>We use Razorpay for processing payments. We/Razorpay do not store your card data on their servers. The data is encrypted through the Payment Card Industry Data Security Standard (PCI-DSS) when processing payment.</p>
+                    <p>Your purchase transaction data is only used as long as is necessary to complete your purchase transaction.</p>
+                </div>
+            </div>
+
+            <!-- S5 -->
+            <div class="pp-section" id="s5">
+                <div class="pp-section-head">
+                    <span class="pp-sec-num">5</span>
+                    <span class="pp-sec-icon"><i class="fa fa-puzzle-piece"></i></span>
+                    <h4>Third-Party Services</h4>
+                </div>
+                <div class="pp-section-body">
+                    <p>In general, the third-party providers used by us will only collect, use and disclose your information to the extent necessary to allow them to perform the services they provide to us.</p>
+                    <p>Once you leave our website or are redirected to a third-party website, you are no longer governed by this Privacy Policy.</p>
+                    <div class="pp-highlight">
+                        <i class="fa fa-external-link-alt"></i>
+                        <span>We recommend reviewing the privacy policies of any third-party services you access through our platform.</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- S6 -->
+            <div class="pp-section" id="s6">
+                <div class="pp-section-head">
+                    <span class="pp-sec-num">6</span>
+                    <span class="pp-sec-icon"><i class="fa fa-lock"></i></span>
+                    <h4>Security</h4>
+                </div>
+                <div class="pp-section-body">
+                    <p>To protect your personal information, we take reasonable precautions and follow industry best practices to make sure it is not inappropriately lost, misused, accessed, disclosed, altered or destroyed.</p>
+                </div>
+            </div>
+
+            <!-- S7 -->
+            <div class="pp-section" id="s7">
+                <div class="pp-section-head">
+                    <span class="pp-sec-num">7</span>
+                    <span class="pp-sec-icon"><i class="fa fa-cookie-bite"></i></span>
+                    <h4>Cookies</h4>
+                </div>
+                <div class="pp-section-body">
+                    <p>We use cookies to maintain session of your user. It is not used to personally identify you on other websites.</p>
+                    <div class="pp-highlight">
+                        <i class="fa fa-info-circle"></i>
+                        <span>Cookies help us provide a seamless browsing experience and remember your preferences within our platform.</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- S8 -->
+            <div class="pp-section" id="s8">
+                <div class="pp-section-head">
+                    <span class="pp-sec-num">8</span>
+                    <span class="pp-sec-icon"><i class="fa fa-sync-alt"></i></span>
+                    <h4>Changes to This Privacy Policy</h4>
+                </div>
+                <div class="pp-section-body">
+                    <p>We reserve the right to modify this privacy policy at any time. Changes and clarifications will take effect immediately upon their posting on the website.</p>
+                    <p>If our website is acquired or merged with another company, your information may be transferred to the new owners so that we may continue to provide services to you.</p>
+                </div>
+            </div>
+
+            <!-- CONTACT CARD -->
+            <div class="pp-section" id="sq">
+                <div class="pp-section-head">
+                    <span class="pp-sec-num"><i class="fa fa-envelope" style="font-size:11px"></i></span>
+                    <span class="pp-sec-icon"><i class="fa fa-headset"></i></span>
+                    <h4>Questions &amp; Contact Information</h4>
+                </div>
+                <div class="pp-section-body">
+                    <p>If you would like to access, correct, amend or delete any personal information we have about you, or simply want more information, please contact us.</p>
+                    <div class="pp-contact-card">
+                        <div>
+                            <h5>Get in Touch</h5>
+                            <p>We're here to help with any privacy concerns</p>
+                        </div>
+                        <a href="mailto:@companyEmail" class="cc-btn">
+                            <i class="fa fa-envelope"></i> @companyEmail
+                        </a>
+                    </div>
+                    @if (!string.IsNullOrEmpty(companyAddress)) {
+                        <div class="pp-highlight" style="margin-top:12px">
+                            <i class="fa fa-map-marker-alt"></i>
+                            <span>Mail us at: <strong>@companyAddress</strong></span>
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+    </div><!-- /.pp-content -->
+</div><!-- /.pp-layout -->
+
+<!-- ═══ FOOTER (identical structure to Index_Final) ═══ -->
+<footer class="pp-footer">
+    @{
+        var footerAddress     = Context.RequestServices.GetService<CRM.AppDbContext>()?.Settings.FirstOrDefault(s => s.SettingKey=="CompanyAddress"  && s.ChannelPartnerId==null)?.SettingValue ?? "";
+        var footerPhone       = Context.RequestServices.GetService<CRM.AppDbContext>()?.Settings.FirstOrDefault(s => s.SettingKey=="CompanyPhone"    && s.ChannelPartnerId==null)?.SettingValue ?? "";
+        var footerEmail       = Context.RequestServices.GetService<CRM.AppDbContext>()?.Settings.FirstOrDefault(s => s.SettingKey=="CompanyEmail"    && s.ChannelPartnerId==null)?.SettingValue ?? "";
+        var footerCompanyName = Context.RequestServices.GetService<CRM.AppDbContext>()?.Settings.FirstOrDefault(s => s.SettingKey=="CompanyName"     && s.ChannelPartnerId==null)?.SettingValue ?? "PropTech CRM";
+        var footerMapUrl      = Context.RequestServices.GetService<CRM.AppDbContext>()?.Settings.FirstOrDefault(s => s.SettingKey=="CompanyMapUrl"   && s.ChannelPartnerId==null)?.SettingValue;
+    }
+    <div class="footer-body">
+        <div class="fw-wrap">
+            <div class="footer-grid">
+                <div class="footer-brand">
+                    @if (!string.IsNullOrEmpty(branding?.FooterLogo)) {
+                        <img src="@branding.FooterLogo" alt="Logo" class="footer-logo" />
+                    } else {
+                        <span class="footer-bname">@footerCompanyName</span>
+                    }
+                    @if (!string.IsNullOrEmpty(branding?.CompanyInfo)) {
+                        <p>@Html.Raw(branding.CompanyInfo.Replace("\n","<br/>"))</p>
+                    } else {
+                        <p>Building dreams, creating homes. Your trusted partner in real estate excellence.</p>
+                    }
+                    <div class="footer-socials">
+                        @if (!string.IsNullOrEmpty(branding?.TwitterUrl))   { <a href="@branding.TwitterUrl"   target="_blank" class="fsoc fsoc-tw"><i class="fab fa-twitter"></i></a> }
+                        @if (!string.IsNullOrEmpty(branding?.FacebookUrl))  { <a href="@branding.FacebookUrl"  target="_blank" class="fsoc fsoc-fb"><i class="fab fa-facebook-f"></i></a> }
+                        @if (!string.IsNullOrEmpty(branding?.InstagramUrl)) { <a href="@branding.InstagramUrl" target="_blank" class="fsoc fsoc-ig"><i class="fab fa-instagram"></i></a> }
+                        @if (!string.IsNullOrEmpty(branding?.LinkedInUrl))  { <a href="@branding.LinkedInUrl"  target="_blank" class="fsoc fsoc-li"><i class="fab fa-linkedin-in"></i></a> }
+                        @if (!string.IsNullOrEmpty(branding?.WhatsAppNumber)) {
+                            <a href="https://wa.me/@(branding.WhatsAppNumber.Replace("+","").Replace("-","").Replace(" ",""))" target="_blank" class="fsoc fsoc-wa"><i class="fab fa-whatsapp"></i></a>
+                        }
+                    </div>
+                </div>
+                <div class="footer-col">
+                    <span class="footer-col-title">Quick Links</span>
+                    <a href="/Home/Landing#about"    class="footer-lnk"><i class="fa fa-chevron-right"></i> About Us</a>
+                    <a href="/Home/Landing#why"      class="footer-lnk"><i class="fa fa-chevron-right"></i> Services</a>
+                    <a href="/Home/Landing#projects" class="footer-lnk"><i class="fa fa-chevron-right"></i> Our Projects</a>
+                    <a href="/Account/Login"         class="footer-lnk"><i class="fa fa-chevron-right"></i> Login</a>
+                </div>
+                @if (!string.IsNullOrEmpty(footerAddress) || !string.IsNullOrEmpty(footerPhone) || !string.IsNullOrEmpty(footerEmail)) {
+                    <div class="footer-col">
+                        <span class="footer-col-title">Contact Us</span>
+                        @if (!string.IsNullOrEmpty(footerAddress)) {
+                            <div class="footer-contact"><i class="fa fa-map-marker-alt"></i>
+                                @if (!string.IsNullOrEmpty(footerMapUrl)) { <a href="@footerMapUrl" target="_blank">@footerAddress</a> }
+                                else { <span>@footerAddress</span> }
+                            </div>
+                        }
+                        @if (!string.IsNullOrEmpty(footerPhone)) {
+                            <div class="footer-contact"><i class="fa fa-phone-alt"></i><span>@footerPhone</span></div>
+                        }
+                        @if (!string.IsNullOrEmpty(footerEmail)) {
+                            <div class="footer-contact"><i class="fa fa-envelope"></i>
+                                <a href="https://mail.google.com/mail/?view=cm&to=@footerEmail" target="_blank">@footerEmail</a>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+    <div class="footer-strip">
+        <div class="fw-wrap footer-strip-inner">
+            <div class="footer-copy">
+                @{ var currentYear2 = DateTime.Now.Year;
+                   var copyrightText2 = Context.RequestServices.GetService<CRM.AppDbContext>()?.Settings.FirstOrDefault(s => s.SettingKey=="CopyrightText" && s.ChannelPartnerId==null)?.SettingValue; }
+                &copy; 2015–@currentYear2&nbsp;
+                @if (!string.IsNullOrEmpty(copyrightText2)) { <a href="/Home/Landing">@Html.Raw(copyrightText2)</a> }
+                else { <a href="/Home/Landing">@footerCompanyName</a> }
+                . All Rights Reserved.&nbsp;|&nbsp;Powered by <a href="https://proptechit.com/" target="_blank">PropTech Solutions</a>
+            </div>
+            <div class="footer-legal">
+                <a href="/Home/Terms">Terms &amp; Conditions</a>
+                <a href="/Home/Privacy">Privacy Policy</a>
+                <a href="/Home/RefundPolicy">Refund Policy</a>
+            </div>
+        </div>
+    </div>
+</footer>
+
+<a href="#" class="back-top" id="ppBackTop"><i class="fa fa-arrow-up"></i></a>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    /* Burger */
+    const burger  = document.getElementById('ppBurger');
+    const navMenu = document.getElementById('ppNavMenu');
+    if (burger) burger.addEventListener('click', () => navMenu.classList.toggle('open'));
+
+    /* Back to top */
+    const bTop = document.getElementById('ppBackTop');
+    window.addEventListener('scroll', () => bTop.classList.toggle('show', window.scrollY > 300), { passive: true });
+
+    /* TOC active highlight on scroll */
+    const tocLinks = document.querySelectorAll('.toc-lnk');
+    const sections = document.querySelectorAll('.pp-section[id]');
+    if (sections.length && tocLinks.length) {
+        const observer = new IntersectionObserver(entries => {
+            entries.forEach(en => {
+                if (en.isIntersecting) {
+                    tocLinks.forEach(l => l.classList.remove('active'));
+                    const active = document.querySelector('.toc-lnk[href="#' + en.target.id + '"]');
+                    if (active) active.classList.add('active');
+                }
+            });
+        }, { rootMargin: '-30% 0px -60% 0px' });
+        sections.forEach(s => observer.observe(s));
+    }
+
+    /* Smooth scroll for TOC links */
+    document.querySelectorAll('a[href^="#"]').forEach(a => {
+        a.addEventListener('click', function (e) {
+            const href = this.getAttribute('href');
+            if (href === '#') return;
+            const target = document.querySelector(href);
+            if (target) {
+                e.preventDefault();
+                const navH = document.getElementById('ppNav')?.offsetHeight || 60;
+                window.scrollTo({ top: target.getBoundingClientRect().top + window.pageYOffset - navH - 16, behavior: 'smooth' });
+            }
+        });
+    });
+
+    /* Section entrance animation */
+    const cards = document.querySelectorAll('.pp-section');
+    const cardObserver = new IntersectionObserver(entries => {
+        entries.forEach((en, i) => {
+            if (en.isIntersecting) {
+                en.target.style.opacity = '1';
+                en.target.style.transform = 'translateY(0)';
+                cardObserver.unobserve(en.target);
+            }
+        });
+    }, { threshold: 0.08 });
+    cards.forEach((c, i) => {
+        c.style.opacity = '0';
+        c.style.transform = 'translateY(18px)';
+        c.style.transition = 'opacity .4s ease ' + (i * 0.06) + 's, transform .4s ease ' + (i * 0.06) + 's';
+        cardObserver.observe(c);
+    });
+});
+</script>

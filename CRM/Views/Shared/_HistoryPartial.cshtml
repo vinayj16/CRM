@@ -1,0 +1,154 @@
+@model List<CRM.Models.LeadHistoryModel>
+
+<div class="history-section">
+    @if (Model == null || !Model.Any())
+    {
+        <div class="text-center py-5">
+            <i class="fa-solid fa-clock-rotate-left text-body-tertiary" style="font-size: 2.2rem;"></i>
+            <h5 class="mt-3 text-body-tertiary">No Activity History</h5>
+            <p class="text-body-secondary">Activity history will appear here as actions are performed on this lead.</p>
+        </div>
+    }
+    else
+    {
+        <div class="timeline-vertical">
+            @foreach (var history in Model)
+            {
+                var executive = (ViewBag.Executives as List<CRM.Models.UserModel>)?.FirstOrDefault(e => e.UserId == history.ExecutiveId);
+                var executiveName = executive?.Username ?? "System";
+
+                var activityIcon = history.Activity switch
+                {
+                    var a when a.Contains("created") || a.Contains("Created") => "fa-plus-circle text-success",
+                    var a when a.Contains("updated") || a.Contains("Updated") || a.Contains("modified") || a.Contains("Modified") => "fa-pen text-primary",
+                    var a when a.Contains("deleted") || a.Contains("Deleted") => "fa-trash text-danger",
+                    var a when a.Contains("Follow-up") || a.Contains("Followup") => "fa-calendar-check text-info",
+                    var a when a.Contains("Note") => "fa-note-sticky text-warning",
+                    var a when a.Contains("Upload") || a.Contains("File") => "fa-file-arrow-up text-success",
+                    var a when a.Contains("Email") => "fa-envelope text-primary",
+                    var a when a.Contains("Call") => "fa-phone text-success",
+                    _ => "fa-circle-dot text-secondary"
+                };
+
+                <div class="timeline-item-vertical">
+                    <div class="timeline-content">
+                        <div class="card mb-3">
+                            <div class="card-body py-2">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div>
+                                        <p class="mb-1 text-body" style="line-height: 1.7;">
+                                            @{
+                                                var activityText = history.Activity ?? "";
+                                                // Convert any 24hr time (like 21:20) to 12hr format (09:20 PM)
+                                                activityText = System.Text.RegularExpressions.Regex.Replace(activityText, @"(\d{1,2}:\d{2})(?!\s*[AaPp][Mm])", m => {
+                                                    if (TimeSpan.TryParse(m.Value, out var t))
+                                                        return DateTime.Today.Add(t).ToString("hh:mm tt");
+                                                    return m.Value;
+                                                });
+                                                // Bold the labels: Stage:, Status:, Scheduled:
+                                                activityText = System.Text.RegularExpressions.Regex.Replace(activityText, @"(Stage:|Status:|Scheduled:)", "<strong>$1</strong>");
+                                            }
+                                            @Html.Raw(activityText)
+                                        </p>
+                                        <small class="text-body-tertiary">
+                                            <i class="fa-solid fa-user me-1"></i>@executiveName
+                                            <span class="mx-2">•</span>
+                                            <i class="fa-solid fa-clock me-1"></i>@history.ActivityDate.ToString("MMM dd, yyyy hh:mm tt")
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+<style>
+    .history-section {
+        animation: fadeIn 0.3s ease-in;
+    }
+
+    .timeline-vertical {
+        position: relative;
+        padding-left: 20px;
+    }
+
+    .timeline-vertical::before {
+        content: '';
+        position: absolute;
+        left: 8px;
+        top: 0;
+        bottom: 0;
+        width: 2px;
+        background: linear-gradient(to bottom, #1A6FA8, #125082);
+        border-radius: 1px;
+    }
+
+    .timeline-item-vertical {
+        position: relative;
+        margin-bottom: 1rem;
+    }
+
+    .timeline-content {
+        flex-grow: 1;
+        padding-top: 5px;
+    }
+
+    .timeline-content .card {
+        transition: all 0.3s ease;
+        border: none;
+        border-radius: 16px;
+        border-left: 4px solid #1A6FA8;
+        background: linear-gradient(135deg, rgba(26,111,168, 0.05) 0%, rgba(18,80,130, 0.05) 100%);
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        border: 1px solid rgba(26,111,168, 0.12);
+    }
+
+    .timeline-content .card:hover {
+        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+        transform: translateY(-3px) translateX(8px);
+        border-left-color: #125082;
+    }
+
+    @@keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    /* Enhanced Icon Colors */
+    .timeline-icon i {
+        filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+    }
+    
+    .fa-plus-circle.text-success {
+        color: white !important;
+    }
+
+    .fa-pen.text-primary {
+        color: white !important;
+    }
+
+    .fa-trash.text-danger {
+        color: white !important;
+    }
+
+    .fa-calendar-check.text-info {
+        color: white !important;
+    }
+
+    .fa-note-sticky.text-warning {
+        color: white !important;
+    }
+</style>
+
+
+

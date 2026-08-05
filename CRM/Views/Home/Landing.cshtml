@@ -1,0 +1,3340 @@
+@{
+	ViewData["Title"] = "Home";
+	Layout = "_LandingLayout";
+}
+@inject Microsoft.AspNetCore.Http.IHttpContextAccessor HttpContextAccessor
+@inject CRM.AppDbContext _context
+@inject CRM.MasterDb.MasterDbContext _mastercontext
+@using System.IdentityModel.Tokens.Jwt
+@using System.Security.Claims
+@{
+	var branding = ViewBag.Branding as CRM.Models.BrandingModel;
+	var hasCompanyLogo = !string.IsNullOrEmpty(branding?.CompanyLogo);
+	var logoStyle = branding?.LogoDisplayStyle ?? "LogoOnly";
+	var companyName = Model.ContainsKey("CompanyName") && !string.IsNullOrEmpty(Model["CompanyName"]) ? Model["CompanyName"] : "PropTech CRM";
+
+	// Check plan-based branding: only show custom brand if plan has HasCustomBranding
+	bool hasCustomBranding = false;
+	var tidClaim = Context.User.FindFirst("TenantId")?.Value;
+	if (!string.IsNullOrEmpty(tidClaim) && int.TryParse(tidClaim, out int tid))
+	{
+		var activeSub = _mastercontext.TenantSubscriptions
+			.Where(s => s.TenantId == tid && (s.Status == "Active" || s.Status == "Trial"))
+			.OrderByDescending(s => s.StartDate)
+			.FirstOrDefault();
+		if (activeSub != null)
+		{
+			var activePlan = _mastercontext.SaasPlans.FirstOrDefault(p => p.PlanId == activeSub.PlanId);
+			hasCustomBranding = activePlan?.HasCustomBranding ?? false;
+		}
+	}
+	// For public (not authenticated) subdomain visitors, show PropTech logo by default
+	// Only show custom branding if the plan explicitly allows it
+	bool usePropTechLogo = !hasCustomBranding || User.Identity?.IsAuthenticated != true;
+}
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
+
+@{
+var token = HttpContextAccessor.HttpContext?.Request.Cookies["jwtToken"];
+var emails = HttpContextAccessor.HttpContext?.Session.GetString("Email")
+?? HttpContextAccessor.HttpContext?.Request.Cookies["Email"];
+string role = "";
+string username = "";
+string email = "";
+byte[] profileImageBytes = null;
+if (!string.IsNullOrEmpty(token))
+{
+try
+{
+var handler = new JwtSecurityTokenHandler();
+var jwt = handler.ReadJwtToken(token);
+role = jwt.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role || c.Type == "role")?.Value ?? "";
+username = jwt.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Name || c.Type == "name")?.Value ?? "";
+email = jwt.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Email || c.Type == "email")?.Value ?? emails ?? "";
+}
+catch { role = ""; username = ""; email = ""; }
+}
+
+	if (!string.IsNullOrEmpty(username) && role != "SuperAdmin")
+	{
+		// Get UserId from claims instead of username lookup
+		var userIdClaim = Context.User.FindFirst("UserId")?.Value;
+		if (!string.IsNullOrEmpty(userIdClaim) && int.TryParse(userIdClaim, out int userId))
+		{
+			var userProfile = _context.UserProfiles.FirstOrDefault(u => u.UserId == userId);
+			profileImageBytes = userProfile?.ProfileImage;
+		}
+	}
+	string profileImageSrc = profileImageBytes != null
+	? $"data:image/png;base64,{Convert.ToBase64String(profileImageBytes)}"
+	: "";
+	int? subdomainPartnerId = Context.Items["subdomainPartnerId"] as int?;
+	string subdomainPartnerName = Context.Items["subdomainPartnerName"] as string;
+	// Get company logo from branding settings
+	int? userChannelPartnerId = subdomainPartnerId;
+	bool isPartnerAgent = false;
+	if (!string.IsNullOrEmpty(username) && role != "SuperAdmin")
+	{
+		var userRecord = _context.Users.FirstOrDefault(u => u.Username == username);
+		userChannelPartnerId = userRecord?.ChannelPartnerId;
+		isPartnerAgent = userRecord?.ChannelPartnerId != null && (role == "Sales" || role == "Agent");
+	}
+
+}
+
+
+<!-- ═══════════════════════════════════════════════
+	 LOADING OVERLAY
+═══════════════════════════════════════════════ -->
+@* <div id="spinner" class="lp-spinner">
+    <div class="lp-spinner__inner">
+        @if (hasCompanyLogo)
+        {
+            <img id="logoImage" src="@branding.CompanyLogo" alt="Loading…" class="lp-spinner__logo" />
+        }
+        else
+        {
+            <span id="logoText" class="lp-spinner__text">@companyName</span>
+        }
+        <div class="lp-spinner__bar-wrap">
+            <div id="loadingBar" class="lp-spinner__bar"></div>
+        </div>
+        <span id="progressText" class="lp-spinner__pct">0%</span>
+    </div>
+</div> *@
+
+<!-- Progressive Logo Loading Overlay -->
+<div id="spinner" class="show position-fixed w-100 vh-100 top-0 start-0 d-flex align-items-center justify-content-center" style="background: white; z-index: 99999;">
+	<div style="text-align: center; position: relative;">
+		<div id="logoContainer" style="position: relative; width: 200px; height: 200px; margin: 0 auto 20px;">
+			<img id="logoImage" src="~/icons/PropTech_Logo_Color.png" alt="PropTech CRM" style="width: 100%; height: 100%; object-fit: contain; opacity: 0.2; transition: opacity 0.3s ease;">
+		</div>
+		<div style="width: 300px; height: 4px; background: #E8EDF2; border-radius: 2px; overflow: hidden; margin: 0 auto 10px;">
+			<div id="loadingBar" style="width: 0%; height: 100%; background: linear-gradient(90deg, #1A6FA8, #DC2626); transition: width 0.3s ease;"></div>
+		</div>
+		<div id="progressText" style="color: #6B7B8D; font-size: 14px; font-weight: 500;">0%</div>
+	</div>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+	 NAVBAR
+═══════════════════════════════════════════════ -->
+<nav class="lp-nav" id="mainNav">
+	<div class="lp-nav__inner">
+		<a href="#" class="lp-nav__brand">
+			@if (!usePropTechLogo && hasCompanyLogo && logoStyle == "LogoOnly")
+			{
+				<img src="@branding.CompanyLogo" alt="@companyName" class="lp-nav__logo-img" />
+			}
+			else if (!usePropTechLogo && hasCompanyLogo && logoStyle == "LogoWithName")
+			{
+				<img src="@branding.CompanyLogo" alt="@companyName" class="lp-nav__logo-img" />
+				<span class="lp-nav__brand-name">@companyName</span>
+			}
+			else if (!usePropTechLogo && logoStyle == "NameOnly")
+			{
+				<span class="lp-nav__brand-name">@companyName</span>
+			}
+			else
+			{
+				<img src="~/icons/PropTech_Logo_Color.png" alt="PropTech CRM" class="lp-nav__logo-icon" style="max-height:40px;" />
+				<span class="lp-nav__brand-name">PropTech CRM</span>
+			}
+		</a>
+		<button class="lp-nav__toggle" id="navToggle" aria-label="Toggle navigation" aria-expanded="false">
+			<span></span><span></span><span></span>
+		</button>
+		<div class="lp-nav__links d-flex align-items-center" id="navLinks">
+
+			<a href="#home" class="lp-nav__link active">Home</a>
+			<a href="#about" class="lp-nav__link">About</a>
+			<a href="#projects" class="lp-nav__link">Projects</a>
+			<a href="#footer" class="lp-nav__link">Services</a>
+			<a href="#footer" class="lp-nav__link">Company Info</a>
+
+			<div class="ms-auto d-flex align-items-center">
+
+				@if (User.Identity?.IsAuthenticated == true)
+				{
+					<ul class="navbar-nav">
+						<li class="nav-item dropdown"
+							style="position: relative;"
+							onmouseenter="showDropdown(this)"
+							onmouseleave="hideDropdown(this)">
+
+							<a class="nav-link navbar-profile-link"
+							   href="#"
+							   style="display:flex; align-items:center; gap:8px;">
+
+								@if (profileImageBytes != null)
+								{
+									<img src="@profileImageSrc"
+										 alt="@username"
+										 width="32"
+										 height="32"
+										 style="border-radius:6px;" />
+								}
+								else
+								{
+									<div style="width:32px;height:32px;
+		                                    display:flex;align-items:center;justify-content:center;
+		                                    border-radius:6px;
+		                                    background:linear-gradient(135deg,#1A6FA8,#125082);
+		                                    color:white;font-weight:600;font-size:14px;">
+										@(!string.IsNullOrEmpty(username) ? username.Substring(0, 1).ToUpper() : "U")
+									</div>
+								}
+
+								<span style="color:#000000; font-weight:600;">
+									@(!string.IsNullOrEmpty(username) ? username : "User")
+								</span>
+
+								@if (Context.Session.GetString("IsImpersonating") == "true")
+								{
+									<span style="background:#F59E0B; color:#000000; padding:2px 6px; border-radius:4px; font-size:12px;">
+										Impersonating
+									</span>
+								}
+
+							</a>
+
+							<!-- DROPDOWN -->
+							<div class="dropdown-menu dropdown-menu-end"
+								 style="position:absolute;
+	                            top:100%;
+	                            right:0;
+	                            margin-top:10px;
+	                            display:none;
+	                            min-width:200px;
+	                            z-index:9999;">
+
+								@if (role != "SuperAdmin")
+								{
+									<a class="dropdown-item" asp-controller="Profile" asp-action="Index">
+										<!-- Profile (Blue) -->
+										<svg width="16" height="16" viewBox="0 0 24 24"
+											 fill="#2589C9" style="margin-right:6px;">
+											<circle cx="12" cy="8" r="4"></circle>
+											<path d="M4 20c0-4 4-6 8-6s8 2 8 6"></path>
+										</svg>
+										Profile
+									</a>
+
+									<a class="dropdown-item" asp-controller="Settings" asp-action="Index">
+										<!-- Settings (Purple) -->
+										<svg width="16" height="16" viewBox="0 0 24 24"
+											 fill="#8FA3B8" style="margin-right:6px;">
+											<path d="M19.14 12.94a7.49 7.49 0 0 0 .05-.94 7.49 7.49 0 0 0-.05-.94l2.03-1.58a.5.5 0 0 0 .12-.64l-1.92-3.32a.5.5 0 0 0-.6-.22l-2.39.96a7.28 7.28 0 0 0-1.63-.94l-.36-2.54A.5.5 0 0 0 13.89 2h-3.78a.5.5 0 0 0-.49.41l-.36 2.54c-.59.23-1.13.54-1.63.94l-2.39-.96a.5.5 0 0 0-.6.22L2.72 8.47a.5.5 0 0 0 .12.64l2.03 1.58c-.03.31-.05.63-.05.94s.02.63.05.94L2.84 14.15a.5.5 0 0 0-.12.64l1.92 3.32c.14.24.43.34.69.22l2.39-.96c.5.4 1.04.71 1.63.94l.36 2.54c.05.24.25.41.49.41h3.78c.24 0 .44-.17.49-.41l.36-2.54c.59-.23 1.13-.54 1.63-.94l2.39.96c.26.12.55.02.69-.22l1.92-3.32a.5.5 0 0 0-.12-.64l-2.03-1.58zM12 15.5A3.5 3.5 0 1 1 12 8a3.5 3.5 0 0 1 0 7.5z" />
+										</svg>
+										Settings & Privacy
+									</a>
+
+									<a class="dropdown-item" asp-controller="Home" asp-action="HelpCenter">
+										<!-- Help (Green) -->
+										<svg width="16" height="16" viewBox="0 0 24 24"
+											 fill="#16A34A" style="margin-right:6px;">
+											<path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm1 17h-2v-2h2v2zm2.07-7.75-.9.92C13.45 13.1 13 13.5 13 15h-2v-.5c0-1 .45-1.5 1.17-2.17l1.24-1.26A2 2 0 1 0 10 9H8a4 4 0 1 1 7.07 2.25z" />
+										</svg>
+										Help Center
+									</a>
+
+									<div class="dropdown-divider"></div>
+								}
+
+								<a class="dropdown-item" asp-controller="Account" asp-action="Logout">
+									<!-- Logout (Red) -->
+									<svg width="16" height="16" viewBox="0 0 24 24"
+										 fill="#DC2626" style="margin-right:6px;">
+										<path d="M16 17l5-5-5-5v3H9v4h7v3z" />
+										<path d="M4 4h7v2H6v12h5v2H4z" />
+									</svg>
+									Log out
+								</a>
+
+							</div>
+
+						</li>
+					</ul>
+				}
+				else
+				{
+					<a asp-controller="Account" asp-action="Login" class="lp-nav__cta ms-3">
+						Login <i class="fa fa-arrow-right"></i>
+					</a>
+
+					<a asp-controller="Account" asp-action="register" class="lp-nav__cta ms-3">
+						Sign up <i class="fa fa-arrow-right"></i>
+					</a>
+				}
+
+			</div>
+		</div>
+	</div>
+</nav>
+
+<!-- ═══════════════════════════════════════════════
+	 OFFCANVAS BACKDROP
+═══════════════════════════════════════════════ -->
+<div class="lp-offcanvas-backdrop" id="offcanvasBackdrop"></div>
+
+<!-- ═══════════════════════════════════════════════
+	 OFFCANVAS DRAWER
+═══════════════════════════════════════════════ -->
+<div class="lp-offcanvas" id="navOffcanvas" role="dialog" aria-modal="true" aria-label="Navigation menu">
+	<div class="lp-offcanvas__head">
+		<div class="lp-offcanvas__head-brand">
+			<img src="~/icons/PropTech_Logo_Color.png" alt="PropTech CRM" style="max-height:32px;max-width:110px;object-fit:contain;" />
+		</div>
+		<button class="lp-offcanvas__close" id="offcanvasClose" aria-label="Close menu">&times;</button>
+	</div>
+	<div class="lp-offcanvas__body">
+		<a href="#home" class="lp-offcanvas__link"><i class="fa fa-home"></i> Home</a>
+		<a href="#about" class="lp-offcanvas__link"><i class="fa fa-info-circle"></i> About</a>
+		<a href="#projects" class="lp-offcanvas__link"><i class="fa fa-building"></i> Projects</a>
+		<a href="#footer" class="lp-offcanvas__link"><i class="fa fa-cogs"></i> Services</a>
+		<a href="#footer" class="lp-offcanvas__link"><i class="fa fa-address-card"></i> Company Info</a>
+	</div>
+	<div class="lp-offcanvas__footer">
+		<a href="/Account/Login" class="lp-btn lp-btn--primary" style="width:100%;justify-content:center;">
+			<i class="fa fa-arrow-right"></i> Login
+		</a>
+	</div>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+	 BREADCRUMB
+═══════════════════════════════════════════════ -->
+<div style="background: var(--lp-bg); padding: 8px 0; border-bottom: 1px solid var(--lp-border);">
+	<div class="lp-container">
+		<nav aria-label="breadcrumb" style="font-size: 12px;">
+			<ol class="breadcrumb mb-0" style="background: transparent; padding: 0; margin: 0;">
+				<li class="breadcrumb-item">
+					<a href="/" style="color: var(--lp-blue); text-decoration: none;">
+						<i class="fa fa-home"></i> Home
+					</a>
+				</li>
+				<li class="breadcrumb-item active" aria-current="page" style="color: var(--lp-muted);">
+					@(Model.ContainsKey("CompanyName") ? Model["CompanyName"] : "Welcome")
+				</li>
+			</ol>
+		</nav>
+	</div>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+	 QUOTE TICKER
+═══════════════════════════════════════════════ -->
+<div class="lp-ticker">
+	<div class="lp-ticker__track">
+		<span class="lp-ticker__item"><i class="fa-solid fa-star" style="font-size:10px;"></i> Your Dream House is Our Dream</span>
+		<span class="lp-ticker__item"><i class="fa-solid fa-star" style="font-size:10px;"></i> Building Homes, Creating Memories</span>
+		<span class="lp-ticker__item"><i class="fa-solid fa-star" style="font-size:10px;"></i> Quality Construction, Lifetime Satisfaction</span>
+		<span class="lp-ticker__item"><i class="fa-solid fa-star" style="font-size:10px;"></i> Where Luxury Meets Affordability</span>
+		<span class="lp-ticker__item"><i class="fa-solid fa-star" style="font-size:10px;"></i> Your Dream House is Our Dream</span>
+		<span class="lp-ticker__item"><i class="fa-solid fa-star" style="font-size:10px;"></i> Building Homes, Creating Memories</span>
+		<span class="lp-ticker__item"><i class="fa-solid fa-star" style="font-size:10px;"></i> Quality Construction, Lifetime Satisfaction</span>
+		<span class="lp-ticker__item"><i class="fa-solid fa-star" style="font-size:10px;"></i> Where Luxury Meets Affordability</span>
+	</div>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+	 HERO CAROUSEL
+═══════════════════════════════════════════════ -->
+<section class="lp-hero" id="home">
+	<div id="heroCarousel" class="carousel slide" data-bs-ride="carousel" data-bs-interval="5000">
+		<div class="carousel-inner">
+			<div class="carousel-item active">
+				<div class="lp-hero__slide" style="background-image:url('https://images.unsplash.com/photo-1556761175-b413da4baf72?w=1920&h=900&fit=crop')">
+					<div class="lp-hero__overlay">
+						<div class="lp-hero__content">
+							<span class="lp-hero__eyebrow">Premium CRM Platform</span>
+							<h1 class="lp-hero__title">Manage Your<br><em>Business</em></h1>
+							<p class="lp-hero__sub">Streamline sales, manage customer relationships, and grow your business efficiently.</p>
+							<div class="lp-hero__actions">
+								<a href="#projects" class="lp-btn lp-btn--primary">Explore Projects</a>
+								<a href="#about" class="lp-btn lp-btn--outline">Learn More</a>
+								<a href="#" class="lp-btn lp-btn--outline" data-bs-toggle="modal" data-bs-target="#inquiryModal">Get Started</a>
+
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+			<div class="carousel-item">
+				<div class="lp-hero__slide" style="background-image:url('https://images.unsplash.com/photo-1541888946425-d81bb19240f5?w=1920&h=900&fit=crop')">
+					<div class="lp-hero__overlay">
+						<div class="lp-hero__content">
+							<span class="lp-hero__eyebrow">Exclusive Properties</span>
+							<h1 class="lp-hero__title">Premium Real<br><em>Estate Projects</em></h1>
+							<p class="lp-hero__sub">Discover our collection of residential and commercial properties with prime locations.</p>
+							<div class="lp-hero__actions">
+								<a href="#projects" class="lp-btn lp-btn--primary">View Properties</a>
+								<a href="#footer" class="lp-btn lp-btn--outline">Contact Us</a>
+								<a href="#" class="lp-btn lp-btn--outline" data-bs-toggle="modal" data-bs-target="#inquiryModal">Get Started</a>
+
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+		<button class="carousel-control-prev" type="button" data-bs-target="#heroCarousel" data-bs-slide="prev">
+			<span class="carousel-control-prev-icon"></span>
+		</button>
+		<button class="carousel-control-next" type="button" data-bs-target="#heroCarousel" data-bs-slide="next">
+			<span class="carousel-control-next-icon"></span>
+		</button>
+	</div>
+</section>
+@* <div class="lp-hero__actions">
+    <a href="#" class="lp-btn lp-btn--outline" data-bs-toggle="modal" data-bs-target="#inquiryModal">Get Started</a>
+</div> *@
+<div class="hero-action-center">
+	<a href="#"
+	   class="cta-register-btn"
+	   data-bs-toggle="modal"
+	   data-bs-target="#inquiryModal">
+		Register Today <i class="fa fa-arrow-right"></i>
+	</a>
+
+	<div class="tagline-text">
+		#1 in Customer Success
+	</div>
+</div>
+<!-- ═══════════════════════════════════════════════
+	 SERVICES STRIP
+═══════════════════════════════════════════════ -->
+<section class="lp-services">
+	<div class="lp-container">
+		<div class="lp-services__grid">
+			<div class="lp-service-card">
+				<div class="lp-service-card__icon"><i class="fa fa-hard-hat"></i></div>
+				<h5>Quality Construction</h5>
+				<p>Premium builds with high-grade materials and modern techniques</p>
+			</div>
+			<div class="lp-service-card">
+				<div class="lp-service-card__icon"><i class="fa fa-map-marker-alt"></i></div>
+				<h5>Prime Locations</h5>
+				<p>Strategically located with excellent connectivity to business hubs</p>
+			</div>
+			<div class="lp-service-card">
+				<div class="lp-service-card__icon"><i class="fa fa-swimming-pool"></i></div>
+				<h5>Modern Amenities</h5>
+				<p>World-class amenities including pool, gym, clubhouse &amp; gardens</p>
+			</div>
+			<div class="lp-service-card">
+				<div class="lp-service-card__icon"><i class="fa fa-shield-alt"></i></div>
+				<h5>Trusted Developer</h5>
+				<p>Years of experience with a proven record of quality delivery</p>
+			</div>
+		</div>
+	</div>
+</section>
+
+<!-- ═══════════════════════════════════════════════
+	 STATISTICS
+═══════════════════════════════════════════════ -->
+<section class="lp-stats">
+	<div class="lp-container">
+		<div class="lp-stats__grid">
+			<div class="lp-stat">
+				<i class="fa fa-users lp-stat__icon"></i>
+				<div class="lp-stat__num">
+					<span class="counter" data-target="@(ViewBag.LeadsCount ?? 150)">0</span><span>+</span>
+				</div>
+				<div class="lp-stat__label">Happy Leads</div>
+				<p>Customers who trusted us with their dream home</p>
+			</div>
+			<div class="lp-stat">
+				<i class="fa fa-building lp-stat__icon"></i>
+				<div class="lp-stat__num">
+					<span class="counter" data-target="@(ViewBag.ProjectsCount ?? 25)">0</span><span>+</span>
+				</div>
+				<div class="lp-stat__label">Completed Projects</div>
+				<p>Residential and commercial projects delivered</p>
+			</div>
+			<div class="lp-stat">
+				<i class="fa fa-smile lp-stat__icon"></i>
+				<div class="lp-stat__num">
+					<span class="counter" data-target="98">0</span><span>%</span>
+				</div>
+				<div class="lp-stat__label">Customer Satisfaction</div>
+				<p>Clients satisfied with quality &amp; timely delivery</p>
+			</div>
+		</div>
+	</div>
+</section>
+
+<!-- ═══════════════════════════════════════════════
+	 ABOUT
+═══════════════════════════════════════════════ -->
+<section class="lp-about" id="about">
+	<div class="lp-container">
+		<div class="lp-about__grid">
+			<div class="lp-about__img-wrap" id="aboutImgWrap">
+				@if (!string.IsNullOrEmpty(branding?.AboutUsImage))
+				{
+					<img src="@branding.AboutUsImage" alt="About Us" class="lp-about__img" />
+				}
+				else
+				{
+					<img src="~/uploads/Construction.jpg" alt="About Us" class="lp-about__img" />
+				}
+				<div class="lp-about__badge">
+					<span class="lp-about__badge-num">15+</span>
+					<span class="lp-about__badge-txt">Years<br>Experience</span>
+				</div>
+			</div>
+			<div class="lp-about__content">
+				<h3><span class="lp-eyebrow demo-text slideInRight">About Us</span></h3>
+				<h2 class="lp-about__title">Welcome to @(Model.ContainsKey("CompanyName") ? Model["CompanyName"] : "Our Company")</h2>
+				@if (!string.IsNullOrEmpty(branding?.AboutUsText))
+				{
+					<div class="lp-about__text">@Html.Raw(branding.AboutUsText.Replace("\n", "<br/>"))</div>
+				}
+				else
+				{
+					<p class="lp-about__text">We are a leading real estate company dedicated to providing exceptional property solutions. With years of experience, we help clients find their dream homes and make smart investment decisions.</p>
+					<p class="lp-about__text">Our experienced professionals ensure every transaction is smooth, transparent, and beneficial. We pride ourselves on our commitment to excellence and customer satisfaction.</p>
+				}
+				<ul class="lp-about__features">
+					<li><i class="fa fa-check-circle"></i> Expert Real Estate Agents</li>
+					<li><i class="fa fa-check-circle"></i> Premium Property Portfolio</li>
+					<li><i class="fa fa-check-circle"></i> Legal Documentation Support</li>
+					<li><i class="fa fa-check-circle"></i> 24/7 Customer Service</li>
+				</ul>
+				<a href="#footer" class="lp-btn lp-btn--primary">Contact Us</a>
+			</div>
+		</div>
+	</div>
+</section>
+
+<!-- ═══════════════════════════════════════════════
+	 PROJECTS  ← ONLY THIS SECTION CHANGED
+═══════════════════════════════════════════════ -->
+<section class="lp-projects" id="projects">
+	<div class="lp-container">
+		<div class="lp-section-header">
+			<span class="lp-eyebrow">Projects</span>
+			<h2>Our Featured Projects</h2>
+		</div>
+	</div>
+	<!-- Slider sits OUTSIDE lp-container so cards bleed edge-to-edge -->
+	<div class="lp-projects__slider">
+		<div class="lp-projects__grid" id="projectsGrid">
+			@if (ViewBag.Properties != null)
+			{
+				@foreach (var property in ViewBag.Properties)
+				{
+					<div class="lp-prop-card" onclick="window.location.href='/Home/ProjectDetails/@property.PropertyId'">
+						<div class="lp-prop-card__img-wrap">
+							@if (property.Images != null && property.Images.Count > 0)
+							{
+								@if (property.Images.Count == 1)
+								{
+									<img src="/Home/GetPropertyImage/@property.Images[0]" alt="@property.PropertyName" class="lp-prop-card__img" />
+								}
+								else
+								{
+									<div id="carousel@(property.PropertyId)" class="carousel slide" data-bs-ride="carousel">
+										<div class="carousel-inner">
+											@for (int i = 0; i < property.Images.Count; i++)
+											{
+												<div class="carousel-item @(i == 0 ? "active" : "")">
+													<img src="/Home/GetPropertyImage/@property.Images[i]" alt="@property.PropertyName" class="lp-prop-card__img" />
+												</div>
+											}
+										</div>
+										<button class="carousel-control-prev" type="button" data-bs-target="#carousel@(property.PropertyId)" data-bs-slide="prev" onclick="event.stopPropagation()">
+											<span class="carousel-control-prev-icon"></span>
+										</button>
+										<button class="carousel-control-next" type="button" data-bs-target="#carousel@(property.PropertyId)" data-bs-slide="next" onclick="event.stopPropagation()">
+											<span class="carousel-control-next-icon"></span>
+										</button>
+									</div>
+								}
+							}
+							else
+							{
+								<img src="~/uploads/Construction.jpg" alt="@property.PropertyName" class="lp-prop-card__img" />
+							}
+							<div class="lp-prop-card__price-tag">&#6B7B8D77;@(property.MinPrice.ToString("N0"))</div>
+						</div>
+						<div class="lp-prop-card__body">
+							<h5 class="lp-prop-card__name">@property.PropertyName</h5>
+							<div class="lp-prop-card__stars">
+								@for (int s = 0; s < 5; s++)
+								{
+									<i class="fa fa-star"></i>
+								}
+							</div>
+							<div class="lp-prop-card__meta">
+								<span><i class="fa fa-map-marker-alt"></i> @(property.Location ?? "Location")</span>
+								<span><i class="fa fa-building"></i> @(property.AreaSqft ?? 0) Sqft</span>
+								<span><i class="fa fa-home"></i> 2–3.5 BHK</span>
+							</div>
+							<div class="lp-prop-card__actions">
+								<button class="lp-btn lp-btn--sm lp-btn--outline-card" onclick="event.stopPropagation();showInterestForm(@property.PropertyId,'@property.PropertyName')">
+									<i class="fa fa-heart"></i> Interest
+								</button>
+								<a href="/Home/ProjectDetails/@property.PropertyId" class="lp-btn lp-btn--sm lp-btn--primary" onclick="event.stopPropagation()">
+									<i class="fa fa-eye"></i> Details
+								</a>
+							</div>
+						</div>
+					</div>
+				}
+			}
+		</div>
+	</div>
+</section>
+
+<!-- ═══════════════════════════════════════════════
+	 TESTIMONIALS
+═══════════════════════════════════════════════ -->
+<section class="lp-testimonials">
+	<div class="lp-container">
+		<div class="lp-section-header">
+			<span class="lp-eyebrow">Testimonials</span>
+			<h2>What Our Customers Say</h2>
+		</div>
+	</div>
+	<div class="lp-testi__slider">
+		<div class="lp-testi__track" id="testiTrack">
+			@{
+				var testimonials = ViewBag.Testimonials as List<CRM.Models.TestimonialModel>;
+			}
+			@if (testimonials != null && testimonials.Any())
+			{
+				var minCards = 10;
+				var displayList = testimonials.ToList();
+				while (displayList.Count < minCards) { displayList.AddRange(testimonials); }
+				if (testimonials.Count >= minCards) { displayList = testimonials; }
+
+				@foreach (var t in displayList)
+				{
+					<div class="lp-testi-card">
+						<div class="lp-testi-card__quote">&#10077;</div>
+						<p class="lp-testi-card__text">@(t.Content.Length > 130 ? t.Content.Substring(0, 130) + "…" : t.Content)</p>
+						<div class="lp-testi-card__stars">
+							@for (int i = 1; i <= 5; i++)
+							{
+								<i class="fa fa-star @(i <= t.Rating ? "active" : "")"></i>
+							}
+						</div>
+						<div class="lp-testi-card__author">
+							@if (!string.IsNullOrEmpty(t.ImageBase64))
+							{
+								<img src="@t.ImageBase64" alt="@t.Name" class="lp-testi-card__avatar" />
+							}
+							else
+							{
+								<div class="lp-testi-card__avatar lp-testi-card__avatar--initials">@t.Name.Substring(0, 1).ToUpper()</div>
+							}
+							<div>
+								<strong>@t.Name</strong>
+								<small>@t.Tag</small>
+							</div>
+						</div>
+					</div>
+				}
+			}
+			else
+			{
+				<div class="lp-testi-card">
+					<div class="lp-testi-card__quote">&#10077;</div>
+					<p class="lp-testi-card__text">No testimonials yet. Add testimonials from the admin panel.</p>
+					<div class="lp-testi-card__stars">
+						@for (int i = 0; i < 5; i++)
+						{
+							<i class="fa fa-star active"></i>
+						}
+					</div>
+					<div class="lp-testi-card__author">
+						<div class="lp-testi-card__avatar lp-testi-card__avatar--initials">C</div>
+						<div><strong>Your Customer</strong><small>Happy Client</small></div>
+					</div>
+				</div>
+			}
+		</div>
+	</div>
+</section>
+
+<!-- ═══════════════════════════════════════════════
+	 WHY CHOOSE US
+═══════════════════════════════════════════════ -->
+<section class="lp-why">
+	<div class="lp-container">
+		<div class="lp-section-header">
+			<span class="lp-eyebrow">Why Choose Us</span>
+			<h2>Your Trusted Real Estate Partner</h2>
+		</div>
+		<div class="lp-why__grid">
+			<div class="lp-why-item">
+				<div class="lp-why-item__icon"><i class="fa fa-award"></i></div>
+				<h5>15+ Years Experience</h5>
+				<p>Proven track record with deep market knowledge and expertise.</p>
+			</div>
+			<div class="lp-why-item">
+				<div class="lp-why-item__icon"><i class="fa fa-handshake"></i></div>
+				<h5>Transparent Dealings</h5>
+				<p>Complete transparency with no hidden costs. Your trust is our priority.</p>
+			</div>
+			<div class="lp-why-item">
+				<div class="lp-why-item__icon"><i class="fa fa-clock"></i></div>
+				<h5>Timely Delivery</h5>
+				<p>Projects completed within promised timelines without compromising quality.</p>
+			</div>
+			<div class="lp-why-item">
+				<div class="lp-why-item__icon"><i class="fa fa-headset"></i></div>
+				<h5>24/7 Customer Support</h5>
+				<p>Round-the-clock service to address your queries anytime.</p>
+			</div>
+			<div class="lp-why-item">
+				<div class="lp-why-item__icon"><i class="fa fa-shield-alt"></i></div>
+				<h5>Legal Compliance</h5>
+				<p>All projects are fully compliant with proper documentation and approvals.</p>
+			</div>
+			<div class="lp-why-item">
+				<div class="lp-why-item__icon"><i class="fa fa-money-bill-wave"></i></div>
+				<h5>Best Value for Money</h5>
+				<p>Competitive pricing with premium quality. Best return on investment.</p>
+			</div>
+		</div>
+	</div>
+</section>
+
+<!-- ═══════════════════════════════════════════════
+	 FOOTER
+═══════════════════════════════════════════════ -->
+<footer class="pp-footer" id="footer">
+	@{
+		var footerAddress = Context.RequestServices.GetService<CRM.AppDbContext>()?.Settings.FirstOrDefault(s => s.SettingKey == "CompanyAddress" && s.ChannelPartnerId == null)?.SettingValue ?? "";
+		var footerPhone = Context.RequestServices.GetService<CRM.AppDbContext>()?.Settings.FirstOrDefault(s => s.SettingKey == "CompanyPhone" && s.ChannelPartnerId == null)?.SettingValue ?? "";
+		var footerEmail = Context.RequestServices.GetService<CRM.AppDbContext>()?.Settings.FirstOrDefault(s => s.SettingKey == "CompanyEmail" && s.ChannelPartnerId == null)?.SettingValue ?? "";
+		var footerCompanyName = Context.RequestServices.GetService<CRM.AppDbContext>()?.Settings.FirstOrDefault(s => s.SettingKey == "CompanyName" && s.ChannelPartnerId == null)?.SettingValue ?? "PropTech CRM.";
+		var footerMapUrl = Context.RequestServices.GetService<CRM.AppDbContext>()?.Settings.FirstOrDefault(s => s.SettingKey == "CompanyMapUrl" && s.ChannelPartnerId == null)?.SettingValue;
+	}
+	<div class="footer-body">
+		<div class="fw-wrap">
+			<div class="footer-grid">
+				<div class="footer-brand">
+					@if (!string.IsNullOrEmpty(branding?.FooterLogo))
+					{
+						<img src="@branding.FooterLogo" alt="Logo" class="footer-logo" />
+					}
+					else
+					{
+						<span class="footer-bname">@footerCompanyName</span>
+					}
+					@if (!string.IsNullOrEmpty(branding?.CompanyInfo))
+					{
+						<p>@Html.Raw(branding.CompanyInfo.Replace("\n", "<br/>"))</p>
+					}
+					else
+					{
+						<p>Building dreams, creating homes. Your trusted partner in real estate excellence.</p>
+					}
+					<div class="footer-socials">
+						@if (!string.IsNullOrEmpty(branding?.TwitterUrl))
+						{
+							<a href="@branding.TwitterUrl" target="_blank" class="fsoc fsoc-tw"><i class="fab fa-twitter"></i></a>
+						}
+						@if (!string.IsNullOrEmpty(branding?.FacebookUrl))
+						{
+							<a href="@branding.FacebookUrl" target="_blank" class="fsoc fsoc-fb"><i class="fab fa-facebook-f"></i></a>
+						}
+						@if (!string.IsNullOrEmpty(branding?.InstagramUrl))
+						{
+							<a href="@branding.InstagramUrl" target="_blank" class="fsoc fsoc-ig"><i class="fab fa-instagram"></i></a>
+						}
+						@if (!string.IsNullOrEmpty(branding?.LinkedInUrl))
+						{
+							<a href="@branding.LinkedInUrl" target="_blank" class="fsoc fsoc-li"><i class="fab fa-linkedin-in"></i></a>
+						}
+						@if (!string.IsNullOrEmpty(branding?.WhatsAppNumber))
+						{
+							<a href="https://wa.me/@(branding.WhatsAppNumber.Replace("+", "").Replace("-", "").Replace(" ", ""))" target="_blank" class="fsoc fsoc-wa"><i class="fab fa-whatsapp"></i></a>
+						}
+					</div>
+				</div>
+				<div class="footer-col">
+					<span class="footer-col-title">Quick Links</span>
+					<a href="/Home/Landing#about" class="footer-lnk"><i class="fa fa-chevron-right"></i> About Us</a>
+					<a href="/Home/Landing#why" class="footer-lnk"><i class="fa fa-chevron-right"></i> Services</a>
+					<a href="/Home/Landing#projects" class="footer-lnk"><i class="fa fa-chevron-right"></i> Our Projects</a>
+					<a href="/Account/Login" class="footer-lnk"><i class="fa fa-chevron-right"></i> Login</a>
+				</div>
+				@if (!string.IsNullOrEmpty(footerAddress) || !string.IsNullOrEmpty(footerPhone) || !string.IsNullOrEmpty(footerEmail))
+				{
+					<div class="footer-col">
+						<span class="footer-col-title">Contact Us</span>
+						@if (!string.IsNullOrEmpty(footerAddress))
+						{
+							<div class="footer-contact">
+								<i class="fa fa-map-marker-alt"></i>
+								@if (!string.IsNullOrEmpty(footerMapUrl))
+								{
+									<a href="@footerMapUrl" target="_blank">@footerAddress</a>
+								}
+								else
+								{
+
+									<span>@footerAddress</span>
+								}
+							</div>
+						}
+						@if (!string.IsNullOrEmpty(footerPhone))
+						{
+							<div class="footer-contact"><i class="fa fa-phone-alt"></i><span>@footerPhone</span></div>
+						}
+						@if (!string.IsNullOrEmpty(footerEmail))
+						{
+							<div class="footer-contact">
+								<i class="fa fa-envelope"></i>
+								<a href="https://mail.google.com/mail/?view=cm&to=@footerEmail" target="_blank">@footerEmail</a>
+							</div>
+						}
+					</div>
+				}
+			</div>
+		</div>
+	</div>
+	<div class="footer-strip">
+		<div class="fw-wrap footer-strip-inner">
+			<div class="footer-copy">
+				@{
+					var currentYear2 = DateTime.Now.Year;
+					var copyrightText2 = Context.RequestServices.GetService<CRM.AppDbContext>()?.Settings.FirstOrDefault(s => s.SettingKey == "CopyrightText" && s.ChannelPartnerId == null)?.SettingValue;
+				}
+				&copy; 2015–@currentYear2&nbsp;
+				@* @if (!string.IsNullOrEmpty(copyrightText2)) { <a href="/Home/Landing">@Html.Raw(copyrightText2)</a> }
+                else { <a href="/Home/Landing">@footerCompanyName</a> }
+                . All Rights Reserved.&nbsp;|&nbsp;Powered by <a href="https://proptechit.com/" target="_blank">PropTech Solutions</a> *@
+				<a href="/Home/Landing">@(!string.IsNullOrEmpty(copyrightText2) ? Html.Raw(copyrightText2) : footerCompanyName)</a>.<text> All Rights Reserved.&nbsp;|&nbsp;Powered by </text>
+
+				<a href="https://proptechit.com/" target="_blank">PropTech Solutions</a>
+			</div>
+			<div class="footer-legal">
+				<a href="/Home/Terms">Terms &amp; Conditions</a>
+				<a href="/Home/Privacy">Privacy Policy</a>
+				<a href="/Home/RefundPolicy">Refund Policy</a>
+			</div>
+		</div>
+	</div>
+</footer>
+
+<!-- Back to Top -->
+<a href="#" class="lp-back-top" id="backTop" title="Back to top"><i class="fa fa-arrow-up"></i></a>
+
+<!-- ═══════════════════════════════════════════════
+	 INTEREST MODAL
+═══════════════════════════════════════════════ -->
+<div class="modal fade" id="interestModal" tabindex="-1" aria-labelledby="interestModalLabel" aria-hidden="true">
+	<div class="modal-dialog modal-dialog-centered">
+		<div class="modal-content lp-modal">
+			<div class="lp-modal__header">
+				<h5 id="interestModalLabel">Express Interest</h5>
+				<button type="button" class="lp-modal__close" data-bs-dismiss="modal" aria-label="Close">&times;</button>
+			</div>
+			<form id="interestForm" novalidate>
+				<div class="lp-modal__body">
+					<input type="hidden" id="modalPropertyId" name="PropertyId" />
+					<input type="hidden" id="modalProjectName" name="ProjectName" />
+					<div class="lp-fields-row">
+						<div class="lp-field">
+							<label for="modalName"><i class="fa fa-user"></i> Full Name <span class="req">*</span></label>
+							<div class="lp-input-wrap">
+								<input type="text" id="modalName" name="Name" placeholder="Your full name" required autocomplete="off" inputmode="text" />
+								<span class="lp-field__icon"></span>
+							</div>
+							<span class="lp-field__err">Please enter your name</span>
+						</div>
+						<div class="lp-field">
+							<label for="modalContact">Phone Number <span class="req">*</span></label>
+							<div class="lp-input-wrap">
+								<input type="number" id="modalContact" name="Contact" placeholder="10-digit mobile number" pattern="[0-9]{10}" maxlength="10" required autocomplete="off" />
+								<span class="lp-field__icon"></span>
+							</div>
+							<span class="lp-field__err">Enter a valid 10-digit number</span>
+						</div>
+					</div>
+					<div class="lp-fields-row">
+						<div class="lp-field">
+							<label for="modalLocation">Preferred Location <span class="req">*</span></label>
+							<div class="lp-input-wrap">
+								<input type="text" id="modalLocation" name="PreferredLocation" placeholder="e.g. Hyderabad" required autocomplete="off" />
+								<span class="lp-field__icon"></span>
+							</div>
+							<span class="lp-field__err">Please enter preferred location</span>
+						</div>
+						<div class="lp-field">
+							<label for="modalBHK">BHK Type <span class="req">*</span></label>
+							<div class="lp-input-wrap">
+								<select id="modalBHK" name="BHK" required>
+									<option value="" disabled selected>Select BHK type</option>
+									<option value="1 BHK">1 BHK</option>
+									<option value="2 BHK">2 BHK</option>
+									<option value="3 BHK">3 BHK</option>
+									<option value="4 BHK">4 BHK</option>
+									<option value="5+ BHK">5+ BHK</option>
+								</select>
+								<span class="lp-field__icon"></span>
+							</div>
+							<span class="lp-field__err">Please select BHK type</span>
+						</div>
+					</div>
+					<div class="lp-fields-row">
+						<div class="lp-field">
+							<label for="modalBudget">Budget (Lakhs) <span class="req">*</span></label>
+							<div class="lp-input-wrap">
+								<input type="text" id="modalBudget" name="Budget" placeholder="e.g. 50" required autocomplete="off" />
+								<span class="lp-field__icon"></span>
+							</div>
+							<span class="lp-field__err">Please enter your budget</span>
+						</div>
+						<div class="lp-field"></div>
+					</div>
+				</div>
+				<div class="lp-modal__footer">
+					<button type="button" class="lp-btn lp-btn--ghost" data-bs-dismiss="modal">Cancel</button>
+					<button type="submit" class="lp-btn lp-btn--primary" id="submitBtn">
+						<i class="fa fa-paper-plane"></i> Submit Interest
+					</button>
+				</div>
+			</form>
+		</div>
+	</div>
+</div>
+
+<!-- Terms Modal -->
+@if (!string.IsNullOrEmpty(branding?.TermsAndConditions))
+{
+	<div class="modal fade" id="termsModal" tabindex="-1" aria-hidden="true">
+		<div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+			<div class="modal-content lp-modal">
+				<div class="lp-modal__header">
+					<h5>Terms &amp; Conditions</h5>
+					<button type="button" class="lp-modal__close" data-bs-dismiss="modal">&times;</button>
+				</div>
+				<div class="lp-modal__body">@Html.Raw(branding.TermsAndConditions.Replace("\n", "<br/>"))</div>
+				<div class="lp-modal__footer"><button type="button" class="lp-btn lp-btn--ghost" data-bs-dismiss="modal">Close</button></div>
+			</div>
+		</div>
+	</div>
+}
+
+<!-- Privacy Modal -->
+@if (!string.IsNullOrEmpty(branding?.PrivacyPolicy))
+{
+	<div class="modal fade" id="privacyModal" tabindex="-1" aria-hidden="true">
+		<div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+			<div class="modal-content lp-modal">
+				<div class="lp-modal__header">
+					<h5>Privacy Policy</h5>
+					<button type="button" class="lp-modal__close" data-bs-dismiss="modal">&times;</button>
+				</div>
+				<div class="lp-modal__body">@Html.Raw(branding.PrivacyPolicy.Replace("\n", "<br/>"))</div>
+				<div class="lp-modal__footer"><button type="button" class="lp-btn lp-btn--ghost" data-bs-dismiss="modal">Close</button></div>
+			</div>
+		</div>
+	</div>
+}
+
+<div tabindex="-1" aria-hidden="true" id="inquiryModal" class="modal fade">
+	<div class="modal-dialog modal-dialog-centered">
+		<div class="modal-content" style="border-radius:12px;">
+			<div class="modal-header" style="background:linear-gradient(135deg, #1A6FA8, #125082);color: white;border-radius:12px 12px 0 0;">
+				<h5 class="modal-title"><i class="fas fa-rocket me-2"></i>Get Started</h5>
+				<button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+			</div>
+			<div class="modal-body">
+				@* <p class="text-muted mb-1">Fill in your details and our team will contact you to set up your CRM.</p> *@
+				<form id="inquiryForm">
+					<div class="mb-1">
+						<label class="form-label fw-semibold">Company Name <span class="text-danger">*</span></label>
+						<input type="text" name="companyName" class="form-control" placeholder="Your company name" required autocomplete="organization" />
+					</div>
+					<div class="mb-1">
+						<label class="form-label fw-semibold">Contact Person <span class="text-danger">*</span></label>
+						<input type="text" name="contactPerson" class="form-control" placeholder="Your full name" required autocomplete="name" />
+					</div>
+					<div class="mb-1">
+						<label class="form-label fw-semibold">Email <span class="text-danger">*</span></label>
+						<input name="email" type="email" class="form-control" placeholder="your@email.com" required autocomplete="email" />
+					</div>
+					<div class="mb-1">
+						<label class="form-label fw-semibold">Phone </label>
+						<input name="phone" class="form-control" placeholder="Phone number" maxlength="10" autocomplete="tel" />
+					</div>
+					<div class="mb-1">
+						<label class="form-label fw-semibold">Message</label>
+						<textarea name="message" class="form-control" rows="3" placeholder="Tell us about your needs..." autocomplete="off"></textarea>
+					</div>
+					<div class="mb-1">
+						<label class="form-label fw-semibold">Interested Plan</label>
+						<select name="selectedPlan" class="form-control">
+							<option value="">Not sure yet</option>
+							<option value="Basic">Basic</option>
+							<option value="Standard">Standard</option>
+							<option value="Professional">Professional</option>
+							<option value="Enterprise">Enterprise</option>
+						</select>
+						<small class="text-muted">Choose the plan you'd like to start with.</small>
+					</div>
+					<div class="mb-1">
+						<label class="form-label fw-semibold">Referral Code</label>
+						<div class="input-group">
+							<span class="input-group-text" style="background: #FEE2E2; border-color: #F59E0B;">
+								<i class="fa-solid fa-gift" style="color: #F59E0B;"></i>
+							</span>
+							<input type="text" name="referralCode" class="form-control"
+								   placeholder="Enter referral code (optional)"
+								   style="border-color: #F59E0B;" autocomplete="off">
+						</div>
+						<small class="text-muted">Have a referral code? Enter it to get benefits.</small>
+					</div>
+					<button type="submit" class="btn w-100" style="background:linear-gradient(135deg, #1A6FA8, #125082);color: white;">
+						<i class="fas fa-paper-plane me-2"></i>Submit
+					</button>
+				</form>
+			</div>
+		</div>
+	</div>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+	 SCRIPTS + STYLES
+═══════════════════════════════════════════════ -->
+@section Scripts {
+	<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+	<style>
+		/* ─── DESIGN TOKENS ───────────────────────────── */
+		:root {
+			--lp-blue: #1A6FA8;
+			--lp-blue-d: #125082;
+			--lp-blue-l: #2589C9;
+			--lp-gold: #D4A45A;
+			--lp-gold-d: #B8883E;
+			--lp-gold-l: #E8C27E;
+			--lp-dark: #0F1C2E;
+			--lp-dark2: #162436;
+			--lp-text: #2A3A4A;
+			--lp-muted: #6B7B8D;
+			--lp-border: #E2E8F0;
+			--lp-bg: #F0F4F8;
+			--lp-white: #FFFFFF;
+			--lp-green: #16A34A;
+			--lp-green-l: #DCFCE7;
+			--lp-red-err: #DC2626;
+			--lp-red-err-l: #FEE2E2;
+			--lp-grad: linear-gradient(135deg, var(--lp-blue) 0%, var(--lp-blue-l) 50%, #125082 100%);
+			--lp-grad-gold: linear-gradient(135deg, var(--lp-gold-d) 0%, var(--lp-gold) 100%);
+			--lp-grad-mix: linear-gradient(135deg, var(--lp-blue) 0%, var(--lp-gold) 100%);
+			--lp-nav-h: 58px;
+			--lp-radius: 8px;
+			--lp-shadow: 0 2px 12px rgba(26,111,168,.08);
+			--lp-shadow-md: 0 6px 24px rgba(26,111,168,.15);
+			--font-head: 'Georgia', 'Times New Roman', serif;
+			--font-body: 'Segoe UI', system-ui, -apple-system, sans-serif;
+		}
+
+		/* ─── RESET / BASE ────────────────────────────── */
+		*, *::before, *::after {
+			box-sizing: border-box;
+			margin: 0;
+			padding: 0;
+		}
+
+		html {
+			scroll-behavior: smooth;
+			overflow-x: hidden;
+		}
+
+		body {
+			font-family: var(--font-body);
+			font-size: 14px;
+			color: var(--lp-text);
+			background: var(--lp-bg);
+			padding-top: var(--lp-nav-h);
+			overflow-x: hidden;
+		}
+
+		img {
+			max-width: 100%;
+			display: block;
+		}
+
+		a {
+			color: inherit;
+			text-decoration: none;
+		}
+
+		/* ─── UTILITIES ───────────────────────────────── */
+		.lp-container {
+			max-width: 1180px;
+			margin: 0 auto;
+			padding: 0 18px;
+		}
+
+		.lp-eyebrow {
+			display: inline-block;
+			font-size: 10px;
+			font-weight: 700;
+			letter-spacing: 2.5px;
+			text-transform: uppercase;
+			color: var(--lp-gold-d);
+			padding-left: 10px;
+			border-left: 3px solid var(--lp-blue);
+			margin-bottom: 8px;
+		}
+
+		.lp-section-header {
+			text-align: center;
+			margin-bottom: 28px;
+		}
+
+			.lp-section-header h2 {
+				font-family: var(--font-head);
+				font-size: 1.75rem;
+				color: var(--lp-dark);
+			}
+
+			.lp-section-header .lp-eyebrow {
+				border-left: none;
+			}
+
+				.lp-section-header .lp-eyebrow::after {
+					content: '';
+					display: block;
+					width: 36px;
+					height: 3px;
+					background: var(--lp-grad-mix);
+					margin: 5px auto 0;
+					border-radius: 2px;
+				}
+
+		/* ─── BUTTONS ─────────────────────────────────── */
+		.lp-btn {
+			display: inline-flex;
+			align-items: center;
+			gap: 5px;
+			padding: 8px 18px;
+			border-radius: 5px;
+			font-size: 13px;
+			font-weight: 600;
+			cursor: pointer;
+			border: 2px solid transparent;
+			transition: all .22s ease;
+			white-space: nowrap;
+			line-height: 1.4;
+		}
+
+		.lp-btn--primary {
+			background: var(--lp-blue);
+			color: #FFFFFF;
+			border-color: var(--lp-blue);
+		}
+
+			.lp-btn--primary:hover {
+				background: var(--lp-blue-d);
+				border-color: var(--lp-blue-d);
+				transform: translateY(-1px);
+				box-shadow: 0 4px 12px rgba(26,111,168,.35);
+				color: #D4A45A
+			}
+
+		.lp-btn--outline {
+			background: transparent;
+			color: #FFFFFFff !important;
+			border-color: rgba(255,255,255,.65);
+		}
+
+			.lp-btn--outline:hover {
+				background: rgba(255,255,255,.12);
+				border-color: #FFFFFF;
+			}
+
+		.lp-btn--ghost {
+			background: transparent;
+			color: var(--lp-text);
+			border-color: var(--lp-border);
+		}
+
+			.lp-btn--ghost:hover {
+				background: var(--lp-bg);
+				border-color: #B8C8D8;
+			}
+
+		.lp-btn--sm {
+			padding: 6px 12px;
+			font-size: 11.5px;
+		}
+
+		.lp-btn--outline-card {
+			background: transparent;
+			color: var(--lp-blue);
+			border-color: var(--lp-blue);
+		}
+
+			.lp-btn--outline-card:hover {
+				background: var(--lp-blue);
+				color: #FFFFFF;
+			}
+
+		/* ─── SPINNER ─────────────────────────────────── */
+		.lp-spinner {
+			position: fixed;
+			inset: 0;
+			z-index: 99999;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			background: #FFFFFF;
+			transition: opacity .5s ease;
+		}
+
+			.lp-spinner.hidden {
+				opacity: 0;
+				pointer-events: none;
+			}
+
+		.lp-spinner__inner {
+			text-align: center;
+		}
+
+		.lp-spinner__logo {
+			max-width: 140px;
+			max-height: 100px;
+			object-fit: contain;
+			margin: 0 auto 12px;
+			opacity: .15;
+			transition: opacity .3s;
+		}
+
+		.lp-spinner__text {
+			font-size: 1.6rem;
+			font-weight: 700;
+			color: var(--lp-blue);
+			opacity: .2;
+			transition: opacity .3s;
+			display: block;
+			margin-bottom: 14px;
+		}
+
+		.lp-spinner__bar-wrap {
+			width: 220px;
+			height: 3px;
+			background: #F0F4F8;
+			border-radius: 2px;
+			overflow: hidden;
+			margin: 0 auto 7px;
+		}
+
+		.lp-spinner__bar {
+			height: 100%;
+			width: 0%;
+			background: var(--lp-grad-mix);
+			transition: width .25s;
+		}
+
+		.lp-spinner__pct {
+			font-size: 12px;
+			color: var(--lp-muted);
+			font-weight: 600;
+		}
+
+		/* ─── NAVBAR ──────────────────────────────────── */
+		.lp-nav {
+			position: fixed;
+			top: 0;
+			left: 0;
+			right: 0;
+			z-index: 1050;
+			background: #FFFFFF;
+			box-shadow: 0 2px 16px rgba(26,111,168,.12);
+			border-bottom: 3px solid var(--lp-blue);
+		}
+
+		.lp-nav__inner {
+			max-width: 1180px;
+			margin: 0 auto;
+			width: 100%;
+			padding: 0 16px;
+			display: flex;
+			align-items: center;
+			height: 58px;
+		}
+
+		.lp-nav__brand {
+			display: flex;
+			align-items: center;
+			gap: 8px;
+			flex-shrink: 0;
+			text-decoration: none;
+		}
+
+		.lp-nav__logo-img {
+			max-height: 40px;
+			max-width: 140px;
+			object-fit: contain;
+			display: block;
+		}
+
+		.lp-nav__logo-icon {
+			max-height: 30px;
+			display: block;
+		}
+
+		.lp-nav__brand-name {
+			font-family: var(--font-head);
+			font-size: 1.1rem;
+			font-weight: 700;
+			background: var(--lp-grad-mix);
+			-webkit-background-clip: text;
+			-webkit-text-fill-color: transparent;
+			background-clip: text;
+			white-space: nowrap;
+			line-height: 1;
+		}
+
+		.lp-nav__links {
+			display: flex;
+			align-items: center;
+			gap: 2px;
+			margin-left: auto;
+		}
+
+		.lp-nav__link {
+			padding: 5px 10px;
+			font-size: 13px;
+			font-weight: 500;
+			color: var(--lp-text);
+			border-radius: 4px;
+			transition: color .18s, background .18s;
+			white-space: nowrap;
+			text-decoration: none;
+		}
+
+			.lp-nav__link:hover {
+				color: var(--lp-blue);
+				background: rgba(26,111,168,.06);
+			}
+
+			.lp-nav__link.active {
+				color: var(--lp-blue);
+				background: rgba(26,111,168,.1);
+				font-weight: 600;
+			}
+
+		.lp-nav__cta {
+			display: inline-flex;
+			align-items: center;
+			gap: 5px;
+			padding: 7px 16px;
+			border-radius: 5px;
+			background: var(--lp-grad-mix);
+			color: #FFFFFF !important;
+			font-size: 13px;
+			font-weight: 600;
+			text-decoration: none;
+			transition: opacity .2s, transform .2s;
+			white-space: nowrap;
+			margin-left: 8px;
+			box-shadow: 0 2px 8px rgba(26,111,168,.3);
+		}
+
+			.lp-nav__cta:hover {
+				opacity: .88;
+				transform: translateY(-1px);
+			}
+
+		.lp-nav__toggle {
+			display: none;
+			flex-direction: column;
+			justify-content: center;
+			gap: 5px;
+			background: none;
+			border: 1.5px solid var(--lp-border);
+			border-radius: 6px;
+			cursor: pointer;
+			padding: 7px 8px;
+			margin-left: auto;
+			width: 40px;
+			height: 38px;
+		}
+
+			.lp-nav__toggle span {
+				display: block;
+				width: 18px;
+				height: 2px;
+				background: var(--lp-blue);
+				border-radius: 2px;
+				transition: all .28s ease;
+				transform-origin: center;
+			}
+
+			.lp-nav__toggle.open span:nth-child(1) {
+				transform: translateY(7px) rotate(45deg);
+			}
+
+			.lp-nav__toggle.open span:nth-child(2) {
+				opacity: 0;
+				transform: scaleX(0);
+			}
+
+			.lp-nav__toggle.open span:nth-child(3) {
+				transform: translateY(-7px) rotate(-45deg);
+			}
+
+		@@media (max-width: 991px) {
+			.lp-nav__toggle {
+				display: flex;
+			}
+
+			.lp-nav__links {
+				display: none !important;
+			}
+		}
+
+		@@media (max-width: 400px) {
+			.lp-nav__logo-img {
+				max-height: 34px;
+				max-width: 110px;
+			}
+
+			.lp-nav__brand-name {
+				font-size: .95rem;
+			}
+
+			.lp-nav__toggle {
+				width: 36px;
+				height: 34px;
+			}
+		}
+
+		/* ─── OFFCANVAS BACKDROP ──────────────────────── */
+		.lp-offcanvas-backdrop {
+			display: none;
+			position: fixed;
+			inset: 0;
+			background: rgba(0,0,0,0.5);
+			z-index: 1055;
+			opacity: 0;
+			transition: opacity .28s ease;
+		}
+
+			.lp-offcanvas-backdrop.show {
+				display: block;
+				opacity: 1;
+			}
+
+		/* ─── OFFCANVAS DRAWER ────────────────────────── */
+		.lp-offcanvas {
+			position: fixed;
+			top: 0;
+			right: 0;
+			bottom: 0;
+			width: 270px;
+			background: #FFFFFF;
+			z-index: 1060;
+			transform: translateX(100%);
+			transition: transform .3s cubic-bezier(.4,0,.2,1);
+			display: flex;
+			flex-direction: column;
+			box-shadow: -4px 0 32px rgba(26,111,168,.2);
+		}
+
+			.lp-offcanvas.open {
+				transform: translateX(0);
+			}
+
+		.lp-offcanvas__head {
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			padding: 0 16px;
+			height: 58px;
+			background: var(--lp-dark);
+			border-bottom: 3px solid var(--lp-gold);
+			flex-shrink: 0;
+		}
+
+		.lp-offcanvas__close {
+			width: 32px;
+			height: 32px;
+			border: none;
+			background: rgba(255,255,255,.1);
+			border-radius: 6px;
+			cursor: pointer;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			color: #FFFFFF;
+			font-size: 18px;
+			line-height: 1;
+			transition: background .2s;
+			flex-shrink: 0;
+		}
+
+			.lp-offcanvas__close:hover {
+				background: rgba(255,255,255,.25);
+			}
+
+		.lp-offcanvas__body {
+			flex: 1;
+			overflow-y: auto;
+			padding: 6px 0;
+		}
+
+		.lp-offcanvas__link {
+			display: flex;
+			align-items: center;
+			gap: 12px;
+			padding: 13px 20px;
+			font-size: 13.5px;
+			font-weight: 500;
+			color: var(--lp-text);
+			border-bottom: 1px solid var(--lp-border);
+			transition: background .18s, color .18s;
+			text-decoration: none;
+		}
+
+			.lp-offcanvas__link:hover {
+				background: rgba(26,111,168,.07);
+				color: var(--lp-blue);
+			}
+
+			.lp-offcanvas__link i {
+				font-size: 14px;
+				color: var(--lp-blue);
+				width: 18px;
+				text-align: center;
+				flex-shrink: 0;
+			}
+
+		.lp-offcanvas__footer {
+			padding: 16px;
+			border-top: 1px solid var(--lp-border);
+			flex-shrink: 0;
+		}
+
+		@@media (min-width: 992px) {
+			.lp-offcanvas {
+				display: none !important;
+			}
+
+			.lp-offcanvas-backdrop {
+				display: none !important;
+			}
+		}
+
+		/* ─── TICKER ──────────────────────────────────── */
+		.lp-ticker {
+			background: var(--lp-grad-mix);
+			overflow: hidden;
+			height: 32px;
+			display: flex;
+			align-items: center;
+		}
+
+		.lp-ticker__track {
+			display: flex;
+			gap: 56px;
+			white-space: nowrap;
+			animation: ticker-scroll 28s linear infinite;
+		}
+
+		.lp-ticker__item {
+			font-size: 12px;
+			font-weight: 600;
+			color: #FFFFFF;
+			letter-spacing: .3px;
+		}
+
+		@@keyframes ticker-scroll {
+			from {
+				transform: translateX(0);
+			}
+
+			to {
+				transform: translateX(-50%);
+			}
+		}
+
+		/* ─── HERO ────────────────────────────────────── */
+		.lp-hero {
+			position: relative;
+		}
+
+		.lp-hero__slide {
+			height: 420px;
+			background-size: cover;
+			background-position: center;
+			position: relative;
+		}
+
+		.lp-hero__overlay {
+			position: absolute;
+			inset: 0;
+			background: linear-gradient(120deg, rgb(8 10 37 / 58%) 45%, rgb(49 6 50 / 40%) 100%);
+			display: flex;
+			align-items: center;
+			justify-content: center;
+		}
+
+		.lp-hero__content {
+			max-width: 620px;
+			width: 100%;
+			padding: 0 36px;
+			text-align: center;
+		}
+
+		.lp-hero__eyebrow {
+			display: inline-block;
+			padding: 3px 10px;
+			background: rgba(212,164,90,.2);
+			border: 1px solid rgba(212,164,90,.5);
+			border-radius: 20px;
+			font-size: 11px;
+			font-weight: 700;
+			color: var(--lp-gold-l);
+			letter-spacing: 1.5px;
+			text-transform: uppercase;
+			margin-bottom: 12px;
+		}
+
+		.lp-hero__title {
+			font-family: var(--font-head);
+			font-size: 2.6rem;
+			line-height: 1.15;
+			color: #FFFFFF;
+			margin-bottom: 12px;
+		}
+
+			.lp-hero__title em {
+				font-style: normal;
+				color: var(--lp-gold);
+			}
+
+		.lp-hero__sub {
+			font-size: 13.5px;
+			color: rgba(255,255,255,.82);
+			line-height: 1.65;
+			margin-bottom: 20px;
+		}
+
+		.lp-hero__actions {
+			display: flex;
+			gap: 10px;
+			flex-wrap: wrap;
+			justify-content: center;
+		}
+
+		.carousel-indicators {
+			bottom: 12px;
+		}
+
+			.carousel-indicators [data-bs-target] {
+				width: 8px;
+				height: 8px;
+				border-radius: 50%;
+				background: rgba(255,255,255,.5);
+				border: none;
+				opacity: 1;
+				transition: all .25s;
+			}
+
+			.carousel-indicators .active {
+				background: var(--lp-gold);
+				transform: scale(1.3);
+			}
+
+		@@media (max-width: 767px) {
+			.lp-hero__slide {
+				height: 280px;
+			}
+
+			.lp-hero__content {
+				padding: 0 20px;
+			}
+
+			.lp-hero__title {
+				font-size: 1.65rem;
+			}
+
+			.lp-hero__sub {
+				font-size: 12px;
+			}
+		}
+
+		/* ─── SERVICES ────────────────────────────────── */
+		.lp-services {
+			padding: 32px 0;
+			background: #FFFFFF;
+			border-top: 3px solid var(--lp-border);
+		}
+
+		.lp-services__grid {
+			display: grid;
+			grid-template-columns: repeat(4,1fr);
+			gap: 16px;
+		}
+
+		.lp-service-card {
+			text-align: center;
+			padding: 22px 16px;
+			border: 1.5px solid var(--lp-border);
+			border-radius: var(--lp-radius);
+			background: #FFFFFF;
+			transition: all .28s ease;
+			cursor: default;
+			position: relative;
+			overflow: hidden;
+		}
+
+			.lp-service-card::before {
+				content: '';
+				position: absolute;
+				bottom: 0;
+				left: 0;
+				right: 0;
+				height: 3px;
+				background: var(--lp-grad-mix);
+				transform: scaleX(0);
+				transition: transform .28s;
+			}
+
+			.lp-service-card:hover::before {
+				transform: scaleX(1);
+			}
+
+			.lp-service-card:hover {
+				border-color: rgba(26,111,168,.2);
+				transform: translateY(-4px);
+				box-shadow: var(--lp-shadow-md);
+				background: linear-gradient(160deg, #F0F4F8 0%, #FFFFFF 100%);
+			}
+
+		.lp-service-card__icon {
+			width: 48px;
+			height: 48px;
+			border-radius: 12px;
+			background: rgba(26,111,168,.08);
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			margin: 0 auto 12px;
+			font-size: 20px;
+			color: var(--lp-blue);
+			transition: all .28s;
+		}
+
+		.lp-service-card:hover .lp-service-card__icon {
+			background: var(--lp-blue);
+			color: #FFFFFF;
+		}
+
+		.lp-service-card h5 {
+			font-size: 13.5px;
+			font-weight: 700;
+			color: var(--lp-dark);
+			margin-bottom: 6px;
+		}
+
+		.lp-service-card p {
+			font-size: 12px;
+			color: var(--lp-muted);
+			line-height: 1.55;
+			margin: 0;
+		}
+
+		@@media (max-width: 991px) {
+			.lp-services__grid {
+				grid-template-columns: repeat(2,1fr);
+			}
+		}
+
+		@@media (max-width: 575px) {
+			.lp-services__grid {
+				grid-template-columns: 1fr 1fr;
+				gap: 10px;
+			}
+		}
+
+		/* ─── STATS ───────────────────────────────────── */
+		.lp-stats {
+			padding: 36px 0;
+			background: var(--lp-dark);
+			position: relative;
+			overflow: hidden;
+		}
+
+			.lp-stats::before {
+				content: '';
+				position: absolute;
+				top: 0;
+				left: 0;
+				right: 0;
+				bottom: 0;
+				background: linear-gradient(135deg, rgba(26,111,168,.3) 0%, transparent 60%);
+				pointer-events: none;
+			}
+
+			.lp-stats::after {
+				content: '';
+				position: absolute;
+				bottom: 0;
+				left: 0;
+				right: 0;
+				height: 3px;
+				background: var(--lp-grad-mix);
+			}
+
+		.lp-stats__grid {
+			display: grid;
+			grid-template-columns: repeat(3,1fr);
+			gap: 0;
+			position: relative;
+		}
+
+		.lp-stat {
+			text-align: center;
+			padding: 24px 20px;
+			border-right: 1px solid rgba(255,255,255,.07);
+		}
+
+			.lp-stat:last-child {
+				border-right: none;
+			}
+
+		.lp-stat__icon {
+			font-size: 1.8rem;
+			color: var(--lp-gold);
+			margin-bottom: 8px;
+			display: block;
+		}
+
+		.lp-stat__num {
+			font-size: 2.2rem;
+			font-weight: 800;
+			color: #FFFFFF;
+			line-height: 1;
+			margin-bottom: 4px;
+		}
+
+		.lp-stat__label {
+			font-size: 12px;
+			font-weight: 700;
+			color: var(--lp-gold);
+			margin-bottom: 4px;
+			letter-spacing: .5px;
+			text-transform: uppercase;
+		}
+
+		.lp-stat p {
+			font-size: 11.5px;
+			color: rgba(255,255,255,.45);
+			margin: 0;
+		}
+
+		@@media (max-width: 767px) {
+			.lp-stats__grid {
+				grid-template-columns: 1fr;
+			}
+
+			.lp-stat {
+				border-right: none;
+				border-bottom: 1px solid rgba(255,255,255,.07);
+				padding: 18px 20px;
+			}
+
+				.lp-stat:last-child {
+					border-bottom: none;
+				}
+		}
+
+		/* ─── ABOUT ───────────────────────────────────── */
+		.lp-about {
+			padding: 52px 0;
+			background: #FFFFFF;
+		}
+
+		.lp-about__grid {
+			display: grid;
+			grid-template-columns: 1fr 1fr;
+			gap: 44px;
+			align-items: center;
+		}
+
+		.lp-about__img-wrap {
+			position: relative;
+			opacity: 0;
+			transform: translateX(-70px);
+			transition: opacity 0.75s ease, transform 0.75s ease;
+		}
+
+			.lp-about__img-wrap.slide-in-visible {
+				opacity: 1;
+				transform: translateX(0);
+			}
+
+		.lp-about__img {
+			width: 100%;
+			height: 360px;
+			object-fit: cover;
+			border-radius: 10px;
+		}
+
+		.lp-about__img-wrap::before {
+			content: '';
+			position: absolute;
+			top: -8px;
+			left: -8px;
+			width: 60px;
+			height: 60px;
+			border-top: 4px solid var(--lp-gold);
+			border-left: 4px solid var(--lp-gold);
+			border-radius: 3px 0 0 0;
+			z-index: 1;
+		}
+
+		.lp-about__img-wrap::after {
+			content: '';
+			position: absolute;
+			bottom: -8px;
+			right: -8px;
+			width: 60px;
+			height: 60px;
+			border-bottom: 4px solid var(--lp-blue);
+			border-right: 4px solid var(--lp-blue);
+			border-radius: 0 0 3px 0;
+			z-index: 1;
+		}
+
+		.lp-about__badge {
+			position: absolute;
+			bottom: -14px;
+			right: -14px;
+			background: var(--lp-grad-mix);
+			color: #FFFFFF;
+			padding: 14px 18px;
+			border-radius: 8px;
+			display: flex;
+			align-items: center;
+			gap: 8px;
+			box-shadow: var(--lp-shadow-md);
+			z-index: 2;
+		}
+
+		.lp-about__badge-num {
+			font-size: 1.7rem;
+			font-weight: 800;
+			line-height: 1;
+		}
+
+		.lp-about__badge-txt {
+			font-size: 11px;
+			font-weight: 600;
+			line-height: 1.35;
+		}
+
+		.lp-about__title {
+			font-family: var(--font-head);
+			font-size: 1.7rem;
+			color: var(--lp-dark);
+			margin-bottom: 14px;
+			margin-top: 6px;
+		}
+
+		.lp-about__text {
+			font-size: 13.5px;
+			color: var(--lp-muted);
+			line-height: 1.75;
+			margin-bottom: 10px;
+		}
+
+		.lp-about__features {
+			list-style: none;
+			display: grid;
+			grid-template-columns: 1fr 1fr;
+			gap: 7px 12px;
+			margin: 16px 0 20px;
+		}
+
+			.lp-about__features li {
+				font-size: 12.5px;
+				font-weight: 600;
+				color: var(--lp-text);
+				display: flex;
+				align-items: center;
+				gap: 6px;
+			}
+
+				.lp-about__features li i {
+					color: var(--lp-blue);
+					flex-shrink: 0;
+				}
+
+		@@media (max-width: 991px) {
+			.lp-about__grid {
+				grid-template-columns: 1fr;
+			}
+
+			.lp-about__badge {
+				right: 10px;
+				bottom: 10px;
+			}
+
+			.lp-about__img-wrap {
+				transform: translateX(-40px);
+			}
+		}
+
+		/* ═══════════════════════════════════════════════
+		   PROJECTS — AUTO-SCROLL TICKER  ← CHANGED ONLY HERE
+		═══════════════════════════════════════════════ */
+		.lp-projects {
+			padding: 46px 0 36px;
+			background: var(--lp-bg);
+		}
+
+		/* The clip window — full viewport width, no side padding */
+		.lp-projects__slider {
+			overflow: hidden;
+			padding: 10px 0 18px;
+			/* Fade edges for a polished look */
+			-webkit-mask-image: linear-gradient(to right, transparent 0%, #000000 5%, #000000 95%, transparent 100%);
+			mask-image: linear-gradient(to right, transparent 0%, #000000 5%, #000000 95%, transparent 100%);
+		}
+
+		/* The moving track */
+		.lp-projects__grid {
+			display: flex;
+			flex-wrap: nowrap;
+			gap: 16px;
+			width: max-content;
+			padding: 4px 24px; /* small vertical breathing room */
+			animation: proj-scroll 35s linear infinite;
+			will-change: transform;
+		}
+			/* Pause on hover so users can interact */
+			.lp-projects__grid:hover {
+				animation-play-state: paused;
+			}
+
+		@@keyframes proj-scroll {
+			from {
+				transform: translateX(0);
+			}
+
+			to {
+				transform: translateX(var(--proj-shift, -50%));
+			}
+		}
+
+		/* ── Property card ── */
+		.lp-prop-card {
+			flex: 0 0 230px;
+			width: 230px;
+			background: #FFFFFF;
+			border-radius: var(--lp-radius);
+			overflow: hidden;
+			border: 1.5px solid var(--lp-border);
+			cursor: pointer;
+			transition: transform .28s, box-shadow .28s, border-color .28s;
+			box-shadow: var(--lp-shadow);
+			user-select: none;
+		}
+
+			.lp-prop-card:hover {
+				transform: translateY(-5px);
+				box-shadow: var(--lp-shadow-md);
+				border-color: rgba(26,111,168,.25);
+			}
+
+		.lp-prop-card__img-wrap {
+			position: relative;
+			overflow: hidden;
+		}
+
+		.lp-prop-card__img {
+			width: 100%;
+			height: 148px;
+			object-fit: cover;
+			transition: transform .4s ease;
+		}
+
+		.lp-prop-card:hover .lp-prop-card__img {
+			transform: scale(1.04);
+		}
+
+		.lp-prop-card__price-tag {
+			position: absolute;
+			top: 8px;
+			left: 8px;
+			background: var(--lp-blue);
+			color: #FFFFFF;
+			font-size: 11px;
+			font-weight: 700;
+			padding: 3px 9px;
+			border-radius: 4px;
+			box-shadow: 0 2px 6px rgba(26,111,168,.4);
+			letter-spacing: .3px;
+		}
+
+		.lp-prop-card__body {
+			padding: 11px 12px 12px;
+		}
+
+		.lp-prop-card__name {
+			font-size: 13px;
+			font-weight: 700;
+			color: var(--lp-dark);
+			margin-bottom: 4px;
+			white-space: nowrap;
+			overflow: hidden;
+			text-overflow: ellipsis;
+		}
+
+		.lp-prop-card__stars {
+			margin-bottom: 6px;
+		}
+
+			.lp-prop-card__stars i {
+				color: var(--lp-gold);
+				font-size: 9px;
+			}
+
+		.lp-prop-card__meta {
+			display: flex;
+			gap: 6px;
+			flex-wrap: wrap;
+			padding: 6px 0;
+			border-top: 1px solid var(--lp-border);
+			margin-bottom: 9px;
+		}
+
+			.lp-prop-card__meta span {
+				font-size: 10px;
+				color: var(--lp-muted);
+				display: flex;
+				align-items: center;
+				gap: 3px;
+			}
+
+			.lp-prop-card__meta i {
+				color: var(--lp-blue);
+				font-size: 9px;
+			}
+
+		.lp-prop-card__actions {
+			display: flex;
+			gap: 6px;
+		}
+
+			.lp-prop-card__actions .lp-btn {
+				flex: 1;
+				justify-content: center;
+				font-size: 11px;
+				padding: 5px 8px;
+			}
+
+		/* Responsive: smaller cards on narrow screens */
+		@@media (max-width: 575px) {
+			.lp-prop-card {
+				flex: 0 0 200px;
+				width: 200px;
+			}
+
+			.lp-prop-card__img {
+				height: 128px;
+			}
+		}
+
+		/* ─── TESTIMONIALS ────────────────────────────── */
+		.lp-testimonials {
+			padding: 46px 0;
+			background: #FFFFFF;
+			overflow: hidden;
+		}
+
+		.lp-testi__slider {
+			overflow: hidden;
+			padding: 10px 0;
+		}
+
+		.lp-testi__track {
+			display: flex;
+			gap: 16px;
+			animation: testi-scroll 32s linear infinite;
+		}
+
+			.lp-testi__track:hover {
+				animation-play-state: paused;
+			}
+
+		@@keyframes testi-scroll {
+			from {
+				transform: translateX(0);
+			}
+
+			to {
+				transform: translateX(var(--testi-shift, -50%));
+			}
+		}
+
+		.lp-testi-card {
+			min-width: 260px;
+			max-width: 260px;
+			flex-shrink: 0;
+			background: var(--lp-bg);
+			border: 1.5px solid var(--lp-border);
+			border-radius: var(--lp-radius);
+			padding: 18px;
+			transition: box-shadow .28s, border-color .28s;
+		}
+
+			.lp-testi-card:hover {
+				box-shadow: var(--lp-shadow-md);
+				border-color: rgba(26,111,168,.2);
+			}
+
+		.lp-testi-card__quote {
+			font-size: 2rem;
+			line-height: 1;
+			color: var(--lp-gold);
+			margin-bottom: 6px;
+		}
+
+		.lp-testi-card__text {
+			font-size: 12.5px;
+			color: var(--lp-muted);
+			line-height: 1.65;
+			margin-bottom: 10px;
+		}
+
+		.lp-testi-card__stars {
+			margin-bottom: 12px;
+		}
+
+			.lp-testi-card__stars i {
+				font-size: 11px;
+				color: #B8C8D8;
+			}
+
+				.lp-testi-card__stars i.active {
+					color: var(--lp-gold);
+				}
+
+		.lp-testi-card__author {
+			display: flex;
+			align-items: center;
+			gap: 8px;
+		}
+
+			.lp-testi-card__author strong {
+				display: block;
+				font-size: 12.5px;
+				color: var(--lp-dark);
+			}
+
+			.lp-testi-card__author small {
+				font-size: 10.5px;
+				color: var(--lp-muted);
+			}
+
+		.lp-testi-card__avatar {
+			width: 38px;
+			height: 38px;
+			border-radius: 50%;
+			object-fit: cover;
+			flex-shrink: 0;
+			border: 2px solid var(--lp-blue);
+		}
+
+		.lp-testi-card__avatar--initials {
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			background: var(--lp-grad-mix);
+			color: #FFFFFF;
+			font-size: 16px;
+			font-weight: 700;
+		}
+
+		/* ─── WHY CHOOSE US ───────────────────────────── */
+		.lp-why {
+			padding: 46px 0;
+			background: var(--lp-bg);
+		}
+
+		.lp-why__grid {
+			display: grid;
+			grid-template-columns: repeat(3,1fr);
+			gap: 16px;
+		}
+
+		.lp-why-item {
+			padding: 22px 18px;
+			background: #FFFFFF;
+			border-radius: var(--lp-radius);
+			border: 1.5px solid var(--lp-border);
+			transition: all .28s;
+			position: relative;
+			overflow: hidden;
+		}
+
+			.lp-why-item::after {
+				content: '';
+				position: absolute;
+				top: 0;
+				left: 0;
+				right: 0;
+				height: 3px;
+				background: var(--lp-grad-mix);
+				transform: scaleX(0);
+				transition: transform .28s;
+			}
+
+			.lp-why-item:hover::after {
+				transform: scaleX(1);
+			}
+
+			.lp-why-item:hover {
+				border-color: rgba(26,111,168,.2);
+				transform: translateY(-4px);
+				box-shadow: var(--lp-shadow-md);
+			}
+
+		.lp-why-item__icon {
+			width: 44px;
+			height: 44px;
+			border-radius: 10px;
+			background: rgba(26,111,168,.08);
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			font-size: 18px;
+			color: var(--lp-blue);
+			margin-bottom: 12px;
+			transition: all .28s;
+		}
+
+		.lp-why-item:hover .lp-why-item__icon {
+			background: var(--lp-blue);
+			color: #FFFFFF;
+		}
+
+		.lp-why-item h5 {
+			font-size: 13px;
+			font-weight: 700;
+			color: var(--lp-dark);
+			margin-bottom: 6px;
+		}
+
+		.lp-why-item p {
+			font-size: 12px;
+			color: var(--lp-muted);
+			line-height: 1.55;
+			margin: 0;
+		}
+
+		@@media (max-width: 991px) {
+			.lp-why__grid {
+				grid-template-columns: repeat(2,1fr);
+			}
+		}
+
+		@@media (max-width: 575px) {
+			.lp-why__grid {
+				grid-template-columns: 1fr;
+			}
+		}
+
+		/* ─── FOOTER ──────────────────────────────────── */
+		.pp-footer {
+			background: var(--lp-dark);
+			color: rgba(255,255,255,.75);
+			margin-top: 0;
+		}
+
+		.footer-body {
+			padding: 42px 0 32px;
+		}
+
+		.footer-grid {
+			display: grid;
+			grid-template-columns: 2fr 1fr 1.5fr;
+			gap: 32px;
+		}
+
+		.footer-col-title {
+			font-size: 10px;
+			font-weight: 800;
+			letter-spacing: 2px;
+			text-transform: uppercase;
+			color: var(--lp-gold);
+			margin-bottom: 16px;
+			padding-bottom: 8px;
+			border-bottom: 2px solid rgba(26,111,168,.3);
+			display: block;
+		}
+
+		.footer-logo {
+			max-height: 44px;
+			max-width: 160px;
+			object-fit: contain;
+			margin-bottom: 12px;
+		}
+
+		.footer-bname {
+			font-size: 1.2rem;
+			font-weight: 800;
+			color: #FFFFFF;
+			display: block;
+			margin-bottom: 10px;
+		}
+
+		.footer-brand p {
+			font-size: 12px;
+			line-height: 1.7;
+			color: #FFFFFFff;
+			margin-bottom: 14px;
+		}
+
+		.footer-socials {
+			display: flex;
+			gap: 7px;
+			flex-wrap: wrap;
+		}
+
+		.fsoc {
+			width: 32px;
+			height: 32px;
+			border-radius: 50%;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			font-size: 13px;
+			transition: all .25s;
+			color: #FFFFFF;
+			flex-shrink: 0;
+		}
+
+			.fsoc:hover {
+				transform: translateY(-3px);
+				box-shadow: 0 4px 12px rgba(0,0,0,.3);
+			}
+
+		.fsoc-tw {
+			background: #2589C9
+		}
+
+		.fsoc-fb {
+			background: #2589C9
+		}
+
+		.fsoc-ig {
+			background: linear-gradient(45deg,#DC2626,#DC2626)
+		}
+
+		.fsoc-li {
+			background: #1A6FA8
+		}
+
+		.fsoc-wa {
+			background: #16A34A
+		}
+
+		.footer-lnk {
+			display: flex;
+			align-items: center;
+			gap: 7px;
+			font-size: 12px;
+			color: #FFFFFFff;
+			padding: 4px 0;
+			transition: color .2s;
+		}
+
+			.footer-lnk i {
+				font-size: 9px;
+				color: #FFFFFF;
+			}
+
+			.footer-lnk:hover {
+				color: #D4A45A;
+			}
+
+		.footer-contact {
+			display: flex;
+			align-items: flex-start;
+			gap: 8px;
+			font-size: 12px;
+			color: #FFFFFFff;
+			margin-bottom: 10px;
+			line-height: 1.5;
+		}
+
+			.footer-contact i {
+				color: var(--lp-blue);
+				margin-top: 2px;
+				flex-shrink: 0;
+			}
+
+			.footer-contact a {
+				color: #FFFFFFff;
+				transition: color .2s;
+			}
+
+				.footer-contact a:hover {
+					color: #D4A45A;
+				}
+
+		@@media (max-width: 991px) {
+			.footer-grid {
+				grid-template-columns: 1fr 1fr;
+			}
+		}
+
+		@@media (max-width: 575px) {
+			.footer-grid {
+				grid-template-columns: 1fr;
+			}
+		}
+
+		.footer-strip {
+			background: rgba(0,0,0,.4);
+			padding: 12px 0;
+		}
+
+		.footer-strip-inner {
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			flex-wrap: wrap;
+			gap: 8px;
+		}
+
+		.footer-copy {
+			font-size: 13px;
+			color: #FFFFFFff;
+		}
+
+			.footer-copy a {
+				color: #D4A45A;
+				transition: color .2s;
+			}
+
+				.footer-copy a:hover {
+					color: #FFFFFFff;
+				}
+
+		.footer-legal {
+			display: flex;
+			gap: 14px;
+			flex-wrap: wrap;
+		}
+
+			.footer-legal a {
+				font-size: 13px;
+				color: #FFFFFFff;
+				transition: color .2s;
+			}
+
+				.footer-legal a:hover {
+					color: #D4A45A;
+				}
+
+		@@media (max-width: 575px) {
+			.footer-strip-inner {
+				flex-direction: column;
+				align-items: flex-start;
+			}
+
+			.footer-legal {
+				gap: 8px;
+			}
+		}
+
+		.fw-wrap {
+			max-width: 1200px;
+			margin: 0 auto;
+			padding: 0 20px;
+		}
+
+		/* ─── BACK TO TOP ─────────────────────────────── */
+		.lp-back-top {
+			position: fixed;
+			bottom: 20px;
+			right: 20px;
+			z-index: 900;
+			width: 40px;
+			height: 40px;
+			border-radius: 8px;
+			background: var(--lp-grad-mix);
+			color: #FFFFFF;
+			display: none;
+			align-items: center;
+			justify-content: center;
+			font-size: 14px;
+			box-shadow: var(--lp-shadow-md);
+			transition: all .28s;
+		}
+
+			.lp-back-top:hover {
+				transform: translateY(-3px);
+				box-shadow: 0 8px 20px rgba(26,111,168,.4);
+			}
+
+			.lp-back-top.show {
+				display: flex;
+			}
+
+		/* ─── MODAL ───────────────────────────────────── */
+		.lp-modal {
+			border: none;
+			border-radius: 12px;
+			overflow: hidden;
+			box-shadow: var(--lp-shadow-md);
+		}
+
+		.lp-modal__header {
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			padding: 13px 18px;
+			background: var(--lp-grad-mix);
+			color: #FFFFFF;
+		}
+
+			.lp-modal__header h5 {
+				margin: 0;
+				font-size: 15px;
+				font-weight: 700;
+				color: #FFFFFF;
+			}
+
+		.lp-modal__close {
+			background: none;
+			border: none;
+			color: rgba(255,255,255,.8);
+			font-size: 20px;
+			line-height: 1;
+			cursor: pointer;
+			padding: 0;
+		}
+
+			.lp-modal__close:hover {
+				color: #FFFFFF;
+			}
+
+		.lp-modal__body {
+			padding: 16px 18px 10px;
+		}
+
+		.lp-modal__footer {
+			padding: 10px 18px;
+			display: flex;
+			gap: 8px;
+			justify-content: flex-end;
+			border-top: 1px solid var(--lp-border);
+		}
+
+		/* ─── FORM FIELDS ─────────────────────────────── */
+		.lp-fields-row {
+			display: grid;
+			grid-template-columns: 1fr 1fr;
+			gap: 10px;
+		}
+
+		.lp-field label {
+			display: block;
+			font-size: 11.5px;
+			font-weight: 600;
+			color: var(--lp-text);
+			margin-bottom: 4px;
+		}
+
+		.lp-field .req {
+			color: var(--lp-red-err);
+		}
+
+		.lp-input-wrap {
+			position: relative;
+		}
+
+		.lp-field input, .lp-field select {
+			width: 100%;
+			padding: 5px 32px 5px 10px;
+			border: 1.5px solid var(--lp-border);
+			border-radius: 6px;
+			font-size: 13px;
+			color: var(--lp-text);
+			outline: none;
+			background: #FFFFFF;
+			transition: border-color .2s, box-shadow .2s;
+			font-family: var(--font-body);
+			height: 36px;
+			appearance: none;
+			-webkit-appearance: none;
+		}
+
+		.lp-field select {
+			padding-right: 28px;
+			background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%2364748b'/%3E%3C/svg%3E");
+			background-repeat: no-repeat;
+			background-position: right 10px center;
+		}
+
+			.lp-field input:focus, .lp-field select:focus {
+				border-color: var(--lp-blue);
+				box-shadow: 0 0 0 3px rgba(26,111,168,.1);
+			}
+
+		.lp-field.is-valid input, .lp-field.is-valid select {
+			border-color: var(--lp-green);
+			background: #F0F4F8;
+			box-shadow: 0 0 0 3px rgba(22,163,74,.1);
+		}
+
+		.lp-field__icon {
+			position: absolute;
+			right: 9px;
+			top: 50%;
+			transform: translateY(-50%);
+			font-size: 13px;
+			pointer-events: none;
+			opacity: 0;
+			transition: opacity .2s;
+		}
+
+		.lp-field.is-valid .lp-field__icon {
+			opacity: 1;
+			color: var(--lp-green);
+		}
+
+		.lp-field.is-valid .lp-field__icon::after {
+			content: '\f00c';
+			font-family: 'Font Awesome 6 Free';
+			font-weight: 900;
+		}
+
+		.lp-field.has-error .lp-field__icon {
+			opacity: 1;
+			color: var(--lp-red-err);
+		}
+
+			.lp-field.has-error .lp-field__icon::after {
+				content: '\f00d';
+				font-family: 'Font Awesome 6 Free';
+				font-weight: 900;
+			}
+
+		.lp-field.has-error input, .lp-field.has-error select {
+			border-color: var(--lp-red-err);
+			background: #FFFFFF;
+			box-shadow: 0 0 0 3px rgba(220,38,38,.08);
+		}
+
+		.lp-field__err {
+			display: none;
+			font-size: 10.5px;
+			color: var(--lp-red-err);
+			margin-top: 3px;
+			font-weight: 500;
+		}
+
+		.lp-field.has-error .lp-field__err {
+			display: block;
+		}
+
+		.lp-field__ok {
+			display: none;
+			font-size: 10.5px;
+			color: var(--lp-green);
+			margin-top: 3px;
+			font-weight: 600;
+		}
+
+		.lp-field.is-valid .lp-field__ok {
+			display: block;
+		}
+
+		.lp-fields-row {
+			display: grid;
+			grid-template-columns: 1fr 1fr;
+			gap: 8px;
+		}
+
+		@@media (max-width: 420px) {
+			.lp-fields-row {
+				grid-template-columns: 1fr;
+			}
+		}
+
+		/* Compact modal overrides */
+		.lp-modal__body {
+			padding: 10px 14px 6px;
+		}
+
+		.lp-modal__header {
+			padding: 10px 14px;
+		}
+
+		.lp-modal__footer {
+			padding: 8px 14px;
+		}
+
+		.lp-field label {
+			font-size: 10.5px;
+			margin-bottom: 2px;
+		}
+
+		.lp-field input, .lp-field select {
+			height: 32px;
+			font-size: 12px;
+			padding: 4px 28px 4px 8px;
+		}
+
+		.lp-fields-row + .lp-fields-row {
+			margin-top: 6px;
+		}
+
+
+		.hero-action-center {
+			text-align: center;
+			margin-top: 20px;
+		}
+
+		/* Button styled like navbar CTA */
+		.cta-register-btn {
+			display: inline-flex;
+			align-items: center;
+			gap: 8px;
+			background: linear-gradient(135deg, #DC2626, #DC2626); /* bright red gradient */
+			color: #FFFFFF;
+			padding: 12px 28px;
+			font-size: 15px;
+			font-weight: 600;
+			border-radius: 8px;
+			text-decoration: none;
+			box-shadow: 0 4px 14px rgba(220,38,38, 0.3);
+			transition: all 0.3s ease;
+		}
+
+			/* Arrow animation */
+			.cta-register-btn i {
+				transition: transform 0.3s ease;
+			}
+
+			/* Hover effect like login CTA */
+			.cta-register-btn:hover {
+				background: linear-gradient(135deg, #DC2626, #DC2626);
+				box-shadow: 0 6px 18px rgba(220,38,38, 0.4);
+				transform: translateY(-2px);
+				color: #FFFFFF;
+			}
+
+				.cta-register-btn:hover i {
+					transform: translateX(5px);
+				}
+
+		/* Tagline */
+		.tagline-text {
+			margin-top: 8px;
+			color: #F59E0B;
+			font-size: 20px;
+			font-weight: 600;
+		}
+
+		.navbar-profile-link {
+			display: flex;
+			align-items: center;
+			gap: 8px;
+			text-decoration: none;
+		}
+
+			.navbar-profile-link img,
+			.navbar-profile-link div {
+				flex-shrink: 0;
+			}
+
+		.dropdown-menu {
+			top: 100% !important;
+			bottom: auto !important;
+			margin-top: 8px;
+		}
+	</style>
+}
+
+<script>
+	document.addEventListener('DOMContentLoaded', function () {
+
+		/* ── NAV HEIGHT SYNC ── */
+		var nav = document.getElementById('mainNav');
+		function syncNavHeight() {
+			var h = nav.querySelector('.lp-nav__inner').getBoundingClientRect().height;
+			document.documentElement.style.setProperty('--lp-nav-h', h + 'px');
+		}
+		syncNavHeight();
+		window.addEventListener('resize', syncNavHeight);
+
+		// ── SPINNER ──
+		// var spinner    = document.getElementById('spinner');
+		// var logoImage  = document.getElementById('logoImage');
+		// var logoText   = document.getElementById('logoText');
+		// var loadingBar = document.getElementById('loadingBar');
+		// var progressEl = document.getElementById('progressText');
+		// var progress   = 0;
+		// var tick = setInterval(function () {
+		//     progress += 1.67;
+		//     if (progress >= 100) { progress = 100; clearInterval(tick); }
+		//     if (loadingBar)  loadingBar.style.width = progress + '%';
+		//     if (progressEl)  progressEl.textContent = Math.round(progress) + '%';
+		//     var op = 0.2 + (progress / 100) * 0.8;
+		//     if (logoImage) logoImage.style.opacity = op;
+		//     if (logoText)  logoText.style.opacity  = op;
+		//     if (progress === 100) {
+		//         setTimeout(function () {
+		//             spinner.classList.add('hidden');
+		//             setTimeout(function () { spinner.style.display = 'none'; }, 600);
+		//         }, 300);
+		//     }
+		// }, 50);
+						// Progressive Logo Loading Effect
+					const overlay = document.getElementById('spinner');
+					const logoImage = document.getElementById('logoImage');
+					const logoText = document.getElementById('logoText');
+					const loadingBar = document.getElementById('loadingBar');
+
+					const navbar = document.querySelector('.navbar.sticky-top') || document.querySelector('.navbar');
+
+					// Keep first section aligned under the fixed navbar on all breakpoints.
+					function syncLandingNavbarOffset() {
+						if (!navbar) return;
+
+						const navHeight = Math.ceil(navbar.getBoundingClientRect().height);
+						if (navHeight > 0) {
+							document.documentElement.style.setProperty('--landing-navbar-height', navHeight + 'px');
+						}
+					}
+
+					syncLandingNavbarOffset();
+					window.addEventListener('resize', syncLandingNavbarOffset);
+
+					// Navbar can shrink/expand while scrolling; keep offset in sync to avoid top gap.
+					let isOffsetSyncScheduled = false;
+					function scheduleNavbarOffsetSync() {
+						if (isOffsetSyncScheduled) return;
+						isOffsetSyncScheduled = true;
+
+						requestAnimationFrame(() => {
+							syncLandingNavbarOffset();
+							isOffsetSyncScheduled = false;
+						});
+					}
+
+					window.addEventListener('scroll', scheduleNavbarOffsetSync, { passive: true });
+					if (navbar) {
+						navbar.addEventListener('transitionend', scheduleNavbarOffsetSync);
+					}
+
+					if (!overlay) return;
+
+					let progress = 0;
+					const duration = 3000; // 3 seconds
+					const interval = 50; // Update every 50ms
+					const increment = (100 / (duration / interval));
+					const progressText = document.getElementById('progressText');
+
+					const progressInterval = setInterval(() => {
+						progress += increment;
+
+						if (progress >= 100) {
+							progress = 100;
+							clearInterval(progressInterval);
+
+							// Hide overlay after completion
+							setTimeout(() => {
+								overlay.classList.remove('show');
+								overlay.style.opacity = '0';
+								setTimeout(() => {
+									overlay.style.display = 'none';
+								}, 500);
+							}, 300);
+						}
+
+						// Update progress bar
+						if (loadingBar) {
+							loadingBar.style.width = progress + '%';
+						}
+
+						// Update progress text
+						if (progressText) {
+							progressText.textContent = Math.round(progress) + '%';
+						}
+
+						// Update logo opacity (low to high visibility)
+						const opacity = 0.2 + (progress / 100) * 0.8; // From 0.2 to 1.0
+						if (logoImage) {
+							logoImage.style.opacity = opacity;
+						}
+						if (logoText) {
+							logoText.style.opacity = opacity;
+						}
+					}, interval);
+
+
+		/* ── OFFCANVAS HAMBURGER ── */
+		var toggle         = document.getElementById('navToggle');
+		var offcanvas      = document.getElementById('navOffcanvas');
+		var offcanvasClose = document.getElementById('offcanvasClose');
+		var backdrop       = document.getElementById('offcanvasBackdrop');
+
+		function openOffcanvas() {
+			if (!offcanvas) return;
+			offcanvas.classList.add('open');
+			backdrop.classList.add('show');
+			document.body.style.overflow = 'hidden';
+			toggle.classList.add('open');
+			toggle.setAttribute('aria-expanded', 'true');
+		}
+		function closeOffcanvas() {
+			if (!offcanvas) return;
+			offcanvas.classList.remove('open');
+			backdrop.classList.remove('show');
+			document.body.style.overflow = '';
+			toggle.classList.remove('open');
+			toggle.setAttribute('aria-expanded', 'false');
+		}
+		if (toggle)         toggle.addEventListener('click', openOffcanvas);
+		if (offcanvasClose) offcanvasClose.addEventListener('click', closeOffcanvas);
+		if (backdrop)       backdrop.addEventListener('click', closeOffcanvas);
+		document.addEventListener('keydown', function (e) {
+			if (e.key === 'Escape') closeOffcanvas();
+		});
+		document.querySelectorAll('.lp-offcanvas__link').forEach(function (l) {
+			l.addEventListener('click', function () {
+				var href = l.getAttribute('href');
+				closeOffcanvas();
+				if (href && href.startsWith('#')) {
+					setTimeout(function () {
+						var target = document.querySelector(href);
+						if (target) {
+							var offset = nav ? nav.offsetHeight : 60;
+							window.scrollTo({ top: target.getBoundingClientRect().top + window.pageYOffset - offset, behavior: 'smooth' });
+						}
+					}, 340);
+				}
+			});
+		});
+
+		/* ── SMOOTH SCROLL for desktop nav ── */
+		document.querySelectorAll('a[href^="#"]').forEach(function (a) {
+			a.addEventListener('click', function (e) {
+				var href = this.getAttribute('href');
+				if (href === '#' || this.hasAttribute('data-bs-toggle')) return;
+				if (this.closest('.lp-offcanvas')) return;
+				var target = document.querySelector(href);
+				if (!target) return;
+				e.preventDefault();
+				var offset = nav ? nav.offsetHeight : 60;
+				window.scrollTo({ top: target.getBoundingClientRect().top + window.pageYOffset - offset, behavior: 'smooth' });
+			});
+		});
+
+		/* ── BACK TO TOP ── */
+		var backTop = document.getElementById('backTop');
+		window.addEventListener('scroll', function () {
+			backTop.classList.toggle('show', window.scrollY > 300);
+		}, { passive: true });
+
+		/* ── COUNTER ANIMATION ── */
+		function animateCounter(el) {
+			var target = parseInt(el.dataset.target, 10);
+			var dur = 1800, step = target / (dur / 16);
+			var val = 0;
+			var t = setInterval(function () {
+				val += step;
+				if (val >= target) { val = target; clearInterval(t); }
+				el.textContent = Math.floor(val);
+			}, 16);
+		}
+		var statsSection = document.querySelector('.lp-stats');
+		if (statsSection && 'IntersectionObserver' in window) {
+			var io = new IntersectionObserver(function (entries) {
+				entries.forEach(function (e) {
+					if (e.isIntersecting) {
+						e.target.querySelectorAll('.counter').forEach(function (c) {
+							if (!c.dataset.done) { c.dataset.done = 1; animateCounter(c); }
+						});
+					}
+				});
+			}, { threshold: 0.4 });
+			io.observe(statsSection);
+		}
+
+		/* ── ABOUT IMAGE SLIDE-IN FROM LEFT ── */
+		var aboutImgWrap = document.getElementById('aboutImgWrap');
+		if (aboutImgWrap && 'IntersectionObserver' in window) {
+			var aboutIO = new IntersectionObserver(function (entries) {
+				entries.forEach(function (e) {
+					if (e.isIntersecting) {
+						e.target.classList.add('slide-in-visible');
+						aboutIO.unobserve(e.target);
+					}
+				});
+			}, { threshold: 0.2 });
+			aboutIO.observe(aboutImgWrap);
+		} else if (aboutImgWrap) {
+			aboutImgWrap.classList.add('slide-in-visible');
+		}
+
+		/* ══════════════════════════════════════════════
+		   PROJECTS — AUTO-SCROLL INFINITE TICKER
+		   (replaces old drag-scroll logic entirely)
+		══════════════════════════════════════════════ */
+		var projGrid = document.getElementById('projectsGrid');
+		if (projGrid && projGrid.children.length > 0) {
+			/* Wait one frame so layout is painted and scrollWidth is accurate */
+			requestAnimationFrame(function () {
+				var origWidth = projGrid.scrollWidth;
+
+				/* Clone every card to make the seamless loop */
+				Array.from(projGrid.children).forEach(function (card) {
+					projGrid.appendChild(card.cloneNode(true));
+				});
+
+				/*
+				 * Set the CSS variable: animation goes from translateX(0)
+				 * to translateX(-origWidth px), then snaps back seamlessly
+				 * because the second half is identical to the first.
+				 */
+				projGrid.style.setProperty('--proj-shift', '-' + origWidth + 'px');
+			});
+		}
+
+		/* ── TESTIMONIAL INFINITE SCROLL ── */
+		var track = document.getElementById('testiTrack');
+		if (track) {
+			var origWidth = track.scrollWidth;
+			Array.from(track.children).forEach(function (c) { track.appendChild(c.cloneNode(true)); });
+			track.style.setProperty('--testi-shift', '-' + (origWidth + 8) + 'px');
+		}
+
+		/* ── ACTIVE NAV LINK ON SCROLL ── */
+		var sections   = document.querySelectorAll('section[id], footer[id]');
+		var navLinkEls = document.querySelectorAll('.lp-nav__link');
+		window.addEventListener('scroll', function () {
+			var current = '';
+			sections.forEach(function (s) {
+				if (window.pageYOffset >= s.offsetTop - 90) current = s.id;
+			});
+			navLinkEls.forEach(function (l) {
+				l.classList.remove('active');
+				if (l.getAttribute('href') === '#' + current) l.classList.add('active');
+			});
+		}, { passive: true });
+
+		/* ── LIVE FIELD VALIDATION ── */
+		var validatorsMap = {
+			'modalName':     function (v) { return /^[a-zA-Z\s\.\-\']{2,}$/.test(v.trim()); },
+			'modalContact':  function (v) { return /^[0-9]{10}$/.test(v.trim()); },
+			'modalLocation': function (v) { return v.trim().length >= 2; },
+			'modalBHK':      function (v) { return v !== '' && v !== null; },
+			'modalBudget':   function (v) { return /^\d+(\.\d+)?$/.test(v.trim()) && parseFloat(v) > 0; }
+		};
+		var okMessages = {
+			'modalName':     'Looks good!',
+			'modalContact':  'Valid number',
+			'modalLocation': 'Got it!',
+			'modalBHK':      'Selected',
+			'modalBudget':   'Amount noted'
+		};
+		function setFieldState(fieldId, isValid) {
+			var input = document.getElementById(fieldId);
+			if (!input) return;
+			var wrap = input.closest('.lp-field');
+			if (!wrap) return;
+			var okEl = wrap.querySelector('.lp-field__ok');
+			if (!okEl) {
+				okEl = document.createElement('span');
+				okEl.className = 'lp-field__ok';
+				okEl.textContent = okMessages[fieldId] || 'OK';
+				var errEl = wrap.querySelector('.lp-field__err');
+				if (errEl) errEl.after(okEl); else wrap.appendChild(okEl);
+			}
+			wrap.classList.toggle('is-valid', isValid);
+			wrap.classList.toggle('has-error', false);
+		}
+		Object.keys(validatorsMap).forEach(function (id) {
+			var el = document.getElementById(id);
+			if (!el) return;
+			el.addEventListener('input', function () {
+				if (el.value !== '' || el.tagName === 'SELECT') {
+					setFieldState(id, validatorsMap[id](el.value));
+				}
+			});
+			el.addEventListener('change', function () { setFieldState(id, validatorsMap[id](el.value)); });
+			el.addEventListener('blur', function () {
+				if (el.value !== '') {
+					var valid = validatorsMap[id](el.value);
+					var wrap = el.closest('.lp-field');
+					if (!valid) { wrap.classList.remove('is-valid'); wrap.classList.add('has-error'); }
+				}
+			});
+		});
+	});
+
+	/* ── INTEREST FORM SHOW ── */
+	function showInterestForm(propertyId, projectName) {
+		document.getElementById('modalPropertyId').value = propertyId;
+		document.getElementById('modalProjectName').value = projectName;
+		document.getElementById('interestModalLabel').textContent = 'Express Interest — ' + projectName;
+		document.querySelectorAll('#interestForm .lp-field').forEach(function (f) {
+			f.classList.remove('is-valid', 'has-error');
+		});
+		document.getElementById('interestForm').reset();
+		new bootstrap.Modal(document.getElementById('interestModal')).show();
+	}
+
+	/* ── FORM SUBMIT ── */
+	(function () {
+		var form = document.getElementById('interestForm');
+		if (!form) return;
+		var validators = {
+			'modalName':     function (v) { return /^[a-zA-Z\s\.\-\']{2,}$/.test(v.trim()); },
+			'modalContact':  function (v) { return /^[0-9]{10}$/.test(v.trim()); },
+			'modalLocation': function (v) { return v.trim().length >= 2; },
+			'modalBHK':      function (v) { return v !== '' && v !== null; },
+			'modalBudget':   function (v) { return /^\d+(\.\d+)?$/.test(v.trim()) && parseFloat(v) > 0; }
+		};
+		var nameInput = document.getElementById('modalName');
+		if (nameInput) {
+			nameInput.addEventListener('keypress', function (e) {
+				if (/[0-9]/.test(e.key)) { e.preventDefault(); return false; }
+			});
+			nameInput.addEventListener('input', function () {
+				this.value = this.value.replace(/[0-9]/g, '');
+			});
+		}
+		form.addEventListener('submit', function (e) {
+			e.preventDefault();
+			var allValid = true;
+			Object.keys(validators).forEach(function (id) {
+				var input = document.getElementById(id);
+				var wrap  = input ? input.closest('.lp-field') : null;
+				if (!input || !wrap) return;
+				var ok = validators[id](input.value);
+				wrap.classList.toggle('is-valid', ok);
+				wrap.classList.toggle('has-error', !ok);
+				if (!ok) allValid = false;
+			});
+			if (!allValid) return;
+			var btn = document.getElementById('submitBtn');
+			btn.disabled = true;
+			btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Submitting…';
+			fetch('/PublicLeads/CaptureInterest', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					Name:              document.getElementById('modalName').value,
+					Contact:           document.getElementById('modalContact').value,
+					PreferredLocation: document.getElementById('modalLocation').value,
+					BHK:               document.getElementById('modalBHK').value,
+					Budget:            document.getElementById('modalBudget').value,
+					ProjectName:       document.getElementById('modalProjectName').value,
+					PropertyId:        parseInt(document.getElementById('modalPropertyId').value, 10)
+				})
+			})
+			.then(function (r) { return r.json(); })
+			.then(function (data) {
+				btn.disabled = false;
+				btn.innerHTML = '<i class="fa fa-paper-plane"></i> Submit Interest';
+				if (data.success) {
+					bootstrap.Modal.getInstance(document.getElementById('interestModal')).hide();
+					form.reset();
+					form.querySelectorAll('.lp-field').forEach(function (f) { f.classList.remove('is-valid', 'has-error'); });
+					Swal.fire({ icon: 'success', title: 'Thank You!', text: data.message || 'Our team will contact you soon.', confirmButtonColor: '#1A6FA8' });
+				} else {
+					Swal.fire({ icon: 'error', title: 'Oops!', text: data.message || 'Something went wrong.', confirmButtonColor: '#1A6FA8' });
+				}
+			})
+			.catch(function () {
+				btn.disabled = false;
+				btn.innerHTML = '<i class="fa fa-paper-plane"></i> Submit Interest';
+				Swal.fire({ icon: 'error', title: 'Error', text: 'Please try again.', confirmButtonColor: '#1A6FA8' });
+			});
+		});
+	}());
+</script>
+
+<script>
+	// Inquiry Form Submission
+	document.getElementById('inquiryForm')?.addEventListener('submit', function(e) {
+		e.preventDefault();
+		var form = this;
+		var btn = form.querySelector('button[type=submit]');
+		var originalHtml = btn.innerHTML;
+		btn.disabled = true;
+		btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Submitting...';
+
+		var data = {
+			companyName: form.querySelector('[name=companyName]').value,
+			contactPerson: form.querySelector('[name=contactPerson]').value,
+			email: form.querySelector('[name=email]').value,
+			phone: form.querySelector('[name=phone]').value,
+			message: form.querySelector('[name=message]').value,
+			selectedPlan: form.querySelector('[name=selectedPlan]').value
+		};
+
+		fetch('/Home/SubmitInquiry', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify(data)
+		})
+		.then(function(r) { return r.json(); })
+		.then(function(res) {
+			btn.disabled = false;
+			btn.innerHTML = originalHtml;
+			if (res.success) {
+				form.reset();
+				var modal = bootstrap.Modal.getInstance(document.getElementById('inquiryModal'));
+				if (modal) modal.hide();
+				Swal.fire({ icon: 'success', title: 'Thank You!', text: res.message, confirmButtonColor: '#1A6FA8' });
+			} else {
+				Swal.fire({ icon: 'error', title: 'Error', text: res.message });
+			}
+		})
+		.catch(function() {
+			btn.disabled = false;
+			btn.innerHTML = originalHtml;
+			Swal.fire({ icon: 'error', title: 'Error', text: 'Something went wrong. Please try again.' });
+		});
+	});
+
+
+</script>
+
+<script>
+	let timeout;
+
+	function showDropdown(el) {
+		clearTimeout(timeout);
+		const menu = el.querySelector('.dropdown-menu');
+		if (menu) {
+			menu.style.display = 'block';
+		}
+	}
+
+	function hideDropdown(el) {
+		const menu = el.querySelector('.dropdown-menu');
+
+		timeout = setTimeout(() => {
+			if (menu && !menu.matches(':hover')) {
+				menu.style.display = 'none';
+			}
+		}, 300);
+	}
+</script>

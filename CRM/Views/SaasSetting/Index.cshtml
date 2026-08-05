@@ -1,0 +1,717 @@
+@model Dictionary<string, string>
+@{
+    ViewData["Title"] = "System Settings";
+}
+
+<style>
+    .settings-container {
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+
+    .settings-card {
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        transition: all 0.3s ease;
+        margin-bottom: 2rem;
+    }
+
+    .settings-card:hover {
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+    }
+
+    .settings-header {
+        background: linear-gradient(135deg, var(--blue) 0%, var(--blue-dark) 100%);
+        color: white;
+        padding: 1.5rem;
+        border-radius: 12px 12px 0 0;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        border-bottom: 2px solid var(--gold);
+    }
+
+    .settings-header h4 {
+        margin: 0;
+        font-weight: 600;
+    }
+
+    .settings-body {
+        padding: 2rem;
+    }
+
+    .form-label {
+        font-weight: 600;
+        color: #2A3A4A;
+        margin-bottom: 0.5rem;
+        font-size: 0.875rem;
+    }
+
+    .form-control, .form-select {
+        border-radius: 8px;
+        border: 1px solid #E2E8F0;
+        padding: 0.75rem;
+        font-size: 0.875rem;
+        transition: all 0.3s ease;
+    }
+
+    .form-control:focus, .form-select:focus {
+        border-color: var(--blue);
+        box-shadow: 0 0 0 0.2rem rgba(26,111,168, 0.15);
+    }
+
+    .settings-icon {
+        width: 40px;
+        height: 40px;
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.25rem;
+    }
+
+    .save-btn {
+        background: linear-gradient(135deg, var(--blue) 0%, var(--blue-dark) 100%);
+        border: none;
+        color: #FFFFFF !important;
+        padding: 0.875rem 2.5rem;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 1rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 12px rgba(26,111,168, 0.3);
+    }
+
+    .save-btn:hover {
+        color: #FFFFFF !important;
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(26,111,168, 0.4);
+    }
+
+    .save-btn:focus,
+    .save-btn:active,
+    .save-btn:disabled,
+    html.dark-mode .save-btn,
+    html.dark-mode .save-btn:hover,
+    html.dark-mode .save-btn:focus,
+    html.dark-mode .save-btn:active,
+    html.dark-mode .save-btn:disabled {
+        color: #FFFFFF !important;
+    }
+
+    .save-btn i,
+    html.dark-mode .save-btn i {
+        color: #FFFFFF !important;
+    }
+
+    /* ━━ DARK MODE FIXES ━━ */
+    html.dark-mode .settings-body {
+        background: #1A2332;
+    }
+
+    html.dark-mode .settings-header h4,
+    html.dark-mode .settings-header small,
+    html.dark-mode .settings-body strong,
+    html.dark-mode .form-label,
+    html.dark-mode .help-text,
+    html.dark-mode .breadcrumb-item.active,
+    html.dark-mode h2 {
+        color: #E2E8F0 !important;
+    }
+
+    html.dark-mode .form-control,
+    html.dark-mode .form-select {
+        background-color: #1E2A3A;
+        border-color: #2A3A4A;
+        color: #E2E8F0;
+    }
+
+    html.dark-mode .text-muted {
+        color: #8FA3B8 !important;
+    }
+
+    html.dark-mode .bg-light {
+        background-color: #1E2A3A !important;
+    }
+
+    html.dark-mode .border {
+        border-color: #2A3A4A !important;
+    }
+
+    html.dark-mode .alert-info {
+        background-color: rgba(26,111,168, 0.2);
+        border-color: var(--blue);
+        color: #B8C8D8;
+    }
+
+    .help-text {
+        font-size: 0.8rem;
+        color: #6B7B8D;
+        margin-top: 0.25rem;
+    }
+
+    .input-group-text {
+        background-color: var(--body-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 8px 0 0 8px;
+        font-weight: 600;
+        color: var(--text-primary);
+    }
+    
+    /* Required field asterisk styling */
+    .text-danger {
+        color: #DC2626 !important;
+    }
+    
+    /* Invalid field styling */
+    .is-invalid {
+        border-color: #DC2626 !important;
+        box-shadow: 0 0 0 0.2rem rgba(220,38,38, 0.25) !important;
+    }
+    
+    .invalid-feedback {
+        color: #DC2626;
+        font-size: 0.875rem;
+        margin-top: 0.25rem;
+    }
+
+    @@media (max-width: 768px) {
+        .settings-body {
+            padding: 1rem;
+        }
+
+        .save-btn {
+            width: 100%;
+        }
+    }
+
+    @@media (max-width: 768px) {
+        .btn-remove-settings {
+            width: 20px !important;
+            height: 20px !important;
+            font-size: 10px !important;
+            line-height: 20px !important;
+        }
+    }
+</style>
+
+
+<div class="content settings-container">
+    <!-- Breadcrumb -->
+    <nav class="mb-3" aria-label="breadcrumb">
+        <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item"><a href="/home">Home</a></li>
+            <li class="breadcrumb-item active">Settings</li>
+        </ol>
+    </nav>
+
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-1">System Settings</h2>
+            <p class="text-muted mb-0">Configure company information and default values</p>
+        </div>
+        @{
+            var currentRole = User?.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value;
+        }
+        @if (currentRole == "Admin")
+        {
+            <div>
+                <a href="@Url.Action("Branding", "Settings")" class="btn btn-outline-primary me-2">
+                    <i class="fas fa-palette me-2"></i>Landing Page Branding
+                </a>
+                <a href="@Url.Action("Impersonation", "Settings")" class="btn btn-outline-warning">
+                    <i class="fas fa-user-secret me-2"></i>User Impersonation
+                </a>
+            </div>
+        }
+    </div>
+
+    <form id="settingsForm">
+    @Html.AntiForgeryToken()
+        <!-- Company Information Card -->
+        <div class="card settings-card">
+            <div class="settings-header">
+                <div class="settings-icon">
+                    <i class="fa-solid fa-building"></i>
+                </div>
+                <div>
+                    <h4>Company Information</h4>
+                    <small>Details that appear on quotations, invoices, and receipts</small>
+                </div>
+            </div>
+            <div class="settings-body">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label for="CompanyName" class="form-label">
+                            <i class="fa-solid fa-building text-primary me-2"></i>Company Name <span class="text-danger">*</span>
+                        </label>
+                        <input type="text" class="form-control" id="CompanyName" name="CompanyName" 
+                               value="@(Model.ContainsKey("CompanyName") ? Model["CompanyName"] : "")" 
+                               placeholder="Enter company name" required>
+                        <div class="help-text">Legal name of your company</div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label for="CompanyGST" class="form-label">
+                            <i class="fa-solid fa-file-invoice text-primary me-2"></i>GST Number <span class="text-danger">*</span>
+                        </label>
+                        <input type="text" class="form-control" id="CompanyGST" name="CompanyGST" 
+                               value="@(Model.ContainsKey("CompanyGST") ? Model["CompanyGST"] : "")" 
+                               placeholder="XXXXXXXXXXXXXXX" maxlength="15" required 
+                               oninput="this.value=this.value.replace(/[^0-9]/g,'').slice(0,15)">
+                        <div class="help-text">15-digit GST identification number</div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label for="CompanyAddress" class="form-label">
+                            <i class="fa-solid fa-location-dot text-primary me-2"></i>Address <span class="text-danger">*</span>
+                        </label>
+                        <textarea class="form-control" id="CompanyAddress" name="CompanyAddress" 
+                                  rows="3" placeholder="Enter complete address" required>@(Model.ContainsKey("CompanyAddress") ? Model["CompanyAddress"] : "")</textarea>
+                        <div class="help-text">Complete office address with pincode</div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label for="CompanyMapUrl" class="form-label">
+                            <i class="fa-solid fa-map text-primary me-2"></i>Map URL
+                        </label>
+                        <input type="url" class="form-control" id="CompanyMapUrl" name="CompanyMapUrl" 
+                               value="@(Model.ContainsKey("CompanyMapUrl") ? Model["CompanyMapUrl"] : "")" 
+                               placeholder="https://maps.google.com/...">
+                        <div class="help-text">Google Maps or other map service URL</div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label for="CompanyPhone" class="form-label">
+                            <i class="fa-solid fa-phone text-primary me-2"></i>Phone Number <span class="text-danger">*</span>
+                        </label>
+                        <input type="text" class="form-control" id="CompanyPhone" name="CompanyPhone" 
+                               value="@(Model.ContainsKey("CompanyPhone") ? Model["CompanyPhone"] : "")" 
+                               placeholder="+91-XXXXXXXXXX" required>
+                        <div class="help-text">Primary contact number</div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label for="CompanyEmail" class="form-label">
+                            <i class="fa-solid fa-envelope text-primary me-2"></i>Email Address <span class="text-danger">*</span>
+                        </label>
+                        <input type="email" class="form-control" id="CompanyEmail" name="CompanyEmail" 
+                               value="@(Model.ContainsKey("CompanyEmail") ? Model["CompanyEmail"] : "")" 
+                               placeholder="info@company.com" required>
+                        <div class="help-text">Official email for correspondence</div>
+                    </div>
+
+                    <div class="col-md-12">
+                        <label for="CopyrightText" class="form-label">
+                            <i class="fa-solid fa-copyright text-primary me-2"></i>Copyright Text
+                        </label>
+                        <input type="text" class="form-control" id="CopyrightText" name="CopyrightText" 
+                               value="@(Model.ContainsKey("CopyrightText") ? Model["CopyrightText"] : "")" 
+                               placeholder="">
+                        <div class="help-text">Custom copyright text for footer. Leave empty for default.</div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label for="CompanyLogo" class="form-label">
+                            <i class="fa-solid fa-image text-primary me-2"></i>Company Logo
+                        </label>
+                        <input type="file" class="form-control" id="CompanyLogo" name="CompanyLogo" 
+                               accept="image/png,image/jpeg,image/jpg,image/gif">
+                        <div class="help-text">Upload logo (PNG, JPG, GIF - Max 2MB)</div>
+                        <div class="mt-2" id="companyLogoPreviewCol">
+                        @if (Model.ContainsKey("CompanyLogo") && !string.IsNullOrEmpty(Model["CompanyLogo"]))
+                        {
+                            <div class="border rounded p-3 bg-light position-relative" style="max-width: 300px;" id="companyLogoBox">
+                                <button type="button" class="btn btn-danger btn-sm position-absolute btn-remove-settings" style="top: -10px; right: -10px; width: 26px; height: 26px; padding: 0; border-radius: 50%; font-size: 14px; line-height: 26px; z-index: 1;" id="removeLogo" title="Remove Logo">&times;</button>
+                                <img src="@Model["CompanyLogo"]" alt="Company Logo" class="img-fluid" style="max-height: 100px;" id="currentLogo">
+                            </div>
+                        }
+                        else
+                        {
+                            <label class="form-label">Logo Preview</label>
+                            <div class="border rounded p-3 bg-light" style="max-width: 300px; min-height: 100px; display: flex; align-items: center; justify-content: center;">
+                                <span class="text-muted">No logo uploaded</span>
+                            </div>
+                        }
+                    </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label for="CollapsedLogo" class="form-label">
+                            <i class="fa-solid fa-compress text-primary me-2"></i>Collapsed Sidebar Logo
+                        </label>
+                        <input type="file" class="form-control" id="CollapsedLogo" name="CollapsedLogo" 
+                               accept="image/png,image/jpeg,image/jpg,image/gif">
+                        <div class="help-text">Small logo for collapsed sidebar (PNG, JPG, GIF - Max 2MB)</div>
+                        <div class="mt-2" id="collapsedLogoPreviewCol">
+                        @if (Model.ContainsKey("CollapsedLogo") && !string.IsNullOrEmpty(Model["CollapsedLogo"]))
+                        {
+                            <div class="border rounded p-3 bg-light position-relative" style="max-width: 200px;" id="collapsedLogoBox">
+                                <button type="button" class="btn btn-danger btn-sm position-absolute btn-remove-settings" style="top: -10px; right: -10px; width: 26px; height: 26px; padding: 0; border-radius: 50%; font-size: 14px; line-height: 26px; z-index: 1;" id="removeCollapsedLogo" title="Remove Collapsed Logo">&times;</button>
+                                <img src="@Model["CollapsedLogo"]" alt="Collapsed Logo" class="img-fluid" style="max-height: 60px;" id="currentCollapsedLogo">
+                            </div>
+                        }
+                        else
+                        {
+                            <label class="form-label">Collapsed Logo Preview</label>
+                            <div class="border rounded p-3 bg-light" style="max-width: 200px; min-height: 80px; display: flex; align-items: center; justify-content: center;">
+                                <span class="text-muted">No collapsed logo</span>
+                            </div>
+                        }
+                    </div>
+                        </div>
+                    
+                    </div>
+
+                    
+
+                    
+            </div>
+        </div>
+
+        <!-- Financial Configuration Card -->
+        @* <div class="card settings-card">
+            <div class="settings-header">
+                <div class="settings-icon">
+                    <i class="fa-solid fa-indian-rupee-sign"></i>
+                </div>
+                <div>
+                    <h4>Financial Configuration</h4>
+                    <small>Tax rates and payment defaults</small>
+                </div>
+            </div>
+            <div class="settings-body">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label for="GSTRate" class="form-label">
+                            <i class="fa-solid fa-percent text-success me-2"></i>GST Rate (%) <span class="text-danger">*</span>
+                        </label>
+                        <input type="number" class="form-control" id="GSTRate" name="GSTRate" 
+                               value="@(Model.ContainsKey("GSTRate") ? Model["GSTRate"] : "5")" 
+                               step="0.01" min="0" max="100" required>
+                        <div class="help-text">Applied on all invoices</div>
+                    </div>
+
+                    <div class="col-md-4">
+                        <label for="BookingPercentage" class="form-label">
+                            <i class="fa-solid fa-percent text-warning me-2"></i>Default Booking (%) <span class="text-danger">*</span>
+                        </label>
+                        <input type="number" class="form-control" id="BookingPercentage" name="BookingPercentage" 
+                               value="@(Model.ContainsKey("BookingPercentage") ? Model["BookingPercentage"] : "20")" 
+                               step="1" min="0" max="100" required>
+                        <div class="help-text">Initial payment percentage</div>
+                    </div>
+
+                    <div class="col-md-4">
+                        <label for="EMIStructure" class="form-label">
+                            <i class="fa-solid fa-chart-line text-info me-2"></i>EMI Structure <span class="text-danger">*</span>
+                        </label>
+                        <input type="text" class="form-control" id="EMIStructure" name="EMIStructure" 
+                               value="@(Model.ContainsKey("EMIStructure") ? Model["EMIStructure"] : "20-30-30-20")" 
+                               placeholder="20-30-30-20" required>
+                        <div class="help-text">Percentages separated by hyphen</div>
+                    </div>
+
+                    <div class="col-12">
+                        <div class="alert alert-info d-flex align-items-start">
+                            <i class="fa-solid fa-info-circle me-2 mt-1"></i>
+                            <div>
+                                <strong>EMI Structure Example:</strong> 20-30-30-20 means:
+                                <ul class="mb-0 mt-2">
+                                    <li>20% at Booking</li>
+                                    <li>30% at Agreement</li>
+                                    <li>30% at Foundation/Construction</li>
+                                    <li>20% at Possession</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div> *@
+        @* Reffaral card *@
+        <div class="card settings-card">
+            <div class="settings-header">
+                <div class="settings-icon">
+                    <i class="fa-solid fa-gift"></i>
+                </div>
+                <div>
+                    <h4>Referral Program</h4>
+                    <small>Configure referral bonus amounts for referrer and joiner</small>
+                </div>
+            </div>
+            <div class="settings-body">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label for="ReferralReferrerAmount" class="form-label">
+                            <i class="fa-solid fa-coins text-warning me-2"></i>Referrer Bonus Amount (₹)
+                        </label>
+                        <input type="number" class="form-control" id="ReferralReferrerAmount" name="ReferralReferrerAmount"
+                               value="@(Model.ContainsKey("ReferralReferrerAmount") ? Model["ReferralReferrerAmount"] : "500")"
+                               step="1" min="0">
+                        <div class="help-text">Amount credited to existing tenant who refers a new tenant</div>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="ReferralJoinerAmount" class="form-label">
+                            <i class="fa-solid fa-user-plus text-success me-2"></i>Joiner Bonus Amount (₹)
+                        </label>
+                        <input type="number" class="form-control" id="ReferralJoinerAmount" name="ReferralJoinerAmount"
+                               value="@(Model.ContainsKey("ReferralJoinerAmount") ? Model["ReferralJoinerAmount"] : "200")"
+                               step="1" min="0">
+                        <div class="help-text">Amount credited to new tenant who joins using a referral code</div>
+                    </div>
+                    <div class="col-12">
+                        <div class="alert alert-info d-flex align-items-start">
+                            <i class="fa-solid fa-info-circle me-2 mt-1"></i>
+                            <div>
+                                <strong>How it works:</strong> When a new tenant signs up using a referral code, both the referrer and joiner get bonus amounts credited
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Document Numbering Card -->
+        @* <div class="card settings-card">
+            <div class="settings-header">
+                <div class="settings-icon">
+                    <i class="fa-solid fa-hashtag"></i>
+                </div>
+                <div>
+                    <h4>Document Numbering</h4>
+                    <small>Prefixes for automatic number generation</small>
+                </div>
+            </div>
+            <div class="settings-body">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label for="InvoicePrefix" class="form-label">
+                            <i class="fa-solid fa-file-invoice text-primary me-2"></i>Invoice Prefix <span class="text-danger">*</span>
+                        </label>
+                        <input type="text" class="form-control" id="InvoicePrefix" name="InvoicePrefix" 
+                               value="@(Model.ContainsKey("InvoicePrefix") ? Model["InvoicePrefix"] : "INV")" 
+                               placeholder="INV" required>
+                        <div class="help-text">Format: INV-2025-0001</div>
+                    </div>
+
+                    <div class="col-md-4">
+                        <label for="QuotationPrefix" class="form-label">
+                            <i class="fa-solid fa-file-lines text-success me-2"></i>Quotation Prefix <span class="text-danger">*</span>
+                        </label>
+                        <input type="text" class="form-control" id="QuotationPrefix" name="QuotationPrefix" 
+                               value="@(Model.ContainsKey("QuotationPrefix") ? Model["QuotationPrefix"] : "QT")" 
+                               placeholder="QT" required>
+                        <div class="help-text">Format: QT-2025-0001</div>
+                    </div>
+
+                    <div class="col-md-4">
+                        <label for="BookingPrefix" class="form-label">
+                            <i class="fa-solid fa-book text-warning me-2"></i>Booking Prefix <span class="text-danger">*</span>
+                        </label>
+                        <input type="text" class="form-control" id="BookingPrefix" name="BookingPrefix" 
+                               value="@(Model.ContainsKey("BookingPrefix") ? Model["BookingPrefix"] : "BK")" 
+                               placeholder="BK" required>
+                        <div class="help-text">Format: BK-2025-0001</div>
+                    </div>
+                </div>
+            </div>
+        </div> *@
+
+        <!-- Save Button -->
+        <div class="text-end mb-5">
+            <button type="button" class="btn btn-primary save-btn" onclick="validateAndSave()">
+                <i class="fa-solid fa-save me-2"></i>Save All Settings
+            </button>
+        </div>
+    </form>
+</div>
+
+<script>
+    function validateAndSave() {
+        console.log('Save button clicked - starting validation');
+        
+        $('.invalid-feedback').remove();
+        $('.is-invalid').removeClass('is-invalid');
+        
+        let isValid = true;
+        
+        $('#settingsForm').find('input[required], textarea[required], select[required]').each(function() {
+            const field = $(this);
+            const fieldValue = field.val();
+            
+            if (!fieldValue || fieldValue.trim() === '') {
+                field.addClass('is-invalid');
+                const label = field.closest('.col-md-6, .col-md-4, .col-12').find('label').first();
+                let labelText = label.text().replace(/\*/g, '').trim();
+                const errorMsg = $('<div class="invalid-feedback d-block" style="color: #DC2626 !important; font-size: 14px; margin-top: 5px;">' + labelText + ' is required</div>');
+                field.after(errorMsg);
+                isValid = false;
+            }
+        });
+        
+        if (!isValid) {
+            console.log('Validation failed - stopping submission');
+            return false;
+        }
+        
+        console.log('Validation passed - proceeding with submission');
+        const submitBtn = $('.save-btn');
+        const originalText = submitBtn.html();
+        submitBtn.prop('disabled', true).html('<i class="fa-solid fa-spinner fa-spin me-2"></i>Saving...');
+
+        const formData = new FormData($('#settingsForm')[0]);
+
+        $.ajax({
+            url: '/saassetting/UpdateSaasSetting',
+            type: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            success: function(response) {
+                if (response.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Success!',
+                        text: 'Settings updated successfully',
+                        timer: 2000,
+                        showConfirmButton: false
+                    }).then(() => {
+                        location.reload();
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: response.message || 'Failed to update settings'
+                    });
+                }
+            },
+            error: function(xhr, status, error) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'An error occurred while saving settings'
+                });
+            },
+            complete: function() {
+                submitBtn.prop('disabled', false).html(originalText);
+            }
+        });
+    }
+
+    // Live preview when selecting a new logo file
+    $('#CompanyLogo').on('change', function() {
+        var file = this.files[0];
+        if (!file) return;
+        var reader = new FileReader();
+        reader.onload = function(e) {
+            var container = $('#companyLogoBox');
+            if (container.length) {
+                container.find('img').attr('src', e.target.result);
+                container.show();
+            } else {
+                $('#companyLogoPreviewCol').html(
+                    '<label class="form-label">Current Logo</label>' +
+                    '<div class="border rounded p-3 bg-light position-relative" style="max-width: 300px;" id="companyLogoBox">' +
+                    '<button type="button" class="btn btn-danger btn-sm position-absolute btn-remove-settings" style="top: -10px; right: -10px; width: 26px; height: 26px; padding: 0; border-radius: 50%; font-size: 14px; line-height: 26px; z-index: 1;" id="removeLogo" title="Remove Logo">&times;</button>' +
+                    '<img src="' + e.target.result + '" alt="Company Logo" class="img-fluid" style="max-height: 100px;" id="currentLogo">' +
+                    '</div>'
+                );
+            }
+            // Clear the file input value so re-selecting same file triggers change again
+            document.getElementById('CompanyLogo').value = '';
+        };
+        reader.readAsDataURL(file);
+    });
+
+    // Live preview when selecting a new collapsed logo file
+    $('#CollapsedLogo').on('change', function() {
+        var file = this.files[0];
+        if (!file) return;
+        var reader = new FileReader();
+        reader.onload = function(e) {
+            var container = $('#collapsedLogoBox');
+            if (container.length) {
+                container.find('img').attr('src', e.target.result);
+                container.show();
+            } else {
+                $('#collapsedLogoPreviewCol').html(
+                    '<label class="form-label">Current Collapsed Logo</label>' +
+                    '<div class="border rounded p-3 bg-light position-relative" style="max-width: 200px;" id="collapsedLogoBox">' +
+                    '<button type="button" class="btn btn-danger btn-sm position-absolute btn-remove-settings" style="top: -10px; right: -10px; width: 26px; height: 26px; padding: 0; border-radius: 50%; font-size: 14px; line-height: 26px; z-index: 1;" id="removeCollapsedLogo" title="Remove Collapsed Logo">&times;</button>' +
+                    '<img src="' + e.target.result + '" alt="Collapsed Logo" class="img-fluid" style="max-height: 60px;" id="currentCollapsedLogo">' +
+                    '</div>'
+                );
+            }
+            // Clear the file input value so re-selecting same file triggers change again
+            document.getElementById('CollapsedLogo').value = '';
+        };
+        reader.readAsDataURL(file);
+    });
+
+    $(document).on('click', '#removeLogo', function() {
+        Swal.fire({
+            title: 'Remove Logo?',
+            text: 'Are you sure you want to remove the company logo?',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#DC2626',
+            confirmButtonText: 'Yes, remove'
+        }).then((result) => {
+            if (!result.isConfirmed) return;
+            $.ajax({
+                url: '/saassetting/RemoveLogo',
+                type: 'POST',
+                headers: { 'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val() },
+                success: function(data) {
+                    if (data.success) {
+                        $('#companyLogoPreviewCol').html('<label class="form-label">Logo Preview</label><div class="border rounded p-3 bg-light" style="max-width: 300px; min-height: 100px; display: flex; align-items: center; justify-content: center;"><span class="text-muted">No logo uploaded</span></div>');
+                        $('#CompanyLogo').val('');
+                        showToast('Logo removed successfully', 'success');
+                    } else {
+                        Swal.fire('Error', data.message || 'Failed to remove logo', 'error');
+                    }
+                },
+                error: function() {
+                    Swal.fire('Error', 'Failed to communicate with server', 'error');
+                }
+            });
+        });
+    });
+
+    $(document).on('click', '#removeCollapsedLogo', function() {
+        Swal.fire({
+            title: 'Remove Logo?',
+            text: 'Are you sure you want to remove the collapsed logo?',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#DC2626',
+            confirmButtonText: 'Yes, remove'
+        }).then((result) => {
+            if (!result.isConfirmed) return;
+            $.ajax({
+                url: '/saassetting/RemoveCollapsedLogo',
+                type: 'POST',
+                headers: { 'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val() },
+                success: function(data) {
+                    if (data.success) {
+                        $('#collapsedLogoPreviewCol').html('<label class="form-label">Collapsed Logo Preview</label><div class="border rounded p-3 bg-light" style="max-width: 200px; min-height: 80px; display: flex; align-items: center; justify-content: center;"><span class="text-muted">No collapsed logo</span></div>');
+                        $('#CollapsedLogo').val('');
+                        showToast('Collapsed logo removed successfully', 'success');
+                    } else {
+                        Swal.fire('Error', data.message || 'Failed to remove collapsed logo', 'error');
+                    }
+                },
+                error: function() {
+                    Swal.fire('Error', 'Failed to communicate with server', 'error');
+                }
+            });
+        });
+    });
+</script>
+
+
+

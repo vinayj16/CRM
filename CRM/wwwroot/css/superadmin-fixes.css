@@ -1,0 +1,1436 @@
+/* ============================================================
+   SUPER ADMIN UI FIXES
+   ------------------------------------------------------------
+   Loaded LAST in _Layout.cshtml (after page <style> blocks) so
+   these rules win on equal specificity. Every rule is scoped to
+   .superadmin-layout (or the shared navbar/sidebar) and keeps
+   all text visible and aligned - header, sidebar, footer, body.
+   ============================================================ */
+
+/* ── 1. NAVBAR - text/icons always visible (light mode) ── */
+.superadmin-layout .navbar-bg .text-dark,
+.superadmin-layout .navbar-bg .navbar-profile-name,
+.superadmin-layout .navbar-bg .navbar-profile-link span {
+    color: #1A2332 !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    display: inline-block !important;
+    white-space: nowrap !important;
+    overflow: visible !important;
+    text-overflow: clip !important;
+}
+.superadmin-layout .navbar-bg .nav-icon,
+.superadmin-layout .navbar-bg .nav-link,
+.superadmin-layout .navbar-bg .dropdown-toggle,
+.superadmin-layout .navbar-bg .nav-item a {
+    color: #1A2332 !important;
+}
+.superadmin-layout .navbar-bg .hamburger,
+.superadmin-layout .navbar-bg .hamburger::before,
+.superadmin-layout .navbar-bg .hamburger::after {
+    background: #1A2332 !important;
+}
+
+/* ── 1b. NAVBAR - dark mode ── */
+html.dark-mode .superadmin-layout .navbar-bg .text-dark,
+html.dark-mode .superadmin-layout .navbar-bg .navbar-profile-name,
+html.dark-mode .superadmin-layout .navbar-bg .navbar-profile-link span {
+    color: #E8EDF2 !important;
+}
+html.dark-mode .superadmin-layout .navbar-bg .nav-icon,
+html.dark-mode .superadmin-layout .navbar-bg .nav-link,
+html.dark-mode .superadmin-layout .navbar-bg .dropdown-toggle,
+html.dark-mode .superadmin-layout .navbar-bg .nav-item a {
+    color: #E8EDF2 !important;
+}
+html.dark-mode .superadmin-layout .navbar-bg .hamburger,
+html.dark-mode .superadmin-layout .navbar-bg .hamburger::before,
+html.dark-mode .superadmin-layout .navbar-bg .hamburger::after {
+    background: #FFFFFF !important;
+}
+
+/* ── 2. SIDEBAR - every link/text visible & aligned ── */
+.superadmin-layout .sidebar {
+    color: #B8C8D8 !important;
+}
+.superadmin-layout .sidebar .sidebar-link,
+.superadmin-layout .sidebar .sidebar-link span.align-middle {
+    color: #B8C8D8 !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    text-decoration: none !important;
+}
+.superadmin-layout .sidebar .sidebar-link:hover,
+.superadmin-layout .sidebar .sidebar-link:hover span.align-middle,
+.superadmin-layout .sidebar .sidebar-item.active > .sidebar-link,
+.superadmin-layout .sidebar .sidebar-item.active > .sidebar-link span.align-middle,
+.superadmin-layout .sidebar-dropdown .sidebar-item.active > .sidebar-link,
+.superadmin-layout .sidebar-dropdown .sidebar-item.active > .sidebar-link span.align-middle {
+    color: #FFFFFF !important;
+}
+.superadmin-layout .sidebar .sidebar-header {
+    color: rgba(212,164,90, 0.75) !important;
+    visibility: visible !important;
+}
+.superadmin-layout .sidebar-footer {
+    color: rgba(255, 255, 255, 0.78) !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+.superadmin-layout .sidebar-footer a {
+    color: var(--gold-light, #E8C27E) !important;
+    visibility: visible !important;
+}
+
+/* ── 3. MAIN CONTENT - consistent spacing, no collisions ── */
+.superadmin-layout .main > .content {
+    padding: 0.75rem 1.25rem 1.5rem !important;
+    padding-top: calc(0.5rem + 5px) !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    min-height: calc(100vh - var(--navbar-height, 54px)) !important;
+    overflow-x: hidden !important;
+}
+/* Pages sometimes force a light background on .content (e.g. Tenants).
+   In dark mode that makes light text unreadable - force the dark bg. */
+html.dark-mode .superadmin-layout .main > .content,
+html.dark-mode .superadmin-layout .content {
+    background: var(--body-bg, #111827) !important;
+    color: #E8EDF2 !important;
+}
+.superadmin-layout .content p {
+    font-size: 0.9rem !important;
+    line-height: 1.55 !important;
+    margin-bottom: 0.5rem !important;
+}
+.superadmin-layout .content h1 { font-size: 1.5rem !important; margin-bottom: 0.5rem !important; line-height: 1.25 !important; }
+.superadmin-layout .content h2 { font-size: 1.3rem !important; margin-bottom: 0.5rem !important; line-height: 1.25 !important; }
+.superadmin-layout .content h3 { font-size: 1.1rem !important; margin-bottom: 0.4rem !important; line-height: 1.3 !important; }
+.superadmin-layout .content h4 { font-size: 1rem !important; margin-bottom: 0.4rem !important; line-height: 1.3 !important; }
+.superadmin-layout .content h5 { font-size: 0.95rem !important; margin-bottom: 0.35rem !important; line-height: 1.3 !important; }
+.superadmin-layout .content h6 { font-size: 0.88rem !important; margin-bottom: 0.35rem !important; line-height: 1.3 !important; }
+
+/* Text should never overflow its box / overlap neighbours */
+.superadmin-layout .content p,
+.superadmin-layout .content span,
+.superadmin-layout .content div,
+.superadmin-layout .content label,
+.superadmin-layout .content td,
+.superadmin-layout .content th {
+    overflow-wrap: break-word;
+}
+.superadmin-layout .content .table-responsive,
+.superadmin-layout .content .table-scroll,
+.superadmin-layout .content .tx-scroll,
+.superadmin-layout .content .ts-table-wrap {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+}
+
+/* ── 4. TABLES - readable text, aligned cells, no overlap ── */
+.superadmin-layout .content table {
+    max-width: 100% !important;
+}
+.superadmin-layout .content table td,
+.superadmin-layout .content table th {
+    vertical-align: middle !important;
+    word-break: break-word;
+}
+.superadmin-layout .content table th {
+    font-weight: 600 !important;
+}
+
+/* ── 5. BADGES - never squashed, text always readable ── */
+.superadmin-layout .content .badge,
+.superadmin-layout .content .sa-badge,
+.superadmin-layout .content .role-badge,
+.superadmin-layout .content .status-badge,
+.superadmin-layout .content .t-badge,
+.superadmin-layout .content .sp-type-badge,
+.superadmin-layout .content .sp-status-badge,
+.superadmin-layout .content .al-badge,
+.superadmin-layout .content .el-badge,
+.superadmin-layout .content .referral-badge {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 3px !important;
+    white-space: nowrap !important;
+    vertical-align: middle !important;
+    line-height: 1.4 !important;
+}
+
+/* ── 6. STAT CARDS - never overlap, numbers/labels visible ── */
+.superadmin-layout .sa-stat {
+    min-width: 0 !important;
+    overflow: hidden !important;
+}
+.superadmin-layout .sa-stat-number,
+.superadmin-layout .sa-stat-label {
+    max-width: 100% !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+}
+
+/* ── 7. FORMS - inputs/textareas readable in both themes ── */
+.superadmin-layout .content .form-control,
+.superadmin-layout .content .form-select {
+    color: var(--text-primary, #1A2332) !important;
+    background-color: var(--card-bg, #FFFFFF) !important;
+    border-color: var(--border-color, #E2E8F0) !important;
+}
+html.dark-mode .superadmin-layout .content .form-control,
+html.dark-mode .superadmin-layout .content .form-select {
+    color: #E8EDF2 !important;
+    background-color: #2A3A4A !important;
+    border-color: var(--border-color, #2A3A4A) !important;
+}
+
+/* ── 8. DARK MODE safety for pages that hard-code light colors ── */
+html.dark-mode .superadmin-layout .content .tx-table { color: #E8EDF2 !important; }
+html.dark-mode .superadmin-layout .content .tx-table td { color: #E8EDF2 !important; }
+html.dark-mode .superadmin-layout .content .tx-table tbody tr:hover { background: rgba(26,111,168,0.12) !important; }
+html.dark-mode .superadmin-layout .content .al-table td { color: #E8EDF2 !important; }
+html.dark-mode .superadmin-layout .content .el-table td { color: #E8EDF2 !important; }
+html.dark-mode .superadmin-layout .content .pay-page { color: #E8EDF2 !important; }
+html.dark-mode .superadmin-layout .content .referral-table td { color: #E8EDF2 !important; }
+
+/* ── 9. RESPONSIVE - keep everything visible on small screens ── */
+@media (max-width: 991px) {
+    .superadmin-layout .main > .content { padding: 0.6rem 0.85rem 1.25rem !important; }
+}
+@media (max-width: 767px) {
+    .superadmin-layout .main > .content { padding: 0.5rem 0.6rem 1rem !important; }
+    .superadmin-layout .navbar-bg .navbar-profile-name {
+        max-width: 110px !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+    }
+    .superadmin-layout .navbar-bg .text-dark { overflow: hidden !important; text-overflow: ellipsis !important; }
+    .superadmin-layout .content table { font-size: 0.82rem !important; }
+}
+
+/* ── 10. GLOBAL FIXES - text, cards, badges, stats visibility ── */
+
+/* NOTE: a blanket `.content * { overflow: visible; max-height: none;
+   white-space: normal }` rule was removed here because it also killed
+   scrollable modals (.al-detail-content, .et-modal-content, .inq-card),
+   ellipsis cells (.cell-ref, EmailLog subject) and .ts-table-wrap.
+   Visibility is instead handled by the targeted rules below + section 11. */
+
+/* Fix stat cards - ensure content fits */
+.superadmin-layout .sa-stat,
+.superadmin-layout .sa-stat-number,
+.superadmin-layout .sa-stat-label {
+    max-width: 100% !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+}
+.superadmin-layout .sa-stat {
+    min-height: 36px !important;
+    height: auto !important;
+    padding: 3px 6px !important;
+}
+.superadmin-layout .sa-stat-icon {
+    width: 18px !important;
+    height: 18px !important;
+    font-size: 11px !important;
+    flex-shrink: 0 !important;
+}
+.superadmin-layout .sa-stat-number {
+    font-size: 0.9rem !important;
+    font-weight: 700 !important;
+    line-height: 1 !important;
+}
+.superadmin-layout .sa-stat-label {
+    font-size: 0.55rem !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.3px !important;
+    font-weight: 600 !important;
+    line-height: 1 !important;
+}
+
+/* Fix all cards - ensure proper sizing and no overflow */
+.superadmin-layout .sa-card,
+.superadmin-layout .card,
+.superadmin-layout .dashboard-card,
+.superadmin-layout .users-card,
+.superadmin-layout .t-card,
+.superadmin-layout .sa-card {
+    overflow: visible !important;
+    min-height: auto !important;
+    height: auto !important;
+    max-height: none !important;
+    box-sizing: border-box !important;
+    word-wrap: break-word !important;
+    overflow-wrap: break-word !important;
+}
+
+/* Fix card headers - ensure text is visible */
+.superadmin-layout .sa-card-header,
+.superadmin-layout .card-header,
+.superadmin-layout .users-card-header {
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    padding: 12px 14px !important;
+    margin-bottom: 12px !important;
+    border-bottom: 1px solid var(--border-color, #E2E8F0) !important;
+    flex-wrap: wrap !important;
+}
+.superadmin-layout .sa-card-header h3,
+.superadmin-layout .card-header h3,
+.superadmin-layout .users-card-header h5 {
+    font-size: 13px !important;
+    font-weight: 700 !important;
+    margin: 0 !important;
+    color: var(--text-primary, #1A2332) !important;
+    overflow: visible !important;
+    text-overflow: clip !important;
+    white-space: normal !important;
+}
+
+/* Fix tables - ensure all text visible */
+.superadmin-layout .sa-table,
+.superadmin-layout .user-table,
+.superadmin-layout table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    font-size: 0.85rem !important;
+    table-layout: auto !important;
+}
+.superadmin-layout .sa-table th,
+.superadmin-layout .sa-table td,
+.superadmin-layout .user-table th,
+.superadmin-layout .user-table td {
+    padding: 8px 10px !important;
+    vertical-align: middle !important;
+    word-break: break-word !important;
+    overflow-wrap: anywhere !important;
+    max-width: 250px !important;
+}
+.superadmin-layout .sa-table th,
+.superadmin-layout .user-table th {
+    font-weight: 600 !important;
+    font-size: 11px !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.3px !important;
+    white-space: nowrap !important;
+    background: var(--blue, #1A6FA8) !important;
+    color: #FFFFFF !important;
+}
+
+/* Fix badges - ensure they don't get cut off */
+.superadmin-layout .sa-badge,
+.superadmin-layout .badge,
+.superadmin-layout .role-badge,
+.superadmin-layout .status-badge,
+.superadmin-layout .t-badge,
+.superadmin-layout .sa-badge-active,
+.superadmin-layout .sa-badge-suspended,
+.superadmin-layout .sa-badge-plan {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 2px 8px !important;
+    border-radius: 4px !important;
+    font-size: 10px !important;
+    font-weight: 600 !important;
+    white-space: nowrap !important;
+    line-height: 1.4 !important;
+    min-width: auto !important;
+    max-width: none !important;
+    overflow: visible !important;
+}
+
+/* Ensure sidebar badges are always visible */
+.superadmin-layout .sidebar .sa-badge {
+    display: inline-flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+
+/* Fix hero section text */
+.superadmin-layout .hero-welcome .text-white,
+.superadmin-layout .hero-welcome h1,
+.superadmin-layout .hero-welcome h2,
+.superadmin-layout .hero-welcome h3,
+.superadmin-layout .hero-welcome p,
+.superadmin-layout .hero-welcome span {
+    color: #FFFFFF !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    overflow: visible !important;
+    text-overflow: clip !important;
+    white-space: normal !important;
+}
+
+/* Fix header section text */
+.superadmin-layout .sa-header h2,
+.superadmin-layout .sa-header h1 {
+    font-size: 18px !important;
+    font-weight: 700 !important;
+    margin: 0 !important;
+    color: #FFFFFF !important;
+    overflow: visible !important;
+}
+.superadmin-layout .sa-header p {
+    font-size: 12px !important;
+    color: rgba(255,255,255,0.85) !important;
+    margin: 0 !important;
+    overflow: visible !important;
+}
+
+/* Fix company name and subdomain text */
+.superadmin-layout .sa-company,
+.superadmin-layout .t-company {
+    font-weight: 600 !important;
+    font-size: 12px !important;
+    color: var(--text-primary, #1A2332) !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+}
+.superadmin-layout .sa-subdomain,
+.superadmin-layout .t-subdomain {
+    font-size: 10px !important;
+    color: var(--text-muted, #6B7B8D) !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+}
+
+/* Fix tenant cards - ensure all content visible */
+.superadmin-layout .t-card,
+.superadmin-layout .t-card-body,
+.superadmin-layout .t-card-row,
+.superadmin-layout .t-info {
+    overflow: visible !important;
+    max-height: none !important;
+}
+.superadmin-layout .t-company {
+    font-size: 12px !important;
+    font-weight: 700 !important;
+    color: var(--text-primary, #2A3A4A) !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+}
+.superadmin-layout .t-meta {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 0 8px !important;
+    margin-bottom: 2px !important;
+}
+.superadmin-layout .t-meta-item {
+    display: flex !important;
+    align-items: center !important;
+    gap: 2px !important;
+    font-size: 10px !important;
+    color: var(--text-muted, #6B7B8D) !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+}
+
+/* Fix filter inputs and buttons */
+.superadmin-layout .t-filter .form-control,
+.superadmin-layout .t-filter .form-select {
+    font-size: 0.85rem !important;
+    padding: 6px 10px !important;
+    height: auto !important;
+    min-height: 32px !important;
+}
+.superadmin-layout .t-fbtn {
+    font-size: 0.85rem !important;
+    padding: 6px 12px !important;
+    height: auto !important;
+    min-height: 32px !important;
+}
+
+/* Fix section titles */
+.superadmin-layout .sa-section-title {
+    font-size: 0.95rem !important;
+    font-weight: 700 !important;
+    color: var(--text-primary, #1A2332) !important;
+    margin: 2px 0 10px 0 !important;
+    overflow: visible !important;
+}
+.superadmin-layout .sa-section-title span {
+    font-size: 0.75rem !important;
+    font-weight: 500 !important;
+    color: var(--text-muted, #6B7B8D) !important;
+    overflow: visible !important;
+}
+
+/* Fix action buttons - ensure they don't overlap */
+.superadmin-layout .t-actions {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 3px !important;
+    flex-shrink: 0 !important;
+    align-items: flex-end !important;
+}
+.superadmin-layout .t-act-btn {
+    font-size: 0.75rem !important;
+    padding: 4px 10px !important;
+    white-space: nowrap !important;
+}
+
+/* Fix tables wrapper - ensure scroll works properly */
+.superadmin-layout .table-scroll,
+.superadmin-layout .table-responsive {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    max-width: 100% !important;
+}
+
+/* Fix empty states */
+.superadmin-layout .t-empty,
+.superadmin-layout .empty-state {
+    text-align: center !important;
+    padding: 1.25rem 1rem !important;
+    background: var(--surface, #FFFFFF) !important;
+    border-radius: var(--r, 6px) !important;
+    overflow: visible !important;
+}
+.superadmin-layout .t-empty i,
+.superadmin-layout .empty-state i {
+    font-size: 1.75rem !important;
+    margin-bottom: 0.4rem !important;
+    display: block !important;
+}
+
+/* Fix pagination */
+.superadmin-layout .t-pag {
+    background: var(--surface, #FFFFFF) !important;
+    border-radius: var(--r, 6px) !important;
+    padding: 6px 10px !important;
+    margin-top: 5px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    flex-wrap: wrap !important;
+    gap: 5px !important;
+}
+
+/* Ensure all inputs are readable */
+.superadmin-layout .form-control,
+.superadmin-layout .form-select {
+    font-size: 0.9rem !important;
+    padding: 8px 12px !important;
+    height: auto !important;
+    min-height: 36px !important;
+}
+
+/* ============================================================
+   11. FONT-SIZE RESTORATION (fixes colliding text/boxes)
+   ------------------------------------------------------------
+   _Layout.cshtml forces `.content div/span/label/p { font-size:
+   14px !important }` on everything. That shrinks the big stat
+   numbers (1.3-1.5rem -> 14px) AND inflates the tiny labels
+   (8-12px -> 14px), so compact stat boxes overflow and their
+   text/counts/boxes collide. These scoped rules (specificity
+   (0,2,0)+ > (0,1,1), loaded last) restore the page-intended
+   sizes on every SuperAdmin page.
+   ============================================================ */
+
+/* -- 11a. Stat numbers - keep big counts big & visible -- */
+.superadmin-layout .al-stat-num,
+.superadmin-layout .sp-stat-num,
+.superadmin-layout .iq-stat-num {
+    font-size: 1.3rem !important;
+}
+.superadmin-layout .referral-stat-number {
+    font-size: 1.5rem !important;
+}
+.superadmin-layout .t-stat-num {
+    font-size: 14px !important;
+}
+
+/* -- 11b. Stat labels - keep compact so cards never overflow -- */
+.superadmin-layout .al-stat-lbl,
+.superadmin-layout .sp-stat-lbl,
+.superadmin-layout .iq-stat-lbl,
+.superadmin-layout .referral-stat > div:last-child {
+    font-size: 0.7rem !important;
+    white-space: nowrap !important;
+}
+.superadmin-layout .t-stat-lbl {
+    font-size: 8px !important;
+    white-space: nowrap !important;
+}
+
+/* -- 11c. Header subtitles - keep them small inside headers -- */
+.superadmin-layout .sa-header-text p,
+.superadmin-layout .sp-header-sub,
+.superadmin-layout .pay-hero-text p,
+.superadmin-layout .ts-header h5 {
+    font-size: 0.75rem !important;
+}
+
+/* -- 11d. Filter labels - keep uppercase micro-labels compact -- */
+.superadmin-layout .filter-bar .form-label,
+.superadmin-layout .al-filter-bar .form-label {
+    font-size: 0.68rem !important;
+}
+
+/* -- 11e. Small helper/cell text (dates, meta, subdomains) -- */
+.superadmin-layout .sa-subdomain,
+.superadmin-layout .t-meta-item,
+.superadmin-layout .al-ts,
+.superadmin-layout .al-ip,
+.superadmin-layout .al-entity,
+.superadmin-layout .cell-date,
+.superadmin-layout .cell-plan,
+.superadmin-layout .cell-ref {
+    font-size: 0.72rem !important;
+}
+.superadmin-layout .cell-tenant {
+    font-size: 0.78rem !important;
+}
+.superadmin-layout .al-user,
+.superadmin-layout .sa-company,
+.superadmin-layout .t-company {
+    font-size: 12px !important;
+}
+
+/* -- 11f. Badges - keep small so table rows stay compact -- */
+.superadmin-layout .content .sa-badge,
+.superadmin-layout .content .al-badge,
+.superadmin-layout .content .el-badge,
+.superadmin-layout .content .t-badge,
+.superadmin-layout .content .sp-type-badge,
+.superadmin-layout .content .sp-status-badge,
+.superadmin-layout .content .role-badge,
+.superadmin-layout .content .status-badge,
+.superadmin-layout .content .referral-badge,
+.superadmin-layout .content .tx-badge {
+    font-size: 0.72rem !important;
+    white-space: nowrap !important;
+}
+
+/* -- 11g. Compact table font sizes - restore intended density -- */
+.superadmin-layout .al-table { font-size: 0.8rem !important; }
+.superadmin-layout .tx-table { font-size: 0.78rem !important; }
+.superadmin-layout .el-table { font-size: 0.85rem !important; }
+.superadmin-layout .ts-table { font-size: 0.79rem !important; }
+.superadmin-layout .iq-table { font-size: 0.82rem !important; }
+.superadmin-layout .referral-table { font-size: 13px !important; }
+
+/* ── 11. PAGE-SPECIFIC OVERRIDES ── */
+
+/* Plans page - ensure cards don't overflow */
+.superadmin-layout .sp-plan-card {
+    overflow: visible !important;
+    max-height: none !important;
+    height: auto !important;
+    min-height: auto !important;
+}
+.superadmin-layout .sp-plan-body {
+    overflow: visible !important;
+    max-height: none !important;
+}
+.superadmin-layout .sp-feat-item {
+    font-size: 0.85rem !important;
+    overflow-wrap: break-word !important;
+    word-break: break-word !important;
+}
+.superadmin-layout .sp-plan-name {
+    font-size: 1rem !important;
+    font-weight: 700 !important;
+    overflow: visible !important;
+    text-overflow: clip !important;
+    white-space: normal !important;
+}
+.superadmin-layout .sp-plan-desc {
+    font-size: 0.85rem !important;
+    overflow: visible !important;
+}
+.superadmin-layout .sp-btn-action {
+    font-size: 0.8rem !important;
+    padding: 6px 12px !important;
+    white-space: nowrap !important;
+}
+
+/* Tenants page - ensure cards display properly */
+.superadmin-layout .t-card {
+    overflow: visible !important;
+    max-height: none !important;
+    height: auto !important;
+    min-height: auto !important;
+}
+.superadmin-layout .t-card-row {
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+}
+.superadmin-layout .t-info {
+    flex: 1 !important;
+    min-width: 0 !important;
+    overflow: visible !important;
+}
+.superadmin-layout .t-actions {
+    flex-shrink: 0 !important;
+}
+
+/* Users page - ensure table and cards visible */
+.superadmin-layout .users-card {
+    overflow: visible !important;
+    max-height: none !important;
+}
+.superadmin-layout .user-table {
+    font-size: 0.85rem !important;
+    table-layout: auto !important;
+}
+.superadmin-layout .user-table th,
+.superadmin-layout .user-table td {
+    padding: 10px 12px !important;
+    vertical-align: middle !important;
+    word-break: break-word !important;
+    overflow-wrap: anywhere !important;
+}
+
+/* Dashboard page - ensure stats and tables visible */
+.superadmin-layout .sa-stats {
+    display: grid !important;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)) !important;
+    gap: 8px !important;
+    margin-bottom: 10px !important;
+}
+.superadmin-layout .sa-tables-row {
+    display: grid !important;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)) !important;
+    gap: 14px !important;
+}
+.superadmin-layout .sa-card {
+    overflow: visible !important;
+    max-height: none !important;
+    min-height: auto !important;
+    height: auto !important;
+}
+
+/* Fix modal dialogs - ensure they're visible and centered */
+.superadmin-layout .modal-dialog {
+    max-width: 90vw !important;
+    margin: 1rem auto !important;
+    z-index: 9999 !important;
+}
+.superadmin-layout .modal-content {
+    overflow: visible !important;
+    max-height: 90vh !important;
+}
+.superadmin-layout .modal-body {
+    overflow-y: auto !important;
+    max-height: 70vh !important;
+}
+
+/* Fix any element with potential z-index issues */
+.superadmin-layout .navbar,
+.superadmin-layout .sidebar,
+.superadmin-layout .modal,
+.superadmin-layout .dropdown-menu {
+    z-index: 1050 !important;
+}
+.superadmin-layout .modal-backdrop {
+    z-index: 1040 !important;
+}
+
+/* Dropdown menus - only visible when OPEN (Bootstrap adds .show).
+   A previous blanket `display: block !important` here kept every
+   navbar dropdown (profile, alerts, referral wallet) permanently
+   open, overlapping page content. */
+.superadmin-layout .dropdown-menu.show {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+.superadmin-layout .dropdown-menu:not(.show) {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+}
+
+/* Absolute positioning must keep working (chat widget, settings
+   logo buttons, sidebar collapsed badges). Forcing `relative`
+   made the chat window render inline and overlap the page. */
+
+/* Ensure buttons and interactive elements are clickable */
+.superadmin-layout button,
+.superadmin-layout a,
+.superadmin-layout [role="button"] {
+    pointer-events: auto !important;
+    cursor: pointer !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+}
+
+/* Collapse - only show when OPEN (Bootstrap adds .show).
+   A previous blanket `display: block !important` on
+   `.collapse:not(.show)` kept every sidebar submenu expanded
+   permanently, making the sidebar overflow and collide.
+   NOTE: .navbar-collapse is forced flex by _Layout.cshtml
+   (`.navbar-collapse.collapse:not(.show) { display: flex }`),
+   which has higher specificity than this rule, so the top
+   navbar is unaffected. */
+.superadmin-layout .collapse.show {
+    display: block !important;
+    visibility: visible !important;
+}
+.superadmin-layout .collapse:not(.show) {
+    display: none !important;
+    visibility: hidden !important;
+}
+
+/* ── 12. UNIVERSAL PAGE FIXES - all SuperAdmin pages ── */
+
+/* Add 5px spacing from header and sidebar to main content */
+.superadmin-layout .sa-container,
+.superadmin-layout .sa-root,
+.superadmin-layout .sp-page,
+.superadmin-layout .ts-scope,
+.superadmin-layout .content {
+    margin-left: 5px !important;
+    margin-right: 5px !important;
+    padding-left: 5px !important;
+    padding-right: 5px !important;
+}
+
+/* Remove extra space from all cards and containers */
+.superadmin-layout .sa-card,
+.superadmin-layout .card,
+.superadmin-layout .t-card,
+.superadmin-layout .sp-plan-card,
+.superadmin-layout .s-card,
+.superadmin-layout .ts-card,
+.superadmin-layout .iq-stat-card,
+.superadmin-layout .sp-stat-card {
+    margin-bottom: 0.75rem !important;
+    padding-bottom: 0.75rem !important;
+}
+
+.superadmin-layout .sa-card:last-child,
+.superadmin-layout .card:last-child,
+.superadmin-layout .t-card:last-child,
+.superadmin-layout .sp-plan-card:last-child {
+    margin-bottom: 0 !important;
+    padding-bottom: 0 !important;
+}
+
+/* Ensure all page headers are visible and properly styled */
+.superadmin-layout .sa-header,
+.superadmin-layout .sp-header,
+.superadmin-layout .pay-hero,
+.superadmin-layout .ts-header,
+.superadmin-layout .sa-section-title,
+.superadmin-layout h1,
+.superadmin-layout h2,
+.superadmin-layout h3 {
+    display: flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    overflow: visible !important;
+    color: var(--text-primary, #1A2332) !important;
+}
+
+.superadmin-layout .sa-header,
+.superadmin-layout .sp-header,
+.superadmin-layout .pay-hero,
+.superadmin-layout .ts-header {
+    align-items: center !important;
+    gap: 10px !important;
+    padding: 0.75rem 1rem !important;
+    margin-bottom: 0.75rem !important;
+    border-radius: 10px !important;
+    flex-wrap: wrap !important;
+}
+
+.superadmin-layout .sa-header {
+    background: linear-gradient(135deg, #1A6FA8 0%, #0F4C75 100%) !important;
+}
+
+.superadmin-layout .sa-header h2,
+.superadmin-layout .sa-header h1,
+.superadmin-layout .sp-header-title,
+.superadmin-layout .pay-hero-text h1,
+.superadmin-layout .ts-header h5 {
+    font-size: 1rem !important;
+    font-weight: 700 !important;
+    color: #FFFFFF !important;
+    margin: 0 !important;
+    overflow: visible !important;
+}
+
+.superadmin-layout .sa-header p,
+.superadmin-layout .sp-header-sub,
+.superadmin-layout .pay-hero-text p {
+    font-size: 0.75rem !important;
+    color: rgba(255,255,255,0.85) !important;
+    margin: 0 !important;
+}
+
+/* Fix all page headers and breadcrumbs */
+.superadmin-layout nav[aria-label="breadcrumb"],
+.superadmin-layout .breadcrumb {
+    margin-bottom: 0.6rem !important;
+    padding: 0 !important;
+    font-size: 0.76rem !important;
+}
+
+.superadmin-layout .breadcrumb-item a {
+    color: var(--blue, #1A6FA8) !important;
+    text-decoration: none !important;
+}
+
+.superadmin-layout .breadcrumb-item.active {
+    color: var(--text-muted, #6B7B8D) !important;
+}
+
+/* Ensure all stat cards have consistent sizing */
+.superadmin-layout .iq-stat-card,
+.superadmin-layout .sp-stat-card {
+    min-height: 36px !important;
+    height: auto !important;
+    padding: 3px 6px !important;
+    margin-bottom: 0.5rem !important;
+}
+
+.superadmin-layout .iq-stat-icon,
+.superadmin-layout .sp-stat-icon {
+    width: 24px !important;
+    height: 24px !important;
+    border-radius: 6px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    flex-shrink: 0 !important;
+    font-size: 12px !important;
+}
+
+.superadmin-layout .iq-stat-num,
+.superadmin-layout .sp-stat-num {
+    font-size: 1.1rem !important;
+    font-weight: 700 !important;
+    line-height: 1.1 !important;
+    margin-bottom: 0 !important;
+}
+
+.superadmin-layout .iq-stat-lbl,
+.superadmin-layout .sp-stat-lbl {
+    font-size: 0.65rem !important;
+    color: var(--text-muted, #6B7B8D) !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.3px !important;
+    margin-top: 1px !important;
+}
+
+/* Fix all table wrappers */
+.superadmin-layout .table-responsive,
+.superadmin-layout .table-scroll,
+.superadmin-layout .ts-table-wrap {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    max-width: 100% !important;
+    margin-bottom: 0.75rem !important;
+}
+
+/* Fix all buttons */
+.superadmin-layout .btn-action,
+.superadmin-layout .t-act-btn,
+.superadmin-layout .sp-btn-action,
+.superadmin-layout .btn-filter,
+.superadmin-layout .btn-clear,
+.superadmin-layout .btn-assign,
+.superadmin-layout .btn-upgrade,
+.superadmin-layout .btn-refund {
+    font-size: 0.8rem !important;
+    padding: 6px 12px !important;
+    min-height: 32px !important;
+    white-space: nowrap !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 4px !important;
+}
+
+/* Fix all filter bars */
+.superadmin-layout .filter-bar,
+.superadmin-layout .ts-filters {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 0.5rem !important;
+    align-items: flex-end !important;
+    padding: 0.6rem 0.75rem !important;
+    margin-bottom: 0.75rem !important;
+    background: var(--card-bg, #FFFFFF) !important;
+    border-radius: 8px !important;
+    border: 1px solid var(--border-color, #E2E8F0) !important;
+}
+
+.superadmin-layout .filter-bar .form-control,
+.superadmin-layout .filter-bar .form-select,
+.superadmin-layout .ts-filters .form-control,
+.superadmin-layout .ts-filters .form-select {
+    font-size: 0.85rem !important;
+    padding: 6px 10px !important;
+    min-height: 32px !important;
+}
+
+/* Fix all empty states */
+.superadmin-layout .empty-state,
+.superadmin-layout .t-empty,
+.superadmin-layout .sp-empty,
+.superadmin-layout .ts-empty,
+.superadmin-layout .tx-empty {
+    text-align: center !important;
+    padding: 1.25rem 1rem !important;
+    background: var(--card-bg, #FFFFFF) !important;
+    border-radius: 8px !important;
+    border: 1px solid var(--border-color, #E2E8F0) !important;
+    margin: 0.75rem 0 !important;
+}
+
+.superadmin-layout .empty-state i,
+.superadmin-layout .t-empty i,
+.superadmin-layout .sp-empty i,
+.superadmin-layout .tx-empty i {
+    font-size: 2rem !important;
+    margin-bottom: 0.5rem !important;
+    display: block !important;
+    opacity: 0.5 !important;
+}
+
+/* Fix all pagination */
+.superadmin-layout .pagination,
+.superadmin-layout .ts-pagination {
+    display: flex !important;
+    justify-content: center !important;
+    padding: 0.6rem !important;
+    gap: 0.25rem !important;
+    flex-wrap: wrap !important;
+}
+
+.superadmin-layout .page-item .page-link {
+    font-size: 0.75rem !important;
+    padding: 0.3rem 0.6rem !important;
+    min-width: 32px !important;
+}
+
+/* Fix all modals */
+.superadmin-layout .modal-dialog {
+    max-width: 90vw !important;
+    margin: 1rem auto !important;
+    z-index: 9999 !important;
+}
+
+.superadmin-layout .modal-content {
+    overflow: visible !important;
+    max-height: 90vh !important;
+    border-radius: 10px !important;
+}
+
+.superadmin-layout .modal-header {
+    padding: 0.75rem 1rem !important;
+    border-bottom: 2px solid var(--gold, #D4A45A) !important;
+}
+
+.superadmin-layout .modal-title {
+    font-size: 0.9rem !important;
+    font-weight: 700 !important;
+    color: var(--text-primary, #1A2332) !important;
+}
+
+.superadmin-layout .modal-body {
+    overflow-y: auto !important;
+    max-height: 70vh !important;
+    padding: 1rem !important;
+}
+
+.superadmin-layout .modal-footer {
+    padding: 0.6rem 1rem !important;
+    border-top: 1px solid var(--border-color, #E2E8F0) !important;
+    gap: 0.5rem !important;
+}
+
+/* Fix z-index for all overlays */
+.superadmin-layout .navbar { z-index: 1050 !important; }
+.superadmin-layout .sidebar { z-index: 1030 !important; }
+.superadmin-layout .modal { z-index: 9999 !important; }
+.superadmin-layout .dropdown-menu { z-index: 1070 !important; }
+.superadmin-layout .modal-backdrop { z-index: 1040 !important; }
+
+/* Ensure all dropdowns are visible when open */
+.superadmin-layout .dropdown-menu.show {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+
+/* Fix all form elements */
+.superadmin-layout .form-label {
+    font-size: 0.85rem !important;
+    font-weight: 600 !important;
+    margin-bottom: 0.3rem !important;
+    color: var(--text-primary, #1A2332) !important;
+}
+
+.superadmin-layout .form-control,
+.superadmin-layout .form-select {
+    font-size: 0.9rem !important;
+    padding: 8px 12px !important;
+    min-height: 36px !important;
+    border-radius: 6px !important;
+}
+
+/* Fix all section titles */
+.superadmin-layout .sa-section-title,
+.superadmin-layout .section-title {
+    font-size: 0.95rem !important;
+    font-weight: 700 !important;
+    color: var(--text-primary, #1A2332) !important;
+    margin: 2px 0 10px 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+}
+
+.superadmin-layout .sa-section-title span {
+    font-size: 0.75rem !important;
+    font-weight: 500 !important;
+    color: var(--text-muted, #6B7B8D) !important;
+}
+
+/* ── 13. SIDEBAR COLLAPSED STATE - icons visible, no text overflow ── */
+
+/* When sidebar is collapsed, ensure icons are centered and visible */
+.superadmin-layout .sidebar-collapsed .sidebar,
+.superadmin-layout .sidebar.collapsed,
+.superadmin-layout .sidebar[data-collapsed="true"] {
+    width: 50px !important;
+    min-width: 50px !important;
+    max-width: 50px !important;
+    overflow: visible !important;
+}
+
+.superadmin-layout .sidebar-collapsed .sidebar .sidebar-link,
+.superadmin-layout .sidebar.collapsed .sidebar-link,
+.superadmin-layout .sidebar[data-collapsed="true"] .sidebar-link {
+    justify-content: center !important;
+    padding: 10px 0 !important;
+    min-height: 40px !important;
+    width: 34px !important;
+    margin: 2px 8px !important;
+    position: relative !important;
+}
+
+.superadmin-layout .sidebar-collapsed .sidebar .sidebar-link span,
+.superadmin-layout .sidebar.collapsed .sidebar-link span,
+.superadmin-layout .sidebar[data-collapsed="true"] .sidebar-link span {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    width: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+}
+
+.superadmin-layout .sidebar-collapsed .sidebar .sidebar-link i,
+.superadmin-layout .sidebar.collapsed .sidebar-link i,
+.superadmin-layout .sidebar[data-collapsed="true"] .sidebar-link i {
+    font-size: 18px !important;
+    width: 24px !important;
+    text-align: center !important;
+    margin: 0 !important;
+    color: #FFFFFF !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    display: inline-block !important;
+}
+
+.superadmin-layout .sidebar-collapsed .sidebar .sidebar-header,
+.superadmin-layout .sidebar.collapsed .sidebar-header,
+.superadmin-layout .sidebar[data-collapsed="true"] .sidebar-header {
+    text-align: center !important;
+    padding: 10px 0 !important;
+}
+
+.superadmin-layout .sidebar-collapsed .sidebar .sidebar-header span,
+.superadmin-layout .sidebar.collapsed .sidebar-header span,
+.superadmin-layout .sidebar[data-collapsed="true"] .sidebar-header span {
+    display: none !important;
+}
+
+.superadmin-layout .sidebar-collapsed .sidebar .sidebar-footer,
+.superadmin-layout .sidebar.collapsed .sidebar-footer,
+.superadmin-layout .sidebar[data-collapsed="true"] .sidebar-footer {
+    text-align: center !important;
+    padding: 10px 0 !important;
+}
+
+.superadmin-layout .sidebar-collapsed .sidebar .sidebar-footer span,
+.superadmin-layout .sidebar.collapsed .sidebar-footer span,
+.superadmin-layout .sidebar[data-collapsed="true"] .sidebar-footer span {
+    display: none !important;
+}
+
+/* Sidebar badge/count positioning when collapsed - MUST BE VISIBLE */
+.superadmin-layout .sidebar-collapsed .sidebar .sidebar-badge,
+.superadmin-layout .sidebar.collapsed .sidebar-badge,
+.superadmin-layout .sidebar[data-collapsed="true"] .sidebar-badge {
+    position: absolute !important;
+    top: 3px !important;
+    right: 3px !important;
+    min-width: 16px !important;
+    height: 16px !important;
+    padding: 0 4px !important;
+    font-size: 10px !important;
+    font-weight: 700 !important;
+    line-height: 16px !important;
+    background: #DC2626 !important;
+    color: #FFFFFF !important;
+    border-radius: 10px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    z-index: 10 !important;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.3) !important;
+}
+
+/* ── 14. REDUCED CARD SIZES - remove extra space ── */
+
+/* Reduce padding in all cards */
+.superadmin-layout .sa-card,
+.superadmin-layout .card,
+.superadmin-layout .t-card,
+.superadmin-layout .sp-plan-card,
+.superadmin-layout .s-card,
+.superadmin-layout .ts-card {
+    padding: 0.6rem 0.8rem !important;
+    margin-bottom: 0.5rem !important;
+}
+
+.superadmin-layout .sa-card:last-child,
+.superadmin-layout .card:last-child,
+.superadmin-layout .t-card:last-child {
+    margin-bottom: 0 !important;
+}
+
+/* Reduce card header padding */
+.superadmin-layout .sa-card-header,
+.superadmin-layout .card-header,
+.superadmin-layout .users-card-header {
+    padding: 0.5rem 0.75rem !important;
+    margin-bottom: 0.5rem !important;
+}
+
+/* Reduce stat card sizes */
+.superadmin-layout .sa-stat,
+.superadmin-layout .iq-stat-card,
+.superadmin-layout .sp-stat-card {
+    min-height: 36px !important;
+    padding: 3px 6px !important;
+    gap: 1px !important;
+}
+
+.superadmin-layout .sa-stat-icon,
+.superadmin-layout .iq-stat-icon,
+.superadmin-layout .sp-stat-icon {
+    width: 18px !important;
+    height: 18px !important;
+    font-size: 11px !important;
+}
+
+.superadmin-layout .sa-stat-number,
+.superadmin-layout .iq-stat-num,
+.superadmin-layout .sp-stat-num {
+    font-size: 0.9rem !important;
+}
+
+.superadmin-layout .sa-stat-label,
+.superadmin-layout .iq-stat-lbl,
+.superadmin-layout .sp-stat-lbl {
+    font-size: 0.55rem !important;
+}
+
+/* Reduce header padding */
+.superadmin-layout .sa-header,
+.superadmin-layout .sp-header,
+.superadmin-layout .pay-hero,
+.superadmin-layout .ts-header {
+    padding: 0.5rem 0.75rem !important;
+    margin-bottom: 0.5rem !important;
+    gap: 8px !important;
+}
+
+/* Reduce filter bar padding */
+.superadmin-layout .filter-bar,
+.superadmin-layout .ts-filters {
+    padding: 0.4rem 0.6rem !important;
+    margin-bottom: 0.5rem !important;
+    gap: 0.4rem !important;
+}
+
+/* Reduce table padding */
+.superadmin-layout table td,
+.superadmin-layout table th {
+    padding: 6px 8px !important;
+}
+
+/* Reduce button sizes */
+.superadmin-layout .btn-action,
+.superadmin-layout .t-act-btn,
+.superadmin-layout .sp-btn-action,
+.superadmin-layout .btn-filter,
+.superadmin-layout .btn-clear {
+    padding: 4px 10px !important;
+    min-height: 28px !important;
+    font-size: 0.75rem !important;
+}
+
+/* Reduce input sizes */
+.superadmin-layout .form-control,
+.superadmin-layout .form-select {
+    padding: 6px 10px !important;
+    min-height: 32px !important;
+    font-size: 0.85rem !important;
+}
+
+/* Reduce section title margins */
+.superadmin-layout .sa-section-title {
+    margin: 1px 0 6px 0 !important;
+}
+
+/* Reduce empty state padding */
+.superadmin-layout .empty-state,
+.superadmin-layout .t-empty,
+.superadmin-layout .sp-empty,
+.superadmin-layout .ts-empty,
+.superadmin-layout .tx-empty {
+    padding: 1.5rem 0.75rem !important;
+    margin: 0.75rem 0 !important;
+}
+
+/* ── 15. HEADER STABILITY - prevent flickering ── */
+
+.superadmin-layout .sa-header,
+.superadmin-layout .sp-header,
+.superadmin-layout .pay-hero,
+.superadmin-layout .ts-header {
+    transform: translateZ(0) !important;
+    backface-visibility: hidden !important;
+    -webkit-font-smoothing: antialiased !important;
+    -moz-osx-font-smoothing: grayscale !important;
+}
+
+/* Ensure header text never fades */
+.superadmin-layout .sa-header h1,
+.superadmin-layout .sa-header h2,
+.superadmin-layout .sa-header p,
+.superadmin-layout .sp-header-title,
+.superadmin-layout .sp-header-sub,
+.superadmin-layout .pay-hero-text h1,
+.superadmin-layout .pay-hero-text p,
+.superadmin-layout .ts-header h5 {
+    animation: none !important;
+    transition: none !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+}
+
+/* ── 16. REMOVE DUPLICATE RULES ── */
+
+/* Consolidate badge rules - use this single source of truth */
+.superadmin-layout .content .sa-badge,
+.superadmin-layout .content .badge,
+.superadmin-layout .content .role-badge,
+.superadmin-layout .content .status-badge,
+.superadmin-layout .content .t-badge,
+.superadmin-layout .content .sp-type-badge,
+.superadmin-layout .content .sp-status-badge,
+.superadmin-layout .content .al-badge,
+.superadmin-layout .content .el-badge,
+.superadmin-layout .content .referral-badge,
+.superadmin-layout .content .tx-badge,
+.superadmin-layout .content .badge-plan,
+.superadmin-layout .content .badge-billing {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 3px !important;
+    padding: 2px 8px !important;
+    border-radius: 4px !important;
+    font-size: 0.72rem !important;
+    font-weight: 600 !important;
+    white-space: nowrap !important;
+    line-height: 1.4 !important;
+    min-width: auto !important;
+    max-width: none !important;
+    overflow: visible !important;
+}
+
+/* Consolidate card rules */
+.superadmin-layout .sa-card,
+.superadmin-layout .card,
+.superadmin-layout .dashboard-card,
+.superadmin-layout .users-card,
+.superadmin-layout .t-card,
+.superadmin-layout .sp-plan-card,
+.superadmin-layout .s-card,
+.superadmin-layout .ts-card,
+.superadmin-layout .iq-stat-card,
+.superadmin-layout .sp-stat-card {
+    overflow: visible !important;
+    min-height: auto !important;
+    height: auto !important;
+    max-height: none !important;
+    box-sizing: border-box !important;
+    word-wrap: break-word !important;
+    overflow-wrap: break-word !important;
+}
+
+/* Consolidate table rules */
+.superadmin-layout .sa-table,
+.superadmin-layout .user-table,
+.superadmin-layout table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    font-size: 0.85rem !important;
+    table-layout: auto !important;
+}
+
+.superadmin-layout table td,
+.superadmin-layout table th {
+    vertical-align: middle !important;
+    word-break: break-word !important;
+    overflow-wrap: anywhere !important;
+}
+
+/* ── 17. ENSURE NO CONTENT OVERLAP ── */
+
+.superadmin-layout .content > * {
+    position: relative !important;
+}
+
+.superadmin-layout .content [style*="position: absolute"] {
+    position: relative !important;
+}
+
+/* Ensure proper stacking context */
+.superadmin-layout .content {
+    position: relative !important;
+    z-index: 1 !important;
+}
+
+.superadmin-layout .sidebar {
+    position: fixed !important;
+    z-index: 1030 !important;
+}
+
+
+
+/* Main content should account for fixed navbar */
+.superadmin-layout .main {
+    padding-top: var(--navbar-height, 54px) !important;
+}

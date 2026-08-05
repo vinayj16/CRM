@@ -1,0 +1,963 @@
+<style>
+/* ===== COMPACT DESIGN — #1A6FA8 + #D4A45A ===== */
+
+/* PAGE WRAPPER */
+.container-fluid { padding: 0 !important; }
+.card { border-radius: 8px !important; border: 1px solid #E2E8F0 !important; box-shadow: 0 1px 6px rgba(26,111,168,0.08) !important; }
+.card-header {
+    background: linear-gradient(120deg, #1A6FA8 0%, #125082 55%, #B8883E 100%) !important;
+    border-radius: 8px 8px 0 0 !important;
+    padding: 9px 14px !important;
+    border-bottom: none !important;
+    position: relative;
+    overflow: hidden;
+}
+.card-header::before {
+    content: '';
+    position: absolute;
+    top: -15px; right: -15px;
+    width: 70px; height: 70px;
+    border-radius: 50%;
+    background: rgba(212,164,90,0.18);
+    pointer-events: none;
+}
+.card-title {
+    font-size: 0.92rem !important;
+    font-weight: 700 !important;
+    color: white !important;
+    margin: 0 !important;
+}
+.card-body { padding: 10px 12px !important; }
+
+/* FILTER FORM */
+.card-body form.mb-4 { margin-bottom: 8px !important; }
+.card-body form .row.g-3 {
+    --bs-gutter-y: 0.4rem !important;
+    --bs-gutter-x: 0.5rem !important;
+}
+.card-body form .form-control,
+.card-body form .form-select {
+    height: 30px !important;
+    padding: 0 8px !important;
+    font-size: 0.8rem !important;
+    border: 1.5px solid #E2E8F0 !important;
+    border-radius: 6px !important;
+    transition: border-color 0.18s, box-shadow 0.18s;
+    line-height: 30px;
+}
+.card-body form .form-control:focus,
+.card-body form .form-select:focus {
+    border-color: #1A6FA8 !important;
+    box-shadow: 0 0 0 2px rgba(26,111,168,0.13) !important;
+    outline: none !important;
+}
+/* Flatpickr in filter */
+.card-body form .flatpickr-input {
+    height: 30px !important;
+    padding: 0 28px 0 8px !important;
+    font-size: 0.8rem !important;
+    border: 1.5px solid #E2E8F0 !important;
+    border-radius: 6px !important;
+    background: white !important;
+    color: #1A2332 !important;
+    cursor: pointer !important;
+    width: 100%;
+    line-height: 30px;
+    box-sizing: border-box;
+}
+.card-body form .flatpickr-input:focus {
+    border-color: #1A6FA8 !important;
+    box-shadow: 0 0 0 2px rgba(26,111,168,0.13) !important;
+    outline: none !important;
+}
+.date-filter-wrap { position: relative; display: block; }
+.date-filter-wrap .cal-icon {
+    position: absolute;
+    right: 8px; top: 50%;
+    transform: translateY(-50%);
+    color: #1A6FA8; font-size: 0.68rem;
+    pointer-events: none; z-index: 2;
+}
+
+.card-body form .btn-primary {
+    height: 30px !important;
+    padding: 0 12px !important;
+    font-size: 0.78rem !important;
+    font-weight: 600;
+    background: #1A6FA8 !important;
+    border-color: #1A6FA8 !important;
+    border-radius: 6px !important;
+    display: flex; align-items: center; justify-content: center;
+    width: 100%;
+    transition: all 0.18s;
+}
+.card-body form .btn-primary:hover { background: #125082 !important; }
+
+/* TABLE */
+.table-responsive { margin-top: 4px; }
+.table { font-size: 0.78rem !important; margin-bottom: 0 !important; }
+.table thead th {
+    padding: 6px 10px !important;
+    font-size: 0.68rem !important;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    color: #1A6FA8;
+    background: #F0F4F8 !important;
+    border-bottom: 2px solid #E2E8F0 !important;
+    white-space: nowrap;
+}
+.table tbody td {
+    padding: 5px 10px !important;
+    vertical-align: middle;
+    border-bottom: 1px solid #F0F4F8 !important;
+    font-size: 0.78rem !important;
+    color: #1A2332;
+}
+.table tbody tr:hover td { background: #FFFFFF !important; }
+.table tbody tr:last-child td { border-bottom: none !important; }
+
+/* FIX: Actions column — tight, no extra space */
+.table thead th:last-child,
+.table tbody td:last-child {
+    width: 1%;
+    white-space: nowrap;
+    text-align: center;
+}
+
+/* TABLE BADGES & STATUS */
+.table .text-danger { font-size: 0.65rem !important; font-weight: 700; }
+.table .text-warning { font-size: 0.65rem !important; font-weight: 700; }
+.table .text-muted { font-size: 0.74rem !important; color: #8FA3B8 !important; }
+
+/* TABLE ACTION BUTTONS */
+.table .btn-sm {
+    height: 24px !important;
+    padding: 0 8px !important;
+    font-size: 0.68rem !important;
+    font-weight: 700;
+    border-radius: 5px !important;
+    display: inline-flex; align-items: center; gap: 3px;
+    white-space: nowrap;
+    transition: all 0.18s;
+}
+.table .btn-primary {
+    background: #1A6FA8 !important;
+    border-color: #1A6FA8 !important;
+    color: white !important;
+}
+.table .btn-primary:hover { background: #125082 !important; }
+.table .btn-success {
+    background: #16A34A !important;
+    border-color: #16A34A !important;
+    color: white !important;
+}
+.table .btn-success:hover { background: #15803D !important; }
+
+/* PLAN CARDS in modal */
+.plan-card {
+    border: 1.5px solid #E2E8F0 !important;
+    border-radius: 8px !important;
+    transition: all 0.2s;
+    background: white;
+}
+.plan-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 14px rgba(26,111,168,0.13) !important;
+    border-color: #1A6FA8 !important;
+}
+.plan-card.active-plan {
+    border: 2px solid #D4A45A !important;
+    background: #FFFFFF !important;
+}
+.plan-header {
+    border-bottom: 1px solid #E8EDF2;
+    padding-bottom: 8px !important;
+    margin-bottom: 8px !important;
+}
+.plan-name { font-size: 0.88rem !important; font-weight: 700; color: #1A6FA8; margin-bottom: 3px !important; }
+.plan-type {
+    padding: 1px 7px !important;
+    border-radius: 10px;
+    font-weight: 700;
+    font-size: 0.62rem !important;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+}
+.plan-type.basic    { background: #E2E8F0; color: #1A6FA8; }
+.plan-type.standard { background: #DCFCE7; color: #15803D; }
+.plan-type.enterprise { background: #FEF3C7; color: #B45309; }
+.price-label { font-size: 0.62rem !important; color: #8FA3B8; margin-bottom: 1px !important; font-weight: 600; text-transform: uppercase; }
+.price-amount { font-size: 1rem !important; font-weight: 800; color: #1A2332; }
+.price-currency { font-size: 0.78rem !important; color: #8FA3B8; }
+.feature-group h6 { font-weight: 700; color: #1A6FA8; margin-bottom: 4px !important; font-size: 0.66rem !important; text-transform: uppercase; letter-spacing: 0.4px; }
+.feature-item { display: flex; align-items: center; gap: 5px; margin-bottom: 2px !important; font-size: 0.72rem !important; color: #2A3A4A; }
+.feature-item i { font-size: 0.68rem; color: #1A6FA8; width: 12px; }
+
+/* Plan action buttons */
+.plan-actions .btn {
+    height: 26px !important;
+    padding: 0 8px !important;
+    font-size: 0.68rem !important;
+    font-weight: 700;
+    border-radius: 5px !important;
+    transition: all 0.18s;
+    display: inline-flex; align-items: center; justify-content: center;
+    white-space: nowrap;
+}
+.plan-actions .btn-success { background: #16A34A !important; border-color: #16A34A !important; color: white !important; }
+.plan-actions .btn-success:hover { background: #15803D !important; }
+.plan-actions .btn-primary { background: #1A6FA8 !important; border-color: #1A6FA8 !important; color: white !important; }
+.plan-actions .btn-primary:hover { background: #125082 !important; }
+.plan-actions .btn-warning { background: #D4A45A !important; border-color: #D4A45A !important; color: white !important; }
+.plan-actions .btn-warning:hover { background: #B8883E !important; }
+.plan-actions .btn-danger { background: #DC2626 !important; border-color: #DC2626 !important; color: white !important; }
+.plan-actions .btn-danger:hover { background: #DC2626 !important; }
+
+/* Current billing cycle */
+.current-billing-cycle {
+    background: rgba(212,164,90,0.1) !important;
+    border: 1.5px solid #D4A45A !important;
+    border-radius: 6px !important;
+    padding: 6px 8px !important;
+}
+.current-billing-cycle .price-label { color: #B45309 !important; font-weight: 700; }
+.current-billing-cycle .price-amount { color: #B45309 !important; font-size: 0.92rem !important; }
+
+/* MODAL */
+.modal-dialog { max-width: 62% !important; width: 62% !important; }
+.modal-content { border-radius: 10px !important; border: 1px solid #E2E8F0 !important; box-shadow: 0 8px 32px rgba(26,111,168,0.18) !important; }
+.modal-header {
+    padding: 9px 14px !important;
+    border-bottom: 1px solid #E8EDF2 !important;
+    background: linear-gradient(120deg, #1A6FA8, #125082) !important;
+    border-radius: 10px 10px 0 0 !important;
+}
+.modal-header .modal-title { font-size: 0.88rem !important; font-weight: 700; color: white !important; }
+.modal-header .btn-close { filter: brightness(0) invert(1); opacity: 0.82; width: 16px; height: 16px; padding: 0; }
+.modal-body { padding: 10px 12px !important; }
+.modal-footer { padding: 8px 14px !important; border-top: 1px solid #E8EDF2 !important; }
+.modal-body .row { --bs-gutter-x: 0.6rem; --bs-gutter-y: 0.5rem; }
+.modal-body .col-lg-6.col-md-12.mb-4 { margin-bottom: 8px !important; }
+
+/* SUBSCRIPTION MOBILE CARDS */
+.subscription-card {
+    border: 1px solid #E2E8F0;
+    border-radius: 8px;
+    margin-bottom: 6px !important;
+    padding: 8px 10px !important;
+    background: white;
+    position: relative;
+    border-left: 3px solid #1A6FA8;
+    box-shadow: 0 1px 4px rgba(26,111,168,0.07);
+    transition: box-shadow 0.18s;
+}
+.subscription-card:hover { box-shadow: 0 3px 10px rgba(26,111,168,0.12); }
+.subscription-card .partner-name { font-weight: 700; font-size: 0.85rem !important; color: #1A6FA8; margin-bottom: 3px !important; }
+.subscription-card .plan-info { display: flex; justify-content: space-between; align-items: center; margin-bottom: 3px !important; font-size: 0.76rem !important; }
+.subscription-card .amount { font-weight: 700; color: #16A34A; font-size: 0.82rem !important; }
+.subscription-card small.text-muted { font-size: 0.62rem !important; color: #8FA3B8 !important; text-transform: uppercase; letter-spacing: 0.3px; }
+.subscription-card .row { --bs-gutter-x: 0.4rem; }
+.subscription-card .col-6 { font-size: 0.75rem !important; }
+.subscription-card .mt-2 { margin-top: 6px !important; }
+.subscription-card .btn-sm {
+    height: 26px !important;
+    font-size: 0.72rem !important;
+    font-weight: 700;
+    border-radius: 5px !important;
+    display: flex; align-items: center; justify-content: center; gap: 3px;
+}
+.subscription-card .btn-primary { background: #1A6FA8 !important; border-color: #1A6FA8 !important; color: white !important; }
+.subscription-card .btn-success { background: #16A34A !important; border-color: #16A34A !important; color: white !important; }
+
+/* PAGINATION */
+.pagination { margin-top: 8px !important; margin-bottom: 0 !important; }
+.pagination .page-link {
+    padding: 3px 9px !important;
+    font-size: 0.74rem !important;
+    font-weight: 600;
+    color: #1A6FA8;
+    border: 1.5px solid #E2E8F0;
+    border-radius: 5px !important;
+    margin: 0 2px;
+    transition: all 0.15s;
+}
+.pagination .page-link:hover { background: #E8EDF2; border-color: #1A6FA8; }
+.pagination .page-item.active .page-link { background: #1A6FA8 !important; border-color: #1A6FA8 !important; color: white !important; }
+
+/* FLATPICKR THEME */
+.flatpickr-calendar {
+    border-radius: 10px !important;
+    box-shadow: 0 8px 24px rgba(26,111,168,0.18) !important;
+    border: 1px solid #E2E8F0 !important;
+    font-size: 0.76rem !important;
+    overflow: hidden;
+    z-index: 9999 !important;
+}
+.flatpickr-months { background: linear-gradient(120deg, #1A6FA8, #125082) !important; padding: 3px 0 !important; border-radius: 10px 10px 0 0 !important; }
+.flatpickr-month { color: white !important; }
+.flatpickr-current-month .flatpickr-monthDropdown-months,
+.flatpickr-current-month input.cur-year { color: white !important; font-weight: 700 !important; font-size: 0.8rem !important; }
+.flatpickr-current-month .flatpickr-monthDropdown-months option { color: #1A2332; }
+.flatpickr-prev-month svg, .flatpickr-next-month svg { fill: white !important; }
+.flatpickr-prev-month:hover svg, .flatpickr-next-month:hover svg { fill: #D4A45A !important; }
+.flatpickr-weekday { color: #1A6FA8 !important; font-weight: 700 !important; font-size: 0.66rem !important; }
+.flatpickr-day { border-radius: 5px !important; font-size: 0.72rem !important; height: 28px !important; line-height: 28px !important; color: #1A2332; transition: all 0.15s; }
+.flatpickr-day:hover { background: #E8EDF2 !important; border-color: #1A6FA8 !important; color: #1A6FA8 !important; }
+.flatpickr-day.selected, .flatpickr-day.selected:hover { background: #1A6FA8 !important; border-color: #1A6FA8 !important; color: white !important; font-weight: 700 !important; }
+.flatpickr-day.today { border-color: #D4A45A !important; color: #D4A45A !important; font-weight: 700 !important; }
+.flatpickr-day.today.selected { color: white !important; }
+.flatpickr-day.disabled { color: #B8C8D8 !important; }
+.flatpickr-innerContainer { padding: 3px 5px 5px !important; }
+
+/* RESPONSIVE */
+@@media (max-width: 768px) {
+    .table-responsive { display: none; }
+    .mobile-cards { display: block; }
+    .modal-dialog { max-width: 95% !important; width: 95% !important; margin: 0.5rem auto !important; }
+    .plan-card { margin-bottom: 8px; }
+    .plan-name { font-size: 0.82rem !important; }
+    .price-amount { font-size: 0.92rem !important; }
+    .plan-actions .btn { font-size: 0.62rem !important; padding: 0 5px !important; }
+}
+@@media (min-width: 769px) {
+    .mobile-cards { display: none; }
+}
+
+/* DARK MODE */
+.dark-mode .card { background: #1A2332 !important; border-color: #2A3A4A !important; }
+.dark-mode .card-body { background: #1A2332 !important; }
+.dark-mode .card-body form .form-control,
+.dark-mode .card-body form .form-select { background: #1E2A3A !important; border-color: #2A3A4A !important; color: #E2E8F0 !important; }
+.dark-mode .card-body form .flatpickr-input { background: #1E2A3A !important; border-color: #2A3A4A !important; color: #E2E8F0 !important; }
+.dark-mode .table thead th { background: #1E2A3A !important; color: #8FA3B8 !important; border-color: #2A3A4A !important; }
+.dark-mode .table tbody td { color: #E2E8F0 !important; border-color: #2A3A4A !important; }
+.dark-mode .table tbody tr:hover td { background: #1E2A3A !important; }
+.dark-mode .table tbody tr td { color: #E2E8F0 !important; }
+.dark-mode .table tbody tr { color: #E2E8F0 !important; }
+.dark-mode .table-striped tbody tr:nth-of-type(odd) td { background: rgba(255,255,255,0.04) !important; }
+.dark-mode .plan-card { background: #1E2A3A !important; border-color: #2A3A4A !important; }
+.dark-mode .plan-card:hover { border-color: #1A6FA8 !important; }
+.dark-mode .plan-card.active-plan { background: rgba(212,164,90,0.12) !important; border-color: #D4A45A !important; }
+.dark-mode .plan-name { color: #8FA3B8 !important; }
+.dark-mode .plan-header { border-color: #2A3A4A !important; }
+.dark-mode .price-amount { color: #E2E8F0 !important; }
+.dark-mode .feature-item { color: #E2E8F0 !important; }
+.dark-mode .feature-group h6 { color: #8FA3B8 !important; }
+.dark-mode .modal-content { background: #1A2332 !important; border-color: #2A3A4A !important; }
+.dark-mode .modal-body { background: #1A2332 !important; }
+.dark-mode .modal-footer { background: #1A2332 !important; border-color: #2A3A4A !important; }
+.dark-mode .subscription-card { background: #1A2332 !important; border-color: #2A3A4A !important; border-left-color: #1A6FA8 !important; }
+.dark-mode .subscription-card .partner-name { color: #8FA3B8 !important; }
+.dark-mode .subscription-card .plan-info { color: #E2E8F0 !important; }
+.dark-mode .subscription-card .col-6 { color: #E2E8F0 !important; }
+.dark-mode .pagination .page-link { background: #1E2A3A !important; border-color: #2A3A4A !important; color: #8FA3B8 !important; }
+.dark-mode .pagination .page-item.active .page-link { background: #1A6FA8 !important; border-color: #1A6FA8 !important; color: white !important; }
+.dark-mode .current-billing-cycle { background: rgba(212,164,90,0.12) !important; border-color: #D4A45A !important; }
+.dark-mode .current-billing-cycle .price-label,
+.dark-mode .current-billing-cycle .price-amount { color: #D4A45A !important; }
+.dark-mode .text-muted { color: #6B7B8D !important; }
+.dark-mode .plan-type.basic    { background: #0F4C75 !important; color: #B8C8D8 !important; }
+.dark-mode .plan-type.standard { background: #1E2A3A !important; color: #B8C8D8 !important; }
+.dark-mode .plan-type.enterprise { background: #991B1B !important; color: #E8C27E !important; }
+
+/* Dark mode table aggressive overrides */
+[data-bs-theme="dark"] .table tbody tr,
+[data-bs-theme="dark"] .table tbody tr td,
+[data-bs-theme="dark"] .card .table tbody tr,
+[data-bs-theme="dark"] .card .table tbody tr td { color: #E2E8F0 !important; }
+[data-bs-theme="dark"] .table thead th { background: #1E2A3A !important; color: #8FA3B8 !important; border-color: #2A3A4A !important; }
+[data-bs-theme="dark"] .table-striped > tbody > tr:nth-of-type(odd) > td { background-color: rgba(255,255,255,0.04) !important; }
+[data-bs-theme="dark"] .plan-card { background: #1E2A3A !important; }
+[data-bs-theme="dark"] .plan-card.active-plan { background: rgba(212,164,90,0.12) !important; }
+[data-bs-theme="dark"] .plan-name { color: #8FA3B8 !important; }
+[data-bs-theme="dark"] .price-amount { color: #E2E8F0 !important; }
+[data-bs-theme="dark"] .plan-type.basic    { background: #0F4C75 !important; color: #B8C8D8 !important; border: none !important; }
+[data-bs-theme="dark"] .plan-type.standard { background: #1E2A3A !important; color: #B8C8D8 !important; border: none !important; }
+[data-bs-theme="dark"] .plan-type.enterprise { background: #991B1B !important; color: #E8C27E !important; border: none !important; }
+[data-bs-theme="dark"] .billing-toggle button { background: #2A3A4A !important; color: #E2E8F0 !important; border-color: #2A3A4A !important; }
+[data-bs-theme="dark"] .billing-toggle button.active { background: #1A6FA8 !important; color: white !important; border-color: #1A6FA8 !important; }
+[data-bs-theme="dark"] .current-billing-cycle { background: rgba(212,164,90,0.12) !important; border: 1.5px solid #D4A45A !important; }
+[data-bs-theme="dark"] .current-billing-cycle .price-label,
+[data-bs-theme="dark"] .current-billing-cycle .price-amount { color: #D4A45A !important; }
+[data-bs-theme="dark"] .modal-content,
+[data-bs-theme="dark"] .modal-header,
+[data-bs-theme="dark"] .modal-body,
+[data-bs-theme="dark"] .modal-footer { background-color: #1A2332 !important; color: #E2E8F0 !important; border-color: #2A3A4A !important; }
+[data-bs-theme="dark"] .badge { color: #FFFFFF !important; }
+</style>
+
+@model List<CRM.Models.PartnerSubscriptionModel>
+@{
+    ViewData["Title"] = "Manage Partner Subscriptions";
+}
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+
+<div class="container-fluid">
+    <div class="page-hd"><i class="fa-solid fa-handshake"></i><h4>Manage Partner Subscriptions</h4></div>
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0"><i class="fa-solid fa-credit-card me-2" style="opacity:0.9;font-size:0.85rem;"></i>Active Partner Subscriptions</h5>
+                </div>
+                <div class="card-body">
+                    <!-- Search and Filters -->
+                    <form method="get" class="mb-4">
+                        <div class="row g-3">
+                            <div class="col-md-3">
+                                <input type="text" class="form-control" name="search" id="searchInput" value="@ViewBag.Search" placeholder="Search partner name...">
+                            </div>
+                            <div class="col-md-2">
+                                <select class="form-select" name="plan" onchange="autoSubmitForm()">
+                                    <option value="">All Plans</option>
+                                    @if (ViewBag.Plans != null)
+                                    {
+                                        @foreach (var plan in ViewBag.Plans)
+                                        {
+                                            <option value="@plan.PlanId" selected="@(ViewBag.SelectedPlan == plan.PlanId.ToString())">@plan.PlanName</option>
+                                        }
+                                    }
+                                </select>
+                            </div>
+                            <div class="col-md-2">
+                                <select class="form-select" name="billing" onchange="autoSubmitForm()">
+                                    <option value="">All Billing</option>
+                                    <option value="Monthly" selected="@(ViewBag.SelectedBilling == "Monthly")">Monthly</option>
+                                    <option value="Annual" selected="@(ViewBag.SelectedBilling == "Annual")">Annual</option>
+                                </select>
+                            </div>
+                            <div class="col-md-2">
+                                <div class="date-filter-wrap">
+                                    <input type="text" id="fromDateInput" class="form-control" placeholder="From Date" readonly>
+                                    <input type="hidden" name="fromDate" id="fromDateHidden" value="@ViewBag.FromDate">
+                                    <i class="fa-solid fa-calendar-days cal-icon"></i>
+                                </div>
+                            </div>
+                            <div class="col-md-2">
+                                <div class="date-filter-wrap">
+                                    <input type="text" id="toDateInput" class="form-control" placeholder="To Date" readonly>
+                                    <input type="hidden" name="toDate" id="toDateHidden" value="@ViewBag.ToDate">
+                                    <i class="fa-solid fa-calendar-days cal-icon"></i>
+                                </div>
+                            </div>
+                            <div class="col-md-1">
+                                <button type="submit" class="btn btn-primary w-100">Filter</button>
+                            </div>
+                        </div>
+                    </form>
+
+                    <!-- Desktop Table View -->
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Partner</th>
+                                    <th>Plan</th>
+                                    <th>Billing</th>
+                                    <th>Amount</th>
+                                    <th>Start Date</th>
+                                    <th>End Date</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (Model?.Any() == true)
+                                {
+                                    @foreach (var subscription in Model)
+                                    {
+                                        <tr>
+                                            <td>@subscription.ChannelPartner?.CompanyName</td>
+                                            <td>
+                                                @if (subscription.Plan != null)
+                                                {
+                                                    @subscription.Plan.PlanName
+                                                }
+                                                else
+                                                {
+                                                    <span class="text-muted">No Plan</span>
+                                                }
+                                            </td>
+                                            <td>
+                                                @if (!string.IsNullOrEmpty(subscription.BillingCycle) && subscription.BillingCycle != "No Plan")
+                                                {
+                                                    @subscription.BillingCycle
+                                                }
+                                                else
+                                                {
+                                                    <span class="text-muted">-</span>
+                                                }
+                                            </td>
+                                            <td>
+                                                @if (subscription.Amount > 0)
+                                                {
+                                                    <span>₹@subscription.Amount.ToString("N2")</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="text-muted">₹0.00</span>
+                                                }
+                                            </td>
+                                            <td>
+                                                @if (subscription.StartDate != DateTime.MinValue)
+                                                {
+                                                    @subscription.StartDate.ToString("dd/MM/yyyy")
+                                                }
+                                                else
+                                                {
+                                                    <span class="text-muted">-</span>
+                                                }
+                                            </td>
+                                            <td>
+                                                @if (subscription.EndDate != DateTime.MinValue)
+                                                {
+                                                    @subscription.EndDate.ToString("dd/MM/yyyy")
+                                                    @if (subscription.Status == "Active" && subscription.EndDate <= DateTime.Now)
+                                                    {
+                                                        <br><small class="text-danger">Expired</small>
+                                                    }
+                                                    else if (subscription.Status == "Active" && subscription.EndDate <= DateTime.Now.AddDays(7))
+                                                    {
+                                                        <br><small class="text-warning">Expiring Soon</small>
+                                                    }
+                                                }
+                                                else
+                                                {
+                                                    <span class="text-muted">-</span>
+                                                }
+                                            </td>
+                                            <td>
+                                                @if (subscription.Status == "Active" && subscription.EndDate > DateTime.Now)
+                                                {
+                                                    <button class="btn btn-sm btn-primary" onclick="openUpgradeModal(@subscription.ChannelPartnerId)">
+                                                        <i class="fa-solid fa-rocket me-1"></i>Upgrade
+                                                    </button>
+                                                }
+                                                else if (subscription.Status == "No Plan" || subscription.Status == "Expired" || subscription.Status == "Cancelled" || (subscription.Status == "Active" && subscription.EndDate <= DateTime.Now))
+                                                {
+                                                    <button class="btn btn-sm btn-success" onclick="openUpgradeModal(@subscription.ChannelPartnerId)">
+                                                        <i class="fa-solid fa-plus me-1"></i>Assign Plan
+                                                    </button>
+                                                }
+                                                else
+                                                {
+                                                    <button class="btn btn-sm btn-primary" onclick="openUpgradeModal(@subscription.ChannelPartnerId)">
+                                                        <i class="fa-solid fa-rocket me-1"></i>Manage
+                                                    </button>
+                                                }
+                                            </td>
+                                        </tr>
+                                    }
+                                }
+                                else
+                                {
+                                    <tr>
+                                        <td colspan="7" class="text-center" style="color:#8FA3B8;padding:20px;font-size:0.8rem;">No active subscriptions found</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Mobile Card View -->
+                    <div class="mobile-cards">
+                        @if (Model?.Any() == true)
+                        {
+                            @foreach (var subscription in Model)
+                            {
+                                <div class="subscription-card">
+                                    <div class="partner-name">@subscription.ChannelPartner?.CompanyName</div>
+                                    <div class="plan-info">
+                                        <span>
+                                            <strong>
+                                                @if (subscription.Plan != null)
+                                                {
+                                                    @subscription.Plan.PlanName
+                                                }
+                                                else
+                                                {
+                                                    <span class="text-muted">No Plan</span>
+                                                }
+                                            </strong>
+                                        </span>
+                                        <span class="amount">
+                                            @if (subscription.Amount > 0)
+                                            {
+                                                <span>₹@subscription.Amount.ToString("N2")</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted">₹0.00</span>
+                                            }
+                                        </span>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-6">
+                                            <small class="text-muted">Billing:</small><br>
+                                            <span>
+                                                @if (!string.IsNullOrEmpty(subscription.BillingCycle) && subscription.BillingCycle != "No Plan")
+                                                {
+                                                    @subscription.BillingCycle
+                                                }
+                                                else
+                                                {
+                                                    <span class="text-muted">-</span>
+                                                }
+                                            </span>
+                                        </div>
+                                        <div class="col-6">
+                                            <small class="text-muted">End Date:</small><br>
+                                            <span>
+                                                @if (subscription.EndDate != DateTime.MinValue)
+                                                {
+                                                    @subscription.EndDate.ToString("dd/MM/yyyy")
+                                                    @if (subscription.Status == "Active" && subscription.EndDate <= DateTime.Now)
+                                                    {
+                                                        <br><small class="text-danger">Expired</small>
+                                                    }
+                                                    else if (subscription.Status == "Active" && subscription.EndDate <= DateTime.Now.AddDays(7))
+                                                    {
+                                                        <br><small class="text-warning">Expiring Soon</small>
+                                                    }
+                                                }
+                                                else
+                                                {
+                                                    <span class="text-muted">-</span>
+                                                }
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div class="mt-2">
+                                        @if (subscription.Status == "Active" && subscription.EndDate > DateTime.Now)
+                                        {
+                                            <button class="btn btn-sm btn-primary w-100" onclick="openUpgradeModal(@subscription.ChannelPartnerId)">
+                                                <i class="fa-solid fa-rocket me-1"></i>Upgrade Plan
+                                            </button>
+                                        }
+                                        else if (subscription.Status == "No Plan" || subscription.Status == "Expired" || subscription.Status == "Cancelled" || (subscription.Status == "Active" && subscription.EndDate <= DateTime.Now))
+                                        {
+                                            <button class="btn btn-sm btn-success w-100" onclick="openUpgradeModal(@subscription.ChannelPartnerId)">
+                                                <i class="fa-solid fa-plus me-1"></i>Assign Plan
+                                            </button>
+                                        }
+                                        else
+                                        {
+                                            <button class="btn btn-sm btn-primary w-100" onclick="openUpgradeModal(@subscription.ChannelPartnerId)">
+                                                <i class="fa-solid fa-rocket me-1"></i>Manage Plan
+                                            </button>
+                                        }
+                                    </div>
+                                </div>
+                            }
+                        }
+                        else
+                        {
+                            <div class="text-center py-4">
+                                <p class="text-muted" style="font-size:0.8rem;">No active subscriptions found</p>
+                            </div>
+                        }
+                    </div>
+
+                    <!-- Pagination -->
+                    @if (ViewBag.TotalPages > 1)
+                    {
+                        <nav aria-label="Page navigation">
+                            <ul class="pagination justify-content-center">
+                                @if (ViewBag.CurrentPage > 1)
+                                {
+                                    <li class="page-item">
+                                        <a class="page-link" href="?page=@(ViewBag.CurrentPage - 1)&search=@ViewBag.Search&plan=@ViewBag.SelectedPlan&billing=@ViewBag.SelectedBilling&fromDate=@ViewBag.FromDate&toDate=@ViewBag.ToDate">Previous</a>
+                                    </li>
+                                }
+                                @for (int i = Math.Max(1, ViewBag.CurrentPage - 2); i <= Math.Min(ViewBag.TotalPages, ViewBag.CurrentPage + 2); i++)
+                                {
+                                    <li class="page-item @(i == ViewBag.CurrentPage ? "active" : "")">
+                                        <a class="page-link" href="?page=@i&search=@ViewBag.Search&plan=@ViewBag.SelectedPlan&billing=@ViewBag.SelectedBilling&fromDate=@ViewBag.FromDate&toDate=@ViewBag.ToDate">@i</a>
+                                    </li>
+                                }
+                                @if (ViewBag.CurrentPage < ViewBag.TotalPages)
+                                {
+                                    <li class="page-item">
+                                        <a class="page-link" href="?page=@(ViewBag.CurrentPage + 1)&search=@ViewBag.Search&plan=@ViewBag.SelectedPlan&billing=@ViewBag.SelectedBilling&fromDate=@ViewBag.FromDate&toDate=@ViewBag.ToDate">Next</a>
+                                    </li>
+                                }
+                            </ul>
+                        </nav>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Include Upgrade Modal -->
+@Html.Partial("_UpgradeModal")
+
+<!-- Old Upgrade Plan Modal (keeping for backward compatibility) -->
+<div class="modal fade" id="upgradePlanModal" tabindex="-1">
+    <div class="modal-dialog" style="max-width: 62%;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Upgrade Partner Plan</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                @Html.AntiForgeryToken()
+                <input type="hidden" id="channelPartnerId" />
+                <input type="hidden" id="currentPlanId" />
+                <div class="row">
+                    @if (ViewBag.AvailablePlans != null)
+                    {
+                        @foreach (var plan in ViewBag.AvailablePlans)
+                        {
+                            <div class="col-lg-6 col-md-12 mb-4">
+                                <div class="card h-100 plan-card" id="plan-@plan.PlanId">
+                                    <div class="card-body d-flex flex-column">
+                                        <div class="plan-header">
+                                            <div>
+                                                <h5 class="plan-name">@plan.PlanName</h5>
+                                                @if (!string.IsNullOrEmpty(plan.Description))
+                                                {
+                                                    <p class="text-muted mb-0 small" style="font-size:0.7rem;">@plan.Description</p>
+                                                }
+                                            </div>
+                                            <div class="d-flex align-items-center gap-2 mb-1 mt-1">
+                                                <span class="plan-type @plan.PlanType.ToLower()">@plan.PlanType</span>
+                                                <span class="badge bg-success current-plan-badge" style="display:none;font-size:0.6rem;">Current Plan</span>
+                                            </div>
+                                            <div class="current-plan-expire" style="display:none;">
+                                                <small class="text-muted" style="font-size:0.65rem;">Expires: <span class="expire-date"></span></small>
+                                            </div>
+                                        </div>
+
+                                        <div class="plan-pricing mb-2">
+                                            <div class="row text-center">
+                                                <div class="col-6 monthly-pricing">
+                                                    <div class="price-label">Monthly</div>
+                                                    <div class="price-amount">
+                                                        <span class="price-currency">₹</span>@plan.MonthlyPrice.ToString("N0")
+                                                    </div>
+                                                </div>
+                                                <div class="col-6 annual-pricing">
+                                                    <div class="price-label">Annual</div>
+                                                    <div class="price-amount">
+                                                        <span class="price-currency">₹</span>@plan.YearlyPrice.ToString("N0")
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="plan-features flex-grow-1">
+                                            @{
+                                                var hasIntegrations = plan.HasWhatsAppIntegration || plan.HasFacebookIntegration || plan.HasEmailIntegration || plan.HasCustomAPIAccess;
+                                                var hasReportsSupport = plan.HasAdvancedReports || plan.HasCustomReports || plan.HasDataExport || plan.HasPrioritySupport;
+                                            }
+                                            @if (hasIntegrations)
+                                            {
+                                                <div class="feature-group mb-2">
+                                                    <h6>Integrations</h6>
+                                                    @if (plan.HasWhatsAppIntegration) { <div class="feature-item"><i class="fa-brands fa-whatsapp"></i><span>WhatsApp</span></div> }
+                                                    @if (plan.HasFacebookIntegration) { <div class="feature-item"><i class="fa-brands fa-facebook"></i><span>Facebook</span></div> }
+                                                    @if (plan.HasEmailIntegration)   { <div class="feature-item"><i class="fa-solid fa-envelope"></i><span>Email</span></div> }
+                                                    @if (plan.HasCustomAPIAccess)    { <div class="feature-item"><i class="fa-solid fa-code"></i><span>Custom API</span></div> }
+                                                </div>
+                                            }
+                                            @if (hasReportsSupport)
+                                            {
+                                                <div class="feature-group mb-2">
+                                                    <h6>Reports & Support</h6>
+                                                    @if (plan.HasAdvancedReports) { <div class="feature-item"><i class="fa-solid fa-chart-bar"></i><span>Advanced Reports</span></div> }
+                                                    @if (plan.HasCustomReports)   { <div class="feature-item"><i class="fa-solid fa-file-chart"></i><span>Custom Reports</span></div> }
+                                                    @if (plan.HasDataExport)      { <div class="feature-item"><i class="fa-solid fa-download"></i><span>Data Export</span></div> }
+                                                    @if (plan.HasPrioritySupport) { <div class="feature-item"><i class="fa-solid fa-headset"></i><span>@plan.SupportLevel Support</span></div> }
+                                                </div>
+                                            }
+                                        </div>
+
+                                        <div class="plan-actions mt-auto">
+                                            <div class="d-flex flex-column gap-1">
+                                                <div class="d-flex gap-1">
+                                                    <button type="button" class="btn btn-success btn-sm flex-fill"
+                                                            onclick="selectPlan(@plan.PlanId, 'Monthly', @plan.MonthlyPrice, false)">
+                                                        Schedule Monthly
+                                                    </button>
+                                                    <button type="button" class="btn btn-primary btn-sm flex-fill"
+                                                            onclick="selectPlan(@plan.PlanId, 'Annual', @plan.YearlyPrice, false)">
+                                                        Schedule Annual
+                                                    </button>
+                                                </div>
+                                                <div class="d-flex gap-1">
+                                                    <button type="button" class="btn btn-warning btn-sm flex-fill"
+                                                            onclick="selectPlan(@plan.PlanId, 'Monthly', @plan.MonthlyPrice, true)">
+                                                        Now Monthly
+                                                    </button>
+                                                    <button type="button" class="btn btn-danger btn-sm flex-fill"
+                                                            onclick="selectPlan(@plan.PlanId, 'Annual', @plan.YearlyPrice, true)">
+                                                        Now Annual
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+(function () {
+    var FLATPICKR_JS  = 'https://cdn.jsdelivr.net/npm/flatpickr';
+    var FLATPICKR_CSS = 'https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css';
+
+    // Loads flatpickr if it isn't already present on the page. This matters
+    // if this view ever gets injected into a tab/container after the main
+    // page has already loaded (e.g. via an AJAX content swap) — in that
+    // situation a plain <script src="..."> tag in the markup does not get
+    // executed by the browser, so window.flatpickr would be undefined and
+    // clicking the date field would silently do nothing.
+    function loadFlatpickrThen(callback) {
+        if (window.flatpickr) { callback(); return; }
+
+        if (!document.querySelector('link[href="' + FLATPICKR_CSS + '"]')) {
+            var link = document.createElement('link');
+            link.rel = 'stylesheet';
+            link.href = FLATPICKR_CSS;
+            document.head.appendChild(link);
+        }
+
+        var script = document.createElement('script');
+        script.src = FLATPICKR_JS;
+        script.onload = callback;
+        script.onerror = function () {
+            console.error('Could not load flatpickr from CDN — check network/CSP settings.');
+        };
+        document.head.appendChild(script);
+    }
+
+    function autoSubmitForm() {
+        var form = document.querySelector('form');
+        if (form) form.submit();
+    }
+    window.autoSubmitForm = autoSubmitForm; // used by onchange="autoSubmitForm()" on the plan/billing selects
+
+    function parseYmd(ymd) {
+        if (!ymd) return null;
+        var p = ymd.split('-');
+        if (p.length !== 3) return null;
+        return new Date(parseInt(p[0]), parseInt(p[1]) - 1, parseInt(p[2]));
+    }
+
+    function setupSearchDebounce() {
+        var searchInput = document.getElementById('searchInput');
+        if (!searchInput || searchInput.dataset.debounceBound) return;
+        searchInput.dataset.debounceBound = '1';
+        var searchTimeout;
+        searchInput.addEventListener('input', function () {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(autoSubmitForm, 500);
+        });
+    }
+
+    function setupDatePickers() {
+        var fromInput  = document.getElementById('fromDateInput');
+        var toInput    = document.getElementById('toDateInput');
+        var fromHidden = document.getElementById('fromDateHidden');
+        var toHidden   = document.getElementById('toDateHidden');
+        if (!fromInput || !toInput || !fromHidden || !toHidden) return;
+
+        // Destroy any earlier instance so re-running this script (e.g. if the
+        // view is reloaded into its container more than once) never stacks
+        // duplicate calendars on the same input.
+        if (fromInput._flatpickr) fromInput._flatpickr.destroy();
+        if (toInput._flatpickr) toInput._flatpickr.destroy();
+
+        flatpickr(fromInput, {
+            dateFormat: 'd-m-Y',        // display: 28-05-2026
+            allowInput: false,
+            disableMobile: true,
+            static: true,                // keeps calendar anchored correctly inside the filter row
+            defaultDate: parseYmd(fromHidden.value),
+            onChange: function (selectedDates) {
+                if (selectedDates.length > 0) {
+                    var d = selectedDates[0];
+                    fromHidden.value =
+                        d.getFullYear() + '-' +
+                        String(d.getMonth() + 1).padStart(2, '0') + '-' +
+                        String(d.getDate()).padStart(2, '0');
+                } else {
+                    fromHidden.value = '';
+                }
+                // Small delay so the picked date is visibly painted into the
+                // input box before the page navigates away on submit.
+                setTimeout(autoSubmitForm, 250);
+            }
+        });
+
+        flatpickr(toInput, {
+            dateFormat: 'd-m-Y',
+            allowInput: false,
+            disableMobile: true,
+            static: true,
+            defaultDate: parseYmd(toHidden.value),
+            onChange: function (selectedDates) {
+                if (selectedDates.length > 0) {
+                    var d = selectedDates[0];
+                    toHidden.value =
+                        d.getFullYear() + '-' +
+                        String(d.getMonth() + 1).padStart(2, '0') + '-' +
+                        String(d.getDate()).padStart(2, '0');
+                } else {
+                    toHidden.value = '';
+                }
+                setTimeout(autoSubmitForm, 250);
+            }
+        });
+    }
+
+    function init() {
+        setupSearchDebounce();
+        loadFlatpickrThen(setupDatePickers);
+    }
+
+    // Don't rely solely on DOMContentLoaded — if this script executes after
+    // the page has already finished loading (readyState is no longer
+    // "loading"), DOMContentLoaded will never fire again, so run immediately.
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+    } else {
+        init();
+    }
+})();
+
+// Function to open upgrade modal
+function openUpgradeModal(partnerId) {
+    console.log('Opening upgrade modal for partner:', partnerId);
+    resetUpgradeModal();
+    fetch('/Subscription/GetUpgradeOptions?partnerId=' + partnerId)
+        .then(response => response.json())
+        .then(data => {
+            console.log('API Response:', data);
+            if (data.success) {
+                currentPartnerData = data;
+                populatePartnerInfo(data.partner);
+                populateCurrentSubscription(data.currentSubscription);
+                populateAvailablePlans(data.availablePlans);
+                new bootstrap.Modal(document.getElementById('upgradeModal')).show();
+            } else {
+                console.log('Error:', data.message);
+                showToast('Error: ' + data.message, 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error loading upgrade options:', error);
+            showToast('Failed to load upgrade options', 'error');
+        });
+}
+</script>

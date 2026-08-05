@@ -1,0 +1,712 @@
+@model List<CRM.Models.InvoiceModel>
+@inject CRM.Services.ViewPermissionService _viewPermissionService
+@{
+    ViewData["Title"] = "Invoices";
+    var bookings = ViewBag.Bookings as List<CRM.Models.BookingModel> ?? new List<CRM.Models.BookingModel>();
+    var installments = ViewBag.Installments as List<CRM.Models.PaymentInstallmentModel> ?? new List<CRM.Models.PaymentInstallmentModel>();
+    bool canCreate = _viewPermissionService.HasPermission("Invoices", "Index", "Create");
+    bool canEdit   = _viewPermissionService.HasPermission("Invoices", "Index", "Edit");
+    bool canDelete  = _viewPermissionService.HasPermission("Invoices", "Index", "Delete");
+}
+
+<style>
+/* ============================================================
+   SCOPE: all rules prefixed with .inv- or inside .inv-wrap
+   so NOTHING leaks into sidebar / global layout
+   ============================================================ */
+
+.inv-wrap { font-family: inherit; }
+
+/* ── CSS variables ── */
+.inv-wrap {
+    --g:  #D4A45A;
+    --gd: #B8883E;
+    --gp: #F0F4F8;
+    --gl: #FEF3C7;
+    --b:  #1A6FA8;
+    --bd: #0F4C75;
+    --bp: #F0F4F8;
+    --bl: #E2E8F0;
+    --tx: #1A2332;
+    --mu: #6B7B8D;
+    --su: #FFFFFF;
+    --br: #E2E8F0;
+}
+
+/* ── header band ── */
+.inv-hdr {
+    background: linear-gradient(118deg, #0F4C75 0%, #1A6FA8 58%, #2589C9 100%);
+    border-radius: 10px;
+    padding: .8rem 1.1rem;
+    margin-bottom: .55rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: relative;
+    overflow: hidden;
+}
+.inv-hdr::before {
+    content: '';
+    position: absolute; top: -28px; right: -28px;
+    width: 110px; height: 110px;
+    border-radius: 50%;
+    background: rgba(212,164,90,.16);
+    pointer-events: none;
+}
+.inv-hdr-title {
+    font-size: 1.05rem; font-weight: 700; color: #FFFFFF;
+    margin: 0; display: flex; align-items: center; gap: 7px;
+}
+.inv-hdr-title i { color: #D4A45A; }
+.inv-hdr-sub { font-size: .72rem; color: rgba(255,255,255,.62); margin: .1rem 0 0; }
+.inv-gen-btn {
+    background: #D4A45A; border: none; color: #FFFFFF;
+    padding: .4rem .95rem; border-radius: 6px;
+    font-size: .76rem; font-weight: 700;
+    text-decoration: none; display: inline-flex; align-items: center; gap: 5px;
+    white-space: nowrap; position: relative; z-index: 1;
+    box-shadow: 0 2px 9px rgba(212,164,90,.38);
+    transition: background .18s, transform .14s;
+}
+.inv-gen-btn:hover { background: #B8883E; color: #FFFFFF; transform: translateY(-1px); }
+
+/* ── stat strip ── */
+.inv-stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: .45rem;
+    margin-bottom: .55rem;
+}
+.inv-sc {
+    background: var(--su);
+    border: 1px solid var(--br);
+    border-radius: 8px;
+    padding: .55rem .8rem;
+    display: flex; align-items: center; gap: .6rem;
+    transition: box-shadow .18s;
+}
+.inv-sc:hover { box-shadow: 0 3px 12px rgba(26,111,168,.08); }
+.inv-sc-ico {
+    width: 33px; height: 33px; border-radius: 6px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center; font-size: .9rem;
+}
+.ico-b { background: var(--bp); color: var(--b); }
+.ico-g { background: #F0F4F8; color: #15803D; }
+.ico-r { background: #F0F4F8; color: #991B1B; }
+.ico-o { background: var(--gp); color: var(--gd); }
+.inv-sc-num { font-size: 1.1rem; font-weight: 700; color: var(--tx); line-height: 1; margin-bottom: 1px; }
+.inv-sc-lbl { font-size: .67rem; color: var(--mu); font-weight: 500; }
+
+/* ── filter bar ── */
+.inv-fbar {
+    display: flex; align-items: center; gap: .45rem; flex-wrap: nowrap;
+    background: var(--su); border: 1px solid var(--br);
+    border-radius: 8px; padding: .48rem .7rem;
+    margin-bottom: .55rem;
+}
+.inv-fsearch {
+    flex: 1; min-width: 0;
+    border: 1px solid var(--br); border-radius: 5px;
+    font-size: .77rem; padding: .28rem .55rem; height: 29px;
+    color: var(--tx); outline: none; background: var(--su);
+    transition: border-color .15s, box-shadow .15s;
+}
+.inv-fsearch:focus { border-color: var(--b); box-shadow: 0 0 0 2px rgba(26,111,168,.12); }
+.inv-fsel {
+    width: 120px; flex-shrink: 0;
+    border: 1px solid var(--br); border-radius: 5px;
+    font-size: .77rem; padding: .28rem .45rem; height: 29px;
+    color: var(--tx); outline: none; background: var(--su);
+    transition: border-color .15s;
+}
+.inv-fsel:focus { border-color: var(--b); }
+.inv-fbtn {
+    flex-shrink: 0;
+    background: var(--b); border: none; color: #FFFFFF;
+    height: 29px; padding: 0 .8rem; border-radius: 5px;
+    font-size: .76rem; font-weight: 700;
+    display: inline-flex; align-items: center; gap: 4px;
+    cursor: pointer; transition: background .15s; white-space: nowrap;
+}
+.inv-fbtn:hover { background: var(--bd); }
+
+/* ── column headers (desktop) ── */
+.inv-thead {
+    display: grid;
+    grid-template-columns: 30px 2.4fr 1.4fr 1.1fr 96px 30px;
+    gap: .4rem;
+    padding: .22rem .6rem;
+    margin-bottom: .18rem;
+}
+.inv-th {
+    font-size: .61rem; font-weight: 700; color: var(--mu);
+    text-transform: uppercase; letter-spacing: .06em;
+}
+.inv-th.c { text-align: center; }
+
+/* ── invoice ROW ──
+   KEY FIX: display:grid with explicit columns.
+   This CANNOT be overridden by Bootstrap's .row because
+   we don't use .row/.col inside at all.
+   ── */
+.inv-row {
+    background: var(--su);
+    border: 1px solid var(--br);
+    border-radius: 8px;
+    margin-bottom: .3rem;
+    padding: .52rem .6rem;
+    /* 6-column grid: icon | identity | dates | amount | status | actions */
+    display: grid !important;
+    grid-template-columns: 30px 2.4fr 1.4fr 1.1fr 96px 30px;
+    align-items: center;
+    gap: .4rem;
+    position: relative; z-index: 1;
+    transition: border-color .15s, box-shadow .15s;
+}
+.inv-row:hover {
+    border-color: var(--bl);
+    box-shadow: 0 2px 9px rgba(26,111,168,.07);
+}
+.inv-row:has(.dropdown.show) { z-index: 9999 !important; }
+
+/* col 0 — decorative icon */
+.inv-row-icon {
+    width: 28px; height: 28px; border-radius: 5px;
+    background: var(--bp); color: var(--b);
+    display: flex; align-items: center; justify-content: center;
+    font-size: .75rem; flex-shrink: 0;
+}
+
+/* col 1 — identity */
+.inv-id-num {
+    font-size: .78rem; font-weight: 700; color: var(--b);
+    margin-bottom: 1px; white-space: nowrap;
+    overflow: hidden; text-overflow: ellipsis;
+}
+.inv-id-name {
+    font-size: .74rem; font-weight: 600; color: var(--tx);
+    margin-bottom: 1px; white-space: nowrap;
+    overflow: hidden; text-overflow: ellipsis;
+}
+.inv-id-prop {
+    font-size: .69rem; color: var(--mu);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.inv-id-tag {
+    display: inline-block;
+    background: var(--bp); color: var(--b);
+    font-size: .59rem; font-weight: 700;
+    padding: 1px 6px; border-radius: 20px;
+    border: 1px solid var(--bl); margin-top: 2px;
+    white-space: nowrap;
+}
+
+/* col 2 — dates */
+.inv-dates { display: flex; flex-direction: column; gap: 4px; }
+.inv-date-lbl { font-size: .6rem; color: var(--mu); font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
+.inv-date-val { font-size: .73rem; font-weight: 600; color: var(--tx); }
+
+/* col 3 — amount */
+.inv-amt-total { font-size: .88rem; font-weight: 700; color: var(--tx); line-height: 1; margin-bottom: 2px; }
+.inv-amt-paid  { font-size: .65rem; color: #15803D; font-weight: 600; }
+
+/* col 4 — status */
+.inv-status-cell { display: flex; align-items: center; justify-content: center; }
+.inv-sp {
+    font-size: .59rem; font-weight: 700;
+    padding: .2rem .52rem; border-radius: 20px;
+    letter-spacing: .03em; text-transform: uppercase; white-space: nowrap;
+}
+.sp-generated { background: var(--bp);  color: var(--b);   border: 1px solid var(--bl); }
+.sp-sent      { background: #E8EDF2;    color: #15803D;    border: 1px solid #B8C8D8; }
+.sp-paid      { background: #E8EDF2;    color: #15803D;    border: 1px solid #B8C8D8; }
+.sp-partial   { background: var(--gp);  color: var(--gd);  border: 1px solid var(--gl); }
+.sp-overdue   { background: #F0F4F8;    color: #991B1B;    border: 1px solid #FEE2E2; }
+.sp-cancelled { background: #F0F4F8;    color: #6B7B8D;    border: 1px solid #B8C8D8; }
+
+/* col 5 — action button */
+.inv-act-btn {
+    width: 27px; height: 27px; padding: 0; flex-shrink: 0;
+    border: 1px solid var(--br); background: var(--su); color: var(--mu);
+    border-radius: 5px; display: flex; align-items: center; justify-content: center;
+    font-size: .72rem; cursor: pointer; transition: all .15s;
+}
+.inv-act-btn:hover { border-color: var(--b); color: var(--b); background: var(--bp); }
+
+/* dropdown */
+.inv-wrap .dropdown-menu {
+    min-width: 168px !important;
+    border: 1px solid var(--br) !important;
+    box-shadow: 0 6px 22px rgba(0,0,0,.11) !important;
+    border-radius: 8px !important;
+    padding: .28rem !important;
+    z-index: 99999 !important;
+}
+.inv-wrap .dropdown-item {
+    font-size: .76rem !important;
+    padding: .37rem .62rem !important;
+    border-radius: 5px !important;
+    display: flex !important; align-items: center; gap: 7px;
+    color: var(--tx) !important;
+}
+.inv-wrap .dropdown-item:hover  { background: var(--bp) !important; color: var(--b) !important; }
+.inv-wrap .dropdown-item.text-danger:hover { background: #F0F4F8 !important; color: #991B1B !important; }
+.inv-wrap .dropdown-divider { margin: .2rem .35rem !important; }
+
+/* ── pagination ── */
+.inv-pag {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-top: .45rem; padding: .45rem .7rem;
+    background: var(--su); border: 1px solid var(--br); border-radius: 8px;
+}
+.inv-pag-info { font-size: .7rem; color: var(--mu); }
+.inv-pag-ctrl { display: flex; gap: 3px; }
+.inv-pb {
+    padding: .24rem .5rem; border: 1px solid var(--br);
+    background: var(--su); color: var(--mu); border-radius: 4px;
+    font-size: .7rem; cursor: pointer; line-height: 1.5;
+    transition: all .15s;
+}
+.inv-pb:hover:not(:disabled) { border-color: var(--b); color: var(--b); background: var(--bp); }
+.inv-pb:disabled { opacity: .4; cursor: not-allowed; }
+.inv-pb.active { background: var(--b); border-color: var(--b); color: #FFFFFF; font-weight: 700; }
+
+/* ── empty state ── */
+.inv-empty {
+    text-align: center; padding: 3rem 1.5rem;
+    background: var(--su); border: 1px solid var(--br); border-radius: 10px;
+}
+.inv-empty-ico {
+    width: 50px; height: 50px; border-radius: 50%;
+    background: var(--bp); color: var(--b);
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 1.25rem; margin-bottom: .7rem;
+}
+.inv-empty h5 { font-size: .92rem; font-weight: 600; color: var(--tx); margin-bottom: .3rem; }
+.inv-empty p  { font-size: .77rem; color: var(--mu); margin-bottom: .75rem; }
+
+/* ── DARK MODE ── */
+.dark-mode .inv-wrap,
+html.dark-mode .inv-wrap {
+    --su: #1A2332; --br: #1E2A3A; --tx: #E2E8F0; --mu: #6B7B8D;
+    --bp: #1A2332; --bl: #2A3A4A; --gp: #111827; --gl: #1A2332;
+}
+html.dark-mode .inv-sc,
+.dark-mode .inv-sc { background: #1A2332 !important; border-color: #1E2A3A !important; }
+html.dark-mode .ico-g, .dark-mode .ico-g { background: #0D1A24 !important; color: #16A34A !important; }
+html.dark-mode .ico-r, .dark-mode .ico-r { background: #111827 !important; color: #D4A45A !important; }
+html.dark-mode .inv-row, .dark-mode .inv-row { background: #1A2332 !important; border-color: #1E2A3A !important; }
+html.dark-mode .inv-row:hover, .dark-mode .inv-row:hover { border-color: #2A3A4A !important; }
+html.dark-mode .sp-sent,  .dark-mode .sp-sent  { background: #0D1A24 !important; color: #16A34A !important; border-color: #1E2A3A !important; }
+html.dark-mode .sp-paid,  .dark-mode .sp-paid  { background: #0D1A24 !important; color: #B8C8D8 !important; border-color: #1E2A3A !important; }
+html.dark-mode .sp-overdue,.dark-mode .sp-overdue{ background: #111827 !important; color: #E8C27E !important; border-color: #1A2332 !important; }
+html.dark-mode .sp-cancelled,.dark-mode .sp-cancelled{ background: #1A2332 !important; color: #8FA3B8 !important; border-color: #2A3A4A !important; }
+html.dark-mode .inv-amt-paid,.dark-mode .inv-amt-paid { color: #16A34A !important; }
+html.dark-mode .inv-fbar, .dark-mode .inv-fbar { background: #1A2332 !important; border-color: #1E2A3A !important; }
+html.dark-mode .inv-fsearch,.dark-mode .inv-fsearch,
+html.dark-mode .inv-fsel, .dark-mode .inv-fsel {
+    background: #1E2A3A !important; border-color: #2A3A4A !important; color: #E2E8F0 !important;
+}
+html.dark-mode .inv-pag,.dark-mode .inv-pag { background: #1A2332 !important; border-color: #1E2A3A !important; }
+html.dark-mode .inv-pb,.dark-mode .inv-pb { background: #1E2A3A !important; border-color: #2A3A4A !important; color: #6B7B8D !important; }
+html.dark-mode .inv-pb.active,.dark-mode .inv-pb.active { background: #1A6FA8 !important; border-color: #1A6FA8 !important; color: #FFFFFF !important; }
+html.dark-mode .inv-wrap .dropdown-menu,.dark-mode .inv-wrap .dropdown-menu { background: #1A2332 !important; border-color: #1E2A3A !important; }
+html.dark-mode .inv-wrap .dropdown-item,.dark-mode .inv-wrap .dropdown-item { color: #E2E8F0 !important; }
+html.dark-mode .inv-wrap .dropdown-item:hover,.dark-mode .inv-wrap .dropdown-item:hover { background: #1A2332 !important; color: #8FA3B8 !important; }
+html.dark-mode .inv-empty,.dark-mode .inv-empty { background: #1A2332 !important; border-color: #1E2A3A !important; }
+html.dark-mode .inv-thead .inv-th,.dark-mode .inv-thead .inv-th { color: #2A3A4A !important; }
+
+/* ── RESPONSIVE ── */
+
+/* tablet: collapse dates + merge amount+status */
+@@media (max-width: 900px) {
+    .inv-thead { grid-template-columns: 30px 2fr 1fr 80px 28px; }
+    .inv-row   { grid-template-columns: 30px 2fr 1fr 80px 28px; }
+    .inv-dates-col { display: none !important; }
+    .inv-thead-dates { display: none !important; }
+}
+
+/* mobile: full card */
+@@media (max-width: 640px) {
+    .inv-stats { grid-template-columns: 1fr 1fr; }
+    .inv-hdr { padding: .7rem .9rem; }
+    .inv-gen-btn { font-size: .7rem; padding: .36rem .75rem; }
+    .inv-fbar { flex-wrap: wrap; gap: .4rem; }
+    .inv-fsearch { min-width: 100%; }
+    .inv-fsel { flex: 1; width: auto; }
+
+    /* hide grid header */
+    .inv-thead { display: none !important; }
+
+    /* make each row a stacked card */
+    .inv-row {
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 0 !important;
+        padding: .7rem .75rem !important;
+    }
+    .inv-row-icon, .inv-dates, .inv-status-cell { display: none !important; }
+
+    /* mobile inner layout via helper divs */
+    .inv-mob { display: flex !important; flex-direction: column; gap: .38rem; }
+    .inv-mob-top { display: flex; justify-content: space-between; align-items: flex-start; }
+    .inv-mob-num { font-size: .82rem; font-weight: 700; color: var(--b); }
+    .inv-mob-dates { display: grid; grid-template-columns: 1fr 1fr; gap: .35rem; }
+    .inv-mob-lbl { font-size: .6rem; color: var(--mu); font-weight: 600; text-transform: uppercase; letter-spacing: .04em; margin-bottom: 1px; }
+    .inv-mob-val { font-size: .74rem; font-weight: 600; color: var(--tx); }
+    .inv-mob-foot { display: flex; justify-content: space-between; align-items: center; padding-top: .38rem; border-top: 1px solid var(--br); margin-top: .1rem; }
+    .inv-mob-amt { font-size: .92rem; font-weight: 700; color: var(--tx); }
+    .inv-mob-paid { font-size: .65rem; font-weight: 600; color: #15803D; }
+}
+/* hide mobile block on desktop */
+@@media (min-width: 641px) { .inv-mob { display: none !important; } }
+
+/* pagination mobile */
+@@media (max-width: 500px) {
+    .inv-pag { flex-direction: column; gap: .4rem; text-align: center; }
+    .inv-pag-ctrl { flex-wrap: wrap; justify-content: center; }
+}
+</style>
+
+<div class="inv-wrap">
+    <div class="page-hd"><i class="fa-solid fa-file-invoice"></i><h4>Invoices</h4></div>
+    <!-- breadcrumb -->
+    <nav class="mb-2" aria-label="breadcrumb">
+        <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item"><a href="/Home">Home</a></li>
+            <li class="breadcrumb-item active">Invoices</li>
+        </ol>
+    </nav>
+
+    <!-- ── HEADER ── -->
+    <div class="inv-hdr">
+        <div>
+            <div class="inv-hdr-title">
+                <i class="fa-solid fa-file-invoice"></i>Invoices
+            </div>
+            <p class="inv-hdr-sub">Manage payment invoices and track collections</p>
+        </div>
+        @if (canCreate)
+        {
+            <a href="/Invoices/Create" class="inv-gen-btn">
+                <i class="fa-solid fa-plus"></i>Generate Invoice
+            </a>
+        }
+    </div>
+
+    <!-- ── STATS ── -->
+    <div class="inv-stats">
+        <div class="inv-sc">
+            <div class="inv-sc-ico ico-b"><i class="fa-solid fa-file-invoice"></i></div>
+            <div>
+                <div class="inv-sc-num">@Model.Count</div>
+                <div class="inv-sc-lbl">Total Invoices</div>
+            </div>
+        </div>
+        <div class="inv-sc">
+            <div class="inv-sc-ico ico-g"><i class="fa-solid fa-circle-check"></i></div>
+            <div>
+                <div class="inv-sc-num">@Model.Count(i => i.Status == "Paid")</div>
+                <div class="inv-sc-lbl">Paid</div>
+            </div>
+        </div>
+        <div class="inv-sc">
+            <div class="inv-sc-ico ico-r"><i class="fa-solid fa-clock"></i></div>
+            <div>
+                <div class="inv-sc-num">@Model.Count(i => i.Status == "Overdue")</div>
+                <div class="inv-sc-lbl">Overdue</div>
+            </div>
+        </div>
+        <div class="inv-sc">
+            <div class="inv-sc-ico ico-o"><i class="fa-solid fa-indian-rupee-sign"></i></div>
+            <div>
+                <div class="inv-sc-num" style="font-size:.82rem;">₹@Model.Sum(i => i.TotalAmount - i.PaidAmount).ToString("N0")</div>
+                <div class="inv-sc-lbl">Outstanding</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── FILTER BAR ── -->
+    <div class="inv-fbar">
+        <input type="text" class="inv-fsearch" id="searchInput"
+               placeholder="Search invoices…" value="@ViewBag.SearchTerm">
+        <select class="inv-fsel" id="statusFilter">
+            <option value="">All Status</option>
+            <option value="Generated" selected="@(ViewBag.StatusFilter == "Generated")">Generated</option>
+            <option value="Sent"      selected="@(ViewBag.StatusFilter == "Sent")">Sent</option>
+            <option value="Paid"      selected="@(ViewBag.StatusFilter == "Paid")">Paid</option>
+            <option value="Partial"   selected="@(ViewBag.StatusFilter == "Partial")">Partial</option>
+            <option value="Overdue"   selected="@(ViewBag.StatusFilter == "Overdue")">Overdue</option>
+        </select>
+        <button class="inv-fbtn" onclick="applyFilters()">
+            <i class="fa-solid fa-filter"></i>Filter
+        </button>
+    </div>
+
+    @if (Model.Any())
+    {
+        <!-- ── COLUMN HEADERS (desktop) ── -->
+        <div class="inv-thead">
+            <span></span>
+            <span class="inv-th">Invoice / Client</span>
+            <span class="inv-th inv-thead-dates">Dates</span>
+            <span class="inv-th">Amount</span>
+            <span class="inv-th c">Status</span>
+            <span></span>
+        </div>
+
+        <!-- ── ROWS ── -->
+        foreach (var invoice in Model)
+        {
+            var booking     = bookings.FirstOrDefault(b => b.BookingId == invoice.BookingId);
+            var installment = installments.FirstOrDefault(i => i.InstallmentId == invoice.InstallmentId);
+
+            <div class="inv-row paginated-item">
+
+                <!-- col 0: icon -->
+                <div class="inv-row-icon">
+                    <i class="fa-solid fa-file-invoice"></i>
+                </div>
+
+                <!-- col 1: identity -->
+                <div>
+                    <div class="inv-id-num">@invoice.InvoiceNumber</div>
+                    <div class="inv-id-name">@booking?.Lead?.Name</div>
+                    <div class="inv-id-prop">@booking?.Property?.PropertyName</div>
+                    @if (installment != null)
+                    {
+                        <span class="inv-id-tag">@installment.MilestoneName</span>
+                    }
+                </div>
+
+                <!-- col 2: dates -->
+                <div class="inv-dates inv-dates-col">
+                    <div>
+                        <div class="inv-date-lbl">Invoice</div>
+                        <div class="inv-date-val">@invoice.InvoiceDate.ToString("MMM dd, yyyy")</div>
+                    </div>
+                    <div>
+                        <div class="inv-date-lbl">Due</div>
+                        <div class="inv-date-val">@invoice.DueDate.ToString("MMM dd, yyyy")</div>
+                    </div>
+                </div>
+
+                <!-- col 3: amount -->
+                <div>
+                    <div class="inv-amt-total">₹@invoice.TotalAmount.ToString("N0")</div>
+                    <div class="inv-amt-paid">Paid: ₹@invoice.PaidAmount.ToString("N0")</div>
+                </div>
+
+                <!-- col 4: status -->
+                <div class="inv-status-cell">
+                    <span class="inv-sp sp-@invoice.Status.ToLower()">@invoice.Status</span>
+                </div>
+
+                <!-- col 5: actions -->
+                <div class="dropdown" style="position:relative;">
+                    <button class="inv-act-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="fa-solid fa-ellipsis-vertical"></i>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li><a class="dropdown-item" href="/invoicedetails/@IdObfuscator.Encode(invoice.InvoiceId)"><i class="fa-solid fa-eye"></i>View Details</a></li>
+                        <li><a class="dropdown-item" href="/invoicedetails/@IdObfuscator.Encode(invoice.InvoiceId)"><i class="fa-solid fa-download"></i>Download PDF</a></li>
+                        @if (canEdit && invoice.Status != "Paid" && invoice.Status != "Cancelled")
+                        {
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="/Payments/Create?invoiceId=@invoice.InvoiceId"><i class="fa-solid fa-credit-card"></i>Record Payment</a></li>
+                            <li><a class="dropdown-item" href="#" onclick="updateStatus(@invoice.InvoiceId,'Sent')"><i class="fa-solid fa-paper-plane"></i>Mark as Sent</a></li>
+                            <li><a class="dropdown-item text-danger" href="#" onclick="updateStatus(@invoice.InvoiceId,'Cancelled')"><i class="fa-solid fa-times"></i>Cancel</a></li>
+                        }
+                        @if (canEdit && invoice.Status == "Cancelled")
+                        {
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="#" onclick="updateStatus(@invoice.InvoiceId,'Generated')"><i class="fa-solid fa-rotate-left"></i>Mark as Generated</a></li>
+                        }
+                        @if (canDelete)
+                        {
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item text-danger" href="#" onclick="deleteInvoice(@invoice.InvoiceId)"><i class="fa-solid fa-trash"></i>Delete</a></li>
+                        }
+                    </ul>
+                </div>
+
+                <!-- MOBILE card (hidden on desktop via CSS) -->
+                <div class="inv-mob">
+                    <div class="inv-mob-top">
+                        <div>
+                            <div class="inv-mob-num">@invoice.InvoiceNumber</div>
+                            <div style="font-size:.74rem;font-weight:600;color:var(--tx);margin-bottom:1px;">@booking?.Lead?.Name</div>
+                            <div style="font-size:.69rem;color:var(--mu);">@booking?.Property?.PropertyName</div>
+                            @if (installment != null)
+                            {
+                                <span class="inv-id-tag">@installment.MilestoneName</span>
+                            }
+                        </div>
+                        <span class="inv-sp sp-@invoice.Status.ToLower()">@invoice.Status</span>
+                    </div>
+                    <div class="inv-mob-dates">
+                        <div>
+                            <div class="inv-mob-lbl">Invoice Date</div>
+                            <div class="inv-mob-val">@invoice.InvoiceDate.ToString("MMM dd, yyyy")</div>
+                        </div>
+                        <div>
+                            <div class="inv-mob-lbl">Due Date</div>
+                            <div class="inv-mob-val">@invoice.DueDate.ToString("MMM dd, yyyy")</div>
+                        </div>
+                    </div>
+                    <div class="inv-mob-foot">
+                        <div>
+                            <div class="inv-mob-amt">₹@invoice.TotalAmount.ToString("N0")</div>
+                            <div class="inv-mob-paid">Paid: ₹@invoice.PaidAmount.ToString("N0")</div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        }
+
+        <!-- ── PAGINATION ── -->
+        <div class="inv-pag" id="paginationContainer" style="display:none;">
+            <div class="inv-pag-info"><span id="paginationInfo"></span></div>
+            <div class="inv-pag-ctrl">
+                <button class="inv-pb" id="prevBtn" onclick="changePage(-1)"><i class="fa-solid fa-chevron-left"></i> Prev</button>
+                <div id="pageNumbers" style="display:flex;gap:3px;"></div>
+                <button class="inv-pb" id="nextBtn" onclick="changePage(1)">Next <i class="fa-solid fa-chevron-right"></i></button>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="inv-empty">
+            <div class="inv-empty-ico"><i class="fa-solid fa-file-invoice"></i></div>
+            <h5>No Invoices Found</h5>
+            <p>Start by generating your first invoice</p>
+            @if (canCreate)
+            {
+                <a href="/Invoices/Create" class="inv-gen-btn"><i class="fa-solid fa-plus"></i>Generate Invoice</a>
+            }
+        </div>
+    }
+
+</div><!-- /inv-wrap -->
+
+<script>
+// ── Pagination + Filter ── ALL original logic preserved, class names updated ──
+let currentPage = 1, pageSize = 10, filteredItems = [];
+
+setTimeout(function(){
+    if(typeof $ === 'undefined') return;
+
+    filteredItems = Array.from(document.querySelectorAll('.paginated-item'));
+    updatePagination();
+
+    function applyFilters(){
+        var search = $('#searchInput').val().toLowerCase();
+        var status = $('#statusFilter').val();
+        filteredItems = [];
+        $('.inv-row.paginated-item').each(function(){
+            var $r = $(this);
+            var txt = $r.text().toLowerCase();
+            var st  = $r.find('.inv-sp').first().text().trim();
+            if((!search || txt.includes(search)) && (!status || st === status))
+                filteredItems.push($r[0]);
+        });
+        currentPage = 1;
+        updatePagination();
+    }
+
+    $('#searchInput').on('input', applyFilters);
+    $('#statusFilter').on('change', applyFilters);
+    $('#searchInput').on('keypress', function(e){ if(e.which===13) applyFilters(); });
+    applyFilters();
+
+    // dropdown z-index
+    $(document).on('show.bs.dropdown', '.inv-row .dropdown', function(){
+        $('.inv-row').css('z-index','1');
+        $(this).closest('.inv-row').css('z-index','9999');
+    });
+    $(document).on('hide.bs.dropdown', '.inv-row .dropdown', function(){
+        $(this).closest('.inv-row').css('z-index','1');
+    });
+}, 400);
+
+function updatePagination(){
+    var total = Math.ceil(filteredItems.length / pageSize);
+    var s = (currentPage-1)*pageSize, e = Math.min(s+pageSize, filteredItems.length);
+    $('.paginated-item').hide();
+    for(var i=s;i<e;i++){ if(filteredItems[i]) $(filteredItems[i]).show(); }
+    $('#paginationInfo').text('Showing '+(filteredItems.length>0?s+1:0)+'\u2013'+e+' of '+filteredItems.length+' invoices');
+    updatePageNumbers(total);
+    $('#prevBtn').prop('disabled', currentPage===1);
+    $('#nextBtn').prop('disabled', currentPage===total||total===0);
+    if(filteredItems.length>0){ $('#paginationContainer').show(); $('.inv-empty').hide(); }
+    else { $('#paginationContainer').hide(); $('.inv-empty').show(); }
+}
+
+function updatePageNumbers(total){
+    var $pg=$('#pageNumbers'); $pg.empty();
+    if(total<=1) return;
+    var max=5, start=Math.max(1,currentPage-2), end=Math.min(total,start+max-1);
+    if(end-start+1<max) start=Math.max(1,end-max+1);
+    for(var i=start;i<=end;i++){
+        (function(p){
+            $('<button class="inv-pb'+(p===currentPage?' active':'')+'">'+p+'</button>')
+                .on('click',function(){ goToPage(p); }).appendTo($pg);
+        })(i);
+    }
+}
+
+function changePage(d){
+    var t=Math.ceil(filteredItems.length/pageSize), n=currentPage+d;
+    if(n>=1&&n<=t){ currentPage=n; updatePagination(); }
+}
+function goToPage(p){ currentPage=p; updatePagination(); }
+
+// ── AJAX — completely unchanged ──
+function updateStatus(invoiceId, status){
+    Swal.fire({
+        title:'Are you sure?',
+        text:'Do you want to change the status to '+status+'?',
+        icon:'warning',showCancelButton:true,
+        confirmButtonColor:'#1A6FA8',cancelButtonColor:'#6B7B8D',
+        confirmButtonText:'Yes, update it!'
+    }).then(function(r){
+        if(r.isConfirmed){
+            $.ajax({
+                url:'/Invoices/UpdateStatus',type:'POST',
+                data:{invoiceId:invoiceId,status:status},
+                success:function(res){
+                    if(res.success){
+                        Swal.fire({icon:'success',title:'Success!',text:res.message,timer:2000,showConfirmButton:false})
+                            .then(function(){ location.reload(); });
+                    } else { Swal.fire('Error',res.message,'error'); }
+                },
+                error:function(){ Swal.fire('Error','Failed to update status','error'); }
+            });
+        }
+    });
+}
+
+function deleteInvoice(invoiceId){
+    Swal.fire({
+        title:'Are you sure?',text:"You won't be able to revert this!",
+        icon:'warning',showCancelButton:true,
+        confirmButtonColor:'#DC2626',cancelButtonColor:'#6B7B8D',
+        confirmButtonText:'Yes, delete it!'
+    }).then(function(r){
+        if(r.isConfirmed){
+            $.ajax({
+                url:'/Invoices/Delete/'+invoiceId,type:'POST',
+                success:function(res){
+                    if(res.success){
+                        Swal.fire({icon:'success',title:'Deleted!',text:res.message,timer:2000,showConfirmButton:false})
+                            .then(function(){ location.reload(); });
+                    } else { Swal.fire('Error',res.message,'error'); }
+                },
+                error:function(){ Swal.fire('Error','Failed to delete invoice','error'); }
+            });
+        }
+    });
+}
+</script>

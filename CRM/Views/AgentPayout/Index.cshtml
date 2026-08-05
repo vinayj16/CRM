@@ -1,0 +1,709 @@
+@model List<CRM.Models.AgentPayoutModel>
+@{
+    ViewData["Title"] = "Agent Payouts";
+
+    Func<string, string> getFullMonthName = (abbr) => {
+        var monthMap = new Dictionary<string, string> {
+            {"Jan", "January"}, {"Feb", "February"}, {"Mar", "March"}, {"Apr", "April"},
+            {"May", "May"}, {"Jun", "June"}, {"Jul", "July"}, {"Aug", "August"},
+            {"Sep", "September"}, {"Oct", "October"}, {"Nov", "November"}, {"Dec", "December"}
+        };
+        return monthMap.ContainsKey(abbr) ? monthMap[abbr] : abbr;
+    };
+}
+
+<style>
+    :root {
+        --gold: #D4A45A;
+        --gold-light: #FEF3C7;
+        --gold-dark: #B8883E;
+        --blue: #1A6FA8;
+        --blue-light: #E2E8F0;
+        --blue-dark: #0F4C75;
+        --green: #15803D;
+        --green-light: #DCFCE7;
+        --red-light: #FEE2E2;
+        --red: #DC2626;
+    }
+
+
+    h2, .h2 {
+    font-size: 1.75rem !important;
+    font-weight: 600 !important;
+    margin-bottom: 8px !important;
+}
+    p {
+    font-size: 0.95rem !important;
+    line-height: 0px !important;
+    margin-bottom: 0px !important;
+}
+    .ap-header {
+        background: linear-gradient(120deg, var(--blue-dark) 0%, var(--blue) 60%, #2589C9 100%);
+        border-radius: 10px;
+        padding: 1.25rem 1.5rem;
+        margin-bottom: 1rem;
+        color: #FFFFFF;
+    }
+
+    .ap-header h2 {
+        font-size: 1.2rem;
+        font-weight: 700;
+        margin: 0 0 0.15rem;
+        letter-spacing: 0.01em;
+    }
+
+    .ap-header p {
+        font-size: 0.78rem;
+        opacity: 0.78;
+        margin: 0;
+    }
+
+    .process-btn {
+        background: var(--gold);
+        border: none;
+        color: #FFFFFF;
+        padding: 0.45rem 1.1rem;
+        border-radius: 7px;
+        font-weight: 600;
+        font-size: 0.82rem;
+        letter-spacing: 0.01em;
+        box-shadow: 0 2px 8px rgba(212,164,90,0.35);
+        transition: background 0.18s, box-shadow 0.18s, transform 0.12s;
+        white-space: nowrap;
+    }
+
+    .process-btn:hover {
+        background: var(--gold-dark);
+        color: #FFFFFF;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 14px rgba(212,164,90,0.45);
+    }
+
+    .stats-row {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 0.6rem;
+        margin-top: 1rem;
+    }
+
+    .stat-box {
+        background: rgba(255,255,255,0.13);
+        border: 1px solid rgba(255,255,255,0.18);
+        border-radius: 8px;
+        padding: 0.6rem 0.75rem;
+        text-align: center;
+    }
+
+    .stat-num {
+        font-size: 1.3rem;
+        font-weight: 700;
+        line-height: 1.1;
+        color: #FFFFFF;
+    }
+
+    .stat-lbl {
+        font-size: 0.7rem;
+        opacity: 0.75;
+        margin-top: 0.15rem;
+        color: #FFFFFF;
+    }
+
+    .filter-card {
+        background: #FFFFFF;
+        border: 1px solid #E2E8F0;
+        border-radius: 10px;
+        padding: 0.85rem 1rem;
+        margin-bottom: 1rem;
+        box-shadow: 0 1px 4px rgba(26,111,168,0.06);
+    }
+
+    .filter-card .form-label {
+        font-size: 0.72rem;
+        font-weight: 600;
+        color: var(--blue);
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        margin-bottom: 0.25rem;
+    }
+
+    .filter-card .form-select,
+    .filter-card .form-control {
+        font-size: 0.82rem;
+        padding: 0.35rem 0.65rem;
+        border-radius: 6px;
+        border: 1px solid #E2E8F0;
+        height: 34px;
+        color: #1A2332;
+    }
+
+    .filter-card .form-select:focus,
+    .filter-card .form-control:focus {
+        border-color: var(--blue);
+        box-shadow: 0 0 0 2px rgba(26,111,168,0.12);
+        outline: none;
+    }
+
+    .payout-card {
+        background: #FFFFFF;
+        border: 1px solid #E2E8F0;
+        border-left: 3px solid var(--blue);
+        border-radius: 8px;
+        padding: 0.75rem 1rem;
+        margin-bottom: 0.5rem;
+        box-shadow: 0 1px 4px rgba(26,111,168,0.05);
+        transition: box-shadow 0.2s, transform 0.15s;
+        position: relative;
+        overflow: visible !important;
+        z-index: 1;
+    }
+
+    .payout-card:hover {
+        box-shadow: 0 3px 12px rgba(26,111,168,0.13);
+        transform: translateY(-1px);
+        z-index: 99999 !important;
+    }
+
+    .payout-card.dropdown-active {
+        z-index: 99999 !important;
+    }
+
+    .payout-card .dropdown-menu {
+        z-index: 999999 !important;
+        font-size: 0.82rem;
+        border: 1px solid #E2E8F0;
+        border-radius: 8px;
+        box-shadow: 0 4px 16px rgba(26,111,168,0.13);
+        min-width: 150px;
+    }
+
+    .payout-card .dropdown-item {
+        padding: 0.4rem 0.85rem;
+        color: #1A2332;
+    }
+
+    .payout-card .dropdown-item:hover {
+        background: var(--blue-light);
+        color: var(--blue-dark);
+    }
+
+    .agent-name {
+        font-size: 0.92rem;
+        font-weight: 700;
+        color: var(--blue-dark);
+        margin-bottom: 0.18rem;
+    }
+
+    .agent-period {
+        font-size: 0.72rem;
+        color: #6B7B8D;
+    }
+
+    .agent-type-badge {
+        display: inline-block;
+        padding: 0.18rem 0.55rem;
+        border-radius: 12px;
+        font-size: 0.68rem;
+        font-weight: 600;
+        letter-spacing: 0.02em;
+    }
+
+    .type-fixedsalary { background: #E8EDF2; color: #2A3A4A; }
+    .type-salarypluscommission { background: var(--blue-light); color: var(--blue-dark); }
+    .type-commissiononly { background: var(--gold-light); color: var(--gold-dark); }
+
+    .col-label {
+        font-size: 0.67rem;
+        color: #8FA3B8;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        display: block;
+        margin-bottom: 0.1rem;
+    }
+
+    .col-value {
+        font-size: 0.82rem;
+        font-weight: 600;
+        color: #1A2332;
+    }
+
+    .col-sub {
+        font-size: 0.71rem;
+        color: #8FA3B8;
+    }
+
+    .col-sub.danger { color: var(--red); }
+    .col-sub.success { color: var(--green); }
+
+    .final-amount {
+        font-size: 1.05rem;
+        font-weight: 700;
+        color: var(--green);
+    }
+
+    .status-badge {
+        display: inline-block;
+        padding: 0.2rem 0.6rem;
+        border-radius: 10px;
+        font-size: 0.68rem;
+        font-weight: 700;
+        letter-spacing: 0.03em;
+    }
+
+    .status-pending { background: #FEF3C7; color: #B45309; }
+    .status-processed { background: var(--blue-light); color: var(--blue-dark); }
+    .status-paid { background: var(--green-light); color: var(--green); }
+
+    .action-btn {
+        background: none;
+        border: 1px solid #E2E8F0;
+        color: var(--blue);
+        border-radius: 6px;
+        width: 28px;
+        height: 28px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.8rem;
+        transition: background 0.15s, border-color 0.15s;
+        cursor: pointer;
+    }
+
+    .action-btn:hover {
+        background: var(--blue-light);
+        border-color: var(--blue);
+        color: var(--blue-dark);
+    }
+
+    .divider-col {
+        width: 1px;
+        background: #E2E8F0;
+        align-self: stretch;
+        margin: 0 0.25rem;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 3rem 2rem;
+        background: #FFFFFF;
+        border: 1px solid #E2E8F0;
+        border-radius: 10px;
+    }
+
+    .empty-state i {
+        font-size: 3.5rem;
+        color: #B8C8D8;
+        margin-bottom: 1rem;
+    }
+
+    .empty-state h4 {
+        font-size: 1rem;
+        color: #2A3A4A;
+        margin-bottom: 0.4rem;
+    }
+
+    .empty-state p {
+        font-size: 0.8rem;
+        color: #8FA3B8;
+        margin-bottom: 1.2rem;
+    }
+
+    .breadcrumb {
+        font-size: 0.76rem;
+        margin-bottom: 0.6rem !important;
+    }
+
+    .breadcrumb-item a {
+        color: var(--blue);
+        text-decoration: none;
+    }
+
+    /* Mobile */
+    @@media (max-width: 768px) {
+        .stats-row { grid-template-columns: repeat(2, 1fr); }
+        .payout-desktop { display: none !important; }
+        .payout-mobile { display: block !important; }
+        .ap-header { padding: 1rem; }
+    }
+
+    @@media (min-width: 769px) {
+        .payout-mobile { display: none !important; }
+    }
+
+    .payout-mobile {
+        display: none;
+    }
+
+    .mobile-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.5rem;
+        margin-top: 0.5rem;
+    }
+
+    .mobile-item { }
+    .mobile-item .col-label { margin-bottom: 0.05rem; }
+    .mobile-amount-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 0.6rem;
+        padding-top: 0.5rem;
+        border-top: 1px solid #F0F4F8;
+    }
+</style>
+
+<div class="content">
+    <nav class="mb-2" aria-label="breadcrumb">
+        <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item"><a href="/Home">Home</a></li>
+            <li class="breadcrumb-item active" style="font-size:0.76rem;">Agent Payouts</li>
+        </ol>
+    </nav>
+
+    <!-- Header -->
+    <div class="ap-header">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <div>
+                <h2><i class="fa-solid fa-money-bill-wave me-2" style="color:var(--gold);"></i>Agent Payouts</h2>
+                <p>Manage agent salaries and commissions</p>
+            </div>
+            <button class="process-btn" onclick="processPayouts()">
+                <i class="fa-solid fa-cogs me-1"></i>Process Payouts
+            </button>
+        </div>
+        <div class="stats-row">
+            <div class="stat-box">
+                <div class="stat-num">@ViewBag.TotalAgents</div>
+                <div class="stat-lbl">Total Agents</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-num">@ViewBag.TotalSales</div>
+                <div class="stat-lbl">Total Sales</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-num">₹@ViewBag.TotalCommission.ToString("N0")</div>
+                <div class="stat-lbl">Commission</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-num" style="color:#E8C27E;">₹@ViewBag.TotalPayouts.ToString("N0")</div>
+                <div class="stat-lbl">Total Payouts</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="filter-card">
+        <form method="get" action="/AgentPayout/Index">
+            <div class="row g-2 align-items-end">
+                <div class="col-6 col-md-2">
+                    @{
+                        var currentMonth = ViewBag.Month?.ToString() ?? DateTime.Now.ToString("MMM");
+                    }
+                    <label class="form-label">Month</label>
+                    <select class="form-select" name="month" id="month" onchange="filterByMonthYear()">
+                        @foreach (var m in new[] { ("Jan","January"),("Feb","February"),("Mar","March"),("Apr","April"),("May","May"),("Jun","June"),("Jul","July"),("Aug","August"),("Sep","September"),("Oct","October"),("Nov","November"),("Dec","December") })
+                        {
+                            <option value="@m.Item1" selected="@(currentMonth == m.Item1)">@m.Item2</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-6 col-md-2">
+                    <label class="form-label">Year</label>
+                    <select class="form-select" name="year" id="year" onchange="filterByMonthYear()">
+                        @for (int i = DateTime.Now.Year; i >= DateTime.Now.Year - 5; i--)
+                        {
+                            <option value="@i" selected="@(ViewBag.Year == i)">@i</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-12 col-md-5">
+                    <label class="form-label">Search Agent</label>
+                    <input type="text" class="form-control" name="search" id="search"
+                           placeholder="Search by name..." value="@ViewBag.Search" oninput="filterBySearch()">
+                </div>
+                <div class="col-12 col-md-3">
+                    <label class="form-label">Status</label>
+                    <select class="form-select" id="statusFilter" onchange="filterByStatus()">
+                        <option value="">All Status</option>
+                        <option value="Processed">Processed</option>
+                        <option value="Paid">Paid</option>
+                        <option value="Pending">Pending</option>
+                    </select>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- Payouts List -->
+    @if (Model.Any())
+    {
+        foreach (var payout in Model)
+        {
+            decimal presentEquivalentDays = payout.PresentDays;
+            if (payout.BaseSalary > 0 && payout.WorkingDays > 0)
+            {
+                var dailySalary = payout.BaseSalary / payout.WorkingDays;
+                if (dailySalary > 0)
+                {
+                    var absentEquivalentDays = payout.AttendanceDeduction / dailySalary;
+                    presentEquivalentDays = Math.Max(0, payout.WorkingDays - absentEquivalentDays);
+                }
+            }
+            var absentEquivalentDisplay = Math.Max(0, payout.WorkingDays - presentEquivalentDays);
+
+            <div class="payout-card">
+                <!-- Desktop -->
+                <div class="payout-desktop d-flex align-items-center gap-3">
+                    <!-- Agent Info -->
+                    <div style="min-width:160px; max-width:180px;">
+                        <div class="agent-name">
+                            <i class="fa-solid fa-user-tie me-1" style="color:var(--gold); font-size:0.8rem;"></i>
+                            @payout.Agent?.FullName
+                        </div>
+                        <span class="agent-type-badge type-@payout.Agent?.AgentType?.ToLower()">
+                            @payout.Agent?.AgentType
+                        </span>
+                        <div class="agent-period mt-1">
+                            <i class="fa-solid fa-calendar me-1" style="font-size:0.65rem;"></i>@payout.Month @payout.Year
+                        </div>
+                    </div>
+
+                    <div class="divider-col"></div>
+
+                    <!-- Attendance -->
+                    <div style="min-width:110px;">
+                        <span class="col-label">Attendance</span>
+                        <div class="col-value">@presentEquivalentDays.ToString("0.#") / @payout.WorkingDays days</div>
+                        <div class="col-sub">Absent: @absentEquivalentDisplay.ToString("0.#")</div>
+                        <div class="col-sub danger">-₹@payout.AttendanceDeduction.ToString("N0")</div>
+                    </div>
+
+                    <div class="divider-col"></div>
+
+                    <!-- Sales -->
+                    <div style="min-width:110px;">
+                        <span class="col-label">Sales &amp; Commission</span>
+                        <div class="col-value">@payout.TotalSales Sales</div>
+                        <div class="col-sub success">+₹@payout.CommissionAmount.ToString("N0")</div>
+                    </div>
+
+                    <div class="divider-col"></div>
+
+                    <!-- Base Salary -->
+                    <div style="min-width:90px;">
+                        <span class="col-label">Base Salary</span>
+                        <div class="col-value" style="color:var(--blue);">₹@payout.BaseSalary.ToString("N0")</div>
+                    </div>
+
+                    <div class="divider-col"></div>
+
+                    <!-- Final Payout -->
+                    <div style="min-width:100px;">
+                        <span class="col-label">Final Payout</span>
+                        <div class="final-amount">₹@payout.FinalPayout.ToString("N0")</div>
+                        <span class="status-badge status-@payout.Status.ToLower() mt-1">@payout.Status</span>
+                    </div>
+
+                    <!-- Action -->
+                    <div class="ms-auto">
+                        <div class="dropdown">
+                            <button class="action-btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false"
+                                    style="width:auto; padding: 0 0.5rem; gap:0.25rem; display:flex; align-items:center;">
+                                <i class="fa-solid fa-ellipsis-v" style="font-size:0.75rem;"></i>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li>
+                                    <a class="dropdown-item" href="/AgentPayout/Details/@payout.AgentId?month=@getFullMonthName(payout.Month)&year=@payout.Year">
+                                        <i class="fa-solid fa-eye me-2" style="color:var(--blue);"></i>View Details
+                                    </a>
+                                </li>
+                                @if (payout.Status != "Paid")
+                                {
+                                    <li>
+                                        <a class="dropdown-item" href="#" onclick="updateStatus(@payout.PayoutId, 'Paid')">
+                                            <i class="fa-solid fa-check me-2" style="color:var(--green);"></i>Mark as Paid
+                                        </a>
+                                    </li>
+                                }
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Mobile -->
+                <div class="payout-mobile">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <div class="agent-name">
+                                <i class="fa-solid fa-user-tie me-1" style="color:var(--gold); font-size:0.8rem;"></i>
+                                @payout.Agent?.FullName
+                            </div>
+                            <div class="d-flex align-items-center gap-2 mt-1 flex-wrap">
+                                <span class="agent-type-badge type-@payout.Agent?.AgentType?.ToLower()">@payout.Agent?.AgentType</span>
+                                <span class="agent-period">@payout.Month @payout.Year</span>
+                            </div>
+                        </div>
+                        <div class="dropdown">
+                            <button class="action-btn dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                <i class="fa-solid fa-ellipsis-v" style="font-size:0.75rem;"></i>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li>
+                                    <a class="dropdown-item" href="/AgentPayout/Details/@payout.AgentId?month=@getFullMonthName(payout.Month)&year=@payout.Year">
+                                        <i class="fa-solid fa-eye me-2" style="color:var(--blue);"></i>View Details
+                                    </a>
+                                </li>
+                                @if (payout.Status != "Paid")
+                                {
+                                    <li>
+                                        <a class="dropdown-item" href="#" onclick="updateStatus(@payout.PayoutId, 'Paid')">
+                                            <i class="fa-solid fa-check me-2" style="color:var(--green);"></i>Mark as Paid
+                                        </a>
+                                    </li>
+                                }
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="mobile-grid">
+                        <div class="mobile-item">
+                            <span class="col-label">Attendance</span>
+                            <div class="col-value">@presentEquivalentDays.ToString("0.#")/@payout.WorkingDays days</div>
+                            <div class="col-sub danger">-₹@payout.AttendanceDeduction.ToString("N0")</div>
+                        </div>
+                        <div class="mobile-item">
+                            <span class="col-label">Sales</span>
+                            <div class="col-value">@payout.TotalSales Sales</div>
+                            <div class="col-sub success">+₹@payout.CommissionAmount.ToString("N0")</div>
+                        </div>
+                        <div class="mobile-item">
+                            <span class="col-label">Base Salary</span>
+                            <div class="col-value" style="color:var(--blue);">₹@payout.BaseSalary.ToString("N0")</div>
+                        </div>
+                    </div>
+
+                    <div class="mobile-amount-row">
+                        <div>
+                            <span class="col-label">Final Payout</span>
+                            <div class="final-amount">₹@payout.FinalPayout.ToString("N0")</div>
+                        </div>
+                        <span class="status-badge status-@payout.Status.ToLower()">@payout.Status</span>
+                    </div>
+                </div>
+            </div>
+        }
+    }
+    else
+    {
+        <div class="empty-state">
+            <i class="fa-solid fa-money-bill-wave"></i>
+            <h4>No Payouts Found</h4>
+            <p>Process payouts for the selected month to see results</p>
+            <button class="process-btn" onclick="processPayouts()">
+                <i class="fa-solid fa-cogs me-1"></i>Process Payouts
+            </button>
+        </div>
+    }
+</div>
+
+<script>
+    setTimeout(function () {
+        if (typeof $ === 'undefined') return;
+
+        $('.payout-card .dropdown').on('show.bs.dropdown', function () {
+            $('.payout-card').removeClass('dropdown-active').css('z-index', '1');
+            $(this).closest('.payout-card').addClass('dropdown-active').css('z-index', '99999');
+        });
+
+        $('.payout-card .dropdown').on('hide.bs.dropdown', function () {
+            $(this).closest('.payout-card').removeClass('dropdown-active').css('z-index', '1');
+        });
+    }, 500);
+
+    function processPayouts() {
+        const month = document.getElementById('month').value || '@ViewBag.Month';
+        const year = document.getElementById('year').value || '@ViewBag.Year';
+
+        Swal.fire({
+            title: 'Process Payouts?',
+            text: `Process payouts for ${month} ${year}?`,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#1A6FA8',
+            cancelButtonColor: '#6B7B8D',
+            confirmButtonText: 'Yes, process!'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                $.ajax({
+                    url: '/AgentPayout/ProcessPayouts',
+                    type: 'POST',
+                    data: { month, year },
+                    success: function (response) {
+                        if (response.success) {
+                            Swal.fire({ icon: 'success', title: 'Success!', text: response.message, timer: 2000, showConfirmButton: false }).then(() => location.reload());
+                        } else {
+                            Swal.fire('Error', response.message, 'error');
+                        }
+                    },
+                    error: function () { Swal.fire('Error', 'Failed to process payouts', 'error'); }
+                });
+            }
+        });
+    }
+
+    function filterByStatus() { applyFilters(); }
+    function filterBySearch() { applyFilters(); }
+
+    function filterByMonthYear() {
+        const month = document.getElementById('month').value;
+        const year = document.getElementById('year').value;
+        window.location.href = `/AgentPayout/Index?month=${month}&year=${year}`;
+    }
+
+    function applyFilters() {
+        const selectedStatus = document.getElementById('statusFilter').value.toLowerCase();
+        const searchText = document.getElementById('search').value.toLowerCase();
+
+        document.querySelectorAll('.payout-card').forEach(card => {
+            const statusBadge = card.querySelector('.status-badge');
+            const cardStatus = statusBadge ? statusBadge.textContent.trim().toLowerCase() : '';
+            const agentName = card.querySelector('.agent-name') ? card.querySelector('.agent-name').textContent.toLowerCase() : '';
+
+            const statusMatch = selectedStatus === '' || cardStatus === selectedStatus;
+            const searchMatch = searchText === '' || agentName.includes(searchText);
+
+            card.style.display = (statusMatch && searchMatch) ? 'block' : 'none';
+        });
+    }
+
+    function updateStatus(payoutId, status) {
+        if (typeof $ === 'undefined') return;
+
+        Swal.fire({
+            title: 'Are you sure?',
+            text: `Mark this payout as ${status}?`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#1A6FA8',
+            cancelButtonColor: '#6B7B8D',
+            confirmButtonText: 'Yes, update!'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                $.ajax({
+                    url: '/AgentPayout/UpdateStatus',
+                    type: 'POST',
+                    data: { payoutId, status },
+                    success: function (response) {
+                        if (response.success) {
+                            Swal.fire({ icon: 'success', title: 'Success!', text: response.message, timer: 2000, showConfirmButton: false }).then(() => location.reload());
+                        } else {
+                            Swal.fire('Error', response.message, 'error');
+                        }
+                    },
+                    error: function () { Swal.fire('Error', 'Failed to update status', 'error'); }
+                });
+            }
+        });
+    }
+</script>

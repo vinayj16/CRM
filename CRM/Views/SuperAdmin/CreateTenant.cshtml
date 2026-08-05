@@ -1,0 +1,714 @@
+@{
+    ViewData["Title"] = "Create Tenant";
+}
+
+<style>
+    :root {
+        --primary: var(--blue);
+        --primary-dark: var(--blue-dark);
+        --primary-light: #F0F4F8;
+        --accent: var(--gold);
+        --accent-dark: var(--gold-dark);
+        --accent-light: #FEE2E2;
+        --border: var(--border-color);
+        --radius: 8px;
+        --radius-sm: 5px;
+    }
+    html.dark-mode {
+        --primary-light: rgba(26,111,168,0.13);
+        --accent-light: rgba(212,164,90,0.10);
+    }
+    .sa-container h1, .sa-container .h1 {
+        font-size: 1.5rem !important;
+        font-weight: 700 !important;
+        margin-bottom: 0px !important;
+    }
+    .sa-container { max-width: 100%; padding: 0; }
+
+    .sa-header {
+        background: var(--blue);
+        color: white;
+        padding: .6rem 1rem;
+        border-radius: var(--radius);
+        margin-bottom: .65rem;
+        display: flex;
+        align-items: center;
+        gap: .4rem;
+    }
+
+    .sa-header h1 { font-size: 1rem; font-weight: 700; margin: 0; color: #FFFFFF; }
+
+    .sa-card {
+        background: var(--card-bg);
+        border-radius: var(--radius);
+        padding: 1rem;
+        box-shadow: 0 1px 4px rgba(26,111,168,.08);
+        border: 1px solid var(--border-color);
+    }
+
+    .form-row {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: .5rem .65rem;
+        margin-bottom: .5rem;
+    }
+
+    .form-row.cols-3 { grid-template-columns: repeat(3, 1fr); }
+    .form-row.cols-2 { grid-template-columns: repeat(2, 1fr); }
+
+    .fg { display: flex; flex-direction: column; position: relative; }
+
+    .form-label {
+        font-size: .7rem;
+        font-weight: 700;
+        color: var(--blue-dark);
+        margin-bottom: 0;
+        text-transform: uppercase;
+        letter-spacing: .04em;
+    }
+
+    html.dark-mode .form-label { color: var(--text-muted); }
+
+    .form-control {
+        border: 1.5px solid var(--border-color);
+        border-radius: var(--radius-sm);
+        font-size: .82rem;
+        padding: .32rem .6rem;
+        height: 32px;
+        color: var(--text-primary);
+        background: var(--body-bg);
+        transition: border-color .18s, box-shadow .18s;
+    }
+
+    .form-control:focus {
+        border-color: var(--blue);
+        box-shadow: 0 0 0 2px rgba(26,111,168,.13);
+        background: var(--card-bg);
+        outline: none;
+    }
+
+    .form-control::placeholder { color: var(--text-muted); opacity: 1; }
+
+    .form-control.is-invalid { border-color: #DC2626 !important; background: var(--body-bg); }
+    .form-control.is-valid   { border-color: #15803D !important; background: var(--body-bg); }
+
+    .val-msg {
+        font-size: .67rem;
+        margin-top: 1px;
+        display: none;
+        align-items: center;
+        gap: 3px;
+    }
+
+    .val-msg.err { color: #DC2626; }
+    .val-msg.ok  { color: #15803D; }
+    .val-msg.show { display: flex; }
+
+    .form-text { font-size: .67rem; color: var(--text-muted); margin-top: 1px; display: block; }
+
+    .subdomain-wrapper { position: relative; }
+    .subdomain-wrapper .form-control { padding-right: 108px; }
+    .subdomain-suffix {
+        position: absolute;
+        right: 8px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--text-muted);
+        font-size: .7rem;
+        pointer-events: none;
+        font-weight: 500;
+    }
+
+    .plan-display-wrapper { display: flex; align-items: center; gap: 5px; }
+
+    #selectedPlanDisplay {
+        cursor: pointer;
+        font-size: .82rem;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        padding: 0 .6rem;
+        border: 1.5px dashed var(--border-color);
+        border-radius: var(--radius-sm);
+        background: var(--primary-light);
+        color: var(--text-muted);
+        flex: 1;
+        transition: border-color .18s, background .18s;
+    }
+
+    #selectedPlanDisplay:hover { border-color: var(--blue); }
+
+    .btn-plan-pick {
+        height: 32px;
+        width: 32px;
+        padding: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: 1.5px solid var(--blue);
+        color: var(--blue);
+        background: var(--primary-light);
+        border-radius: var(--radius-sm);
+        cursor: pointer;
+        font-size: .82rem;
+        transition: background .18s, color .18s;
+        flex-shrink: 0;
+    }
+
+    .btn-plan-pick:hover { background: var(--blue); color: white; }
+
+    #freeTrialText {
+        font-size: .68rem;
+        color: var(--gold-dark);
+        font-weight: 600;
+        margin-top: 3px;
+        background: var(--accent-light);
+        border: 1px solid var(--gold);
+        border-radius: var(--radius-sm);
+        padding: .18rem .45rem;
+        display: none;
+        align-items: center;
+        gap: 4px;
+    }
+
+    html.dark-mode #freeTrialText { color: var(--gold-light); }
+
+    .form-actions {
+        margin-top: .75rem;
+        padding-top: .65rem;
+        border-top: 1px solid var(--border-color);
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        flex-wrap: wrap;
+    }
+
+    .btn-submit {
+        background: var(--blue);
+        color: white;
+        border: none;
+        border-radius: var(--radius-sm);
+        padding: .35rem .9rem;
+        font-size: .82rem;
+        font-weight: 700;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        height: 32px;
+        transition: background .18s, transform .1s;
+    }
+
+    .btn-submit:hover { background: var(--blue-dark); }
+    .btn-submit:active { transform: scale(.98); }
+    .btn-submit:disabled { opacity: .65; cursor: not-allowed; }
+
+    .btn-cancel {
+        background: transparent;
+        color: var(--text-muted);
+        border: 1.5px solid var(--border-color);
+        border-radius: var(--radius-sm);
+        padding: .35rem .85rem;
+        font-size: .82rem;
+        font-weight: 500;
+        cursor: pointer;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        text-decoration: none;
+        transition: background .18s, color .18s;
+    }
+
+    .btn-cancel:hover { background: var(--body-bg); color: var(--blue-dark); text-decoration: none; }
+
+    .info-banner {
+        font-size: .7rem;
+        background: var(--primary-light);
+        border: 1px solid rgba(26,111,168,.2);
+        border-left: 3px solid var(--blue);
+        border-radius: var(--radius-sm);
+        padding: .45rem .65rem;
+        color: var(--blue-dark);
+        margin-top: .6rem;
+        line-height: 1.5;
+    }
+
+    html.dark-mode .info-banner { color: var(--text-muted); }
+
+    .info-banner strong { color: var(--blue); }
+
+    .alert-danger {
+        font-size: .78rem;
+        padding: .45rem .7rem;
+        border-radius: var(--radius-sm);
+        margin-bottom: .65rem;
+    }
+
+    /* Modal */
+    .modal-content {
+        border-radius: var(--radius);
+        border: 1px solid var(--border-color);
+        box-shadow: 0 8px 32px rgba(26,111,168,.12);
+        background: var(--card-bg);
+    }
+
+    .modal-header {
+        background: var(--blue);
+        color: white;
+        border-radius: var(--radius) var(--radius) 0 0;
+        padding: .65rem .9rem;
+        border-bottom: none;
+    }
+
+    .modal-title { font-size: .95rem; font-weight: 700; }
+    .btn-close { filter: invert(1); opacity: .85; }
+    .modal-body { padding: .85rem; background: var(--card-bg); border-radius: 0 0 var(--radius) var(--radius); }
+
+    .plan-select-card {
+        cursor: pointer;
+        border: 1.5px solid var(--border-color) !important;
+        border-radius: var(--radius) !important;
+        transition: transform .15s, border-color .15s, box-shadow .15s;
+        background: var(--card-bg) !important;
+    }
+
+    .plan-select-card:hover {
+        transform: translateY(-2px);
+        border-color: var(--blue) !important;
+        box-shadow: 0 4px 14px rgba(26,111,168,.1);
+    }
+
+    .plan-price { font-size: 1.05rem; font-weight: 700; color: var(--blue); }
+    .plan-name  { font-size: .88rem; font-weight: 700; color: var(--text-primary); }
+    .plan-desc  { font-size: .68rem; color: var(--text-muted); }
+
+    .plan-feature {
+        font-size: .7rem;
+        padding: 1px 0;
+        color: var(--text-primary);
+        display: flex;
+        align-items: center;
+        gap: 3px;
+    }
+
+    .plan-feature .ok { color: #15803D; }
+    .plan-feature .no { color: #DC2626; }
+
+    @@media (max-width: 576px) {
+        .sa-header { padding: .65rem .85rem; }
+        .sa-card { padding: .85rem; }
+        .form-row.cols-3,
+        .form-row.cols-2 { grid-template-columns: 1fr; }
+        .form-actions { flex-direction: column; align-items: stretch; }
+        .btn-submit, .btn-cancel { justify-content: center; }
+    }
+</style>
+
+<div class="sa-container">
+    <!-- Breadcrumb -->
+    <nav class="mb-3" aria-label="breadcrumb">
+        <ol class="breadcrumb mb-0" style="font-size:.76rem;background:transparent;padding:0;">
+            <li class="breadcrumb-item"><a href="/SuperAdmin/Dashboard">Dashboard</a></li>
+            <li class="breadcrumb-item active" style="color:var(--text-muted)">Create Tenant</li>
+        </ol>
+    </nav>
+
+    <div class="sa-header">
+        <i class="fa-solid fa-plus"></i>
+        <h1>Create New Tenant</h1>
+    </div>
+
+    <div class="info-banner">
+        <strong>Fill in the company details below</strong> to provision a new tenant organization.
+        A dedicated database will be created automatically once all required fields are verified.
+    </div>
+
+    <div class="sa-card">
+        @if (ViewBag.Error != null)
+        {
+            <div class="alert alert-danger">@ViewBag.Error</div>
+        }
+
+        <form id="createTenantForm" method="post" novalidate>
+            @Html.AntiForgeryToken()
+
+            <div class="form-row cols-2">
+                <div class="fg">
+                    <label class="form-label">Company Name <span class="text-danger"></span></label>
+                    <input name="companyName" id="companyName" class="form-control" placeholder="e.g. ABC Realty" autocomplete="organization" />
+                    <span class="val-msg err" id="err-companyName">&#6B7B8D88; Company name is required</span>
+                </div>
+
+                <div class="fg">
+                    <label class="form-label">Subdomain <span class="text-danger">*</span></label>
+                    <div class="subdomain-wrapper">
+                        <input type="text" name="subdomain" id="subdomain" class="form-control"
+                               placeholder="e.g. abcrealty" />
+                        <span class="subdomain-suffix">.uproptech.com</span>
+                    </div>
+                    <span class="val-msg err" id="err-subdomain">&#6B7B8D88; Lowercase letters &amp; numbers only (min 2 chars)</span>
+                    <span class="val-msg ok"  id="ok-subdomain">&#10003; Looks good</span>
+                    <small class="form-text">Lowercase letters &amp; numbers only. No spaces.</small>
+                </div>
+            </div>
+
+            <div class="form-row cols-3">
+                <div class="fg">
+                    <label class="form-label">Contact Person</label>
+                    <input name="contactPerson" id="contactPerson" class="form-control" placeholder="e.g. John Doe" />
+                    <span class="val-msg err" id="err-contactPerson">&#6B7B8D88; Only letters &amp; spaces allowed</span>
+                </div>
+
+                <div class="fg">
+                    <label class="form-label">Email</label>
+                    <input name="email" type="email" id="email" class="form-control" placeholder="e.g. admin@company.com" autocomplete="email" />
+                    <span class="val-msg err" id="err-email">&#6B7B8D88; Enter a valid email address</span>
+                    <span class="val-msg ok"  id="ok-email">&#10003; Valid email</span>
+                </div>
+
+                <div class="fg">
+                    <label class="form-label">Phone</label>
+                    <input name="phone" id="phone" class="form-control" placeholder="e.g. 9876543210" />
+                    <span class="val-msg err" id="err-phone">&#6B7B8D88; Enter a valid 10-digit number</span>
+                    <span class="val-msg ok"  id="ok-phone">&#10003; Valid phone</span>
+                </div>
+            </div>
+
+            <div class="form-row cols-2">
+                <div class="fg">
+                    <label class="form-label">Plan <span class="text-danger">*</span></label>
+                    <input type="hidden" name="plan"   id="selectedPlanName" value="" />
+                    <input type="hidden" name="planId" id="selectedPlanId"   value="" />
+                    <div class="plan-display-wrapper">
+                        <div id="selectedPlanDisplay" onclick="openPlanModal()" role="button" tabindex="0"
+                             onkeydown="if(event.key==='Enter'||event.key===' ')openPlanModal()">
+                            <span>Click to select a plan…</span>
+                        </div>
+                        <button type="button" class="btn-plan-pick" onclick="openPlanModal()">
+                            <i class="fa-solid fa-list"></i>
+                        </button>
+                    </div>
+                    <span class="val-msg err" id="err-plan">&#6B7B8D88; Please select a plan</span>
+                    <div id="freeTrialText">
+                        <i class="fa-solid fa-gift fa-xs"></i>
+                        <span id="selectedPlanText"></span> — 7 Days Free Trial
+                    </div>
+                </div>
+
+                <div class="fg">
+                    <label class="form-label">
+                        <i class="fa-solid fa-tag" style="color:var(--gold)"></i>
+                        Referral Code
+                    </label>
+                    <input name="referralCode" class="form-control" placeholder="Auto-filled from inquiry (editable)" />
+                    <small class="form-text">Auto-filled from inquiry. You can change it if needed.</small>
+                </div>
+            </div>
+
+            <div class="form-actions" style="display:flex;justify-content:center;gap:12px;margin-top:14px;">
+                <button type="submit" class="btn-submit" id="submitBtn" style="flex:1;max-width:200px;">
+                    <i class="fa-solid fa-building"></i> Create Tenant
+                </button>
+                <a href="/SuperAdmin/Tenants" class="btn-cancel" style="flex:1;max-width:200px;">
+                    <i class="fa-solid fa-xmark"></i> Cancel
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Plan Selection Modal -->
+<div class="modal fade" id="planSelectionModal" tabindex="-1" aria-labelledby="planSelectionModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="planSelectionModalLabel">
+                    <i class="fa-solid fa-layers me-2"></i>Select a Plan
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="planCardsContainer"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+
+        /* ── Auto-fill subdomain from company name ── */
+        var companyInput   = document.getElementById('companyName');
+        var subdomainInput = document.getElementById('subdomain');
+
+        if (companyInput && subdomainInput) {
+            companyInput.addEventListener('input', function () {
+                subdomainInput.value = this.value.toLowerCase().replace(/[^a-z0-9]/g, '');
+                validateSubdomain();
+            });
+        }
+
+        /* ── Validation helpers ── */
+        function setFieldState(id, valid, errId, okId) {
+            var el  = document.getElementById(id);
+            var err = document.getElementById(errId || ('err-' + id));
+            var ok  = okId ? document.getElementById(okId) : null;
+            if (!el) return;
+            el.classList.toggle('is-invalid', !valid);
+            el.classList.toggle('is-valid',   valid);
+            if (err) err.className = 'val-msg err' + (!valid ? ' show' : '');
+            if (ok)  ok.className  = 'val-msg ok'  + (valid  ? ' show' : '');
+        }
+
+        function clearFieldState(id, errId, okId) {
+            var el  = document.getElementById(id);
+            var err = document.getElementById(errId || ('err-' + id));
+            var ok  = okId ? document.getElementById(okId) : null;
+            if (el)  { el.classList.remove('is-invalid', 'is-valid'); }
+            if (err) err.className = 'val-msg err';
+            if (ok)  ok.className  = 'val-msg ok';
+        }
+
+        function validateSubdomain() {
+            var val = subdomainInput.value.trim();
+            if (!val) { clearFieldState('subdomain', 'err-subdomain', 'ok-subdomain'); return null; }
+            var valid = /^[a-z0-9]{2,}$/.test(val);
+            setFieldState('subdomain', valid, 'err-subdomain', 'ok-subdomain');
+            return valid;
+        }
+
+        function validateCompanyName() {
+            var val = companyInput.value.trim();
+            var valid = val.length > 0;
+            if (!val) { clearFieldState('companyName'); return false; }
+            setFieldState('companyName', valid, 'err-companyName');
+            return valid;
+        }
+
+        function validateEmail() {
+            var el  = document.getElementById('email');
+            var val = el.value.trim();
+            if (!val) { clearFieldState('email', 'err-email', 'ok-email'); return null; }
+            var valid = /^[^\s@@]+@@[^\s@@]+\.[^\s@@]+$/.test(val);
+            setFieldState('email', valid, 'err-email', 'ok-email');
+            return valid;
+        }
+
+        function validatePhone() {
+            var el  = document.getElementById('phone');
+            var val = el.value.trim().replace(/[\s\-\(\)]/g, '');
+            if (!val) { clearFieldState('phone', 'err-phone', 'ok-phone'); return null; }
+            var valid = /^[0-9]{10,15}$/.test(val);
+            setFieldState('phone', valid, 'err-phone', 'ok-phone');
+            return valid;
+        }
+
+        function validateContactPerson() {
+            var el  = document.getElementById('contactPerson');
+            var val = el.value.trim();
+            if (!val) { clearFieldState('contactPerson', 'err-contactPerson'); return null; }
+            var valid = /^[a-zA-Z\s.\'-]{2,}$/.test(val);
+            setFieldState('contactPerson', valid, 'err-contactPerson');
+            return valid;
+        }
+
+        /* ── Live / blur bindings ── */
+        companyInput.addEventListener('blur', validateCompanyName);
+        subdomainInput.addEventListener('input', validateSubdomain);
+        subdomainInput.addEventListener('blur',  validateSubdomain);
+
+        document.getElementById('email').addEventListener('input', function () {
+            if (this.value.length > 5) validateEmail();
+        });
+        document.getElementById('email').addEventListener('blur', validateEmail);
+
+        document.getElementById('phone').addEventListener('blur', validatePhone);
+        document.getElementById('phone').addEventListener('input', function () {
+            var val = this.value.replace(/[\s\-\(\)]/g,'');
+            if (val.length >= 10) validatePhone();
+        });
+
+        document.getElementById('contactPerson').addEventListener('blur', validateContactPerson);
+
+        /* ── Submit ── */
+        var form = document.getElementById('createTenantForm');
+        if (form) {
+            form.addEventListener('submit', function (e) {
+                e.preventDefault();
+
+                var ok = true;
+                if (!validateCompanyName()) ok = false;
+
+                var sdResult = validateSubdomain();
+                if (sdResult === false || (sdResult === null && !subdomainInput.value.trim())) {
+                    setFieldState('subdomain', false, 'err-subdomain', 'ok-subdomain');
+                    ok = false;
+                }
+
+                if (!document.getElementById('selectedPlanId').value) {
+                    document.getElementById('err-plan').className = 'val-msg err show';
+                    ok = false;
+                } else {
+                    document.getElementById('err-plan').className = 'val-msg err';
+                }
+
+                var emailRes = validateEmail();
+                if (emailRes === false) ok = false;
+
+                var phoneRes = validatePhone();
+                if (phoneRes === false) ok = false;
+
+                validateContactPerson();
+
+                if (!ok) return;
+
+                var formData = new FormData(form);
+                var btn      = document.getElementById('submitBtn');
+                var orig     = btn.innerHTML;
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Creating…';
+
+                fetch('/SuperAdmin/CreateTenant', {
+                    method: 'POST',
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                    body: formData
+                })
+                .then(function (r) { return r.json(); })
+                .then(function (data) {
+                    btn.disabled = false;
+                    btn.innerHTML = orig;
+                    if (data.success) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Tenant Created!',
+                            text: data.message,
+                            confirmButtonText: 'Go to Tenants',
+                            confirmButtonColor: '#1A6FA8'
+                        }).then(function () {
+                            window.location.href = '/SuperAdmin/Tenants';
+                        });
+                    } else {
+                        Swal.fire({ icon: 'error', title: 'Error', text: data.message || 'Unable to create tenant', confirmButtonColor: '#1A6FA8' });
+                    }
+                })
+                .catch(function () {
+                    btn.disabled = false;
+                    btn.innerHTML = orig;
+                    Swal.fire({ icon: 'error', title: 'Error', text: 'Something went wrong', confirmButtonColor: '#1A6FA8' });
+                });
+            });
+        }
+
+        /* ── URL param auto-fill ── */
+        (function () {
+            var params = new URLSearchParams(window.location.search);
+            ['companyName', 'contactPerson', 'email', 'phone', 'referralCode'].forEach(function (f) {
+                var val = params.get(f);
+                if (val) { var el = document.querySelector('[name=' + f + ']'); if (el) el.value = val; }
+            });
+            var cn = params.get('companyName');
+            if (cn) {
+                var sd = document.querySelector('[name=subdomain]');
+                if (sd) sd.value = cn.toLowerCase().replace(/[^a-z0-9]/g, '');
+            }
+        })();
+    });
+
+    /* ── Plan modal ── */
+    function openPlanModal() {
+        var modal     = document.getElementById('planSelectionModal');
+        var container = document.getElementById('planCardsContainer');
+        if (!modal || !container) return;
+
+        container.innerHTML = '<div class="text-center py-4"><i class="fa-solid fa-spinner fa-spin fa-2x" style="color:#1A6FA8"></i></div>';
+        bootstrap.Modal.getOrCreateInstance(modal).show();
+
+        fetch('/SuperAdmin/GetSaaSPlans')
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                var plans = data.plans || data || [];
+                if (!plans.length) {
+                    container.innerHTML = '<p class="text-center py-3" style="color:var(--text-muted)">No plans available.</p>';
+                    return;
+                }
+
+                var isDark = document.documentElement.classList.contains('dark-mode');
+                var selectedBg = isDark ? 'rgba(26,111,168,0.18)' : '#F0F4F8';
+
+                var html = '<div class="row g-2">';
+                plans.forEach(function (p) {
+                    var planId    = p.planId || '';
+                    var planName  = p.planName || '';
+                    var monthly   = Number(p.monthlyPrice || 0).toLocaleString('en-US');
+                    var maxUsers  = p.maxUsers === -1 ? 'Unlimited' : p.maxUsers;
+                    var maxAgents = p.maxAgents === -1 ? 'Unlimited' : p.maxAgents;
+                    var maxLeads  = p.maxLeadsPerMonth === -1 ? 'Unlimited' : p.maxLeadsPerMonth;
+                    var maxPart   = p.maxPartners === -1 ? 'Unlimited' : p.maxPartners;
+                    var isSelected = document.getElementById('selectedPlanId').value == planId;
+                    var fi = function (ok) { return ok ? 'fa-check ok' : 'fa-times no'; };
+
+                    html += '<div class="col-md-4 col-sm-6">' +
+                        '<div class="card h-100 plan-select-card"' +
+                        ' style="' + (isSelected ? 'border-color:#1A6FA8!important;background:' + selectedBg + '!important;' : '') + '"' +
+                        ' onclick="selectPlan(\'' + escapeJs(planId) + '\',\'' + escapeJs(planName) + '\',this)">' +
+                        '<div class="card-body p-2">' +
+                        '<div class="plan-name">' + escapeHtml(planName) + '</div>' +
+                        '<div class="plan-desc mb-1">' + escapeHtml(p.description || '') + '</div>' +
+                        '<div class="plan-price mb-1">$' + monthly + '<small style="font-size:.68rem;color:var(--text-muted);font-weight:400">/mo</small></div>' +
+                        '<div class="plan-feature"><i class="fa-solid fa-check ok"></i>' + maxUsers + ' Users</div>' +
+                        '<div class="plan-feature"><i class="fa-solid fa-check ok"></i>' + maxAgents + ' Agents</div>' +
+                        '<div class="plan-feature"><i class="fa-solid fa-check ok"></i>' + maxLeads + ' Leads/mo</div>' +
+                        '<div class="plan-feature"><i class="fa-solid fa-check ok"></i>' + maxPart + ' Partners</div>' +
+                        '<div class="plan-feature"><i class="fa-solid ' + fi(p.hasWhatsAppIntegration) + '"></i>WhatsApp</div>' +
+                        '<div class="plan-feature"><i class="fa-solid ' + fi(p.hasFacebookIntegration) + '"></i>Facebook</div>' +
+                        '<div class="plan-feature"><i class="fa-solid ' + fi(p.hasAdvancedReports) + '"></i>Adv. Reports</div>' +
+                        '<div class="plan-feature"><i class="fa-solid ' + fi(p.hasPrioritySupport) + '"></i>Priority Support</div>' +
+                        '</div></div></div>';
+                });
+                html += '</div>';
+                container.innerHTML = html;
+            })
+            .catch(function () {
+                container.innerHTML = '<p style="color:#DC2626" class="text-center py-3">Failed to load plans.</p>';
+            });
+    }
+
+    function selectPlan(planId, planName, el) {
+        document.getElementById('selectedPlanId').value   = planId;
+        document.getElementById('selectedPlanName').value = planName;
+
+        var disp = document.getElementById('selectedPlanDisplay');
+        disp.innerHTML = '<i class="fa-solid fa-circle-check" style="color:#15803D;margin-right:5px"></i><strong>' + escapeHtml(planName) + '</strong>';
+
+        document.getElementById('err-plan').className = 'val-msg err';
+        showSelectedPlanFreeTrial(planName);
+
+        var isDark = document.documentElement.classList.contains('dark-mode');
+        var selectedBg = isDark ? 'rgba(26,111,168,0.18)' : '#F0F4F8';
+
+        document.querySelectorAll('.plan-select-card').forEach(function (c) {
+            c.style.borderColor = '';
+            c.style.background  = '';
+        });
+        if (el) { el.style.borderColor = '#1A6FA8'; el.style.background = selectedBg; }
+
+        setTimeout(function () {
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('planSelectionModal')).hide();
+        }, 280);
+    }
+
+    function showSelectedPlanFreeTrial(planName) {
+        var box  = document.getElementById('freeTrialText');
+        var span = document.getElementById('selectedPlanText');
+        if (!box || !span) return;
+        span.textContent = planName;
+        box.style.display = 'flex';
+    }
+
+    function escapeHtml(v) {
+        return String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#125082;');
+    }
+
+    function escapeJs(v) {
+        return String(v).replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/"/g,'\\"').replace(/\r/g,'').replace(/\n/g,'');
+    }
+</script>

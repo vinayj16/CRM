@@ -1,0 +1,1136 @@
+@model IEnumerable<CRM.Models.AgentModel>
+@{
+    ViewData["Title"] = "Agent Management";
+}
+
+<style>
+/* =============================================
+   AGENT MANAGEMENT 
+   ============================================= */
+@@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+:root {
+    --gold: #D4A45A;
+    --gold-light: rgba(212,164,90,.13);
+    --gold-dark: #B8883E;
+    --blue: #1A6FA8;
+    --blue-light: rgba(26,111,168,.09);
+    --blue-dark: #125082;
+    --blue-border: rgba(26,111,168,.13);
+    --text: #1E2A3A;
+    --muted: #6B7B8D;
+    --bg: #F0F4F8;
+    --card: #FFFFFF;
+    --radius: 10px;
+    --radius-sm: 6px;
+    --shadow: 0 1px 4px rgba(26,111,168,.07);
+    --shadow-hover: 0 4px 16px rgba(26,111,168,.13);
+    --green: #16A34A;
+    --green-bg: rgba(22,163,74,.11);
+    --red: #DC2626;
+    --red-bg: rgba(220,38,38,.09);
+    --amber: #F59E0B;
+    --amber-bg: rgba(245,158,11,.11);
+    font-family: 'Plus Jakarta Sans', sans-serif;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+/* ── Page bg ── */
+.content { background: var(--bg); min-height: 100vh; padding: 10px 12px; }
+
+/* ══ HEADER ══ */
+.ag-hdr {
+    background: linear-gradient(120deg, var(--blue) 0%, #0F4C75 100%);
+    border-radius: var(--radius);
+    padding: 10px 14px 8px;
+    margin-bottom: 7px;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 2px 12px rgba(26,111,168,.22);
+}
+.ag-hdr::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at 90% 40%, rgba(212,164,90,.18) 0%, transparent 60%);
+    pointer-events: none;
+}
+.ag-hdr::after {
+    content: '';
+    position: absolute;
+    top: -20px; right: -20px;
+    width: 100px; height: 100px;
+    border-radius: 50%;
+    background: rgba(255,255,255,.04);
+    pointer-events: none;
+}
+
+/* header top row */
+.ag-hdr-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+.ag-hdr-left { display: flex; align-items: center; gap: 9px; }
+.ag-icon {
+    width: 32px; height: 32px; flex-shrink: 0;
+    background: rgba(212,164,90,.22);
+    border-radius: 7px;
+    display: flex; align-items: center; justify-content: center;
+    color: #E8C27E; font-size: .85rem;
+}
+.ag-bc { font-size: .6rem; color: rgba(255,255,255,.5); margin-bottom: 1px; }
+.ag-bc a { color: rgba(255,255,255,.5); text-decoration: none; }
+.ag-bc a:hover { color: rgba(255,255,255,.8); }
+.ag-bc span { color: rgba(255,255,255,.45); margin: 0 3px; }
+.ag-title { font-size: .84rem; font-weight: 800; color: #FFFFFF; line-height: 1.2; }
+.ag-sub { font-size: .62rem; color: rgba(255,255,255,.55); }
+
+.ag-onboard-btn {
+    background: linear-gradient(135deg, var(--gold) 0%, var(--gold-dark) 100%);
+    color: #FFFFFF; border: none; border-radius: var(--radius-sm);
+    padding: 5px 12px; font-size: .71rem; font-weight: 700;
+    display: inline-flex; align-items: center; gap: 4px;
+    cursor: pointer; white-space: nowrap; flex-shrink: 0;
+    box-shadow: 0 2px 8px rgba(212,164,90,.3);
+    text-decoration: none; transition: all .15s;
+    font-family: inherit;
+}
+.ag-onboard-btn:hover { box-shadow: 0 3px 14px rgba(212,164,90,.45); transform: translateY(-1px); color: #FFFFFF; }
+
+/* stats row */
+.ag-stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 5px;
+}
+.ag-stat {
+    background: rgba(255,255,255,.12);
+    border: 1px solid rgba(255,255,255,.16);
+    border-radius: var(--radius-sm);
+    padding: 5px 8px;
+    text-align: center;
+    backdrop-filter: blur(6px);
+    transition: background .15s;
+}
+.ag-stat:hover { background: rgba(255,255,255,.2); }
+.ag-stat-n { font-size: 1.1rem; font-weight: 800; color: #FFFFFF; line-height: 1.1; }
+.ag-stat-l { font-size: .56rem; color: rgba(255,255,255,.65); text-transform: uppercase; letter-spacing: .05em; }
+
+/* ══ FILTER PANEL ══ */
+.ag-filter {
+    background: var(--card);
+    border: 1px solid var(--blue-border);
+    border-radius: var(--radius);
+    padding: 7px 10px;
+    margin-bottom: 7px;
+    box-shadow: var(--shadow);
+}
+.ag-filter-row {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr 1fr 1fr;
+    gap: 6px;
+    align-items: end;
+}
+.ag-filter-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 6px;
+    padding-top: 6px;
+    border-top: 1px solid var(--blue-border);
+}
+.ag-lbl {
+    font-size: .6rem; font-weight: 700;
+    color: var(--text); display: block; margin-bottom: 2px;
+    text-transform: uppercase; letter-spacing: .04em;
+}
+.ag-inp, .ag-sel {
+    display: block; width: 100%;
+    padding: 4px 8px; font-size: .7rem;
+    color: var(--text); background: var(--bg);
+    border: 1.5px solid var(--blue-border);
+    border-radius: var(--radius-sm);
+    outline: none; transition: border-color .14s, box-shadow .14s;
+    font-family: inherit; height: 28px;
+}
+.ag-inp:focus, .ag-sel:focus {
+    border-color: var(--blue);
+    box-shadow: 0 0 0 2px var(--blue-light);
+    background: #FFFFFF;
+}
+.ag-sel { padding-right: 22px; appearance: none; cursor: pointer;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%236b7a8d'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 7px center; }
+
+/* flatpickr override */
+.ag-inp.flatpickr-input { cursor: pointer; }
+.flatpickr-calendar { font-family: 'Plus Jakarta Sans', sans-serif !important; font-size: .72rem !important; box-shadow: 0 8px 24px rgba(26,111,168,.18) !important; border-radius: var(--radius) !important; }
+.flatpickr-day.selected { background: var(--blue) !important; border-color: var(--blue) !important; }
+.flatpickr-day:hover { background: var(--blue-light) !important; }
+
+.ag-btn-clear {
+    background: var(--blue-light); color: var(--blue);
+    border: 1px solid rgba(26,111,168,.18); border-radius: var(--radius-sm);
+    padding: 4px 10px; font-size: .65rem; font-weight: 700;
+    cursor: pointer; display: inline-flex; align-items: center; gap: 3px;
+    transition: all .14s; font-family: inherit;
+}
+.ag-btn-clear:hover { background: var(--blue); color: #FFFFFF; }
+.ag-export-grp { display: flex; gap: 4px; }
+.ag-btn-exp {
+    border: none; border-radius: var(--radius-sm);
+    padding: 4px 10px; font-size: .65rem; font-weight: 700;
+    cursor: pointer; display: inline-flex; align-items: center; gap: 3px;
+    transition: all .14s; font-family: inherit;
+}
+.ag-btn-xl { background: rgba(22,163,74,.12); color: #16A34A; border: 1px solid rgba(22,163,74,.2); }
+.ag-btn-xl:hover { background: var(--green); color: #FFFFFF; }
+.ag-btn-cv { background: var(--blue-light); color: var(--blue); border: 1px solid rgba(26,111,168,.18); }
+.ag-btn-cv:hover { background: var(--blue); color: #FFFFFF; }
+
+/* filter toggle mobile */
+.ag-filter-hdr { display: none; }
+@@media (max-width: 767px) {
+    .ag-filter-hdr {
+        display: flex; align-items: center; justify-content: space-between;
+        cursor: pointer; font-size: .72rem; font-weight: 700;
+        color: var(--blue); padding-bottom: 6px; user-select: none;
+    }
+    .ag-filter-body { overflow: hidden; transition: max-height .28s ease, opacity .2s; }
+    .ag-filter-body.collapsed { max-height: 0 !important; opacity: 0; }
+    .ag-filter-row { grid-template-columns: 1fr 1fr; }
+    .ag-filter-row > :first-child { grid-column: 1/-1; }
+}
+
+/* ══ CARDS GRID ══ */
+.ag-cards-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+    margin-bottom: 7px;
+}
+@@media (max-width: 767px) {
+    .ag-cards-grid { grid-template-columns: 1fr; }
+}
+
+.agent-card {
+    background: var(--card);
+    border: 1px solid var(--blue-border);
+    border-radius: var(--radius);
+    padding: 9px 11px;
+    box-shadow: var(--shadow);
+    transition: transform .14s, box-shadow .14s, border-color .14s;
+    position: relative;
+    overflow: hidden;
+}
+.agent-card::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 3px;
+    border-radius: 2px 0 0 2px;
+    background: var(--blue);
+    opacity: 0;
+    transition: opacity .15s;
+}
+.agent-card:hover { transform: translateY(-1px); box-shadow: var(--shadow-hover); border-color: rgba(26,111,168,.2); }
+.agent-card:hover::before { opacity: 1; }
+
+/* card layout: name+badges row, then info row, then actions */
+.card-top {
+    display: flex; align-items: flex-start; justify-content: space-between;
+    gap: 6px; margin-bottom: 5px;
+}
+.agent-name {
+    font-size: .78rem; font-weight: 800; color: var(--blue);
+    text-decoration: none; line-height: 1.2;
+    display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden;
+}
+.agent-name:hover { color: var(--blue-dark); text-decoration: underline; }
+.card-badges { display: flex; gap: 3px; flex-wrap: wrap; flex-shrink: 0; }
+
+.status-badge {
+    padding: 1px 7px; border-radius: 20px;
+    font-size: .57rem; font-weight: 700; border: 1px solid transparent;
+    display: inline-flex; align-items: center; gap: 2px;
+}
+.status-badge::before { content: ''; width: 4px; height: 4px; border-radius: 50%; }
+.status-pending  { background: var(--amber-bg); color: #B45309; border-color: rgba(245,158,11,.2); }
+.status-pending::before  { background: var(--amber); }
+.status-approved { background: var(--green-bg); color: #15803D; border-color: rgba(22,163,74,.2); }
+.status-approved::before { background: var(--green); }
+.status-rejected { background: var(--red-bg); color: #991B1B; border-color: rgba(220,38,38,.18); }
+.status-rejected::before { background: var(--red); }
+
+.type-badge {
+    padding: 1px 7px; border-radius: 20px;
+    font-size: .57rem; font-weight: 700;
+    background: var(--blue-light); color: var(--blue);
+    border: 1px solid rgba(26,111,168,.18);
+}
+
+/* info grid */
+.card-info {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2px 10px;
+    margin-bottom: 6px;
+}
+.info-item {
+    display: flex; align-items: center; gap: 4px;
+    font-size: .65rem; color: var(--muted); min-width: 0;
+}
+.info-item i { font-size: .55rem; width: 10px; text-align: center; flex-shrink: 0; color: var(--blue); opacity: .7; }
+.info-item span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* commission row */
+.card-commission {
+    display: flex; align-items: center; gap: 3px;
+    font-size: .63rem; color: var(--muted); margin-bottom: 5px;
+}
+.card-commission i { font-size: .55rem; color: var(--gold); }
+.card-commission strong { color: var(--text); font-weight: 600; }
+
+/* card actions */
+.card-actions {
+    display: flex; align-items: center; justify-content: flex-end; gap: 3px;
+    padding-top: 5px; border-top: 1px solid var(--blue-border);
+}
+.btn-act {
+    padding: 3px 8px; border-radius: 5px;
+    font-size: .62rem; font-weight: 700; border: none;
+    cursor: pointer; display: inline-flex; align-items: center; gap: 2px;
+    transition: all .14s; font-family: inherit;
+}
+.btn-edit { background: var(--blue-light); color: var(--blue); border: 1px solid rgba(26,111,168,.18); }
+.btn-edit:hover { background: var(--blue); color: #FFFFFF; }
+.btn-del { background: var(--red-bg); color: var(--red); border: 1px solid rgba(220,38,38,.18); }
+.btn-del:hover { background: var(--red); color: #FFFFFF; }
+.btn-approve { background: var(--green-bg); color: #16A34A; border: 1px solid rgba(22,163,74,.2); }
+.btn-approve:hover { background: var(--green); color: #FFFFFF; }
+.btn-reject { background: var(--red-bg); color: var(--red); border: 1px solid rgba(220,38,38,.18); }
+.btn-reject:hover { background: var(--red); color: #FFFFFF; }
+
+/* ══ EMPTY STATE ══ */
+.empty-state {
+    text-align: center; padding: 36px 20px;
+    background: var(--card); border-radius: var(--radius);
+    border: 1px dashed var(--blue-border);
+    grid-column: 1/-1;
+}
+.empty-state i { font-size: 2.2rem; color: #B8C8D8; display: block; margin-bottom: 8px; }
+.empty-state h3 { font-size: .85rem; font-weight: 700; color: var(--text); margin: 0 0 3px; }
+.empty-state p { font-size: .7rem; color: var(--muted); margin: 0 0 10px; }
+
+/* ══ PAGINATION ══ */
+.ag-pagination {
+    background: var(--card); border: 1px solid var(--blue-border);
+    border-radius: var(--radius); padding: 5px 10px;
+    box-shadow: var(--shadow);
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 8px; flex-wrap: wrap;
+}
+.ag-pagination .info { font-size: .64rem; color: var(--muted); }
+.pg-list { display: flex; gap: 3px; list-style: none; margin: 0; padding: 0; }
+.pg-list .page-link {
+    padding: 3px 8px; border-radius: 5px; font-size: .65rem; font-weight: 600;
+    border: 1px solid var(--blue-border); color: var(--blue);
+    background: var(--card); cursor: pointer; transition: all .13s;
+    display: block; text-decoration: none; font-family: inherit;
+}
+.pg-list .page-item.active .page-link { background: var(--blue); color: #FFFFFF; border-color: var(--blue); }
+.pg-list .page-item.disabled .page-link { color: #B8C8D8; pointer-events: none; }
+.pg-list .page-link:hover:not(.active) { background: var(--blue-light); }
+
+/* ══ MODAL ══ */
+@@media (min-width: 992px) {
+    #onboardModal .modal-dialog { max-width: min(660px, 94vw) !important; width: min(660px, 94vw) !important; }
+}
+@@media (max-width: 991px) {
+    #onboardModal .modal-dialog { margin: .5rem; max-width: calc(100% - 1rem); }
+}
+#onboardModal .modal-body { max-height: calc(100vh - 170px); overflow-y: auto; }
+
+.ag-mc { border-radius: var(--radius); overflow: hidden; border: 1px solid var(--blue-border); box-shadow: 0 8px 32px rgba(26,111,168,.18); }
+.ag-mh {
+    background: linear-gradient(120deg, var(--blue) 0%, #0F4C75 100%);
+    padding: 9px 12px;
+    display: flex; align-items: center; justify-content: space-between; color: #FFFFFF;
+}
+.ag-mh .modal-title { font-size: .82rem; font-weight: 800; color: #FFFFFF; }
+.ag-mhic { width: 24px; height: 24px; background: rgba(212,164,90,.25); border-radius: 5px; display: flex; align-items: center; justify-content: center; color: #E8C27E; font-size: .7rem; }
+.ag-mclose { background: rgba(255,255,255,.12); border: none; color: #FFFFFF; width: 22px; height: 22px; border-radius: 4px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: .65rem; transition: background .14s; }
+.ag-mclose:hover { background: rgba(255,255,255,.22); }
+
+.ag-mb { padding: 10px 12px; background: var(--bg); }
+.ag-mf { padding: 7px 12px; background: var(--card); border-top: 1px solid var(--blue-border); display: flex; justify-content: flex-end; gap: 6px; }
+
+.ag-sec { font-size: .59rem; font-weight: 800; color: var(--blue); text-transform: uppercase; letter-spacing: .08em; margin: 8px 0 5px; padding-bottom: 3px; border-bottom: 1px solid var(--blue-border); }
+
+.ag-ml { font-size: .64rem; font-weight: 700; color: var(--text); display: block; margin-bottom: 2px; }
+.ag-req { color: var(--red); }
+.ag-mw { position: relative; }
+.ag-mi, .ag-ms {
+    display: block; width: 100%; padding: 5px 26px 5px 7px;
+    font-size: .71rem; color: var(--text); background: #FFFFFF;
+    border: 1.5px solid var(--blue-border); border-radius: var(--radius-sm);
+    outline: none; transition: border-color .14s, box-shadow .14s;
+    line-height: 1.35; font-family: inherit;
+}
+.ag-mi:focus, .ag-ms:focus { border-color: var(--blue); box-shadow: 0 0 0 2px var(--blue-light); }
+
+.ag-vi { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); font-size: .68rem; display: none; align-items: center; pointer-events: none; }
+.ag-ok { color: var(--green); } .ag-er { color: var(--red); }
+.ag-mi.v-ok, .ag-ms.v-ok { border-color: var(--green); }
+.ag-mi.v-ok:focus, .ag-ms.v-ok:focus { box-shadow: 0 0 0 2px rgba(22,163,74,.12); }
+.ag-mi.v-er, .ag-ms.v-er { border-color: var(--red); background: rgba(220,38,38,.04); }
+.ag-mi.v-er:focus, .ag-ms.v-er:focus { box-shadow: 0 0 0 2px rgba(220,38,38,.12); }
+.ag-em { font-size: .6rem; color: var(--red); font-weight: 600; margin-top: 1px; display: none; }
+
+.ag-doc-item { background: #FFFFFF; border: 1px solid var(--blue-border); border-radius: var(--radius-sm); padding: 7px 9px; margin-bottom: 5px; }
+.ag-doc-row { display: grid; grid-template-columns: 2fr 2fr 1.2fr auto; gap: 7px; align-items: start; }
+.ag-doc-fname { font-size: .68rem; font-weight: 700; color: var(--text); word-break: break-all; }
+.ag-doc-fsize { font-size: .6rem; color: var(--muted); }
+.ag-doc-name-input, .ag-doc-type-select {
+    width: 100%; border: 1.5px solid var(--blue-border); border-radius: var(--radius-sm);
+    padding: 4px 7px; font-size: .68rem; color: var(--text); background: #FFFFFF;
+    outline: none; transition: border-color .14s; font-family: inherit;
+}
+.ag-doc-name-input:focus, .ag-doc-type-select:focus { border-color: var(--blue); box-shadow: 0 0 0 2px var(--blue-light); }
+.ag-doc-upload-btn {
+    background: var(--bg); border: 1.5px dashed var(--blue-border); border-radius: var(--radius-sm);
+    padding: 5px 10px; cursor: pointer; transition: all .14s;
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: .68rem; color: var(--muted); font-family: inherit;
+}
+.ag-doc-upload-btn:hover { border-color: var(--blue); background: var(--blue-light); color: var(--blue); }
+.ag-doc-file-input { display: none; }
+.ag-doc-rm {
+    background: var(--red-bg); color: var(--red); border: 1px solid rgba(220,38,38,.18);
+    border-radius: var(--radius-sm); width: 25px; height: 25px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; transition: all .14s; font-size: .6rem;
+}
+.ag-doc-rm:hover { background: var(--red); color: #FFFFFF; }
+.ag-add-doc-btn {
+    background: var(--blue-light); color: var(--blue); border: 1px solid rgba(26,111,168,.18);
+    border-radius: var(--radius-sm); padding: 4px 10px; font-size: .67rem; font-weight: 700;
+    cursor: pointer; display: inline-flex; align-items: center; gap: 3px;
+    transition: all .14s; font-family: inherit;
+}
+.ag-add-doc-btn:hover { background: var(--blue); color: #FFFFFF; }
+
+@@media (max-width: 580px) { .ag-doc-row { grid-template-columns: 1fr; } }
+
+.ag-mcancel { background: #F0F4F8; color: var(--muted); border: 1px solid #E2E8F0; border-radius: var(--radius-sm); padding: 5px 14px; font-size: .72rem; font-weight: 700; cursor: pointer; transition: all .14s; font-family: inherit; }
+.ag-mcancel:hover { background: #E2E8F0; }
+.ag-msave { background: linear-gradient(135deg, var(--blue) 0%, var(--blue-dark) 100%); color: #FFFFFF; border: none; border-radius: var(--radius-sm); padding: 5px 16px; font-size: .72rem; font-weight: 800; cursor: pointer; box-shadow: 0 2px 8px rgba(26,111,168,.22); transition: all .14s; font-family: inherit; }
+.ag-msave:hover { box-shadow: 0 3px 12px rgba(26,111,168,.36); }
+.ag-msave:disabled { opacity: .5; cursor: not-allowed; }
+.ag-malert { font-size: .7rem; padding: 6px 10px; border-radius: var(--radius-sm); margin-top: 6px; }
+
+/* ── Dark Mode ── */
+html.dark-mode {
+    --text: #E2E8F0; --muted: #8FA3B8;
+    --bg: #111827; --card: #1E2A3A;
+    --blue-border: rgba(26,111,168,.22);
+    --shadow: 0 1px 5px rgba(0,0,0,.3); --shadow-hover: 0 4px 16px rgba(0,0,0,.45);
+}
+html.dark-mode .agent-card,
+html.dark-mode .ag-filter,
+html.dark-mode .ag-pagination { background: #1E2A3A; border-color: rgba(26,111,168,.22); }
+html.dark-mode .ag-inp, html.dark-mode .ag-sel { background: #2A3A4A; color: var(--text); border-color: rgba(26,111,168,.25); }
+html.dark-mode .ag-inp:focus, html.dark-mode .ag-sel:focus { background: #2A3A4A; }
+html.dark-mode .ag-mi, html.dark-mode .ag-ms { background: #1E2A3A; color: var(--text); border-color: rgba(26,111,168,.25); }
+html.dark-mode .ag-mi.v-er, html.dark-mode .ag-ms.v-er { background: rgba(220,38,38,.07); }
+html.dark-mode .ag-doc-item { background: #1E2A3A; border-color: rgba(26,111,168,.22); }
+html.dark-mode .ag-doc-name-input, html.dark-mode .ag-doc-type-select { background: #1E2A3A; color: var(--text); border-color: rgba(26,111,168,.25); }
+html.dark-mode .ag-mf { background: #1E2A3A; border-color: rgba(26,111,168,.22); }
+html.dark-mode .ag-mb { background: #111827; }
+html.dark-mode .ag-mcancel { background: #2A3A4A; color: var(--muted); border-color: rgba(26,111,168,.22); }
+html.dark-mode .ag-lbl { color: var(--text); }
+html.dark-mode .page-link { background: #1E2A3A; color: var(--blue); border-color: rgba(26,111,168,.22); }
+html.dark-mode .ag-doc-upload-btn { background: #2A3A4A; }
+
+/* ── Responsive extras ── */
+@@media (max-width: 575px) {
+    .ag-stats { grid-template-columns: repeat(2, 1fr); }
+    .ag-hdr { padding: 8px 10px 6px; }
+    .ag-title { font-size: .78rem; }
+    .ag-onboard-btn { font-size: .65rem; padding: 4px 9px; }
+    .ag-filter-row { grid-template-columns: 1fr 1fr; }
+    .ag-filter-row > :first-child { grid-column: 1/-1; }
+}
+@@media (min-width: 1200px) {
+    .ag-cards-grid { grid-template-columns: 1fr 1fr; }
+}
+</style>
+
+<div class="content">
+
+<!-- ══ HEADER ══ -->
+<div class="ag-hdr">
+    <div class="ag-hdr-top">
+        <div class="ag-hdr-left">
+            <div class="ag-icon"><i class="fa-solid fa-user-tie"></i></div>
+            <div>
+                <div class="ag-bc">
+                    <a href="/Home">Home</a>
+                    <span>/</span>Agents
+                </div>
+                <div class="ag-title">Agent Management</div>
+                <div class="ag-sub">Manage and approve agent onboarding requests</div>
+            </div>
+        </div>
+        <button type="button" class="ag-onboard-btn" data-bs-toggle="modal" data-bs-target="#onboardModal">
+            <i class="fa-solid fa-plus"></i>Agent Onboarding
+        </button>
+    </div>
+    <div class="ag-stats">
+        <div class="ag-stat">
+            <div class="ag-stat-n" id="totalAgents">@Model.Count()</div>
+            <div class="ag-stat-l">Total</div>
+        </div>
+        <div class="ag-stat">
+            <div class="ag-stat-n" id="pendingAgents">@Model.Count(a=>a.Status=="Pending")</div>
+            <div class="ag-stat-l">Pending</div>
+        </div>
+        <div class="ag-stat">
+            <div class="ag-stat-n" id="approvedAgents">@Model.Count(a=>a.Status=="Approved")</div>
+            <div class="ag-stat-l">Approved</div>
+        </div>
+        <div class="ag-stat">
+            <div class="ag-stat-n" id="rejectedAgents">@Model.Count(a=>a.Status=="Rejected")</div>
+            <div class="ag-stat-l">Rejected</div>
+        </div>
+    </div>
+</div>
+
+<!-- ══ FILTER ══ -->
+<div class="ag-filter">
+    <div class="ag-filter-hdr" id="filterToggle">
+        <span><i class="fa-solid fa-filter" style="font-size:.6rem;margin-right:4px;"></i>Filter &amp; Search</span>
+        <i class="fa-solid fa-chevron-down" id="filterChevron" style="font-size:.58rem;transition:transform .25s;"></i>
+    </div>
+    <div class="ag-filter-body" id="filterContent">
+        <div class="ag-filter-row">
+            <div>
+                <label class="ag-lbl">Search Agents</label>
+                <input type="text" class="ag-inp" id="searchBox" placeholder="Name, email, phone...">
+            </div>
+            <div>
+                <label class="ag-lbl">Status</label>
+                <select class="ag-sel" id="filterStatus">
+                    <option value="">All Status</option>
+                    <option value="Pending">Pending</option>
+                    <option value="Approved">Approved</option>
+                    <option value="Rejected">Rejected</option>
+                </select>
+            </div>
+            <div>
+                <label class="ag-lbl">Type</label>
+                <select class="ag-sel" id="filterType">
+                    <option value="">All Types</option>
+                    <option value="Salary">Salary</option>
+                    <option value="Commission">Commission</option>
+                    <option value="Hybrid">Hybrid</option>
+                </select>
+            </div>
+            <div>
+                <label class="ag-lbl">From Date</label>
+                <input type="text" class="ag-inp" id="filterFromDate" placeholder="Select date" readonly>
+            </div>
+            <div>
+                <label class="ag-lbl">To Date</label>
+                <input type="text" class="ag-inp" id="filterToDate" placeholder="Select date" readonly>
+            </div>
+        </div>
+        <div class="ag-filter-actions">
+            <button type="button" class="ag-btn-clear" id="clearFilters">
+                <i class="fa-solid fa-rotate-left"></i>Clear Filters
+            </button>
+            <div class="ag-export-grp">
+                <button type="button" class="ag-btn-exp ag-btn-xl" id="exportExcel">
+                    <i class="fa-solid fa-file-excel"></i>Excel
+                </button>
+                <button type="button" class="ag-btn-exp ag-btn-cv" id="exportCSV">
+                    <i class="fa-solid fa-file-csv"></i>CSV
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ══ CARDS ══ -->
+<div id="agentsContainer" class="ag-cards-grid"></div>
+
+<!-- ══ PAGINATION ══ -->
+<div class="ag-pagination" id="paginationWrapper" style="display:none;">
+    <span class="info">Showing <b id="showingStart">0</b>–<b id="showingEnd">0</b> of <b id="totalRecords">0</b> agents</span>
+    <nav><ul class="pg-list" id="pagination"></ul></nav>
+</div>
+
+</div>
+
+<!-- ══════════════════════════════════
+     ONBOARDING MODAL
+     ══════════════════════════════════ -->
+<div class="modal fade" id="onboardModal" tabindex="-1" aria-labelledby="onboardModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content ag-mc">
+
+            <div class="ag-mh">
+                <div class="d-flex align-items-center gap-2">
+                    <div class="ag-mhic"><i class="fa-solid fa-user-plus"></i></div>
+                    <h5 class="modal-title mb-0" id="onboardModalLabel">Agent Onboarding</h5>
+                </div>
+                <button type="button" class="ag-mclose" data-bs-dismiss="modal" aria-label="Close">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <div class="modal-body ag-mb">
+                <form id="onboardForm" enctype="multipart/form-data" novalidate>
+                    @Html.AntiForgeryToken()
+
+                    <div class="ag-sec">Personal Info</div>
+                    <div class="row g-2">
+                        <div class="col-sm-6">
+                            <label class="ag-ml">Full Name <span class="ag-req">*</span></label>
+                            <div class="ag-mw">
+                                <input name="FullName" class="ag-mi" required
+                                    oninput="this.value=this.value.replace(/[^A-Za-z ]/g,'');agV(this);"
+                                    onblur="agV(this)" placeholder="Full name">
+                                <span class="ag-vi ag-ok"><i class="fas fa-check-circle"></i></span>
+                                <span class="ag-vi ag-er"><i class="fas fa-times-circle"></i></span>
+                            </div>
+                            <div class="ag-em" id="em_FullName">Name is required</div>
+                        </div>
+                        <div class="col-sm-6">
+                            <label class="ag-ml">Email <span class="ag-req">*</span></label>
+                            <div class="ag-mw">
+                                <input name="Email" id="modalEmailInput" class="ag-mi" type="email" required
+                                    onblur="agV(this);agCheckEmail(this);" oninput="agLiveV(this);" placeholder="email@example.com">
+                                <span class="ag-vi ag-ok" id="vi_emailOk"><i class="fas fa-check-circle"></i></span>
+                                <span class="ag-vi ag-er" id="vi_emailEr"><i class="fas fa-times-circle"></i></span>
+                            </div>
+                            <div class="ag-em" id="em_Email">Valid email is required</div>
+                            <div id="modalEmailError" class="ag-em"></div>
+                        </div>
+                        <div class="col-sm-6">
+                            <label class="ag-ml">Phone <span class="ag-req">*</span></label>
+                            <div class="ag-mw">
+                                <input name="Phone" id="modalPhoneInput" class="ag-mi" required maxlength="10" pattern="[0-9]{10}"
+                                    oninput="this.value=this.value.replace(/[^0-9]/g,'').slice(0,10);agV(this);"
+                                    onblur="agV(this)" placeholder="10-digit number">
+                                <span class="ag-vi ag-ok"><i class="fas fa-check-circle"></i></span>
+                                <span class="ag-vi ag-er"><i class="fas fa-times-circle"></i></span>
+                            </div>
+                            <div class="ag-em" id="em_Phone">Valid 10-digit phone required</div>
+                        </div>
+                        <div class="col-sm-6">
+                            <label class="ag-ml">Address</label>
+                            <input name="Address" class="ag-mi" placeholder="Address (optional)">
+                        </div>
+                    </div>
+
+                    <div class="ag-sec">Compensation</div>
+                    <div class="row g-2">
+                        <div class="col-sm-4">
+                            <label class="ag-ml">Agent Type <span class="ag-req">*</span></label>
+                            <div class="ag-mw">
+                                <select name="AgentType" class="ag-ms" required onchange="agV(this)">
+                                    <option value="">Select Type</option>
+                                    <option value="Salary">Salary</option>
+                                    <option value="Hybrid">Hybrid</option>
+                                    <option value="Commission">Commission</option>
+                                </select>
+                                <span class="ag-vi ag-ok"><i class="fas fa-check-circle"></i></span>
+                                <span class="ag-vi ag-er"><i class="fas fa-times-circle"></i></span>
+                            </div>
+                            <div class="ag-em" id="em_AgentType">Select agent type</div>
+                        </div>
+                        <div class="col-sm-4">
+                            <label class="ag-ml">Salary (optional)</label>
+                            <input name="Salary" class="ag-mi" type="number" step="0.01" placeholder="0.00">
+                        </div>
+                        <div class="col-sm-4">
+                            <label class="ag-ml">Commission <span class="ag-req">*</span></label>
+                            <div class="ag-mw">
+                                <select name="CommissionRules" class="ag-ms" required onchange="agV(this)">
+                                    <option value="">Select %</option>
+                                    <option value="None (0% of sale)">0% (None)</option>
+                                    <option value="0.5% of sale">0.5%</option>
+                                    <option value="1% of sale">1%</option>
+                                    <option value="1.5% of sale">1.5%</option>
+                                    <option value="2% of sale">2%</option>
+                                    <option value="2.5% of sale">2.5%</option>
+                                    <option value="3% of sale">3%</option>
+                                    <option value="3.5% of sale">3.5%</option>
+                                    <option value="4% of sale">4%</option>
+                                    <option value="4.5% of sale">4.5%</option>
+                                    <option value="5% of sale">5%</option>
+                                    <option value="5.5% of sale">5.5%</option>
+                                    <option value="6% of sale">6%</option>
+                                    <option value="6.5% of sale">6.5%</option>
+                                    <option value="7% of sale">7%</option>
+                                    <option value="7.5% of sale">7.5%</option>
+                                    <option value="8% of sale">8%</option>
+                                    <option value="8.5% of sale">8.5%</option>
+                                    <option value="9% of sale">9%</option>
+                                    <option value="9.5% of sale">9.5%</option>
+                                    <option value="10% of sale">10%</option>
+                                    <option value="11% of sale">11%</option>
+                                    <option value="12% of sale">12%</option>
+                                    <option value="13% of sale">13%</option>
+                                    <option value="14% of sale">14%</option>
+                                    <option value="15% of sale">15%</option>
+                                    <option value="20% of sale">20%</option>
+                                </select>
+                                <span class="ag-vi ag-ok"><i class="fas fa-check-circle"></i></span>
+                                <span class="ag-vi ag-er"><i class="fas fa-times-circle"></i></span>
+                            </div>
+                            <div class="ag-em" id="em_CommissionRules">Select commission %</div>
+                        </div>
+                    </div>
+
+                    <div class="ag-sec">Documents</div>
+                    <button type="button" class="ag-add-doc-btn" onclick="addNewDocument()">
+                        <i class="fa-solid fa-plus"></i>Add Document
+                    </button>
+                    <div id="documentsList" style="display:none;margin-top:6px;">
+                        <div id="documentsContainer"></div>
+                    </div>
+
+                    <div id="onboardSuccess" class="ag-malert alert alert-success d-none">Agent onboarded successfully!</div>
+                    <div id="onboardError"   class="ag-malert alert alert-danger  d-none"></div>
+                </form>
+            </div>
+
+            <div class="ag-mf">
+                <button type="button" class="ag-mcancel" data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" id="modalSubmitBtn" form="onboardForm" class="ag-msave">
+                    <i class="fa-solid fa-paper-plane me-1"></i>Submit
+                </button>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @if (TempData["Success"] != null)
+    {
+        <script>setTimeout(function(){showToast('@TempData["Success"]','success');},500);</script>
+    }
+    @if (TempData["Error"] != null)
+    {
+        <script>setTimeout(function(){showToast('@TempData["Error"]','error');},500);</script>
+    }
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script>
+/* ── Flatpickr date pickers ── */
+document.addEventListener('DOMContentLoaded', function () {
+    flatpickr('#filterFromDate', {
+        dateFormat: 'd-m-Y',
+        allowInput: false,
+        onChange: function () { applyFilters(); }
+    });
+    flatpickr('#filterToDate', {
+        dateFormat: 'd-m-Y',
+        allowInput: false,
+        onChange: function () { applyFilters(); }
+    });
+    renderTable();
+    attachEventListeners();
+    setupFilterToggle();
+});
+
+/* ── Filter toggle (mobile) ── */
+function setupFilterToggle() {
+    const toggle = document.getElementById('filterToggle');
+    const content = document.getElementById('filterContent');
+    const chevron = document.getElementById('filterChevron');
+    if (!toggle) return;
+    function syncCollapse() {
+        if (window.innerWidth <= 767) {
+            content.style.maxHeight = content.classList.contains('collapsed') ? '0' : content.scrollHeight + 'px';
+        } else {
+            content.style.maxHeight = '';
+            content.classList.remove('collapsed');
+            chevron.style.transform = '';
+        }
+    }
+    if (window.innerWidth <= 767) {
+        content.classList.add('collapsed');
+        chevron.style.transform = 'rotate(0deg)';
+    }
+    toggle.addEventListener('click', function () {
+        if (window.innerWidth <= 767) {
+            content.classList.toggle('collapsed');
+            chevron.style.transform = content.classList.contains('collapsed') ? 'rotate(0deg)' : 'rotate(180deg)';
+            syncCollapse();
+        }
+    });
+    window.addEventListener('resize', syncCollapse);
+}
+
+/* ── Validation helpers ── */
+function agV(el) {
+    const wrap = el.closest('.ag-mw'); if (!wrap) return true;
+    el.classList.remove('v-ok', 'v-er');
+    wrap.querySelectorAll('.ag-vi').forEach(v => v.style.display = 'none');
+    const em = document.getElementById('em_' + el.name);
+    const bad = (el.required && el.value.trim() === '') || (el.validity && !el.validity.valid);
+    if (bad) {
+        el.classList.add('v-er');
+        const e = wrap.querySelector('.ag-er'); if (e) e.style.display = 'flex';
+        if (em) em.style.display = 'block';
+    } else {
+        el.classList.add('v-ok');
+        const o = wrap.querySelector('.ag-ok'); if (o) o.style.display = 'flex';
+        if (em) em.style.display = 'none';
+    }
+    return !bad;
+}
+function agLiveV(el) { if (el.classList.contains('v-ok') || el.classList.contains('v-er')) agV(el); }
+function agResetForm() {
+    ['FullName','Email','Phone','AgentType','CommissionRules'].forEach(n => {
+        const el = document.querySelector(`[name="${n}"]`); if (!el) return;
+        el.classList.remove('v-ok', 'v-er');
+        const w = el.closest('.ag-mw'); if (w) w.querySelectorAll('.ag-vi').forEach(v => v.style.display = 'none');
+        const em = document.getElementById('em_' + n); if (em) em.style.display = 'none';
+    });
+}
+
+/* ── Email check ── */
+let emailValid = false;
+function agCheckEmail(el) {
+    const email = el.value.trim();
+    const errDiv = document.getElementById('modalEmailError');
+    const okVi = document.getElementById('vi_emailOk');
+    const erVi = document.getElementById('vi_emailEr');
+    if (!email) { emailValid = false; errDiv.style.display = 'none'; return; }
+    fetch(`/Agent/CheckEmailExists?email=${encodeURIComponent(email)}`)
+        .then(r => r.json()).then(data => {
+            if (data.exists) {
+                emailValid = false;
+                errDiv.textContent = 'This email is already registered'; errDiv.style.display = 'block';
+                el.classList.remove('v-ok'); el.classList.add('v-er');
+                if (okVi) okVi.style.display = 'none'; if (erVi) erVi.style.display = 'flex';
+                document.getElementById('modalSubmitBtn').disabled = true;
+            } else {
+                emailValid = true; errDiv.style.display = 'none';
+                el.classList.remove('v-er'); el.classList.add('v-ok');
+                if (erVi) erVi.style.display = 'none'; if (okVi) okVi.style.display = 'flex';
+                document.getElementById('modalSubmitBtn').disabled = false;
+            }
+        }).catch(() => { emailValid = false; errDiv.textContent = 'Error checking email'; errDiv.style.display = 'block'; });
+}
+
+/* ── Globals ── */
+// let allAgents = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model));
+let allAgents = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model));
+                const _enc = {@foreach(var l in Model){
+                @Html.Raw($"'{l.AgentId}': '{IdObfuscator.Encode(l.AgentId)}',")
+        }
+    };
+                    allAgents.forEach(l => l.EncodedId = _enc[l.AgentId]);
+
+let filteredAgents = [...allAgents];
+let currentPage = 1, pageSize = 10;
+let selectedDocuments = [];
+
+function attachEventListeners() {
+    document.getElementById('searchBox').addEventListener('input', applyFilters);
+    document.getElementById('filterStatus').addEventListener('change', applyFilters);
+    document.getElementById('filterType').addEventListener('change', applyFilters);
+    document.getElementById('clearFilters').addEventListener('click', clearFilters);
+    document.getElementById('exportExcel').addEventListener('click', exportToExcel);
+    document.getElementById('exportCSV').addEventListener('click', exportToCSV);
+    document.getElementById('onboardForm').addEventListener('submit', handleOnboard);
+    document.getElementById('onboardModal').addEventListener('hidden.bs.modal', resetForm);
+}
+
+/* ── Documents ── */
+function addNewDocument() {
+    selectedDocuments.push({ id: Date.now(), file: null, name: '', type: '' });
+    renderDocuments();
+    document.getElementById('documentsList').style.display = 'block';
+}
+function handleFileSelect(index, event) {
+    const file = event.target.files[0];
+    if (file) { selectedDocuments[index].file = file; renderDocuments(); }
+}
+function renderDocuments() {
+    const c = document.getElementById('documentsContainer'); c.innerHTML = '';
+    selectedDocuments.forEach((doc, i) => {
+        const d = document.createElement('div'); d.className = 'ag-doc-item';
+        if (doc.file) {
+            const fs = (doc.file.size / 1024).toFixed(2);
+            d.innerHTML = `<div class="ag-doc-row">
+                <div><div class="ag-doc-fname">${doc.file.name}</div><div class="ag-doc-fsize">${fs} KB</div></div>
+                <div><input type="text" class="ag-doc-name-input" placeholder="Document Name" value="${doc.name}" onchange="updateDocumentName(${i},this.value)" required/></div>
+                <div><select class="ag-doc-type-select" onchange="updateDocumentType(${i},this.value)" required>
+                    <option value="">Type</option>
+                    <option value="Aadhar Card" ${doc.type==='Aadhar Card'?'selected':''}>Aadhar Card</option>
+                    <option value="PAN Card" ${doc.type==='PAN Card'?'selected':''}>PAN Card</option>
+                    <option value="Resume" ${doc.type==='Resume'?'selected':''}>Resume</option>
+                    <option value="Experience Letter" ${doc.type==='Experience Letter'?'selected':''}>Exp. Letter</option>
+                    <option value="Bank Details" ${doc.type==='Bank Details'?'selected':''}>Bank Details</option>
+                    <option value="Educational Certificate" ${doc.type==='Educational Certificate'?'selected':''}>Edu. Cert.</option>
+                    <option value="Photo" ${doc.type==='Photo'?'selected':''}>Photo</option>
+                    <option value="Other" ${doc.type==='Other'?'selected':''}>Other</option>
+                </select></div>
+                <div><button type="button" class="ag-doc-rm" onclick="removeDocument(${i})" title="Remove"><i class="fa-solid fa-times"></i></button></div>
+            </div>`;
+        } else {
+            d.innerHTML = `<div class="ag-doc-row"><div style="grid-column:1/-1;display:flex;align-items:center;gap:8px;">
+                <label class="ag-doc-upload-btn"><i class="fa-solid fa-upload"></i>Choose File
+                    <input type="file" class="ag-doc-file-input" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" onchange="handleFileSelect(${i},event)"/>
+                </label>
+                <button type="button" class="ag-mcancel" onclick="removeDocument(${i})" style="font-size:.62rem;padding:3px 8px;">Remove</button>
+            </div></div>`;
+        }
+        c.appendChild(d);
+    });
+}
+function updateDocumentName(i, v) { selectedDocuments[i].name = v; }
+function updateDocumentType(i, v) { selectedDocuments[i].type = v; }
+function removeDocument(i) {
+    selectedDocuments.splice(i, 1);
+    if (selectedDocuments.length === 0) document.getElementById('documentsList').style.display = 'none';
+    renderDocuments();
+}
+
+/* ── Filters ── */
+function getDateFromFlatpickr(id) {
+    const fp = document.getElementById(id)._flatpickr;
+    return fp && fp.selectedDates.length ? fp.selectedDates[0] : null;
+}
+function applyFilters() {
+    const s = document.getElementById('searchBox').value.toLowerCase();
+    const status = document.getElementById('filterStatus').value;
+    const type = document.getElementById('filterType').value;
+    const fd = getDateFromFlatpickr('filterFromDate');
+    const td = getDateFromFlatpickr('filterToDate');
+    filteredAgents = allAgents.filter(a => {
+        const ms = !s || (a.FullName && a.FullName.toLowerCase().includes(s)) || (a.Email && a.Email.toLowerCase().includes(s)) || (a.Phone && a.Phone.includes(s));
+        const mst = !status || a.Status === status;
+        const mt = !type || a.AgentType === type;
+        let md = true;
+        if (fd || td) {
+            const ad = new Date(a.CreatedOn || new Date());
+            if (fd) md = md && ad >= fd;
+            if (td) { const te = new Date(td); te.setHours(23, 59, 59); md = md && ad <= te; }
+        }
+        return ms && mst && mt && md;
+    });
+    currentPage = 1; renderTable();
+}
+function clearFilters() {
+    document.getElementById('searchBox').value = '';
+    document.getElementById('filterStatus').value = '';
+    document.getElementById('filterType').value = '';
+    const fpFrom = document.getElementById('filterFromDate')._flatpickr;
+    const fpTo = document.getElementById('filterToDate')._flatpickr;
+    if (fpFrom) fpFrom.clear();
+    if (fpTo) fpTo.clear();
+    filteredAgents = [...allAgents]; currentPage = 1; renderTable();
+}
+
+/* ── Render ── */
+function renderTable() {
+    const c = document.getElementById('agentsContainer');
+    const s = (currentPage - 1) * pageSize, e = s + pageSize;
+    const pg = filteredAgents.slice(s, e);
+    c.innerHTML = '';
+    if (pg.length === 0) {
+        c.innerHTML = `<div class="empty-state">
+            <i class="fa-solid fa-user-tie"></i>
+            <h3>No Agents Found</h3>
+            <p>Onboard your first agent or adjust your filters</p>
+            <button type="button" class="ag-onboard-btn" data-bs-toggle="modal" data-bs-target="#onboardModal" style="margin:0 auto;">
+                <i class="fa-solid fa-plus"></i>Onboard Agent
+            </button>
+        </div>`;
+        document.getElementById('paginationWrapper').style.display = 'none';
+    } else {
+        pg.forEach(agent => {
+            const div = document.createElement('div'); div.className = 'agent-card';
+            const statusClass = (agent.Status || 'pending').toLowerCase();
+            const pendingBtns = agent.Status === 'Pending' ? `
+                <button class="btn-act btn-approve" onclick="approveAgent(${agent.AgentId})" title="Approve"><i class="fa-solid fa-check"></i> Approve</button>
+                <button class="btn-act btn-reject" onclick="rejectAgent(${agent.AgentId})" title="Reject"><i class="fa-solid fa-times"></i> Reject</button>` : '';
+            div.innerHTML = `
+                <div class="card-top">
+        <a href="/Agentdetails/${agent.EncodedId}" class="agent-name">${agent.FullName || 'Unnamed Agent'}</a>
+                    <div class="card-badges">
+                        <span class="type-badge">${agent.AgentType || '-'}</span>
+                        <span class="status-badge status-${statusClass}">${agent.Status || 'Pending'}</span>
+                    </div>
+                </div>
+                <div class="card-info">
+                    <div class="info-item"><i class="fa-solid fa-envelope"></i><span>${agent.Email || '-'}</span></div>
+                    <div class="info-item"><i class="fa-solid fa-phone"></i><span>${agent.Phone || '-'}</span></div>
+                    <div class="info-item"><i class="fa-solid fa-map-marker-alt"></i><span>${agent.Address || '-'}</span></div>
+                    <div class="info-item"><i class="fa-solid fa-indian-rupee-sign"></i><span>${agent.Salary ? '₹' + agent.Salary.toLocaleString('en-IN') : 'No salary'}</span></div>
+                </div>
+                <div class="card-commission"><i class="fa-solid fa-percentage"></i><strong>${agent.CommissionRules || 'No commission'}</strong></div>
+                <div class="card-actions">
+                    ${pendingBtns}
+                    <button class="btn-act btn-edit" onclick="editAgent(${agent.AgentId})" title="Edit"><i class="fa-solid fa-edit"></i> Edit</button>
+                    <button class="btn-act btn-del" onclick="deleteAgent(${agent.AgentId})" title="Delete"><i class="fa-solid fa-trash"></i></button>
+                </div>`;
+            c.appendChild(div);
+        });
+        document.getElementById('paginationWrapper').style.display = 'flex';
+    }
+    updatePaginationInfo(); renderPagination(); updateStats();
+}
+
+function updateStats() {
+    document.getElementById('totalAgents').textContent = filteredAgents.length;
+    document.getElementById('pendingAgents').textContent = filteredAgents.filter(a => a.Status === 'Pending').length;
+    document.getElementById('approvedAgents').textContent = filteredAgents.filter(a => a.Status === 'Approved').length;
+    document.getElementById('rejectedAgents').textContent = filteredAgents.filter(a => a.Status === 'Rejected').length;
+}
+function updatePaginationInfo() {
+    const tot = filteredAgents.length, s = tot === 0 ? 0 : (currentPage - 1) * pageSize + 1, e = Math.min(currentPage * pageSize, tot);
+    document.getElementById('showingStart').textContent = s;
+    document.getElementById('showingEnd').textContent = e;
+    document.getElementById('totalRecords').textContent = tot;
+}
+function renderPagination() {
+    const pg = document.getElementById('pagination');
+    const tp = Math.ceil(filteredAgents.length / pageSize);
+    pg.innerHTML = '';
+    if (tp <= 1) { const li = document.createElement('li'); li.className = 'page-item active'; li.innerHTML = '<span class="page-link">1</span>'; pg.appendChild(li); return; }
+    const prev = document.createElement('li'); prev.className = `page-item ${currentPage === 1 ? 'disabled' : ''}`;
+    prev.innerHTML = `<a class="page-link" href="#" onclick="changePage(${currentPage - 1});return false;">&laquo;</a>`; pg.appendChild(prev);
+    const sp = Math.max(1, currentPage - 2), ep = Math.min(tp, currentPage + 2);
+    for (let i = sp; i <= ep; i++) { const li = document.createElement('li'); li.className = `page-item ${i === currentPage ? 'active' : ''}`; li.innerHTML = `<a class="page-link" href="#" onclick="changePage(${i});return false;">${i}</a>`; pg.appendChild(li); }
+    const next = document.createElement('li'); next.className = `page-item ${currentPage === tp ? 'disabled' : ''}`;
+    next.innerHTML = `<a class="page-link" href="#" onclick="changePage(${currentPage + 1});return false;">&raquo;</a>`; pg.appendChild(next);
+}
+function changePage(p) { const tp = Math.ceil(filteredAgents.length / pageSize); if (p < 1 || p > tp) return; currentPage = p; renderTable(); window.scrollTo({ top: 0, behavior: 'smooth' }); }
+
+/* ── Agent actions ── */
+function approveAgent(id) {
+    Swal.fire({ title: 'Documents Verified', text: 'Approve this agent?', icon: 'question', showCancelButton: true, confirmButtonColor: '#1A6FA8', cancelButtonColor: '#6B7B8D', confirmButtonText: 'OK' }).then(r => { if (r.isConfirmed) { const f = _mkForm('/Agent/Approve', { agentId: id }); f.submit(); } });
+}
+function deleteAgent(id) {
+    Swal.fire({ title: 'Are you sure?', text: 'Agent will be deleted.', icon: 'warning', showCancelButton: true, confirmButtonColor: '#DC2626', cancelButtonColor: '#6B7B8D', confirmButtonText: 'Yes, delete!' }).then(r => { if (r.isConfirmed) { const f = _mkForm('/Agent/Delete', { agentId: id }); f.submit(); } });
+}
+function rejectAgent(id) {
+    Swal.fire({ title: 'Reject Agent?', text: 'Reject this agent?', icon: 'warning', showCancelButton: true, confirmButtonColor: '#DC2626', cancelButtonColor: '#6B7B8D', confirmButtonText: 'Yes, reject!' }).then(r => { if (r.isConfirmed) { const f = _mkForm('/Agent/Reject', { agentId: id }); f.submit(); } });
+}
+function _mkForm(action, fields) {
+    const f = document.createElement('form'); f.method = 'POST'; f.action = action;
+    const tok = document.querySelector('input[name="__RequestVerificationToken"]');
+    if (tok) { const t = document.createElement('input'); t.type = 'hidden'; t.name = '__RequestVerificationToken'; t.value = tok.value; f.appendChild(t); }
+    Object.entries(fields).forEach(([k, v]) => { const i = document.createElement('input'); i.type = 'hidden'; i.name = k; i.value = v; f.appendChild(i); });
+    document.body.appendChild(f); return f;
+}
+
+function handleOnboard(e) {
+    e.preventDefault();
+    const form = e.target;
+    const isEdit = form.action.includes('UpdateAgent');
+    const reqFields = ['FullName', 'Email', 'Phone', 'AgentType', 'CommissionRules'];
+    let valid = true;
+    reqFields.forEach(n => { const el = document.querySelector(`[name="${n}"]`); if (el && !agV(el)) valid = false; });
+    if (!form.checkValidity()) { form.classList.add('was-validated'); valid = false; }
+    if (!isEdit && !emailValid && document.getElementById('modalEmailInput').value.trim()) {
+        document.getElementById('onboardError').textContent = 'Please use a unique email address';
+        document.getElementById('onboardError').classList.remove('d-none'); valid = false;
+    }
+    if (!valid) return;
+    if (selectedDocuments.length > 0) {
+        for (let i = 0; i < selectedDocuments.length; i++) {
+            const d = selectedDocuments[i];
+            if (!d.file) { document.getElementById('onboardError').textContent = 'Please select a file for all documents or remove empty rows'; document.getElementById('onboardError').classList.remove('d-none'); return; }
+            if (!d.name || !d.type) { document.getElementById('onboardError').textContent = 'Please provide name and type for all documents'; document.getElementById('onboardError').classList.remove('d-none'); return; }
+        }
+    }
+    const formData = new FormData(form);
+    selectedDocuments.forEach(d => { if (d.file) { formData.append('DocumentFiles', d.file); formData.append('DocumentNames', d.name); formData.append('DocumentTypes', d.type); } });
+    const url = isEdit ? form.action : '/Agent/Onboard';
+    const btn = document.getElementById('modalSubmitBtn'); btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Submitting...';
+    fetch(url, { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' }, body: formData })
+        .then(r => r.json()).then(data => {
+            if (data.success) {
+                bootstrap.Modal.getInstance(document.getElementById('onboardModal')).hide();
+                setTimeout(() => showToast(data.message || 'Agent onboarded successfully!', 'success'), 500);
+                setTimeout(() => location.reload(), 2500);
+            } else {
+                document.getElementById('onboardError').textContent = data.message || (data.errors ? data.errors.join(', ') : 'Submission failed');
+                document.getElementById('onboardError').classList.remove('d-none');
+                document.getElementById('onboardSuccess').classList.add('d-none');
+            }
+        }).catch(err => {
+            document.getElementById('onboardError').textContent = 'Error: ' + err.message;
+            document.getElementById('onboardError').classList.remove('d-none');
+        }).finally(() => { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-paper-plane me-1"></i>Submit'; });
+}
+
+function resetForm() {
+    document.getElementById('onboardForm').reset();
+    document.getElementById('onboardForm').classList.remove('was-validated');
+    document.getElementById('onboardSuccess').classList.add('d-none');
+    document.getElementById('onboardError').classList.add('d-none');
+    document.getElementById('modalEmailError').style.display = 'none';
+    document.getElementById('modalSubmitBtn').disabled = false;
+    selectedDocuments = [];
+    document.getElementById('documentsContainer').innerHTML = '';
+    document.getElementById('documentsList').style.display = 'none';
+    emailValid = false;
+    document.getElementById('onboardModalLabel').textContent = 'Agent Onboarding';
+    document.getElementById('onboardForm').action = '';
+    agResetForm();
+}
+
+function editAgent(id) {
+    fetch(`/Agent/GetAgent?id=${id}`).then(r => r.json()).then(data => {
+        if (data.success) {
+            const a = data.agent;
+            document.querySelector('[name="FullName"]').value = a.fullName || '';
+            document.querySelector('[name="Email"]').value = a.email || '';
+            document.querySelector('[name="Phone"]').value = a.phone || '';
+            document.querySelector('[name="Address"]').value = a.address || '';
+            document.querySelector('[name="AgentType"]').value = a.agentType || '';
+            document.querySelector('[name="Salary"]').value = a.salary || '';
+            document.querySelector('[name="CommissionRules"]').value = a.commissionRules || '';
+            document.getElementById('onboardModalLabel').textContent = 'Edit Agent';
+            document.getElementById('onboardForm').action = `/Agent/UpdateAgent?id=${id}`;
+            emailValid = true;
+            new bootstrap.Modal(document.getElementById('onboardModal')).show();
+        }
+    }).catch(err => console.error('Error:', err));
+}
+
+function exportToExcel() {
+    const wd = [['Full Name','Email','Phone','Address','Agent Type','Salary','Commission Rules','Status','Documents']];
+    filteredAgents.forEach(a => wd.push([a.FullName||'',a.Email||'',a.Phone||'',a.Address||'',a.AgentType||'',a.Salary||'',a.CommissionRules||'',a.Status||'',a.Documents||'']));
+    const wb = XLSX.utils.book_new(); const ws = XLSX.utils.aoa_to_sheet(wd);
+    ws['!cols'] = [{wch:20},{wch:25},{wch:15},{wch:30},{wch:12},{wch:12},{wch:30},{wch:12},{wch:30}];
+    XLSX.utils.book_append_sheet(wb, ws, 'Agents'); XLSX.writeFile(wb, `Agents_Export_${new Date().toISOString().split('T')[0]}.xlsx`);
+    showToast('Excel exported!', 'success');
+}
+function exportToCSV() {
+    let csv = 'Full Name,Email,Phone,Address,Agent Type,Salary,Commission Rules,Status,Documents\n';
+    filteredAgents.forEach(a => { csv += [escapeCSV(a.FullName),escapeCSV(a.Email),escapeCSV(a.Phone),escapeCSV(a.Address),escapeCSV(a.AgentType),a.Salary||'',escapeCSV(a.CommissionRules),escapeCSV(a.Status),escapeCSV(a.Documents)].join(',') + '\n'; });
+    const blob = new Blob([csv], {type:'text/csv'}); const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = `Agents_Export_${new Date().toISOString().split('T')[0]}.csv`; a.click(); window.URL.revokeObjectURL(url);
+    showToast('CSV exported!', 'success');
+}
+function escapeCSV(v) { if (!v) return ''; v = v.toString(); if (v.includes(',') || v.includes('"') || v.includes('\n')) return '"' + v.replace(/"/g, '""') + '"'; return v; }
+    </script>
+}

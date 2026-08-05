@@ -1,0 +1,348 @@
+@{
+    ViewData["Title"] = "Sales Overview";
+}
+
+<style>
+    @@keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+    @@keyframes slideInLeft { from { opacity: 0; transform: translateX(-50px); } to { opacity: 1; transform: translateX(0); } }
+    @@keyframes bounce { 0%, 20%, 50%, 80%, 100% { transform: translateY(0); } 40% { transform: translateY(-10px); } 60% { transform: translateY(-5px); } }
+    
+    .dashboard-card {
+        background: white;
+        border-radius: 12px;
+        padding: 0.75rem 1rem;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        border: 1px solid rgba(0,0,0,0.05);
+        transition: all 0.3s;
+    }
+    .dashboard-card:hover { transform: translateY(-5px); box-shadow: 0 12px 40px rgba(0,0,0,0.15); }
+    .stat-card { position: relative; overflow: hidden; min-height: 0; }
+    .stat-number { font-size: 1.25rem; font-weight: 700; margin: 0; line-height: 1.1; }
+    .stat-label { color: #6B7B8D; font-size: 0.7rem; margin-top: 0.2rem; }
+    .stat-icon { font-size: 1.1rem; color: #1A6FA8; opacity: 0.8; position: absolute; right: 0.75rem; top: 0.75rem; }
+    .earning-card .stat-number { color: #16A34A; }
+    .expense-card .stat-number { color: #DC2626; }
+    .profit-card .stat-number { color: #1A6FA8; }
+    .chart-card { min-height: 320px; }
+    .chart-card canvas { height: 250px !important; }
+    .chart-card.sales-status-card { display: flex; flex-direction: column; }
+    .chart-card.sales-status-card canvas { flex: 1; width: 100% !important; height: 100% !important; max-height: 280px; }
+    .table-card { min-height: 320px; }
+    .table-responsive { max-height: 250px; overflow-y: auto; }
+    .table-responsive::-webkit-scrollbar { width: 4px; }
+    .table-responsive::-webkit-scrollbar-thumb { background: #6B7B8D; border-radius: 10px; }
+    .dark-mode .dashboard-card { background: #1E2A3A !important; border-color: #2A3A4A !important; color: #E2E8F0 !important; }
+    .dark-mode .stat-label { color: #8FA3B8 !important; }
+    .dark-mode .stat-icon { color: #1A6FA8 !important; opacity: 0.8 !important; }
+    .animated-row { animation: slideInLeft 0.5s ease-out; }
+    .card-1 { animation-delay: 0.1s; }
+    .card-2 { animation-delay: 0.2s; }
+    .card-3 { animation-delay: 0.3s; }
+    .chart-1 { animation-delay: 0.4s; }
+    .chart-2 { animation-delay: 0.5s; }
+    .chart-3 { animation-delay: 0.6s; }
+    .chart-4 { animation-delay: 0.7s; }
+
+    @@media (max-width: 767px) {
+        .stat-card { min-height: 0; padding: 0.6rem 0.75rem; }
+        .stat-number { font-size: 1.1rem; }
+        .stat-icon { font-size: 1rem; top: 0.5rem; right: 0.5rem; }
+        .dashboard-card { padding: 0.7rem; }
+    }
+</style>
+
+<div class="content">
+    <nav class="mb-3" aria-label="breadcrumb">
+        <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item"><a href="/home">Home</a></li>
+            <li class="breadcrumb-item active">Sales Overview</li>
+        </ol>
+    </nav>
+
+    <h1 class="h3 mb-3"><i class="fa-solid fa-chart-line me-2"></i>Sales Overview Dashboard</h1>
+
+    <!-- Stats Cards -->
+    <div class="row g-2 mb-3">
+        <div class="col-md-4">
+            <div class="dashboard-card stat-card earning-card card-1">
+                <i class="fa-solid fa-indian-rupee-sign stat-icon"></i>
+                <h2 class="stat-number" id="totalEarning">₹0</h2>
+                <p class="stat-label">Total Earnings</p>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="dashboard-card stat-card expense-card card-2">
+                <i class="fa-solid fa-money-bill-trend-up stat-icon"></i>
+                <h2 class="stat-number" id="totalExpenses">₹0</h2>
+                <p class="stat-label">Total Expenses</p>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="dashboard-card stat-card profit-card card-3">
+                <i class="fa-solid fa-chart-line stat-icon"></i>
+                <h2 class="stat-number" id="totalProfit">₹0</h2>
+                <p class="stat-label">Total Profit</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-4" style="align-items: stretch;">
+        <!-- Sales Report -->
+        <div class="col-lg-8">
+            <div class="dashboard-card chart-card chart-1 h-100">
+                <h5 class="mb-3"><i class="fa-solid fa-chart-column me-2"></i>Sales Report (Last 6 Months)</h5>
+                <canvas id="salesReportChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Sales Status -->
+        <div class="col-lg-4">
+            <div class="dashboard-card chart-card sales-status-card chart-2 h-100">
+                <h5 class="mb-3"><i class="fa-solid fa-chart-pie me-2"></i>Sales Status</h5>
+                <div id="salesStatusContainer">
+                    <canvas id="salesStatusChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-4">
+        <!-- Sales Growth -->
+        <div class="col-lg-6">
+            <div class="dashboard-card chart-card chart-3">
+                <h5 class="mb-3"><i class="fa-solid fa-arrow-trend-up me-2"></i>Sales Growth</h5>
+                <canvas id="salesGrowthChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Recent Bookings -->
+        <div class="col-lg-6">
+            <div class="dashboard-card table-card chart-4">
+                <h5 class="mb-3"><i class="fa-solid fa-book me-2"></i>Recent Sales/Bookings</h5>
+                <div class="table-responsive">
+                    <table class="table table-sm" id="recentBookingsTable">
+                        <thead>
+                            <tr>
+                                <th>Booking ID</th>
+                                <th>Amount</th>
+                                <th>Status</th>
+                                <th>Date</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        let charts = {};
+
+        document.addEventListener('DOMContentLoaded', function() {
+            loadSalesOverviewData();
+        });
+
+        function loadSalesOverviewData() {
+            console.log('Loading sales overview data...');
+            fetch('/Home/GetSalesOverviewData')
+                .then(response => {
+                    console.log('Response status:', response.status);
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('Sales Overview Data:', data);
+                    updateStats(data);
+                    renderSalesReportChart(data.salesReport);
+                    renderSalesStatusChart(data.salesStatus);
+                    renderSalesGrowthChart(data.salesReport);
+                    renderRecentBookings(data.recentBookings);
+                })
+                .catch(error => {
+                    console.error('Error loading sales data:', error);
+                    const container = document.getElementById('salesStatusContainer');
+                    if (container) {
+                        container.innerHTML = '<div class="text-center py-4"><i class="fa-solid fa-exclamation-triangle text-warning mb-2" style="font-size: 3rem;"></i><p class="text-muted">Error loading sales data</p></div>';
+                    }
+                });
+        }
+
+        function updateStats(data) {
+            if (!data || data.error) {
+                // API returned error - show 0 values
+                document.getElementById('totalEarning').textContent = '\u20b90';
+                document.getElementById('totalExpenses').textContent = '\u20b90';
+                document.getElementById('totalProfit').textContent = '\u20b90';
+                return;
+            }
+            var e = safeNum(data.totalEarning);
+            var ex = safeNum(data.totalExpenses);
+            var p = safeNum(data.totalProfit);
+            animateNumber('totalEarning', e, '\u20b9');
+            animateNumber('totalExpenses', ex, '\u20b9');
+            animateNumber('totalProfit', p, '\u20b9');
+        }
+
+        function safeNum(val) {
+            return (typeof val === 'number' && !isNaN(val)) ? val : 0;
+        }
+
+        function animateNumber(elementId, targetValue, prefix) {
+            var element = document.getElementById(elementId);
+            if (!element) return;
+            targetValue = safeNum(targetValue);
+            var duration = 2000;
+            var startTime = performance.now();
+            var startValue = 0;
+
+            function updateNumber(currentTime) {
+                var elapsed = currentTime - startTime;
+                var progress = Math.min(elapsed / duration, 1);
+                var easeOutQuart = 1 - Math.pow(1 - progress, 4);
+                var currentValue = Math.floor(startValue + (targetValue - startValue) * easeOutQuart);
+                element.textContent = prefix + formatNumber(currentValue);
+                if (progress < 1) {
+                    requestAnimationFrame(updateNumber);
+                }
+            }
+            requestAnimationFrame(updateNumber);
+        }
+
+        function renderSalesReportChart(data) {
+            const ctx = document.getElementById('salesReportChart').getContext('2d');
+            if (charts.salesReport) charts.salesReport.destroy();
+            charts.salesReport = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: data.map(d => d.month),
+                    datasets: [{
+                        label: 'Sales',
+                        data: data.map(d => d.sales),
+                        backgroundColor: '#1A6FA8',
+                        borderRadius: 8
+                    }]
+                },
+                options: { 
+                    responsive: true, 
+                    maintainAspectRatio: false, 
+                    plugins: { legend: { display: false } }, 
+                    scales: { y: { beginAtZero: true } },
+                    animation: {
+                        duration: 2000,
+                        easing: 'easeOutBounce'
+                    }
+                }
+            });
+        }
+
+        function renderSalesStatusChart(data) {
+            console.log('Sales Status Data:', data);
+            const container = document.getElementById('salesStatusContainer');
+            
+            // Handle case when no data is available
+            if (!data || (data.paidCount === 0 && data.pendingCount === 0 && data.overdueCount === 0)) {
+                // Show "No Data" message
+                container.innerHTML = '<div class="text-center py-4"><i class="fa-solid fa-chart-pie text-muted mb-2" style="font-size: 3rem;"></i><p class="text-muted">No sales data available</p></div>';
+                return;
+            }
+            
+            const ctx = document.getElementById('salesStatusChart').getContext('2d');
+            if (charts.salesStatus) charts.salesStatus.destroy();
+            
+            charts.salesStatus = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Paid', 'Pending', 'Overdue'],
+                    datasets: [{
+                        data: [data.paidCount || 0, data.pendingCount || 0, data.overdueCount || 0],
+                        backgroundColor: ['#16A34A', '#F59E0B', '#DC2626'],
+                        borderWidth: 2,
+                        borderColor: '#FFFFFF'
+                    }]
+                },
+                options: { 
+                    responsive: true, 
+                    maintainAspectRatio: true,
+                    aspectRatio: 1,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                padding: 15,
+                                usePointStyle: true,
+                                font: { size: 12 }
+                            }
+                        }
+                    },
+                    animation: {
+                        duration: 2000,
+                        easing: 'easeOutElastic'
+                    }
+                }
+            });
+        }
+
+        function renderSalesGrowthChart(data) {
+            const ctx = document.getElementById('salesGrowthChart').getContext('2d');
+            if (charts.salesGrowth) charts.salesGrowth.destroy();
+            charts.salesGrowth = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: data.map(d => d.month),
+                    datasets: [{
+                        label: 'Sales Growth',
+                        data: data.map(d => d.sales),
+                        borderColor: '#16A34A',
+                        backgroundColor: 'rgba(22,163,74, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: { 
+                    responsive: true, 
+                    maintainAspectRatio: false, 
+                    plugins: { legend: { display: false } }, 
+                    scales: { y: { beginAtZero: true } },
+                    animation: {
+                        duration: 2000,
+                        easing: 'easeInOutQuart'
+                    }
+                }
+            });
+        }
+
+        function renderRecentBookings(data) {
+            const tbody = document.querySelector('#recentBookingsTable tbody');
+            tbody.innerHTML = '';
+            
+            if (!data || data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted py-4">No bookings available</td></tr>';
+                return;
+            }
+            
+            data.forEach((booking, index) => {
+                setTimeout(() => {
+                    const row = document.createElement('tr');
+                    row.className = 'animated-row';
+                    row.innerHTML = `
+                        <td>#${booking.bookingId}</td>
+                        <td><strong>₹${formatNumber(booking.bookingAmount)}</strong></td>
+                        <td><span class="badge bg-${booking.status === 'Paid' ? 'success' : booking.status === 'Pending' ? 'warning' : 'danger'}">${booking.status}</span></td>
+                        <td><small>${booking.createdOn}</small></td>
+                    `;
+                    tbody.appendChild(row);
+                }, index * 200);
+            });
+        }
+
+        function formatNumber(num) {
+            if (typeof num !== 'number' || isNaN(num)) return '0';
+            return new Intl.NumberFormat('en-IN').format(num);
+        }
+    </script>
+}
+
+

@@ -1,0 +1,1789 @@
+@model IEnumerable<CRM.Models.UserModel>
+@inject Microsoft.AspNetCore.Http.IHttpContextAccessor HttpContextAccessor
+@using System.IdentityModel.Tokens.Jwt
+@using System.Security.Claims
+@inject CRM.MasterDb.MasterDbContext _mastercontext
+
+
+@{
+    bool hasImpersonation = false;
+    var tIdClaim = Context.User.FindFirst("TenantId")?.Value;
+    if (!string.IsNullOrEmpty(tIdClaim) && int.TryParse(tIdClaim, out int tId))
+    {
+        var sub = _mastercontext.TenantSubscriptions
+            .Where(s => s.TenantId == tId && (s.Status == "Active" || s.Status == "Trial"))
+            .OrderByDescending(s => s.StartDate)
+            .FirstOrDefault();
+        if (sub != null)
+        {
+            var plan = _mastercontext.SaasPlans.FirstOrDefault(p => p.PlanId == sub.PlanId);
+            hasImpersonation = plan?.HasImpersonation ?? false;
+        }
+    }
+}
+
+@{
+    ViewData["Title"] = "Manage Users";
+    var usersList = Model.ToList();
+    var totalUsers = usersList.Count;
+    var activeUsers = usersList.Count(u => u.IsActive);
+    var inactiveUsers = totalUsers - activeUsers;
+    
+    // Get current user info from JWT token
+    var token = HttpContextAccessor.HttpContext?.Request.Cookies["jwtToken"];
+    string role = "";
+    string username = "";
+    
+    if (!string.IsNullOrEmpty(token))
+    {
+        try
+        {
+            var handler = new JwtSecurityTokenHandler();
+            var jwt = handler.ReadJwtToken(token);
+            role = jwt.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role || c.Type == "role")?.Value ?? "";
+            username = jwt.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Name || c.Type == "name")?.Value ?? "";
+        }
+        catch { role = ""; username = ""; }
+    }
+}
+
+<style>
+/* ===== COMPACT DESIGN — #1A6FA8 + #D4A45A theme ===== */
+.dropdown-item {
+    padding: 5px !important;
+    font-size: 0.95rem !important;
+}
+/* HEADER */
+.modern-header {
+    background: linear-gradient(120deg, #1A6FA8 0%, #125082 55%, #B8883E 100%);
+    position: relative;
+    overflow: hidden;
+    border-radius: 10px;
+    box-shadow: 0 3px 12px rgba(26,111,168,0.2);
+}
+.modern-header::before {
+    content: '';
+    position: absolute;
+    top: -20px; right: -20px;
+    width: 100px; height: 100px;
+    border-radius: 50%;
+    background: rgba(212,164,90,0.15);
+    pointer-events: none;
+}
+.header-content {
+    position: relative;
+    z-index: 2;
+    padding: 10px 14px !important;
+    color: white;
+}
+.header-title {
+    font-size: 1rem !important;
+    font-weight: 700;
+    margin-bottom: 1px !important;
+    text-shadow: none;
+}
+.header-subtitle {
+    font-size: 0.72rem !important;
+    opacity: 0.82;
+    margin-bottom: 0 !important;
+    font-weight: 400;
+}
+.header-content .fa-user-shield {
+    font-size: 1.3rem !important;
+    opacity: 0.9;
+}
+.header-content .me-3 { margin-right: 8px !important; }
+.header-content .row { margin-bottom: 0; }
+.header-content .col-lg-8 { padding-bottom: 0; }
+
+/* STATS GRID */
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+    margin-top: 8px !important;
+}
+.stats-card {
+    background: rgba(255,255,255,0.12);
+    border: 1px solid rgba(255,255,255,0.18);
+    border-radius: 7px;
+    padding: 6px 8px !important;
+    text-align: center;
+    transition: background 0.2s;
+}
+.stats-card:hover {
+    background: rgba(255,255,255,0.2);
+    transform: translateY(-1px);
+}
+.stats-number {
+    font-size: 1.1rem !important;
+    font-weight: 800;
+    margin-bottom: 0 !important;
+    line-height: 1.2;
+    text-shadow: none;
+}
+.stats-label {
+    font-size: 0.6rem !important;
+    opacity: 0.85;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* ACTION BUTTONS in header */
+.action-btn {
+    background: rgba(255,255,255,0.15);
+    border: 1.5px solid rgba(255,255,255,0.25);
+    color: white;
+    padding: 4px 10px !important;
+    border-radius: 20px;
+    font-weight: 600;
+    font-size: 0.76rem !important;
+    backdrop-filter: blur(10px);
+    transition: all 0.2s;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin: 2px;
+}
+.action-btn:hover {
+    background: white;
+    color: #1A6FA8;
+    transform: translateY(-1px);
+    box-shadow: 0 3px 8px rgba(0,0,0,0.12);
+}
+
+/* FILTER SECTION */
+.filter-section {
+    background: white;
+    border-radius: 8px;
+    padding: 10px 12px !important;
+    margin: 8px 0 !important;
+    box-shadow: 0 1px 6px rgba(26,111,168,0.08);
+    border: 1px solid #E2E8F0;
+}
+.filter-title {
+    font-size: 0.82rem !important;
+    font-weight: 700;
+    color: #1A6FA8;
+    margin-bottom: 0 !important;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+.filter-section .d-flex.align-items-center.justify-content-between {
+    margin-bottom: 6px !important;
+}
+.filter-section .row.g-3 {
+    --bs-gutter-y: 0.35rem !important;
+    --bs-gutter-x: 0.6rem !important;
+}
+.filter-section .form-label {
+    font-size: 0.68rem !important;
+    font-weight: 700;
+    color: #1A6FA8;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    margin-bottom: 2px !important;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+.filter-section .form-label i { font-size: 0.65rem; }
+.filter-section .form-control,
+.filter-section .form-select {
+    height: 30px !important;
+    padding: 0 8px !important;
+    font-size: 0.8rem !important;
+    border: 1.5px solid #E2E8F0;
+    border-radius: 6px;
+    transition: border-color 0.18s, box-shadow 0.18s;
+    line-height: 30px;
+}
+.filter-section .form-control:focus,
+.filter-section .form-select:focus {
+    border-color: #1A6FA8;
+    box-shadow: 0 0 0 2px rgba(26,111,168,0.13);
+    outline: none;
+}
+
+.btn-outline-primary {
+    height: 28px !important;
+    padding: 0 10px !important;
+    font-size: 0.74rem !important;
+    font-weight: 600;
+    border: 1.5px solid #1A6FA8;
+    border-radius: 6px;
+    color: #1A6FA8;
+    background: #FFFFFF;
+    transition: all 0.18s;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    line-height: 1;
+}
+.btn-outline-primary:hover {
+    background: #1A6FA8;
+    color: #FFFFFF;
+    border-color: #1A6FA8;
+}
+
+/* USER CARDS */
+.user-card {
+    background: white;
+    border-radius: 8px;
+    padding: 8px 12px !important;
+    margin-bottom: 5px !important;
+    box-shadow: 0 1px 5px rgba(26,111,168,0.07);
+    border: 1px solid #E2E8F0;
+    transition: all 0.2s;
+    position: relative;
+    overflow: visible !important;
+    z-index: 1;
+}
+.user-card::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 3px;
+    border-radius: 8px 0 0 8px;
+    background: linear-gradient(180deg, #1A6FA8, #D4A45A);
+}
+.user-card:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 14px rgba(26,111,168,0.12);
+    border-color: rgba(26,111,168,0.28);
+}
+.user-card:has(.dropdown.show) {
+    z-index: 9999 !important;
+    overflow: visible !important;
+}
+.user-card .dropdown { position: static !important; }
+.user-card .dropdown-menu { z-index: 10000 !important; position: absolute !important; }
+
+.user-name {
+    font-size: 0.88rem !important;
+    font-weight: 700;
+    color: #1A6FA8;
+    margin-bottom: 2px !important;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+.user-name i { font-size: 0.78rem; }
+
+.user-info {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-bottom: 1px !important;
+    color: #6B7B8D;
+    font-size: 0.74rem !important;
+}
+.user-info i { font-size: 0.68rem; width: 12px; }
+
+/* STATUS BADGES */
+.status-badge {
+    padding: 2px 9px !important;
+    border-radius: 20px;
+    font-weight: 700;
+    font-size: 0.68rem !important;
+    border: none;
+    display: inline-block;
+}
+.status-active {
+    background: linear-gradient(135deg, #16A34A 0%, #16A34A 100%);
+    color: white;
+}
+.status-inactive {
+    background: linear-gradient(135deg, #6B7B8D 0%, #2A3A4A 100%);
+    color: white;
+}
+
+/* ROLE BADGE */
+.role-badge {
+    background: linear-gradient(135deg, #D4A45A 0%, #B8883E 100%);
+    color: white;
+    padding: 2px 7px !important;
+    border-radius: 10px;
+    font-size: 0.65rem !important;
+    font-weight: 700;
+    display: inline-block;
+}
+
+/* col spacing in card */
+.user-card .row.align-items-center {
+    --bs-gutter-x: 0.6rem;
+}
+.user-card .col-md-3 .user-info,
+.user-card .col-md-4 .user-info {
+    margin-bottom: 1px !important;
+}
+
+/* Action button in card */
+.user-card .btn-sm.btn-outline-primary {
+    height: 26px !important;
+    width: 26px !important;
+    padding: 0 !important;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 5px !important;
+}
+.user-card .btn-sm.btn-outline-primary i { font-size: 0.8rem; }
+
+/* IMPERSONATE */
+.impersonate-user-btn { color: #D4A45A !important; }
+.impersonate-user-btn:hover { background-color: rgba(212,164,90,0.1) !important; color: #B8883E !important; }
+
+.btn-warning {
+    background: linear-gradient(135deg, #D4A45A 0%, #B8883E 100%);
+    border: none; color: white; font-weight: 600;
+}
+.btn-warning:hover {
+    background: linear-gradient(135deg, #B8883E 0%, #B8883E 100%);
+    color: white;
+}
+
+/* ALERTS */
+.alert-warning {
+    background: rgba(212,164,90,0.1);
+    border: 1px solid rgba(212,164,90,0.3);
+    color: #B45309;
+    padding: 6px 10px;
+    font-size: 0.8rem;
+    border-radius: 6px;
+}
+.alert-info {
+    background: rgba(26,111,168,0.08);
+    border: 1px solid rgba(26,111,168,0.2);
+    color: #0F4C75;
+    padding: 6px 10px;
+    font-size: 0.8rem;
+    border-radius: 6px;
+}
+
+/* PAGINATION */
+.pagination-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 8px !important;
+    padding: 8px 12px !important;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 1px 5px rgba(26,111,168,0.07);
+    border: 1px solid #E2E8F0;
+}
+.pagination-info {
+    color: #6B7B8D;
+    font-size: 0.75rem !important;
+}
+.pagination-controls { display: flex; gap: 4px; align-items: center; }
+.pagination-btn {
+    padding: 3px 9px !important;
+    border: 1.5px solid #E2E8F0;
+    background: white;
+    color: #1A6FA8;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: all 0.18s;
+    font-size: 0.74rem !important;
+    font-weight: 600;
+    line-height: 1.4;
+}
+.pagination-btn:hover:not(:disabled) {
+    background: #E8EDF2;
+    border-color: #1A6FA8;
+    color: #1A6FA8;
+}
+.pagination-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.pagination-btn.active {
+    background: #1A6FA8;
+    border-color: #1A6FA8;
+    color: white;
+}
+
+/* BREADCRUMB compact */
+.breadcrumb { font-size: 0.75rem !important; margin-bottom: 6px !important; }
+.breadcrumb-item + .breadcrumb-item::before { font-size: 0.7rem; }
+
+/* ============================================================
+   MODAL — COMPACT ADVANCED VALIDATION DESIGN
+   ============================================================ */
+#addUserModal .modal-dialog,
+#editUserModal .modal-dialog {
+    max-width: 560px !important;
+    width: 100% !important;
+    margin: 0.5rem auto !important;
+}
+
+#addUserModal .modal-content,
+#editUserModal .modal-content {
+    border-radius: 12px !important;
+    border: none !important;
+    box-shadow: 0 10px 40px rgba(26,111,168,0.18) !important;
+    overflow: hidden;
+}
+
+/* Modal Header */
+#addUserModal .modal-header,
+#editUserModal .modal-header {
+    background: linear-gradient(120deg, #1A6FA8 0%, #125082 70%, #B8883E 100%) !important;
+    padding: 10px 16px !important;
+    border-bottom: none !important;
+}
+#addUserModal .modal-title,
+#editUserModal .modal-title {
+    color: white !important;
+    font-size: 0.92rem !important;
+    font-weight: 700 !important;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+}
+#addUserModal .modal-title::before {
+    content: '\f234';
+    font-family: 'Font Awesome 6 Free';
+    font-weight: 900;
+    font-size: 0.85rem;
+    opacity: 0.9;
+}
+#editUserModal .modal-title::before {
+    content: '\f4ff';
+    font-family: 'Font Awesome 6 Free';
+    font-weight: 900;
+    font-size: 0.85rem;
+    opacity: 0.9;
+}
+#addUserModal .btn-close,
+#editUserModal .btn-close {
+    filter: invert(1) brightness(2) !important;
+    opacity: 0.8 !important;
+    width: 18px !important;
+    height: 18px !important;
+}
+
+/* Modal Body */
+#addUserModal .modal-body,
+#editUserModal .modal-body {
+    padding: 14px 16px 10px !important;
+    background: #FFFFFF !important;
+}
+
+/* Row spacing override inside modals */
+#addUserModal .modal-body .row.mb-3,
+#editUserModal .modal-body .row.mb-3 {
+    margin-bottom: 10px !important;
+}
+
+/* Form Labels inside modal */
+#addUserModal .modal-body .form-label,
+#editUserModal .modal-body .form-label {
+    font-size: 0.7rem !important;
+    font-weight: 700 !important;
+    color: #1A6FA8 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.4px !important;
+    margin-bottom: 3px !important;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+/* Form Controls inside modal — compact */
+#addUserModal .modal-body .form-control,
+#addUserModal .modal-body .form-select,
+#editUserModal .modal-body .form-control,
+#editUserModal .modal-body .form-select {
+    height: 32px !important;
+    padding: 0 10px !important;
+    font-size: 0.8rem !important;
+    border: 1.5px solid #E2E8F0 !important;
+    border-radius: 7px !important;
+    background: white !important;
+    transition: border-color 0.18s, box-shadow 0.18s !important;
+    line-height: 32px !important;
+    color: #1E2A3A !important;
+}
+#addUserModal .modal-body .form-control:focus,
+#addUserModal .modal-body .form-select:focus,
+#editUserModal .modal-body .form-control:focus,
+#editUserModal .modal-body .form-select:focus {
+    border-color: #1A6FA8 !important;
+    box-shadow: 0 0 0 2.5px rgba(26,111,168,0.13) !important;
+    outline: none !important;
+}
+
+/* VALID state — green */
+#addUserModal .modal-body .form-control.field-valid,
+#addUserModal .modal-body .form-select.field-valid,
+#editUserModal .modal-body .form-control.field-valid,
+#editUserModal .modal-body .form-select.field-valid {
+    border-color: #16A34A !important;
+    box-shadow: 0 0 0 2px rgba(22,163,74,0.13) !important;
+    background: #F0F4F8 !important;
+    padding-right: 30px !important;
+}
+
+/* INVALID state — red */
+#addUserModal .modal-body .form-control.field-invalid,
+#addUserModal .modal-body .form-select.field-invalid,
+#editUserModal .modal-body .form-control.field-invalid,
+#editUserModal .modal-body .form-select.field-invalid {
+    border-color: #DC2626 !important;
+    box-shadow: 0 0 0 2px rgba(220,38,38,0.13) !important;
+    background: #FFFFFF !important;
+    padding-right: 30px !important;
+    animation: shake 0.25s ease;
+}
+
+@@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-3px); }
+    75% { transform: translateX(3px); }
+}
+
+/* Input wrapper for icon positioning */
+.modal-field-wrap {
+    position: relative;
+}
+.modal-field-wrap .field-icon {
+    position: absolute;
+    right: 9px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 0.72rem;
+    pointer-events: none;
+    transition: all 0.18s;
+    opacity: 0;
+}
+.modal-field-wrap .field-icon.show-icon { opacity: 1; }
+.modal-field-wrap .field-icon.icon-valid { color: #16A34A; }
+.modal-field-wrap .field-icon.icon-invalid { color: #DC2626; }
+
+/* Validation message */
+.field-msg {
+    font-size: 0.66rem !important;
+    /* margin-top: 2px !important;
+    min-height: 14px; */
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    font-weight: 600;
+    transition: all 0.15s;
+}
+.field-msg.msg-valid { color: #16A34A; }
+.field-msg.msg-invalid { color: #DC2626; }
+.field-msg i { font-size: 0.6rem; }
+
+/* Password input-group inside modal */
+#addUserModal .modal-body .input-group,
+#editUserModal .modal-body .input-group {
+    height: 32px !important;
+}
+#addUserModal .modal-body .input-group .form-control,
+#editUserModal .modal-body .input-group .form-control {
+    border-right: none !important;
+    border-radius: 7px 0 0 7px !important;
+}
+#addUserModal .modal-body .input-group-text,
+#editUserModal .modal-body .input-group-text {
+    height: 32px !important;
+    padding: 0 10px !important;
+    font-size: 0.78rem !important;
+    background: white !important;
+    border: 1.5px solid #E2E8F0 !important;
+    border-left: none !important;
+    border-radius: 0 7px 7px 0 !important;
+    color: #6B7B8D;
+    cursor: pointer;
+    transition: color 0.15s;
+}
+#addUserModal .modal-body .input-group-text:hover,
+#editUserModal .modal-body .input-group-text:hover {
+    color: #1A6FA8;
+}
+
+/* Password strength bar */
+.pwd-strength-bar {
+    height: 3px;
+    border-radius: 3px;
+    background: #E2E8F0;
+    margin-top: 4px;
+    overflow: hidden;
+}
+.pwd-strength-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.3s ease, background 0.3s ease;
+    width: 0%;
+}
+.pwd-strength-text {
+    font-size: 0.62rem;
+    font-weight: 700;
+    margin-top: 2px;
+}
+
+/* Status radio redesign */
+.status-radio-group {
+    display: flex;
+    gap: 8px;
+    margin-top: 2px;
+}
+.status-radio-option {
+    flex: 1;
+    position: relative;
+    cursor: pointer;
+}
+.status-radio-option input[type="radio"] {
+    position: absolute;
+    opacity: 0;
+    width: 0; height: 0;
+}
+.status-radio-label {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    padding: 5px 8px;
+    border: 1.5px solid #E2E8F0;
+    border-radius: 7px;
+    font-size: 0.74rem;
+    font-weight: 700;
+    color: #6B7B8D;
+    background: white;
+    transition: all 0.18s;
+    cursor: pointer;
+    user-select: none;
+}
+.status-radio-option input[type="radio"]:checked + .status-radio-label.active-label {
+    border-color: #16A34A;
+    background: #F0F4F8;
+    color: #16A34A;
+}
+.status-radio-option input[type="radio"]:checked + .status-radio-label.inactive-label {
+    border-color: #6B7B8D;
+    background: #F0F4F8;
+    color: #2A3A4A;
+}
+.status-radio-label:hover {
+    border-color: #1A6FA8;
+    color: #1A6FA8;
+}
+
+/* Modal footer */
+#addUserModal .modal-footer,
+#editUserModal .modal-footer {
+    padding: 10px 16px !important;
+    background: white !important;
+    border-top: 1px solid #E2E8F0 !important;
+    gap: 6px !important;
+}
+#addUserModal .modal-footer .btn,
+#editUserModal .modal-footer .btn {
+    height: 32px !important;
+    padding: 0 18px !important;
+    font-size: 0.78rem !important;
+    font-weight: 700 !important;
+    border-radius: 7px !important;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+}
+#addUserModal .btn-secondary,
+#editUserModal .btn-secondary {
+    background: #F0F4F8 !important;
+    border: 1.5px solid #E2E8F0 !important;
+    color: #6B7B8D !important;
+}
+#addUserModal .btn-secondary:hover,
+#editUserModal .btn-secondary:hover {
+    background: #E2E8F0 !important;
+    color: #2A3A4A !important;
+}
+#addUserModal .btn-primary {
+    background: linear-gradient(135deg, #1A6FA8, #125082) !important;
+    border: none !important;
+    color: white !important;
+}
+#addUserModal .btn-primary:hover {
+    background: linear-gradient(135deg, #125082, #0F4C75) !important;
+}
+#editUserModal .btn-success {
+    background: linear-gradient(135deg, #16A34A, #16A34A) !important;
+    border: none !important;
+    color: white !important;
+}
+#editUserModal .btn-success:hover {
+    background: linear-gradient(135deg, #16A34A, #15803D) !important;
+}
+
+/* Submit spinner */
+.btn-loading {
+    opacity: 0.75;
+    pointer-events: none;
+}
+
+/* MOBILE */
+@@media (max-width: 768px) {
+    .user-card { padding: 7px 10px !important; }
+    .mobile-user-layout { display: flex; justify-content: space-between; align-items: flex-start; width: 100%; }
+    .mobile-user-info { flex: 1; min-width: 0; }
+    .mobile-user-name { font-size: 0.88rem; font-weight: 700; color: #1A6FA8; margin-bottom: 2px; word-break: break-word; }
+    .mobile-user-details { font-size: 0.72rem; color: #6B7B8D; margin-bottom: 1px; }
+    .mobile-status-role { display: flex; gap: 4px; align-items: center; flex-wrap: wrap; margin-top: 3px; }
+    .mobile-status-badge { padding: 2px 6px; border-radius: 12px; font-weight: 700; font-size: 0.64rem; }
+    .mobile-role-badge { background: linear-gradient(135deg, #D4A45A, #B8883E); color: white; padding: 2px 6px; border-radius: 12px; font-size: 0.64rem; font-weight: 700; }
+    .mobile-dropdown { flex-shrink: 0; margin-left: 6px; }
+    .mobile-dropdown .btn { padding: 3px 6px; border: 1px solid #E2E8F0; background: white; color: #6B7B8D; }
+    .mobile-dropdown .btn:hover { background: #F0F4F8; color: #1A6FA8; }
+    .desktop-layout { display: none; }
+    .mobile-layout { display: block; }
+    .stats-grid { grid-template-columns: repeat(3, 1fr); }
+    .pagination-container { flex-direction: column; gap: 6px; text-align: center; }
+    .pagination-controls { flex-wrap: wrap; justify-content: center; }
+    .filter-section { padding: 8px 10px !important; }
+    #addUserModal .modal-dialog,
+    #editUserModal .modal-dialog { max-width: 98vw !important; margin: 0.4rem auto !important; }
+    #addUserModal .modal-body .row > [class*="col-"],
+    #editUserModal .modal-body .row > [class*="col-"] { margin-bottom: 0 !important; }
+}
+@@media (min-width: 769px) {
+    .desktop-layout { display: block; }
+    .mobile-layout { display: none; }
+}
+
+/* DARK MODE */
+.dark-mode .modern-header { box-shadow: 0 3px 12px rgba(0,0,0,0.3); }
+.dark-mode .filter-section { background: #1A2332 !important; border-color: #2A3A4A !important; box-shadow: 0 1px 6px rgba(0,0,0,0.2) !important; }
+.dark-mode .filter-title { color: #8FA3B8 !important; }
+.dark-mode .filter-section .form-label { color: #8FA3B8 !important; }
+.dark-mode .user-card { background: #1A2332 !important; border-color: #2A3A4A !important; box-shadow: 0 1px 5px rgba(0,0,0,0.2) !important; }
+.dark-mode .user-card:hover { box-shadow: 0 4px 14px rgba(0,0,0,0.3) !important; border-color: rgba(26,111,168,0.35) !important; }
+.dark-mode .user-name { color: #8FA3B8 !important; }
+.dark-mode .user-info { color: #8FA3B8 !important; }
+.dark-mode .form-control, .dark-mode .form-select { background: #1E2A3A !important; border-color: #2A3A4A !important; color: #E2E8F0 !important; }
+.dark-mode .form-control:focus, .dark-mode .form-select:focus { border-color: #1A6FA8 !important; box-shadow: 0 0 0 2px rgba(26,111,168,0.2) !important; }
+.dark-mode .form-control::placeholder { color: #6B7B8D !important; }
+.dark-mode .btn-outline-primary { color: #8FA3B8 !important; border-color: #1A6FA8 !important; background: transparent !important; }
+.dark-mode .btn-outline-primary:hover { background: #1A6FA8 !important; color: #FFFFFF !important; }
+.dark-mode .pagination-container { background: #1A2332 !important; border-color: #2A3A4A !important; }
+.dark-mode .pagination-info { color: #8FA3B8 !important; }
+.dark-mode .pagination-btn { background: #1E2A3A !important; border-color: #2A3A4A !important; color: #8FA3B8 !important; }
+.dark-mode .pagination-btn:hover:not(:disabled) { background: #2A3A4A !important; border-color: #1A6FA8 !important; }
+.dark-mode .pagination-btn.active { background: #1A6FA8 !important; border-color: #1A6FA8 !important; color: white !important; }
+.dark-mode .pagination-btn:disabled { opacity: 0.4; color: #2A3A4A !important; }
+.dark-mode .mobile-dropdown .btn { background: #1E2A3A !important; border-color: #2A3A4A !important; color: #8FA3B8 !important; }
+/* Dark mode modal */
+.dark-mode #addUserModal .modal-body,
+.dark-mode #editUserModal .modal-body { background: #121F2E !important; }
+.dark-mode #addUserModal .modal-body .form-control,
+.dark-mode #addUserModal .modal-body .form-select,
+.dark-mode #editUserModal .modal-body .form-control,
+.dark-mode #editUserModal .modal-body .form-select { background: #1E2A3A !important; border-color: #2A3A4A !important; color: #E2E8F0 !important; }
+.dark-mode #addUserModal .modal-body .form-label,
+.dark-mode #editUserModal .modal-body .form-label { color: #8FA3B8 !important; }
+.dark-mode #addUserModal .modal-footer,
+.dark-mode #editUserModal .modal-footer { background: #1A2332 !important; border-color: #2A3A4A !important; }
+.dark-mode .status-radio-label { background: #1E2A3A !important; border-color: #2A3A4A !important; color: #8FA3B8 !important; }
+.dark-mode #addUserModal .modal-body .input-group-text,
+.dark-mode #editUserModal .modal-body .input-group-text { background: #1E2A3A !important; border-color: #2A3A4A !important; color: #8FA3B8 !important; }
+</style>
+
+<div class="content">
+    <!-- Breadcrumb -->
+    <nav class="mb-3" aria-label="breadcrumb">
+        <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item"><a href="/Home">Home</a></li>
+            <li class="breadcrumb-item active">Manage Users</li>
+        </ol>
+    </nav>
+
+    <!-- Modern Header with Stats -->
+    <div class="modern-header">
+        <div class="header-content">
+            <div class="row align-items-center">
+                <div class="col-lg-8">
+                    <div class="d-flex align-items-center">
+                        <div class="me-3">
+                            <i class="fa-solid fa-user-shield" style="font-size: 1.8rem; opacity: 0.9;"></i>
+                        </div>
+                        <div>
+                            <h1 class="header-title mb-0">Manage Users</h1>
+                            <p class="header-subtitle mb-0">Control user access and manage system permissions</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Stats Grid -->
+            <div class="stats-grid">
+                <div class="stats-card">
+                    <div class="stats-number">@totalUsers</div>
+                    <div class="stats-label">Total Users</div>
+                </div>
+                <div class="stats-card">
+                    <div class="stats-number">@activeUsers</div>
+                    <div class="stats-label">Active</div>
+                </div>
+                <div class="stats-card">
+                    <div class="stats-number">@inactiveUsers</div>
+                    <div class="stats-label">Inactive</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filter Section -->
+    <div class="filter-section">
+        <div class="d-flex align-items-center justify-content-between mb-2">
+            <div class="filter-title mb-0">
+                <i class="fa-solid fa-filter"></i>
+                <span>Filter & Search</span>
+            </div>
+            <button type="button" class="btn btn-sm btn-outline-primary" id="clearFilters">
+                <i class="fa-solid fa-refresh me-1"></i>Clear Filters
+            </button>
+        </div>
+        <div class="row g-3">
+            <div class="col-md-6">
+                <label for="searchBox" class="form-label fw-semibold">
+                    <i class="fa-solid fa-search text-muted me-2"></i>Search Users
+                </label>
+                <input type="text" class="form-control" id="searchBox" 
+                       placeholder="Search by name, email, phone...">
+            </div>
+            <div class="col-md-3">
+                <label for="filterRole" class="form-label fw-semibold">Role</label>
+                <select id="filterRole" class="form-select">
+                    <option value="">All Roles</option>
+                    @foreach (var roleOption in ViewBag.Roles as List<string> ?? new List<string>())
+                    {
+                        <option value="@roleOption">@roleOption</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label for="filterStatus" class="form-label fw-semibold">Status</label>
+                <select id="filterStatus" class="form-select">
+                    <option value="">All Status</option>
+                    <option value="Active">Active</option>
+                    <option value="Inactive">Inactive</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <!-- Users List -->
+    <div id="usersContainer">
+        @foreach (var user in usersList)
+        {
+            <div class="user-card paginated-item" data-role="@user.Role" data-status="@(user.IsActive ? "Active" : "Inactive")">
+                <!-- Desktop Layout -->
+                <div class="desktop-layout">
+                    <div class="row align-items-center">
+                        <div class="col-md-4">
+                            <div class="user-name">
+                                <i class="fa-solid fa-user me-2"></i>@user.Username
+                            </div>
+                            <div class="user-info">
+                                <i class="fa-solid fa-envelope"></i>
+                                <span>@user.Email</span>
+                            </div>
+                            <div class="user-info">
+                                <i class="fa-solid fa-phone"></i>
+                                <span>@user.Phone</span>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="user-info">
+                                <i class="fa-solid fa-user-tag"></i>
+                                <span class="role-badge">@user.Role</span>
+                            </div>
+                            <div class="user-info">
+                                <i class="fa-solid fa-calendar"></i>
+                                <span>Created: @user.CreatedDate.ToString("MMM dd, yyyy")</span>
+                            </div>
+                            @if (user.LastActivity.HasValue)
+                            {
+                                <div class="user-info">
+                                    <i class="fa-solid fa-clock"></i>
+                                    <span>Last Active: @user.LastActivity.Value.ToString("MMM dd, yyyy")</span>
+                                </div>
+                            }
+                        </div>
+                        <div class="col-md-3 text-center">
+                            <span class="status-badge status-@(user.IsActive ? "active" : "inactive")">
+                                @(user.IsActive ? "Active" : "Inactive")
+                            </span>
+                        </div>
+                        <div class="col-md-2 text-end">
+                            <div class="dropdown">
+                                <button class="btn btn-sm btn-outline-primary" type="button" data-bs-toggle="dropdown">
+                                    <i class="fa-solid fa-ellipsis-vertical"></i>
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end">
+                                    <li>
+                                        <a class="dropdown-item" href="/Attendance/Calendar?agentId=@user.UserId">
+                                            <i class="fa-solid fa-calendar-check me-2"></i>Attendance
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <button class="dropdown-item edit-user-btn" data-user-id="@user.UserId">
+                                            <i class="fa-solid fa-pencil me-2"></i>Edit
+                                        </button>
+                                    </li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    @if (role?.ToLower() == "admin")
+                                    {
+                                        @if (hasImpersonation)
+                                        {
+                                            <li>
+                                                <button class="dropdown-item impersonate-user-btn" data-user-id="@user.UserId" data-username="@user.Username">
+                                                    <i class="fa-solid fa-user-secret me-2"></i>Impersonate
+                                                </button>
+                                            </li>
+                                        }
+                                    }
+                                    <li>
+                                        <button class="dropdown-item text-danger delete-user-btn" data-user-id="@user.UserId">
+                                            <i class="fa-solid fa-trash me-2"></i>Delete
+                                        </button>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Mobile Layout -->
+                <div class="mobile-layout">
+                    <div class="mobile-user-layout">
+                        <div class="mobile-user-info">
+                            <div class="mobile-user-name">@user.Username</div>
+                            <div class="mobile-user-details">@user.Email</div>
+                            <div class="mobile-user-details">@user.Phone</div>
+                            <div class="mobile-status-role">
+                                <span class="mobile-status-badge status-@(user.IsActive ? "active" : "inactive")">
+                                    @(user.IsActive ? "Active" : "Inactive")
+                                </span>
+                                <span class="mobile-role-badge">@user.Role</span>
+                            </div>
+                        </div>
+                        <div class="mobile-dropdown">
+                            <div class="dropdown">
+                                <button class="btn btn-sm" type="button" data-bs-toggle="dropdown">
+                                    <i class="fa-solid fa-ellipsis-vertical"></i>
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end">
+                                    <li>
+                                        <a class="dropdown-item" href="/Attendance/Calendar?agentId=@user.UserId">
+                                            <i class="fa-solid fa-calendar-check me-2"></i>Attendance
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <button class="dropdown-item edit-user-btn" data-user-id="@user.UserId">
+                                            <i class="fa-solid fa-pencil me-2"></i>Edit
+                                        </button>
+                                    </li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    @if (role?.ToLower() == "admin")
+                                    {
+                                        <li>
+                                            <button class="dropdown-item impersonate-user-btn" data-user-id="@user.UserId" data-username="@user.Username">
+                                                <i class="fa-solid fa-user-secret me-2"></i>Impersonate
+                                            </button>
+                                        </li>
+                                    }
+                                    <li>
+                                        <button class="dropdown-item text-danger delete-user-btn" data-user-id="@user.UserId">
+                                            <i class="fa-solid fa-trash me-2"></i>Delete
+                                        </button>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+        
+        <!-- Pagination -->
+        <div class="pagination-container" id="paginationContainer" style="display: none;">
+            <div class="pagination-info">
+                <span id="paginationInfo">Showing 1-10 of 50 users</span>
+            </div>
+            <div class="pagination-controls">
+                <button class="pagination-btn" id="prevBtn" onclick="changePage(-1)">
+                    <i class="fa-solid fa-chevron-left"></i> Previous
+                </button>
+                <div id="pageNumbers"></div>
+                <button class="pagination-btn" id="nextBtn" onclick="changePage(1)">
+                    Next <i class="fa-solid fa-chevron-right"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ============================================================
+     ADD USER MODAL
+     ============================================================ -->
+<div class="modal fade" id="addUserModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form id="addUserForm" method="post" action="/ManageUsers/AddUser" novalidate>
+                <div class="modal-header">
+                    <h5 class="modal-title">Add New User</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">
+                                <i class="fa-solid fa-user" style="color:#1A6FA8;font-size:0.62rem;"></i>
+                                Name <span style="color:#DC2626;">*</span>
+                            </label>
+                            <div class="modal-field-wrap">
+                                <input name="Username" id="addUsername" class="form-control"
+                                       placeholder="Full name" autocomplete="off" />
+                                <span class="field-icon" id="addUsernameIcon"></span>
+                            </div>
+                            <div class="field-msg" id="addUsernameMsg"></div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">
+                                <i class="fa-solid fa-envelope" style="color:#1A6FA8;font-size:0.62rem;"></i>
+                                Email <span style="color:#DC2626;">*</span>
+                            </label>
+                            <div class="modal-field-wrap">
+                                <input name="Email" id="addEmail" type="text"
+                                       class="form-control" placeholder="user@example.com" autocomplete="off" />
+                                <span class="field-icon" id="addEmailIcon"></span>
+                            </div>
+                            <div class="field-msg" id="addEmailMsg"></div>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">
+                                <i class="fa-solid fa-user-tag" style="color:#1A6FA8;font-size:0.62rem;"></i>
+                                Role <span style="color:#DC2626;">*</span>
+                            </label>
+                            <div class="modal-field-wrap">
+                                <select name="Role" id="addRole" class="form-select">
+                                    <option value="">Choose role…</option>
+                                    @foreach (var roleOption in ViewBag.Roles as List<string> ?? new List<string>())
+                                    {
+                                        <option value="@roleOption">@roleOption</option>
+                                    }
+                                </select>
+                                <span class="field-icon" id="addRoleIcon"></span>
+                            </div>
+                            <div class="field-msg" id="addRoleMsg"></div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">
+                                <i class="fa-solid fa-phone" style="color:#1A6FA8;font-size:0.62rem;"></i>
+                                Phone
+                            </label>
+                            <div class="modal-field-wrap">
+                                <input name="Phone" id="addPhone" class="form-control"
+                                       placeholder="10-digit number" maxlength="10" inputmode="numeric" />
+                                <span class="field-icon" id="addPhoneIcon"></span>
+                            </div>
+                            <div class="field-msg" id="addPhoneMsg"></div>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">
+                                <i class="fa-solid fa-lock" style="color:#1A6FA8;font-size:0.62rem;"></i>
+                                Password <span style="color:#DC2626;">*</span>
+                            </label>
+                            <div class="modal-field-wrap">
+                                <div class="input-group">
+                                    <input name="Password" id="addPassword" type="password"
+                                           class="form-control" placeholder="Min 6 characters" />
+                                    <span class="input-group-text" id="toggleAddPassword">
+                                        <i class="fa-solid fa-eye-slash" id="addPasswordIcon2"></i>
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="pwd-strength-bar"><div class="pwd-strength-fill" id="addPwdFill"></div></div>
+                            <div class="field-msg pwd-strength-text" id="addPwdStrengthText"></div>
+                            <div class="field-msg" id="addPasswordMsg"></div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">
+                                <i class="fa-solid fa-circle-dot" style="color:#1A6FA8;font-size:0.62rem;"></i>
+                                Status
+                            </label>
+                            <div class="status-radio-group">
+                                <label class="status-radio-option">
+                                    <input type="radio" name="IsActive" value="true" id="addActive" checked />
+                                    <span class="status-radio-label active-label">
+                                        <i class="fa-solid fa-circle-check"></i> Active
+                                    </span>
+                                </label>
+                                <label class="status-radio-option">
+                                    <input type="radio" name="IsActive" value="false" id="addInactiveRadio" />
+                                    <span class="status-radio-label inactive-label">
+                                        <i class="fa-solid fa-circle-xmark"></i> Inactive
+                                    </span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fa-solid fa-xmark"></i> Cancel
+                    </button>
+                    <button type="submit" class="btn btn-primary" id="addSubmitBtn">
+                        <i class="fa-solid fa-user-plus"></i> Create User
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- ============================================================
+     EDIT USER MODAL
+     ============================================================ -->
+<div class="modal fade" id="editUserModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form id="editUserForm" method="post" action="/ManageUsers/EditUser" novalidate>
+                <div class="modal-header">
+                    <h5 class="modal-title">Edit User</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" name="UserId" id="editUserId" />
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">
+                                <i class="fa-solid fa-user" style="color:#1A6FA8;font-size:0.62rem;"></i>
+                                Name <span style="color:#DC2626;">*</span>
+                            </label>
+                            <div class="modal-field-wrap">
+                                <input name="Username" id="editUsername" class="form-control"
+                                       placeholder="Full name" autocomplete="off" />
+                                <span class="field-icon" id="editUsernameIcon"></span>
+                            </div>
+                            <div class="field-msg" id="editUsernameMsg"></div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">
+                                <i class="fa-solid fa-envelope" style="color:#1A6FA8;font-size:0.62rem;"></i>
+                                Email <span style="color:#DC2626;">*</span>
+                            </label>
+                            <div class="modal-field-wrap">
+                                <input name="Email" id="editEmail" type="text"
+                                       class="form-control" placeholder="user@example.com" autocomplete="off" />
+                                <span class="field-icon" id="editEmailIcon"></span>
+                            </div>
+                            <div class="field-msg" id="editEmailMsg"></div>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">
+                                <i class="fa-solid fa-user-tag" style="color:#1A6FA8;font-size:0.62rem;"></i>
+                                Role <span style="color:#DC2626;">*</span>
+                            </label>
+                            <div class="modal-field-wrap">
+                                <select name="Role" id="editRole" class="form-select">
+                                    <option value="">Choose role…</option>
+                                    @foreach (var roleOption in ViewBag.Roles as List<string> ?? new List<string>())
+                                    {
+                                        <option value="@roleOption">@roleOption</option>
+                                    }
+                                </select>
+                                <span class="field-icon" id="editRoleIcon"></span>
+                            </div>
+                            <div class="field-msg" id="editRoleMsg"></div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">
+                                <i class="fa-solid fa-phone" style="color:#1A6FA8;font-size:0.62rem;"></i>
+                                Phone
+                            </label>
+                            <div class="modal-field-wrap">
+                                <input name="Phone" id="editPhone" class="form-control"
+                                       placeholder="10-digit number" maxlength="10" inputmode="numeric" />
+                                <span class="field-icon" id="editPhoneIcon"></span>
+                            </div>
+                            <div class="field-msg" id="editPhoneMsg"></div>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">
+                                <i class="fa-solid fa-circle-dot" style="color:#1A6FA8;font-size:0.62rem;"></i>
+                                Status
+                            </label>
+                            <div class="status-radio-group">
+                                <label class="status-radio-option">
+                                    <input type="radio" name="IsActive" value="true" id="editActive" />
+                                    <span class="status-radio-label active-label">
+                                        <i class="fa-solid fa-circle-check"></i> Active
+                                    </span>
+                                </label>
+                                <label class="status-radio-option">
+                                    <input type="radio" name="IsActive" value="false" id="editInactive" />
+                                    <span class="status-radio-label inactive-label">
+                                        <i class="fa-solid fa-circle-xmark"></i> Inactive
+                                    </span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fa-solid fa-xmark"></i> Cancel
+                    </button>
+                    <button type="submit" class="btn btn-success" id="editSubmitBtn">
+                        <i class="fa-solid fa-floppy-disk"></i> Save Changes
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="~/js/subscription-alerts.js"></script>
+<script>
+/* ============================================================
+   VALIDATION HELPERS
+   ============================================================ */
+function setFieldState(inputEl, iconEl, msgEl, state, message) {
+    // state: 'valid' | 'invalid' | 'reset'
+    inputEl.classList.remove('field-valid', 'field-invalid');
+    iconEl.classList.remove('show-icon', 'icon-valid', 'icon-invalid');
+    msgEl.className = 'field-msg';
+    msgEl.innerHTML = '';
+
+    if (state === 'valid') {
+        inputEl.classList.add('field-valid');
+        iconEl.innerHTML = '<i class="fa-solid fa-circle-check"></i>';
+        iconEl.classList.add('show-icon', 'icon-valid');
+        if (message) {
+            msgEl.classList.add('msg-valid');
+            msgEl.innerHTML = '<i class="fa-solid fa-check"></i> ' + message;
+        }
+    } else if (state === 'invalid') {
+        inputEl.classList.add('field-invalid');
+        iconEl.innerHTML = '<i class="fa-solid fa-circle-xmark"></i>';
+        iconEl.classList.add('show-icon', 'icon-invalid');
+        if (message) {
+            msgEl.classList.add('msg-invalid');
+            msgEl.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> ' + message;
+        }
+    }
+}
+
+function validateName(val) {
+    if (!val.trim()) return { ok: false, msg: 'Name is required' };
+    if (val.trim().length < 2) return { ok: false, msg: 'At least 2 characters' };
+    if (val.trim().length > 50) return { ok: false, msg: 'Max 50 characters' };
+    if (!/^[a-zA-Z\s'.]+$/.test(val.trim())) return { ok: false, msg: 'Letters only' };
+    return { ok: true, msg: 'Looks good!' };
+}
+
+function validateEmail(val) {
+    if (!val.trim()) return { ok: false, msg: 'Email is required' };
+    var re = /^[^\s@@]+@@[^\s@@]+\.[^\s@@]{2,}$/;
+    if (!re.test(val.trim())) return { ok: false, msg: 'Enter a valid email address' };
+    return { ok: true, msg: 'Valid email' };
+}
+
+function validateRole(val) {
+    if (!val) return { ok: false, msg: 'Please select a role' };
+    return { ok: true, msg: 'Role selected' };
+}
+
+function validatePhone(val) {
+    if (!val.trim()) return { ok: true, msg: '' }; // optional
+    if (!/^[0-9]{10}$/.test(val.trim())) return { ok: false, msg: 'Enter exactly 10 digits' };
+    return { ok: true, msg: 'Valid number' };
+}
+
+function validatePassword(val) {
+    if (!val) return { ok: false, msg: 'Password is required' };
+    if (val.length < 6) return { ok: false, msg: 'Minimum 6 characters' };
+    return { ok: true, msg: 'Strong enough' };
+}
+
+function getPasswordStrength(val) {
+    if (!val) return { width: 0, color: '#E2E8F0', label: '' };
+    var score = 0;
+    if (val.length >= 6) score++;
+    if (val.length >= 10) score++;
+    if (/[A-Z]/.test(val)) score++;
+    if (/[0-9]/.test(val)) score++;
+    if (/[^a-zA-Z0-9]/.test(val)) score++;
+
+    if (score <= 1) return { width: 20, color: '#DC2626', label: 'Weak', labelClass: 'msg-invalid' };
+    if (score === 2) return { width: 40, color: '#F59E0B', label: 'Fair', labelClass: '' };
+    if (score === 3) return { width: 65, color: '#F59E0B', label: 'Good', labelClass: '' };
+    if (score === 4) return { width: 85, color: '#16A34A', label: 'Strong', labelClass: 'msg-valid' };
+    return { width: 100, color: '#16A34A', label: 'Very Strong', labelClass: 'msg-valid' };
+}
+
+/* ============================================================
+   WIRE UP VALIDATION — generic factory
+   ============================================================ */
+function wireValidation(prefix, hasPassword) {
+    var nameIn    = document.getElementById(prefix + 'Username');
+    var nameIcon  = document.getElementById(prefix + 'UsernameIcon');
+    var nameMsg   = document.getElementById(prefix + 'UsernameMsg');
+
+    var emailIn   = document.getElementById(prefix + 'Email');
+    var emailIcon = document.getElementById(prefix + 'EmailIcon');
+    var emailMsg  = document.getElementById(prefix + 'EmailMsg');
+
+    var roleIn    = document.getElementById(prefix + 'Role');
+    var roleIcon  = document.getElementById(prefix + 'RoleIcon');
+    var roleMsg   = document.getElementById(prefix + 'RoleMsg');
+
+    var phoneIn   = document.getElementById(prefix + 'Phone');
+    var phoneIcon = document.getElementById(prefix + 'PhoneIcon');
+    var phoneMsg  = document.getElementById(prefix + 'PhoneMsg');
+
+    // Bind name
+    if (nameIn) {
+        nameIn.addEventListener('input', function() {
+            var r = validateName(this.value);
+            setFieldState(nameIn, nameIcon, nameMsg, r.ok ? 'valid' : 'invalid', r.msg);
+        });
+        nameIn.addEventListener('blur', function() {
+            var r = validateName(this.value);
+            setFieldState(nameIn, nameIcon, nameMsg, r.ok ? 'valid' : 'invalid', r.msg);
+        });
+    }
+
+    // Bind email
+    if (emailIn) {
+        emailIn.addEventListener('input', function() {
+            var r = validateEmail(this.value);
+            setFieldState(emailIn, emailIcon, emailMsg, r.ok ? 'valid' : 'invalid', r.msg);
+        });
+        emailIn.addEventListener('blur', function() {
+            var r = validateEmail(this.value);
+            setFieldState(emailIn, emailIcon, emailMsg, r.ok ? 'valid' : 'invalid', r.msg);
+        });
+    }
+
+    // Bind role
+    if (roleIn) {
+        roleIn.addEventListener('change', function() {
+            var r = validateRole(this.value);
+            setFieldState(roleIn, roleIcon, roleMsg, r.ok ? 'valid' : 'invalid', r.msg);
+        });
+    }
+
+    // Bind phone — digits only
+    if (phoneIn) {
+        phoneIn.addEventListener('input', function() {
+            this.value = this.value.replace(/[^0-9]/g, '').slice(0, 10);
+            if (this.value.length > 0) {
+                var r = validatePhone(this.value);
+                setFieldState(phoneIn, phoneIcon, phoneMsg, r.ok ? 'valid' : 'invalid', r.msg);
+            } else {
+                setFieldState(phoneIn, phoneIcon, phoneMsg, 'reset', '');
+            }
+        });
+        phoneIn.addEventListener('blur', function() {
+            if (this.value.length > 0) {
+                var r = validatePhone(this.value);
+                setFieldState(phoneIn, phoneIcon, phoneMsg, r.ok ? 'valid' : 'invalid', r.msg);
+            }
+        });
+    }
+
+    // Bind password (add form only)
+    if (hasPassword) {
+        var pwdIn       = document.getElementById(prefix + 'Password');
+        var pwdMsg      = document.getElementById(prefix + 'PasswordMsg');
+        var pwdFill     = document.getElementById(prefix + 'PwdFill');
+        var pwdStrText  = document.getElementById(prefix + 'PwdStrengthText');
+        var toggleBtn   = document.getElementById('toggle' + prefix.charAt(0).toUpperCase() + prefix.slice(1) + 'Password');
+        var eyeIcon     = document.getElementById(prefix + 'PasswordIcon2');
+
+        if (pwdIn) {
+            pwdIn.addEventListener('input', function() {
+                var val = this.value;
+                var r = validatePassword(val);
+                var s = getPasswordStrength(val);
+
+                // Strength bar
+                if (pwdFill) {
+                    pwdFill.style.width = s.width + '%';
+                    pwdFill.style.background = s.color;
+                }
+                if (pwdStrText) {
+                    pwdStrText.className = 'field-msg pwd-strength-text ' + (s.labelClass || '');
+                    pwdStrText.textContent = s.label ? 'Strength: ' + s.label : '';
+                    pwdStrText.style.color = s.color;
+                }
+                if (pwdMsg) {
+                    if (!r.ok) {
+                        pwdMsg.className = 'field-msg msg-invalid';
+                        pwdMsg.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> ' + r.msg;
+                    } else {
+                        pwdMsg.className = 'field-msg';
+                        pwdMsg.innerHTML = '';
+                    }
+                }
+                // Border color on input itself
+                pwdIn.classList.remove('field-valid', 'field-invalid');
+                if (val.length > 0) {
+                    pwdIn.classList.add(r.ok ? 'field-valid' : 'field-invalid');
+                }
+            });
+        }
+
+        // Password toggle
+        if (toggleBtn && pwdIn) {
+            toggleBtn.addEventListener('click', function() {
+                if (pwdIn.type === 'password') {
+                    pwdIn.type = 'text';
+                    if (eyeIcon) { eyeIcon.classList.remove('fa-eye-slash'); eyeIcon.classList.add('fa-eye'); }
+                } else {
+                    pwdIn.type = 'password';
+                    if (eyeIcon) { eyeIcon.classList.remove('fa-eye'); eyeIcon.classList.add('fa-eye-slash'); }
+                }
+            });
+        }
+    }
+}
+
+/* ============================================================
+   VALIDATE ENTIRE FORM before submit — returns true/false
+   ============================================================ */
+function validateForm(prefix, hasPassword) {
+    var valid = true;
+
+    var nameIn    = document.getElementById(prefix + 'Username');
+    var nameIcon  = document.getElementById(prefix + 'UsernameIcon');
+    var nameMsg   = document.getElementById(prefix + 'UsernameMsg');
+    var emailIn   = document.getElementById(prefix + 'Email');
+    var emailIcon = document.getElementById(prefix + 'EmailIcon');
+    var emailMsg  = document.getElementById(prefix + 'EmailMsg');
+    var roleIn    = document.getElementById(prefix + 'Role');
+    var roleIcon  = document.getElementById(prefix + 'RoleIcon');
+    var roleMsg   = document.getElementById(prefix + 'RoleMsg');
+    var phoneIn   = document.getElementById(prefix + 'Phone');
+    var phoneIcon = document.getElementById(prefix + 'PhoneIcon');
+    var phoneMsg  = document.getElementById(prefix + 'PhoneMsg');
+
+    if (nameIn) { var r = validateName(nameIn.value); setFieldState(nameIn, nameIcon, nameMsg, r.ok ? 'valid' : 'invalid', r.msg); if (!r.ok) valid = false; }
+    if (emailIn) { var r = validateEmail(emailIn.value); setFieldState(emailIn, emailIcon, emailMsg, r.ok ? 'valid' : 'invalid', r.msg); if (!r.ok) valid = false; }
+    if (roleIn) { var r = validateRole(roleIn.value); setFieldState(roleIn, roleIcon, roleMsg, r.ok ? 'valid' : 'invalid', r.msg); if (!r.ok) valid = false; }
+    if (phoneIn && phoneIn.value.length > 0) { var r = validatePhone(phoneIn.value); setFieldState(phoneIn, phoneIcon, phoneMsg, r.ok ? 'valid' : 'invalid', r.msg); if (!r.ok) valid = false; }
+
+    if (hasPassword) {
+        var pwdIn  = document.getElementById(prefix + 'Password');
+        var pwdMsg = document.getElementById(prefix + 'PasswordMsg');
+        if (pwdIn) {
+            var r = validatePassword(pwdIn.value);
+            if (!r.ok) {
+                pwdIn.classList.remove('field-valid'); pwdIn.classList.add('field-invalid');
+                if (pwdMsg) { pwdMsg.className = 'field-msg msg-invalid'; pwdMsg.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> ' + r.msg; }
+                valid = false;
+            }
+        }
+    }
+    return valid;
+}
+
+/* ============================================================
+   RESET MODAL STATE
+   ============================================================ */
+function resetModalFields(prefix, hasPassword) {
+    var fields = [prefix + 'Username', prefix + 'Email', prefix + 'Role', prefix + 'Phone'];
+    if (hasPassword) fields.push(prefix + 'Password');
+    fields.forEach(function(id) {
+        var el = document.getElementById(id);
+        if (el) { el.classList.remove('field-valid', 'field-invalid'); if (el.tagName === 'INPUT') el.value = ''; else if (el.tagName === 'SELECT') el.value = ''; }
+    });
+    var icons = [prefix + 'UsernameIcon', prefix + 'EmailIcon', prefix + 'RoleIcon', prefix + 'PhoneIcon'];
+    icons.forEach(function(id) { var el = document.getElementById(id); if (el) { el.className = 'field-icon'; el.innerHTML = ''; } });
+    var msgs = [prefix + 'UsernameMsg', prefix + 'EmailMsg', prefix + 'RoleMsg', prefix + 'PhoneMsg', prefix + 'PasswordMsg'];
+    msgs.forEach(function(id) { var el = document.getElementById(id); if (el) { el.className = 'field-msg'; el.innerHTML = ''; } });
+
+    if (hasPassword) {
+        var fill = document.getElementById(prefix + 'PwdFill');
+        var txt  = document.getElementById(prefix + 'PwdStrengthText');
+        if (fill) { fill.style.width = '0%'; }
+        if (txt)  { txt.textContent = ''; }
+        var pwdIn = document.getElementById(prefix + 'Password');
+        if (pwdIn) { pwdIn.type = 'password'; }
+        var eyeIcon = document.getElementById(prefix + 'PasswordIcon2');
+        if (eyeIcon) { eyeIcon.className = 'fa-solid fa-eye-slash'; }
+    }
+}
+
+/* ============================================================
+   MAIN DOCUMENT READY
+   ============================================================ */
+$(document).ready(function () {
+
+    // Wire live validation
+    wireValidation('add', true);
+    wireValidation('edit', false);
+
+    // Reset add modal on close
+    $('#addUserModal').on('hidden.bs.modal', function() {
+        resetModalFields('add', true);
+        document.getElementById('addActive').checked = true;
+    });
+
+    // Reset edit modal on close
+    $('#editUserModal').on('hidden.bs.modal', function() {
+        resetModalFields('edit', false);
+    });
+
+    // Handle dropdown z-index
+    $('.user-card .dropdown').on('show.bs.dropdown', function () {
+        $('.user-card').css('z-index', '1');
+        $(this).closest('.user-card').css('z-index', '9999');
+    });
+    $('.user-card .dropdown').on('hide.bs.dropdown', function () {
+        $(this).closest('.user-card').css('z-index', '1');
+    });
+
+    // Search and filter functionality
+    function applyFilters() {
+        var search = $('#searchBox').val().toLowerCase();
+        var role = $('#filterRole').val();
+        var status = $('#filterStatus').val();
+
+        filteredUsers = [];
+        $('.user-card').each(function () {
+            var card = $(this);
+            var text = card.text().toLowerCase();
+            var cardRole = card.data('role');
+            var cardStatus = card.data('status');
+
+            var matchSearch = !search || text.includes(search);
+            var matchRole = !role || cardRole === role;
+            var matchStatus = !status || cardStatus === status;
+
+            if (matchSearch && matchRole && matchStatus) {
+                filteredUsers.push(card[0]);
+            }
+        });
+        currentPage = 1;
+        updatePagination();
+    }
+
+    $('#searchBox, #filterRole, #filterStatus').on('input change', applyFilters);
+
+    $('#clearFilters').on('click', function () {
+        $('#searchBox').val('');
+        $('#filterRole').val('');
+        $('#filterStatus').val('');
+        applyFilters();
+    });
+
+    // Edit user button — load data then show modal
+    $('.edit-user-btn').on('click', function () {
+        var userId = $(this).data('user-id');
+        resetModalFields('edit', false);
+        $.getJSON('/ManageUsers/GetUser/' + userId, function (user) {
+            $('#editUserId').val(user.userId);
+            $('#editUsername').val(user.username);
+            $('#editEmail').val(user.email);
+            $('#editRole').val(user.role);
+            $('#editPhone').val(user.phone);
+            if (user.isActive) {
+                $('#editActive').prop('checked', true);
+            } else {
+                $('#editInactive').prop('checked', true);
+            }
+            $('#editUserModal').modal('show');
+        });
+    });
+
+    // Delete user button
+    $('.delete-user-btn').on('click', function () {
+        var userId = $(this).data('user-id');
+        if (confirm('Are you sure you want to delete this user?')) {
+            $.post('/ManageUsers/DeleteUser/' + userId, function () {
+                location.reload();
+            });
+        }
+    });
+
+        // Impersonate user button
+        $('.impersonate-user-btn').on('click', function () {
+        var userId = $(this).data('user-id');
+        var username = $(this).data('username');
+        Swal.fire({
+        title: 'Confirm Impersonation',
+        text: 'You are about to impersonate ' + username + '. You will be logged in as this user.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Yes, Impersonate',
+        cancelButtonText: 'Cancel',
+        confirmButtonColor: '#F59E0B'
+        }).then((result) => {
+        if (result.isConfirmed) {
+        $.post('/Account/StartImpersonation', { userId: userId })
+        .done(function (response) {
+        if (response.success) {
+        Swal.fire({
+        title: 'Impersonation Started',
+        text: response.message,
+        icon: 'success',
+        timer: 1500,
+        showConfirmButton: false
+        }).then(() => {
+        window.location.href = '/home';
+        });
+        } else {
+        Swal.fire('Error', response.message || 'Failed to start impersonation', 'error');
+        }
+        })
+        .fail(function () {
+        Swal.fire('Error', 'Failed to start impersonation', 'error');
+        });
+        }
+        });
+        });
+
+
+    // ADD form submit with validation
+    $('#addUserForm').on('submit', function (e) {
+        e.preventDefault();
+        if (!validateForm('add', true)) return;
+
+        var submitBtn = document.getElementById('addSubmitBtn');
+        submitBtn.classList.add('btn-loading');
+        submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Creating…';
+
+        var formData = new FormData(this);
+        $.ajax({
+            url: $(this).attr('action'),
+            type: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            headers: { 'X-Requested-With': 'XMLHttpRequest' },
+            success: function(response) {
+                submitBtn.classList.remove('btn-loading');
+                submitBtn.innerHTML = '<i class="fa-solid fa-user-plus"></i> Create User';
+                if (response.success) {
+                    location.reload();
+                } else if (response.agentLimitReached) {
+                    SubscriptionAlerts.showAgentLimitAlert(response.message, response.availablePlans);
+                } else if (response.storageLimitReached) {
+                    SubscriptionAlerts.showStorageLimitAlert(response.message, response.currentUsageGB, response.limitGB, response.availablePlans);
+                } else {
+                    Swal.fire('Error', response.message || 'Error occurred', 'error');
+                }
+            },
+            error: function() {
+                submitBtn.classList.remove('btn-loading');
+                submitBtn.innerHTML = '<i class="fa-solid fa-user-plus"></i> Create User';
+                Swal.fire('Error', 'Error occurred while adding user', 'error');
+            }
+        });
+    });
+
+    // EDIT form submit with validation
+    $('#editUserForm').on('submit', function (e) {
+        e.preventDefault();
+        if (!validateForm('edit', false)) return;
+
+        var submitBtn = document.getElementById('editSubmitBtn');
+        submitBtn.classList.add('btn-loading');
+        submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving…';
+
+        $.post($(this).attr('action'), $(this).serialize(), function () {
+            location.reload();
+        }).fail(function() {
+            submitBtn.classList.remove('btn-loading');
+            submitBtn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Save Changes';
+            Swal.fire('Error', 'Error saving changes', 'error');
+        });
+    });
+
+    // Load SweetAlert2 if not already loaded
+    if (typeof Swal === 'undefined') {
+        var script = document.createElement('script');
+        script.src = 'https://cdn.jsdelivr.net/npm/sweetalert2@11';
+        document.head.appendChild(script);
+    }
+
+    // ── PAGINATION ──────────────────────────────────────────
+    let currentPage = 1;
+    let pageSize = 10;
+    let filteredUsers = [];
+
+    function initializePagination() {
+        const userCards = document.querySelectorAll('.user-card');
+        filteredUsers = Array.from(userCards);
+        if (filteredUsers.length > 0) {
+            document.getElementById('paginationContainer').style.display = 'flex';
+            updatePagination();
+        }
+    }
+
+    function updatePagination() {
+        const totalPages = Math.ceil(filteredUsers.length / pageSize);
+        const startIndex = (currentPage - 1) * pageSize;
+        const endIndex = Math.min(startIndex + pageSize, filteredUsers.length);
+
+        document.querySelectorAll('.user-card').forEach(card => { card.style.display = 'none'; });
+        for (let i = startIndex; i < endIndex; i++) {
+            if (filteredUsers[i]) filteredUsers[i].style.display = 'block';
+        }
+
+        const start = filteredUsers.length > 0 ? startIndex + 1 : 0;
+        document.getElementById('paginationInfo').textContent =
+            `Showing ${start}-${endIndex} of ${filteredUsers.length} users`;
+
+        updatePageNumbers(totalPages);
+        document.getElementById('prevBtn').disabled = currentPage === 1;
+        document.getElementById('nextBtn').disabled = currentPage === totalPages || totalPages === 0;
+    }
+
+    function updatePageNumbers(totalPages) {
+        const pageNumbers = document.getElementById('pageNumbers');
+        pageNumbers.innerHTML = '';
+        if (totalPages <= 1) return;
+
+        const maxVisiblePages = 5;
+        let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+        let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+        if (endPage - startPage + 1 < maxVisiblePages) startPage = Math.max(1, endPage - maxVisiblePages + 1);
+
+        for (let i = startPage; i <= endPage; i++) {
+            const btn = document.createElement('button');
+            btn.className = `pagination-btn ${i === currentPage ? 'active' : ''}`;
+            btn.textContent = i;
+            btn.onclick = () => goToPage(i);
+            pageNumbers.appendChild(btn);
+        }
+    }
+
+    window.changePage = function(direction) {
+        const totalPages = Math.ceil(filteredUsers.length / pageSize);
+        const newPage = currentPage + direction;
+        if (newPage >= 1 && newPage <= totalPages) { currentPage = newPage; updatePagination(); }
+    };
+
+    function goToPage(page) { currentPage = page; updatePagination(); }
+
+    initializePagination();
+});
+</script>
+}

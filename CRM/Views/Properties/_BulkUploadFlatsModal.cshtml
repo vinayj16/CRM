@@ -1,0 +1,142 @@
+<!-- Bulk Upload Flats Modal -->
+<div class="modal fade" id="bulkUploadFlatsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" style=" color: #1A6FA8 !important;"><i class="fa-solid fa-upload me-2"></i>Bulk Upload Flats</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">Download Sample Template</label>
+                    <div>
+                        <a href="@Url.Action("DownloadSample", "Properties")" class="btn btn-outline-primary btn-sm">
+                            <i class="fa-solid fa-download me-2"></i>Download Sample Excel
+                        </a>
+                    </div>
+                    <small class="text-muted">Download the template, fill in flat details, and upload below.</small>
+                </div>
+                <div class="mb-3">
+                    <label for="bulkFlatsFile" class="form-label">Upload Excel File <span class="text-danger">*</span></label>
+                    <input type="file" class="form-control" id="bulkFlatsFile" accept=".xlsx,.xls" required />
+                </div>
+                <div id="uploadProgress" class="progress mb-3" style="display: none;">
+                    <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%">0%</div>
+                </div>
+                <div id="uploadResults" style="display: none;">
+                    <div class="alert alert-info mb-0">
+                        <h6 class="alert-heading">Upload Results:</h6>
+                        <div id="uploadResultsContent"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="uploadBulkFlats()">
+                    <i class="fa-solid fa-upload me-2"></i>Upload
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function uploadBulkFlats() {
+        const fileInput = document.getElementById('bulkFlatsFile');
+        const file = fileInput.files[0];
+
+        if (!file) {
+            showToast('Please select a file to upload', 'warning');
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('propertyId', propertyId);
+
+        // Add anti-forgery token
+        const token = document.querySelector('input[name="__RequestVerificationToken"]');
+        if (token) {
+            formData.append('__RequestVerificationToken', token.value);
+        }
+
+        // Show progress
+        const progressDiv = document.getElementById('uploadProgress');
+        const progressBar = progressDiv.querySelector('.progress-bar');
+        const resultsDiv = document.getElementById('uploadResults');
+        const resultsContent = document.getElementById('uploadResultsContent');
+
+        progressDiv.style.display = 'block';
+        resultsDiv.style.display = 'none';
+
+        // Simulate progress
+        let progress = 0;
+        const progressInterval = setInterval(() => {
+            progress += 10;
+            if (progress <= 90) {
+                progressBar.style.width = progress + '%';
+                progressBar.textContent = progress + '%';
+            }
+        }, 200);
+
+        fetch('@Url.Action("BulkUploadFlats", "Properties")', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            clearInterval(progressInterval);
+            progressBar.style.width = '100%';
+            progressBar.textContent = '100%';
+
+            setTimeout(() => {
+                progressDiv.style.display = 'none';
+                resultsDiv.style.display = 'block';
+
+                if (data.success) {
+                    resultsContent.innerHTML = `
+                        <p class="mb-1"><strong>Total Rows:</strong> ${data.totalRows}</p>
+                        <p class="mb-1"><strong>Successfully Uploaded:</strong> ${data.successCount}</p>
+                        <p class="mb-0"><strong>Failed:</strong> ${data.errorCount}</p>
+                        ${data.errors && data.errors.length > 0 ? `
+                            <hr>
+                            <p class="mb-1"><strong>Errors:</strong></p>
+                            <ul class="mb-0">
+                                ${data.errors.map(e => `<li>${e}</li>`).join('')}
+                            </ul>
+                        ` : ''}
+                    `;
+                    showToast(`${data.successCount} flats uploaded successfully!`, 'success');
+
+                    // Reload flats table
+                    loadFlats();
+
+                    // Reset and close modal after 3 seconds
+                    setTimeout(() => {
+                        bootstrap.Modal.getInstance(document.getElementById('bulkUploadFlatsModal')).hide();
+                        fileInput.value = '';
+                        resultsDiv.style.display = 'none';
+                    }, 3000);
+                } else {
+                    resultsContent.innerHTML = `<p class="mb-0 text-danger">${data.message || 'Upload failed. Please check your file format.'}</p>`;
+                    showToast(data.message || 'Upload failed', 'error');
+                }
+            }, 500);
+        })
+        .catch(error => {
+            clearInterval(progressInterval);
+            progressDiv.style.display = 'none';
+            resultsDiv.style.display = 'block';
+            resultsContent.innerHTML = `<p class="mb-0 text-danger">An error occurred during upload. Please try again.</p>`;
+            showToast('Upload failed', 'error');
+            console.error('Error:', error);
+        });
+    }
+
+    // Reset modal when closed
+    document.getElementById('bulkUploadFlatsModal').addEventListener('hidden.bs.modal', function () {
+        document.getElementById('bulkFlatsFile').value = '';
+        document.getElementById('uploadProgress').style.display = 'none';
+        document.getElementById('uploadResults').style.display = 'none';
+    });
+</script>

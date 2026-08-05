@@ -1,0 +1,825 @@
+@model CRM.Models.InvoiceModel
+@{
+    ViewData["Title"] = "Create Invoice";
+}
+
+<!-- Flatpickr CSS -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+
+<style>
+    :root {
+        --gold:       #D4A45A;
+        --gold-light: #FEE2E2;
+        --gold-dark:  #B8883E;
+        --blue:       #1A6FA8;
+        --blue-light: #F0F4F8;
+        --blue-dark:  #0F4C75;
+        --ink:        #1A2332;
+        --ink-mid:    #2A3A4A;
+        --ink-soft:   #6B7B8D;
+        --surface:    #FFFFFF;
+        --bg:         #F0F4F8;
+        --border:     #E2E8F0;
+        --radius:     8px;
+        --radius-lg:  12px;
+        --shadow:     0 2px 12px rgba(0,0,0,.07);
+    }
+
+    /* ── dark mode ── */
+    .dark-mode {
+        --surface:    #1A2332;
+        --bg:         #111827;
+        --border:     #2A3A4A;
+        --ink:        #E8EDF2;
+        --ink-mid:    #B8C8D8;
+        --ink-soft:   #6B7B8D;
+        --gold-light: #111827;
+        --blue-light: #162436;
+    }
+
+    /* ── wrapper ── */
+    .ci-wrap {
+        max-width: 860px;
+        margin: 0 auto;
+        font-family: 'Segoe UI', system-ui, sans-serif;
+        font-size: 13px;
+        color: var(--ink);
+    }
+
+    /* ── breadcrumb ── */
+    .ci-wrap .breadcrumb {
+        font-size: 12px;
+        margin-bottom: 10px !important;
+    }
+
+    /* ── page title ── */
+    .ci-page-title {
+        margin-bottom: 14px;
+    }
+
+    .ci-page-title h2 {
+        font-size: 18px;
+        font-weight: 700;
+        color: var(--blue);
+        margin: 0 0 2px;
+    }
+
+    .dark-mode .ci-page-title h2 { color: var(--gold); }
+
+    .ci-page-title p {
+        font-size: 12px;
+        color: var(--ink-soft);
+        margin: 0;
+    }
+
+    /* ── section card ── */
+    .ci-card {
+        background: var(--surface);
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow);
+        margin-bottom: 14px;
+        overflow: hidden;
+        border: 1px solid var(--border);
+    }
+
+    .ci-card-header {
+        background: var(--blue);
+        color: #FFFFFF;
+        padding: 9px 16px;
+        font-weight: 600;
+        font-size: 12.5px;
+        display: flex;
+        align-items: center;
+        gap: 7px;
+    }
+
+    .ci-card-header i { font-size: 12px; opacity: .85; }
+
+    .ci-card-body {
+        padding: 14px 16px;
+    }
+
+    .dark-mode .ci-card-body { color: var(--ink); }
+
+    /* ── form labels ── */
+    .ci-wrap .form-label {
+        font-size: 11.5px;
+        font-weight: 600;
+        color: var(--ink-mid);
+        margin-bottom: 4px;
+        display: block;
+    }
+
+    /* ── inputs ── */
+    .ci-wrap .form-control,
+    .ci-wrap .form-select {
+        font-size: 12.5px;
+        padding: 6px 10px;
+        height: 34px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        background: var(--surface);
+        color: var(--ink);
+        transition: border-color .15s, box-shadow .15s;
+        /* fix validation icon overlap */
+        padding-right: 10px !important;
+        background-image: none !important;
+    }
+
+    .ci-wrap textarea.form-control {
+        height: auto;
+        padding: 8px 10px;
+        resize: vertical;
+        min-height: 72px;
+    }
+
+    .ci-wrap .form-control:focus,
+    .ci-wrap .form-select:focus {
+        border-color: var(--blue);
+        box-shadow: 0 0 0 3px rgba(26,111,168,.12);
+        outline: none;
+    }
+
+    .ci-wrap .form-control[readonly] {
+        background: var(--bg);
+        color: var(--ink-soft);
+        cursor: default;
+    }
+
+    /* dark mode inputs */
+    .dark-mode .ci-wrap .form-control,
+    .dark-mode .ci-wrap .form-select {
+        background: #2A3A4A;
+        border-color: var(--border);
+        color: var(--ink);
+    }
+
+    .dark-mode .ci-wrap .form-control[readonly] {
+        background: #1A2332;
+    }
+
+    /* ── VALIDATION FIX — remove Bootstrap's built-in icons ── */
+    .ci-wrap .was-validated .form-control:invalid,
+    .ci-wrap .was-validated .form-select:invalid,
+    .ci-wrap .form-control.is-invalid,
+    .ci-wrap .form-select.is-invalid {
+        border-color: #DC2626;
+        padding-right: 10px !important;
+        background-image: none !important;
+        background-size: unset !important;
+    }
+
+    .ci-wrap .was-validated .form-control:valid,
+    .ci-wrap .was-validated .form-select:valid,
+    .ci-wrap .form-control.is-valid,
+    .ci-wrap .form-select.is-valid {
+        border-color: #15803D;
+        padding-right: 10px !important;
+        background-image: none !important;
+        background-size: unset !important;
+    }
+
+    /* invalid feedback inline */
+    .ci-wrap .invalid-feedback {
+        display: none;
+        font-size: 11px;
+        color: #DC2626;
+        margin-top: 3px;
+    }
+
+    .ci-wrap .was-validated .form-control:invalid ~ .invalid-feedback,
+    .ci-wrap .was-validated .form-select:invalid ~ .invalid-feedback,
+    .ci-wrap .form-control.is-invalid ~ .invalid-feedback,
+    .ci-wrap .form-select.is-invalid ~ .invalid-feedback {
+        display: block;
+    }
+
+    /* ── searchable booking dropdown ── */
+    .ci-wrap .position-relative .dropdown-menu {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        z-index: 1050;
+        width: 100% !important;
+        min-width: 100% !important;
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        background: var(--surface);
+        box-shadow: 0 6px 20px rgba(0,0,0,.12);
+        overflow-x: hidden;
+        margin-top: 2px;
+    }
+
+    .dark-mode .ci-wrap .position-relative .dropdown-menu {
+        background: #2A3A4A;
+        border-color: var(--border);
+    }
+
+    .ci-wrap .position-relative .dropdown-item {
+        padding: 6px 12px;
+        font-size: 12px;
+        cursor: pointer;
+        border-bottom: 1px solid var(--bg);
+        white-space: normal;
+        word-break: break-word;
+        color: var(--ink);
+    }
+
+    .dark-mode .ci-wrap .position-relative .dropdown-item {
+        color: var(--ink);
+        border-bottom-color: var(--border);
+    }
+
+    .ci-wrap .position-relative .dropdown-item:hover {
+        background: var(--blue-light);
+        color: var(--blue);
+    }
+
+    .dark-mode .ci-wrap .position-relative .dropdown-item:hover {
+        background: #1A2332;
+        color: var(--gold);
+    }
+
+    .ci-wrap .position-relative .dropdown-item:last-child { border-bottom: none; }
+
+    /* ── booking details card ── */
+    .ci-info-card {
+        background: var(--bg);
+        border-radius: var(--radius);
+        padding: 10px 13px;
+        border-left: 3px solid var(--gold);
+        font-size: 12px;
+    }
+
+    .dark-mode .ci-info-card { background: var(--blue-light); }
+
+    .ci-info-card h6 {
+        font-size: 10.5px;
+        font-weight: 700;
+        letter-spacing: .6px;
+        text-transform: uppercase;
+        color: var(--gold-dark);
+        margin: 0 0 6px;
+    }
+
+    .dark-mode .ci-info-card h6 { color: var(--gold); }
+
+    .ci-info-card .ci-field { margin-bottom: 2px; color: var(--ink-mid); }
+    .ci-info-card .ci-field strong { color: var(--ink); }
+
+    /* milestone info card */
+    .ci-milestone-card {
+        background: var(--bg);
+        border-radius: var(--radius);
+        padding: 10px 13px;
+        border-left: 3px solid var(--blue);
+        font-size: 12px;
+        margin-top: 6px;
+    }
+
+    .dark-mode .ci-milestone-card { background: var(--blue-light); }
+
+    .ci-milestone-card h6 {
+        font-size: 10.5px;
+        font-weight: 700;
+        letter-spacing: .6px;
+        text-transform: uppercase;
+        color: var(--blue);
+        margin: 0 0 6px;
+    }
+
+    .ci-milestone-card .ci-field { margin-bottom: 2px; color: var(--ink-mid); }
+    .ci-milestone-card .ci-field strong { color: var(--ink); }
+
+    /* ── flatpickr overrides ── */
+    .flatpickr-input {
+        background: var(--surface) !important;
+        color: var(--ink) !important;
+        padding-right: 10px !important;
+    }
+
+    .flatpickr-calendar {
+        font-size: 12px !important;
+        font-family: 'Segoe UI', system-ui, sans-serif !important;
+    }
+
+    .flatpickr-day.selected,
+    .flatpickr-day.selected:hover {
+        background: var(--blue) !important;
+        border-color: var(--blue) !important;
+    }
+
+    .flatpickr-day:hover {
+        background: var(--blue-light) !important;
+    }
+
+    .flatpickr-months .flatpickr-month,
+    .flatpickr-weekdays,
+    span.flatpickr-weekday {
+        background: var(--blue) !important;
+        color: #FFFFFF !important;
+        fill: #FFFFFF !important;
+    }
+
+    .flatpickr-current-month .flatpickr-monthDropdown-months,
+    .flatpickr-current-month input.cur-year {
+        color: #FFFFFF !important;
+    }
+
+    /* ── amount fields — highlighted ── */
+    .amt-highlight {
+        position: relative;
+    }
+
+    .amt-highlight::before {
+        content: '₹';
+        position: absolute;
+        left: 9px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--ink-soft);
+        font-size: 12px;
+        pointer-events: none;
+        z-index: 1;
+    }
+
+    .amt-highlight .form-control {
+        padding-left: 20px !important;
+    }
+
+    /* total-amount field — gold accent */
+    .total-field .form-control[readonly] {
+        background: var(--gold-light) !important;
+        border-color: var(--gold) !important;
+        color: var(--gold-dark) !important;
+        font-weight: 700;
+    }
+
+    .dark-mode .total-field .form-control[readonly] {
+        background: #111827 !important;
+        color: var(--gold) !important;
+    }
+
+    /* ── submit button ── */
+    .ci-submit {
+        background: var(--blue);
+        border: none;
+        padding: 9px 36px;
+        border-radius: var(--radius);
+        font-weight: 700;
+        font-size: 13px;
+        color: #FFFFFF !important;
+        -webkit-text-fill-color: #FFFFFF !important;
+        cursor: pointer;
+        transition: background .15s, transform .1s;
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+    }
+
+    .ci-submit:hover {
+        background: var(--blue-dark);
+        transform: translateY(-1px);
+    }
+
+    .ci-submit i { font-size: 12px; }
+
+    /* ── row gap tightening ── */
+    .ci-wrap .row.g-3 { --bs-gutter-y: 10px; --bs-gutter-x: 12px; }
+
+    /* ── no-milestone message ── */
+    #noMilestoneMsg {
+        font-size: 11.5px;
+        color: #DC2626;
+        margin-top: 4px;
+    }
+
+    /* ── responsive ── */
+    @@media (max-width: 640px) {
+        .ci-card-body { padding: 12px 12px; }
+        .ci-submit { width: 100%; justify-content: center; }
+    }
+</style>
+
+<div class="content ci-wrap">
+
+    <!-- Breadcrumb -->
+    <nav class="mb-3" aria-label="breadcrumb">
+        <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item"><a href="/Home">Home</a></li>
+            <li class="breadcrumb-item"><a href="/Invoices/Index">Invoices</a></li>
+            <li class="breadcrumb-item active">Create New</li>
+        </ol>
+    </nav>
+
+    <!-- Page Title -->
+    <div class="ci-page-title">
+        <h2><i class="fa-solid fa-file-invoice me-2"></i>Create New Invoice</h2>
+        <p>Generate a new invoice for a booking or installment</p>
+    </div>
+
+    <form asp-action="Create" method="post" id="invoiceForm" onsubmit="return submitInvoiceForm(event)" novalidate>
+
+        <!-- ── Booking Selection ── -->
+        <div class="ci-card">
+            <div class="ci-card-header">
+                <i class="fa-solid fa-link"></i> Select Booking
+            </div>
+            <div class="ci-card-body">
+                <div class="row g-3">
+                    <div class="col-12">
+                        <label for="BookingId" class="form-label">Booking <span class="text-danger">*</span></label>
+                        <div class="position-relative">
+                            <input type="text" class="form-control" id="bookingSearch"
+                                   placeholder="Search bookings..." autocomplete="off">
+                            <input type="hidden" asp-for="BookingId" id="bookingSelect" value="" required>
+                            <div class="invalid-feedback">Please select a booking</div>
+                            <div class="dropdown-menu w-100" id="bookingDropdown"
+                                 style="max-height:200px;overflow-y:auto;display:none;">
+                                @{
+                                    var allBookings = ViewBag.AllBookings as IEnumerable<dynamic>;
+                                    bool hasBookings = allBookings != null && allBookings.Any();
+                                }
+                                @if (hasBookings)
+                                {
+                                    <div class="dropdown-item" data-value="">-- Select Booking --</div>
+                                    foreach (var booking in allBookings)
+                                    {
+                                        var lead = booking.Lead?.Name ?? "";
+                                        var property = booking.Property?.PropertyName ?? "";
+                                        var displayText = $"{booking.BookingNumber} - {lead} - {property}";
+                                        <div class="dropdown-item" data-value="@booking.BookingId" data-name="@displayText">@displayText</div>
+                                    }
+                                }
+                                else
+                                {
+                                    <div class="dropdown-item" data-value="" style="color:#6B7B8D;cursor:not-allowed;">No bookings available</div>
+                                }
+                            </div>
+                        </div>
+                        <span asp-validation-for="BookingId" class="text-danger"></span>
+                    </div>
+                </div>
+
+                <!-- Booking + Milestone Details -->
+                <div class="row g-3 mt-1" id="bookingDetails" style="display:none">
+                    <div class="col-md-6">
+                        <div class="ci-info-card">
+                            <h6>Booking Details</h6>
+                            <div class="ci-field"><strong>Lead:</strong> <span id="leadName"></span></div>
+                            <div class="ci-field"><strong>Property:</strong> <span id="propertyName"></span></div>
+                            <div class="ci-field"><strong>Flat:</strong> <span id="flatName"></span></div>
+                        </div>
+                    </div>
+                    <div class="col-md-6" id="milestoneSection" style="display:none;">
+                        <label for="milestoneSelect" class="form-label">Milestone</label>
+                        <select class="form-select" id="milestoneSelect" disabled>
+                            <option value="">-- Select Milestone --</option>
+                        </select>
+                        <div class="text-danger" id="noMilestoneMsg" style="display:none;">
+                            No milestones available for invoice generation for this booking.
+                        </div>
+                        <div class="ci-milestone-card" id="milestoneDetails" style="display:none;">
+                            <h6>Milestone Details</h6>
+                            <div class="ci-field"><strong>Name:</strong> <span id="milestoneName"></span></div>
+                            <div class="ci-field"><strong>Due Date:</strong> <span id="milestoneDueDate"></span></div>
+                            <div class="ci-field"><strong>Amount:</strong> <span id="milestoneAmount"></span></div>
+                            <div class="ci-field"><strong>Status:</strong> <span id="milestoneStatus"></span></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── Invoice Details ── -->
+        <div class="ci-card">
+            <div class="ci-card-header">
+                <i class="fa-solid fa-file-invoice"></i> Invoice Details
+            </div>
+            <div class="ci-card-body">
+                <div class="row g-3">
+
+                    <!-- Invoice Number (readonly) -->
+                    <div class="col-md-6">
+                        <label asp-for="InvoiceNumber" class="form-label"></label>
+                        <input type="text" class="form-control" readonly
+                               value="@((ViewBag.InvoicePrefix ?? "") + (Model.InvoiceNumber ?? ""))" />
+                        <input type="hidden" asp-for="InvoiceNumber"
+                               value="@((ViewBag.InvoicePrefix ?? "") + (Model.InvoiceNumber ?? ""))" />
+                    </div>
+
+                    <!-- Invoice Date — flatpickr -->
+                    <div class="col-md-6">
+                        <label asp-for="InvoiceDate" class="form-label">Invoice Date <span class="text-danger">*</span></label>
+                        <input asp-for="InvoiceDate" type="text" class="form-control flatpickr-date"
+                               id="InvoiceDate" placeholder="Select date" required autocomplete="off" />
+                        <div class="invalid-feedback">Please select invoice date</div>
+                        <span asp-validation-for="InvoiceDate" class="text-danger"></span>
+                    </div>
+
+                    <!-- Amount -->
+                    <div class="col-md-6">
+                        <label asp-for="Amount" class="form-label">Amount <span class="text-danger">*</span></label>
+                        <div class="amt-highlight">
+                            <input asp-for="Amount" class="form-control" id="amountInput"
+                                   autocomplete="off" required placeholder="0.00" />
+                        </div>
+                        <div class="invalid-feedback">Please enter amount</div>
+                        <span asp-validation-for="Amount" class="text-danger"></span>
+                    </div>
+
+                    <!-- Tax Amount (readonly) -->
+                    <div class="col-md-6">
+                        <label asp-for="TaxAmount" class="form-label"></label>
+                        <div class="amt-highlight">
+                            <input asp-for="TaxAmount" class="form-control" id="taxAmountInput" readonly placeholder="0.00" />
+                        </div>
+                        <span asp-validation-for="TaxAmount" class="text-danger"></span>
+                    </div>
+
+                    <!-- Total Amount (readonly, gold highlight) -->
+                    <div class="col-md-6">
+                        <label asp-for="TotalAmount" class="form-label"></label>
+                        <div class="amt-highlight total-field">
+                            <input asp-for="TotalAmount" class="form-control" id="totalAmountInput" readonly placeholder="0.00" />
+                        </div>
+                        <span asp-validation-for="TotalAmount" class="text-danger"></span>
+                    </div>
+
+                    <!-- Due Date — flatpickr -->
+                    <div class="col-md-6">
+                        <label asp-for="DueDate" class="form-label">Due Date <span class="text-danger">*</span></label>
+                        <input asp-for="DueDate" type="text" class="form-control flatpickr-date"
+                               id="DueDate" placeholder="Select date" autocomplete="off" required
+                               value="@((Model.DueDate < new DateTime(1753,1,1) || Model.DueDate > new DateTime(9999,12,31)) ? DateTime.Today.ToString("yyyy-MM-dd") : Model.DueDate.ToString("yyyy-MM-dd"))" />
+                        <div class="invalid-feedback">Please select due date</div>
+                        <span asp-validation-for="DueDate" class="text-danger"></span>
+                    </div>
+
+                    <!-- Status -->
+                    <div class="col-md-6">
+                        <label asp-for="Status" class="form-label">Status <span class="text-danger">*</span></label>
+                        <select asp-for="Status" class="form-select" required>
+                            <option value="Generated">Generated</option>
+                            <option value="Sent">Sent</option>
+                            <option value="Paid">Paid</option>
+                            <option value="Partial">Partial</option>
+                            <option value="Overdue">Overdue</option>
+                            <option value="Cancelled">Cancelled</option>
+                        </select>
+                        <div class="invalid-feedback">Please select status</div>
+                        <span asp-validation-for="Status" class="text-danger"></span>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+        <!-- ── Notes ── -->
+        <div class="ci-card">
+            <div class="ci-card-header">
+                <i class="fa-solid fa-note-sticky"></i> Notes
+            </div>
+            <div class="ci-card-body">
+                <textarea asp-for="Notes" class="form-control" rows="3"
+                          placeholder="Additional invoice notes..."></textarea>
+                <span asp-validation-for="Notes" class="text-danger"></span>
+            </div>
+        </div>
+
+        <!-- ── Submit ── -->
+        <div class="text-center mb-4">
+            <button type="submit" class="ci-submit">
+                <i class="fa-solid fa-check"></i> Create Invoice
+            </button>
+        </div>
+
+    </form>
+</div>
+
+<!-- Flatpickr JS -->
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        // ── Flatpickr init ──
+        flatpickr('.flatpickr-date', {
+            dateFormat: 'Y-m-d',
+            allowInput: true,
+            disableMobile: true,
+            onReady: function (selectedDates, dateStr, instance) {
+                instance.input.style.paddingRight = '10px';
+            }
+        });
+
+        initializeBookingSearch();
+        calculateInvoiceAmounts();
+    });
+
+    // ── All original backend-compatible JS below (unchanged logic) ──
+
+    function setInstallmentId(installmentId) {
+        var installmentIdInput = document.getElementById('installmentIdInput');
+        if (!installmentIdInput) {
+            installmentIdInput = document.createElement('input');
+            installmentIdInput.type = 'hidden';
+            installmentIdInput.name = 'InstallmentId';
+            installmentIdInput.id = 'installmentIdInput';
+            document.getElementById('invoiceForm').appendChild(installmentIdInput);
+        }
+        installmentIdInput.value = installmentId || '';
+    }
+
+    function setInvoiceAmount(amount, readOnlyAmount) {
+        var amountInput = document.getElementById('amountInput');
+        if (!amountInput) return;
+        var parsedAmount = parseFloat(amount);
+        amountInput.value = Number.isFinite(parsedAmount) ? parsedAmount.toFixed(2) : '';
+        amountInput.readOnly = !!readOnlyAmount;
+        calculateInvoiceAmounts();
+    }
+
+    function initializeBookingSearch() {
+        const searchInput = document.getElementById('bookingSearch');
+        const hiddenInput = document.getElementById('bookingSelect');
+        const dropdown   = document.getElementById('bookingDropdown');
+        const dropdownItems = dropdown.querySelectorAll('.dropdown-item');
+
+        const hasBookings = Array.from(dropdownItems).some(
+            item => item.getAttribute('data-value') && item.getAttribute('data-value') !== ''
+        );
+
+        if (!hasBookings) {
+            const defaultItem = dropdown.querySelector('.dropdown-item[data-value=""]');
+            if (defaultItem) {
+                defaultItem.textContent = 'No bookings available';
+                defaultItem.style.color = '#6B7B8D';
+                defaultItem.style.cursor = 'not-allowed';
+            }
+        }
+
+        searchInput.addEventListener('focus', function () {
+            dropdown.style.display = 'block';
+            filterDropdownItems('');
+        });
+
+        document.addEventListener('click', function (e) {
+            if (!searchInput.contains(e.target) && !dropdown.contains(e.target)) {
+                dropdown.style.display = 'none';
+            }
+        });
+
+        searchInput.addEventListener('input', function () {
+            filterDropdownItems(this.value.toLowerCase());
+        });
+
+        dropdownItems.forEach(item => {
+            item.addEventListener('click', function () {
+                if (this.style.cursor === 'not-allowed' ||
+                    this.textContent.trim() === 'No bookings available') return;
+                const value = this.getAttribute('data-value');
+                const name  = this.getAttribute('data-name') || this.textContent;
+                hiddenInput.value  = value;
+                searchInput.value  = name;
+                dropdown.style.display = 'none';
+                handleBookingChange(value);
+            });
+        });
+
+        function filterDropdownItems(searchTerm) {
+            dropdownItems.forEach(item => {
+                item.style.display =
+                    item.textContent.toLowerCase().includes(searchTerm) ? 'block' : 'none';
+            });
+        }
+    }
+
+    function handleBookingChange(bookingId) {
+        var milestoneSelect  = document.getElementById('milestoneSelect');
+        var milestoneSection = document.getElementById('milestoneSection');
+
+        milestoneSelect.innerHTML = '<option value="">-- Select Milestone --</option>';
+        milestoneSelect.disabled  = true;
+        document.getElementById('milestoneDetails').style.display = 'none';
+        document.getElementById('noMilestoneMsg').style.display   = 'none';
+        setInstallmentId('');
+
+        if (!bookingId) {
+            document.getElementById('bookingDetails').style.display = 'none';
+            milestoneSection.style.display = 'none';
+            setInvoiceAmount('', false);
+            return;
+        }
+
+        fetch('/Invoices/GetBookingDetails?bookingId=' + bookingId)
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    document.getElementById('leadName').textContent    = data.leadName    || '';
+                    document.getElementById('propertyName').textContent = data.propertyName || '';
+                    document.getElementById('flatName').textContent    = data.flatName    || '';
+                    document.getElementById('bookingDetails').style.display = 'block';
+
+                    if (data.paymentType === 'Full Payment' || data.paymentType === 'FullPayment') {
+                        milestoneSection.style.display = 'none';
+                        setInstallmentId('');
+                        setInvoiceAmount(data.totalAmount || 0, true);
+                    } else {
+                        milestoneSection.style.display = 'block';
+                        setInvoiceAmount('', false);
+
+                        if (data.milestones && data.milestones.length > 0) {
+                            milestoneSelect.disabled = false;
+                            data.milestones.forEach(function (m) {
+                                var option = document.createElement('option');
+                                option.value = m.installmentId;
+                                option.text  = m.milestoneName + ' - ₹' +
+                                               m.amount.toLocaleString() + ' (' + m.status + ')';
+                                option.setAttribute('data-amount',  m.amount);
+                                option.setAttribute('data-duedate', m.dueDate);
+                                option.setAttribute('data-status',  m.status);
+                                option.setAttribute('data-ispaid',  m.isPaid ? 'true' : 'false');
+                                milestoneSelect.appendChild(option);
+                            });
+                            milestoneSelect.selectedIndex = 1;
+                            milestoneSelect.dispatchEvent(new Event('change'));
+                        } else {
+                            document.getElementById('noMilestoneMsg').style.display = 'block';
+                            setInstallmentId('');
+                            setInvoiceAmount('', false);
+                        }
+                    }
+                } else {
+                    document.getElementById('bookingDetails').style.display = 'none';
+                    milestoneSection.style.display = 'none';
+                    setInstallmentId('');
+                    setInvoiceAmount('', false);
+                }
+            });
+    }
+
+    function calculateInvoiceAmounts() {
+        var amount = parseFloat(document.getElementById('amountInput').value) || 0;
+        document.getElementById('taxAmountInput').value  = 0;
+        document.getElementById('totalAmountInput').value = amount;
+    }
+
+    document.getElementById('amountInput').addEventListener('input', calculateInvoiceAmounts);
+
+    document.getElementById('milestoneSelect').addEventListener('change', function () {
+        var selected = this.options[this.selectedIndex];
+        if (!selected.value) {
+            document.getElementById('milestoneDetails').style.display = 'none';
+            setInstallmentId('');
+            setInvoiceAmount('', false);
+            return;
+        }
+        var name    = selected.text.split(' - ')[0];
+        var amount  = selected.getAttribute('data-amount');
+        var dueDate = selected.getAttribute('data-duedate');
+        var status  = selected.getAttribute('data-status');
+        document.getElementById('milestoneName').textContent    = name;
+        document.getElementById('milestoneAmount').textContent  = '₹' + parseFloat(amount).toLocaleString();
+        document.getElementById('milestoneDueDate').textContent = dueDate;
+        document.getElementById('milestoneStatus').textContent  = status;
+        document.getElementById('milestoneDetails').style.display = 'block';
+
+        // Update flatpickr due date
+        var dpDue = document.getElementById('DueDate')._flatpickr;
+        if (dpDue) dpDue.setDate(dueDate, true);
+        else document.getElementById('DueDate').value = dueDate;
+
+        setInstallmentId(selected.value);
+        setInvoiceAmount(amount, true);
+    });
+
+    function submitInvoiceForm(event) {
+        event.preventDefault();
+        var form = document.getElementById('invoiceForm');
+
+        const bookingId = document.getElementById('bookingSelect').value;
+        if (!bookingId) {
+            document.getElementById('bookingSearch').classList.add('is-invalid');
+            document.getElementById('bookingSearch').setCustomValidity('Please select a booking');
+        } else {
+            document.getElementById('bookingSearch').classList.remove('is-invalid');
+            document.getElementById('bookingSearch').setCustomValidity('');
+        }
+
+        if (!form.checkValidity()) {
+            form.classList.add('was-validated');
+            return false;
+        }
+
+        var formData = new FormData(form);
+        fetch(form.action, { method: 'POST', body: formData })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) window.location.href = '/Invoices/Index';
+                showToast(data.message || 'Error creating invoice', 'error');
+            })
+            .catch(() => showToast('Error creating invoice', 'error'));
+
+        return false;
+    }
+</script>

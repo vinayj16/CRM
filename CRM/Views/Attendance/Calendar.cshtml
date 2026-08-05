@@ -1,0 +1,850 @@
+@{
+    ViewData["Title"] = "Attendance Management";
+    var agentId = (int)ViewBag.AgentId;
+    var attendance = ViewBag.Attendance as List<CRM.Models.AgentAttendanceModel> ?? new List<CRM.Models.AgentAttendanceModel>();
+    var todayIntervals = ViewBag.TodayLogIntervals as List<(DateTime, DateTime?)>;
+    var hasActiveSession = todayIntervals != null && todayIntervals.Any(i => !i.Item2.HasValue);
+    var todayAttendance = attendance.FirstOrDefault(a => a.Date.Date == DateTime.Today);
+    var isAdmin = User.IsInRole("Admin");
+    var isPartner = User.IsInRole("Partner");
+    var canManageAttendance = isAdmin || isPartner;
+}
+
+<link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.css" rel="stylesheet" />
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet" />
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
+
+<style>
+    :root {
+        --blue: #1A6FA8;
+        --blue-dark: #0F4C75;
+        --gold: #D4A45A;
+        --gold-dark: #B45309;
+        --surface: #F0F4F8;
+        --card: #FFFFFF;
+        --border: #E2E8F0;
+        --text: #1E2A3A;
+        --muted: #6B7B8D;
+        --r: 9px;
+    }
+    h1, .h1 {
+    font-size: 1.5rem !important;
+    font-weight: 700 !important;
+    margin-bottom: 1px !important;
+}
+
+p {
+    font-size: 0.95rem !important;
+    line-height: 1.6 !important;
+    margin-bottom: 0.5px !important;
+}
+    /* ── Layout ── */
+    .gradient-bg {
+        background: var(--surface);
+        min-height: 100vh;
+        padding: 0.75rem;
+    }
+    .dark-mode .gradient-bg { background: linear-gradient(135deg, #1A2332 0%, #2A3A4A 100%) !important; }
+
+    /* ── Modern card (header) ── */
+    .modern-card {
+        background: linear-gradient(135deg, var(--blue) 0%, var(--blue-dark) 100%);
+        border-radius: var(--r);
+        color: white;
+        padding: 0.75rem 1rem;
+        margin-bottom: 0.65rem;
+        border-bottom: 3px solid var(--gold);
+    }
+    .modern-card h1 { font-size: 1rem; font-weight: 700; margin: 0; display: flex; align-items: center; gap: 7px; }
+    .modern-card p  { font-size: 0.72rem; margin: 2px 0 0; opacity: 0.78; }
+
+    /* ── Stats card ── */
+    .stats-card {
+        background: var(--card);
+        border-radius: var(--r);
+        border: 1px solid var(--border);
+        border-left: 3px solid var(--gold);
+        padding: 0.6rem 0.85rem;
+        margin-bottom: 0.65rem;
+        box-shadow: 0 1px 5px rgba(26,111,168,0.06);
+    }
+    .dark-mode .stats-card { background: #1E2A3A !important; color: #E2E8F0 !important; }
+
+    /* ── Calendar container ── */
+    .calendar-container {
+        background: var(--card);
+        border-radius: var(--r);
+        border: 1px solid var(--border);
+        padding: 0.75rem;
+        margin-bottom: 0.65rem;
+        box-shadow: 0 1px 6px rgba(26,111,168,0.06);
+    }
+    .dark-mode .calendar-container { background: #1E2A3A !important; color: #E2E8F0 !important; }
+
+    /* ── Intervals + Details containers ── */
+    .intervals-container, .details-container {
+        background: var(--card);
+        border-radius: var(--r);
+        border: 1px solid var(--border);
+        padding: 0.75rem;
+        box-shadow: 0 1px 6px rgba(26,111,168,0.06);
+        height: fit-content;
+    }
+    .intervals-container { margin-bottom: 0.65rem; }
+    .details-container   { min-height: 300px; }
+    .dark-mode .intervals-container,
+    .dark-mode .details-container { background: #1E2A3A !important; color: #E2E8F0 !important; }
+
+    /* ── Section title ── */
+    .section-title {
+        font-size: 0.82rem;
+        font-weight: 700;
+        color: var(--blue);
+        margin: 0 0 0.6rem;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        border-bottom: 1px solid #E8EDF2;
+        padding-bottom: 0.4rem;
+    }
+    .section-title i { color: var(--gold); font-size: 0.78rem; }
+
+    /* ── Buttons ── */
+    .btn-modern {
+        border-radius: 20px;
+        padding: 0.38rem 1rem;
+        font-weight: 600;
+        font-size: 0.76rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        transition: all 0.2s;
+        border: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+    }
+    .btn-modern:hover { transform: translateY(-1px); box-shadow: 0 3px 10px rgba(0,0,0,0.15); }
+
+    /* ── Table ── */
+    .table-modern { border-radius: var(--r); overflow: hidden; font-size: 0.77rem; }
+    .table-modern thead tr { background: linear-gradient(90deg, #F0F4F8, #E8EDF2); border-bottom: 2px solid var(--gold); }
+    .table-modern thead th { font-size: 0.67rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; color: var(--blue); padding: 0.45rem 0.6rem; }
+    .table-modern tbody td { padding: 0.4rem 0.6rem; vertical-align: middle; border-color: #F0F4F8; }
+    .dark-mode .table-modern { background: #2A3A4A !important; color: #E2E8F0 !important; }
+    .dark-mode .table-modern th { background: #2A3A4A !important; color: #E2E8F0 !important; border-color: #2A3A4A !important; }
+    .dark-mode .table-modern td { background: #2A3A4A !important; color: #E2E8F0 !important; border-color: #2A3A4A !important; }
+
+    /* ── Badges ── */
+    .att-badge {
+        font-size: 0.66rem; font-weight: 700;
+        padding: 2px 8px; border-radius: 20px;
+        display: inline-flex; align-items: center; gap: 3px;
+    }
+    .att-badge::before { content:''; width:4px; height:4px; border-radius:50%; background:currentColor; display:inline-block; flex-shrink:0; }
+    .badge-present  { background: rgba(22,163,74,0.12); color: #15803D; }
+    .badge-absent   { background: rgba(220,38,38,0.11); color: #DC2626; }
+    .badge-pending  { background: rgba(212,164,90,0.15); color: #B45309; }
+    .badge-holiday  { background: #F0F4F8; color: #6B7B8D; }
+
+    /* ── Status badge ── */
+    .status-badge {
+        padding: 4px 12px; border-radius: 20px;
+        font-weight: 600; font-size: 0.72rem;
+    }
+
+    /* ── Correction form ── */
+    .correction-form {
+        background: #FEE2E2;
+        border: 1px solid #E8C27E;
+        border-radius: var(--r);
+        padding: 0.65rem;
+        margin-top: 0.65rem;
+    }
+    .dark-mode .correction-form { background: #2A3A4A !important; color: #E2E8F0 !important; }
+
+    /* ── Header badges ── */
+    .hdr-badge {
+        background: rgba(255,255,255,0.18);
+        color: #FFFFFF;
+        font-size: 0.7rem;
+        font-weight: 600;
+        padding: 3px 9px;
+        border-radius: 20px;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        white-space: nowrap;
+    }
+    .hdr-badge.gold { background: rgba(212,164,90,0.28); color: #FEF3C7; }
+
+    /* ── List group ── */
+    .dark-mode .list-group-item { background: #2A3A4A !important; border-color: #2A3A4A !important; color: #E2E8F0 !important; }
+    .dark-mode .badge.bg-light { background: #2A3A4A !important; color: #E2E8F0 !important; }
+    .dark-mode .text-muted { color: #8FA3B8 !important; }
+    .dark-mode .breadcrumb-item a { color: var(--gold) !important; }
+    .dark-mode .breadcrumb-item.active { color: #E2E8F0 !important; }
+
+    /* ── Form controls dark ── */
+    .dark-mode .form-control, .dark-mode .form-select {
+        background: #2A3A4A !important; border-color: #2A3A4A !important; color: #E2E8F0 !important;
+    }
+    .dark-mode .form-control:focus, .dark-mode .form-select:focus {
+        background: #2A3A4A !important; border-color: var(--blue) !important; color: #E2E8F0 !important;
+        box-shadow: 0 0 0 2px rgba(26,111,168,0.25) !important;
+    }
+
+    /* ── FullCalendar ── */
+    .fc { font-family: 'Segoe UI', sans-serif; font-size: 0.8rem; }
+    .fc-header-toolbar {
+        margin-bottom: 0.75rem !important;
+        display: flex !important; justify-content: space-between !important;
+        align-items: center !important; flex-wrap: wrap !important;
+        gap: 6px !important; position: relative !important; z-index: 10 !important;
+    }
+    .fc-toolbar-chunk { display: flex !important; align-items: center !important; gap: 5px !important; z-index: 11 !important; }
+    .fc-button-group { display: flex !important; gap: 3px !important; }
+    .fc-button {
+        background: linear-gradient(135deg, var(--blue) 0%, var(--blue-dark) 100%) !important;
+        border: none !important; border-radius: 6px !important;
+        padding: 4px 10px !important; font-weight: 600 !important; font-size: 0.75rem !important;
+        transition: all 0.2s !important; white-space: nowrap !important;
+        position: relative !important; z-index: 12 !important;
+    }
+    .fc-button:hover { opacity: 0.88 !important; transform: translateY(-1px) !important; }
+    .fc-button:disabled { opacity: 0.6 !important; transform: none !important; }
+    .fc-toolbar-title { font-size: 0.9rem !important; font-weight: 700 !important; color: var(--text) !important; }
+    .dark-mode .fc-toolbar-title { color: #E2E8F0 !important; }
+
+    .fc-daygrid-day {
+        min-height: 64px !important; border: 1px solid var(--border) !important;
+        transition: transform 0.15s;
+    }
+    .dark-mode .fc-daygrid-day { border-color: #2A3A4A !important; background: #2A3A4A !important; }
+    .fc-daygrid-day:hover { transform: scale(1.015); box-shadow: 0 3px 10px rgba(0,0,0,0.08); z-index: 10; }
+    .fc-daygrid-day-number { font-weight: 700 !important; font-size: 0.75rem !important; color: var(--text) !important; padding: 3px !important; z-index: 2; position: relative; }
+    .dark-mode .fc-daygrid-day-number { color: #E2E8F0 !important; }
+
+    .fc-day-today { background-color: rgba(26,111,168,0.09) !important; border: 2px solid var(--blue) !important; }
+    .fc-daygrid-day.fc-day-future { background: #F0F4F8 !important; }
+    .dark-mode .fc-daygrid-day.fc-day-future { background: #1A2332 !important; }
+    .fc-daygrid-day.fc-day-future:hover { transform: none !important; box-shadow: none !important; }
+    .fc-daygrid-day.fc-day-future .fc-daygrid-day-number { color: #8FA3B8 !important; }
+
+    .fc-scrollgrid { border-radius: 8px !important; overflow: hidden !important; }
+    .fc-col-header-cell {
+        background: #F0F4F8 !important; color: var(--blue) !important;
+        font-weight: 700 !important; text-transform: uppercase !important;
+        font-size: 0.67rem !important; letter-spacing: 0.4px !important;
+        padding: 8px !important; border: 1px solid var(--border) !important;
+    }
+    .dark-mode .fc-col-header-cell { background: #2A3A4A !important; color: #E2E8F0 !important; border-color: #2A3A4A !important; }
+    .dark-mode .fc-button { background: linear-gradient(135deg, var(--blue) 0%, var(--blue-dark) 100%) !important; }
+    .dark-mode .fc { color: #E2E8F0 !important; }
+    .dark-mode .fc-daygrid-day.fc-day-future .fc-daygrid-day-number { color: #6B7B8D !important; }
+
+    /* ── Attendance status pills ── */
+    .attendance-status {
+        position: absolute; bottom: 3px; left: 50%; transform: translateX(-50%);
+        font-size: 8px; font-weight: 700; z-index: 10;
+        padding: 2px 6px; border-radius: 9px;
+        color: white; white-space: nowrap;
+        border: 1px solid rgba(255,255,255,0.2);
+    }
+
+    .day-present-full  { background: linear-gradient(135deg, #DCFCE7, #B8C8D8) !important; border-color: #16A34A !important; }
+    .day-present-full .attendance-status  { background: #16A34A !important; }
+
+    .day-present-partial { background: linear-gradient(135deg, #FEF3C7, #E8C27E) !important; border-color: #F59E0B !important; }
+    .day-present-partial .attendance-status { background: #F59E0B !important; }
+
+    .day-absent  { background: linear-gradient(135deg, #FEE2E2, #FEE2E2) !important; border-color: #DC2626 !important; }
+    .day-absent .attendance-status  { background: #DC2626 !important; }
+
+    .day-pending { background: linear-gradient(135deg, #FEF3C7, #FEF3C7) !important; border-color: #F59E0B !important; }
+    .day-pending .attendance-status { background: #F59E0B !important; color: #000000 !important; }
+
+    .day-rejected { background: linear-gradient(135deg, #FEE2E2, #FEE2E2) !important; border-color: #DC2626 !important; }
+    .day-rejected .attendance-status { background: #DC2626 !important; }
+
+    .day-holiday  { background: linear-gradient(135deg, #E2E8F0, #E2E8F0) !important; border-color: #6B7B8D !important; }
+    .day-holiday .attendance-status  { background: #6B7B8D !important; }
+
+    /* ── FC event ── */
+    .fc-event { border-radius: 4px !important; border: none !important; font-weight: 600 !important; font-size: 0.7rem !important; }
+
+    /* ── Responsive ── */
+    @@media (max-width: 768px) {
+        .gradient-bg { padding: 0.5rem; }
+        .modern-card { padding: 0.6rem 0.75rem; }
+        .fc-header-toolbar { flex-direction: column !important; }
+        .fc-toolbar-chunk { justify-content: center !important; }
+        .fc-button { font-size: 0.7rem !important; padding: 3px 7px !important; }
+        .fc-daygrid-day { min-height: 48px !important; }
+        .fc-daygrid-day-number { font-size: 0.68rem !important; }
+        .attendance-status { font-size: 7px !important; padding: 1px 4px !important; bottom: 1px !important; }
+        .fc-daygrid-day:hover { transform: none !important; box-shadow: none !important; }
+        .calendar-container { padding: 0.5rem !important; }
+    }
+</style>
+
+<div class="gradient-bg">
+    <div class="container-fluid" style="max-width:1300px">
+
+        <!-- Header -->
+        <div class="modern-card">
+            <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                <div>
+                    <h1><i class="fas fa-calendar-alt"></i> Attendance Management</h1>
+                    <p>Track and manage employee attendance efficiently</p>
+                </div>
+                @if (todayIntervals != null && todayIntervals.Any()) {
+                    var totalLogins  = todayIntervals.Count;
+                    var totalLogouts = todayIntervals.Count(i => i.Item2.HasValue);
+                    double totalHours = 0;
+                    foreach (var interval in todayIntervals) {
+                        if (interval.Item2.HasValue) totalHours += (interval.Item2.Value - interval.Item1).TotalHours;
+                    }
+                    <div class="d-flex gap-2 flex-wrap">
+                        <span class="hdr-badge"><i class="fas fa-sign-in-alt"></i> @totalLogins</span>
+                        <span class="hdr-badge"><i class="fas fa-sign-out-alt"></i> @totalLogouts</span>
+                        <span class="hdr-badge gold"><i class="fas fa-clock"></i> @totalHours.ToString("0.##")h</span>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- Admin/Partner Agent Select -->
+        @if (canManageAttendance) {
+            <div class="stats-card">
+                <div class="d-flex align-items-center gap-3 flex-wrap">
+                    <label class="form-label mb-0 fw-bold" style="font-size:.78rem;white-space:nowrap;color:var(--blue)">
+                        <i class="fas fa-users me-1" style="color:var(--gold)"></i> Select Employee
+                    </label>
+                    <select id="agentSelect" class="form-select form-select-sm" style="max-width:320px;font-size:.78rem">
+                        @if (ViewBag.AllUsers != null)
+                        {
+                            foreach (var user in (List<CRM.Models.UserModel>)ViewBag.AllUsers)
+                            {
+                                var selected = user.UserId == agentId ? "selected=\"selected\"" : "";
+                                @:<option value="@user.UserId" @selected>@user.Username (@user.Email)</option>
+                            }
+                        }
+                    </select>
+                </div>
+            </div>
+        }
+
+        <!-- Calendar + Intervals -->
+        <div class="row g-2 mb-2">
+            <div class="col-lg-7 col-md-12">
+                <div class="calendar-container">
+                    <div id="calendar"></div>
+                </div>
+            </div>
+            <div class="col-lg-5">
+                <div class="intervals-container" id="intervalsContainer">
+                    @if (todayIntervals != null && todayIntervals.Count > 0)
+                    {
+                        <div class="section-title"><i class="fas fa-business-time"></i> Today's Login/Logout Intervals</div>
+                        <div class="table-responsive">
+                            <table class="table table-modern table-striped mb-0">
+                                <thead>
+                                    <tr>
+                                        <th class="text-center">#</th>
+                                        <th class="text-center">Login</th>
+                                        <th class="text-center">Logout</th>
+                                        <th class="text-center">Duration</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                @for (int i = 0; i < todayIntervals.Count; i++)
+                                {
+                                    var duration = todayIntervals[i].Item2.HasValue ?
+                                        (todayIntervals[i].Item2.Value - todayIntervals[i].Item1).TotalMinutes.ToString("0") + "m" : "Active";
+                                    <tr>
+                                        <td class="text-center fw-bold">@(i + 1)</td>
+                                        <td class="text-center text-success fw-bold">@todayIntervals[i].Item1.ToString("HH:mm:ss")</td>
+                                        <td class="text-center @(todayIntervals[i].Item2.HasValue ? "text-danger" : "text-warning") fw-bold">
+                                            @if (todayIntervals[i].Item2.HasValue) { @todayIntervals[i].Item2.Value.ToString("HH:mm:ss") } else { <span>Active</span> }
+                                        </td>
+                                        <td class="text-center"><span class="att-badge @(duration == "Active" ? "badge-pending" : "badge-present")">@duration</span></td>
+                                    </tr>
+                                }
+                                </tbody>
+                            </table>
+                        </div>
+                        @if (!canManageAttendance || (canManageAttendance && agentId.ToString() == User.Identity.Name))
+                        {
+                            <div class="text-center mt-3">
+                                @if (hasActiveSession) {
+                                    <form method="post" action="/Attendance/Logout" class="d-inline">
+                                        <input type="hidden" name="agentId" value="@agentId" />
+                                        <input type="hidden" name="attendanceId" value="@(todayAttendance?.AttendanceId ?? 0)" />
+                                        <input type="hidden" name="date" value="@DateTime.Today.ToString("yyyy-MM-dd")" />
+                                        <button type="submit" class="btn btn-danger btn-modern"><i class="fas fa-sign-out-alt"></i> Logout</button>
+                                    </form>
+                                } else {
+                                    <form method="post" action="/Attendance/Login" class="d-inline">
+                                        <input type="hidden" name="agentId" value="@agentId" />
+                                        <input type="hidden" name="attendanceId" value="@(todayAttendance?.AttendanceId ?? 0)" />
+                                        <input type="hidden" name="date" value="@DateTime.Today.ToString("yyyy-MM-dd")" />
+                                        <button type="submit" class="btn btn-success btn-modern"><i class="fas fa-sign-in-alt"></i> Login</button>
+                                    </form>
+                                }
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <div class="text-center py-4">
+                            <i class="fas fa-calendar-times text-muted" style="font-size:1.8rem;opacity:.4"></i>
+                            <p class="text-muted mt-2 mb-3" style="font-size:.8rem">No login records for today</p>
+                            @if (!canManageAttendance || (canManageAttendance && agentId.ToString() == User.Identity.Name))
+                            {
+                                <form method="post" action="/Attendance/Login">
+                                    <input type="hidden" name="agentId" value="@agentId" />
+                                    <input type="hidden" name="attendanceId" value="@(todayAttendance?.AttendanceId ?? 0)" />
+                                    <input type="hidden" name="date" value="@DateTime.Today.ToString("yyyy-MM-dd")" />
+                                    <button type="submit" class="btn btn-success btn-modern"><i class="fas fa-sign-in-alt"></i> Start Your Day</button>
+                                </form>
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- Details + Pending -->
+        <div class="row g-2 mt-0">
+            <div class="col-lg-8">
+                <div class="details-container">
+                    <div id="attendanceDetails" class="text-center py-4">
+                        <i class="fas fa-mouse-pointer text-muted mb-2" style="font-size:1.5rem;opacity:.4"></i>
+                        <p class="text-muted" style="font-size:.8rem">Click on a calendar date to view details</p>
+                    </div>
+                </div>
+            </div>
+            @if (canManageAttendance) {
+                <div class="col-lg-4">
+                    <div class="details-container">
+                        <div class="section-title"><i class="fas fa-exclamation-triangle" style="color:#F59E0B"></i> Pending Requests</div>
+                        @if (attendance.Any(a => a.CorrectionRequested && a.CorrectionStatus == "Pending" && a.Date.Date != DateTime.Today))
+                        {
+                            <div class="list-group list-group-flush">
+                                @foreach (var record in attendance.Where(a => a.CorrectionRequested && a.CorrectionStatus == "Pending" && a.Date.Date != DateTime.Today))
+                                {
+                                    <div class="list-group-item border-0 mb-2 rounded" style="background:#FEE2E2;border:1px solid #E8C27E !important;padding:.55rem .75rem">
+                                        <div class="d-flex justify-content-between align-items-start mb-1">
+                                            <span style="font-size:.76rem;font-weight:700;color:var(--blue)">
+                                                <i class="fas fa-calendar-day me-1" style="color:var(--gold)"></i>@record.Date.ToString("MMM dd, yyyy")
+                                            </span>
+                                        </div>
+                                        <p class="mb-2 text-muted" style="font-size:.72rem">@(string.IsNullOrEmpty(record.CorrectionReason) ? "No reason provided" : record.CorrectionReason)</p>
+                                        <div class="d-flex gap-2">
+                                            <button class="btn btn-success btn-sm approveCorrection" style="font-size:.7rem;padding:2px 10px" data-id="@record.AttendanceId">
+                                                <i class="fas fa-check me-1"></i>Approve
+                                            </button>
+                                            <button class="btn btn-danger btn-sm rejectCorrection" style="font-size:.7rem;padding:2px 10px" data-id="@record.AttendanceId">
+                                                <i class="fas fa-times me-1"></i>Reject
+                                            </button>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="text-center py-3">
+                                <i class="fas fa-check-circle text-success" style="font-size:1.5rem;opacity:.6"></i>
+                                <p class="text-muted mt-1 mb-0" style="font-size:.78rem">No pending requests</p>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var calendarEl = document.getElementById('calendar');
+    var isInitialLoad = true;
+    var calendar = new FullCalendar.Calendar(calendarEl, {
+        initialView: 'dayGridMonth',
+        initialDate: new Date(@ViewBag.Year, @ViewBag.Month - 1, 1),
+        headerToolbar: {
+            left: 'prev,next today',
+            center: 'title',
+            right: 'dayGridMonth,dayGridWeek'
+        },
+        height: 'auto',
+        datesSet: function(dateInfo) {
+            if (isInitialLoad) { isInitialLoad = false; return; }
+            var currentDate = dateInfo.view.currentStart;
+            var year = currentDate.getFullYear();
+            var month = currentDate.getMonth() + 1;
+            var urlParams = new URLSearchParams(window.location.search);
+            var agentId = urlParams.get('agentId') || '@ViewBag.AgentId';
+            window.location.href = '/Attendance/Calendar?agentId=' + agentId + '&year=' + year + '&month=' + month;
+        },
+        dayCellDidMount: function(info) {
+            var dateStr = info.date.getFullYear() + '-' +
+                String(info.date.getMonth() + 1).padStart(2, '0') + '-' +
+                String(info.date.getDate()).padStart(2, '0');
+            var todayDate = new Date();
+            var today = todayDate.getFullYear() + '-' +
+                String(todayDate.getMonth() + 1).padStart(2, '0') + '-' +
+                String(todayDate.getDate()).padStart(2, '0');
+            var isToday = dateStr === today;
+            var isFuture = dateStr > today;
+            var lastActivityIsLogin = @Html.Raw(Json.Serialize(ViewBag.LastActivityIsLogin ?? false));
+
+            var attendanceRecord = @Html.Raw(Json.Serialize(
+                attendance.ToDictionary(a => a.Date.ToString("yyyy-MM-dd"), a => new {
+                    status = a.Status ?? "Absent",
+                    hours = a.LoginTime != null && a.LogoutTime != null ?
+                        (a.LogoutTime.Value - a.LoginTime.Value).TotalHours : 0,
+                    correctionStatus = a.CorrectionStatus ?? "",
+                    correctionRequested = a.CorrectionRequested,
+                    hasLogin = a.LoginTime != null,
+                    hasLogout = a.LogoutTime != null,
+                    attendanceId = a.AttendanceId
+                })
+            ));
+
+            if (isFuture) return;
+
+            if (isToday && lastActivityIsLogin) {
+                info.el.classList.add('day-present-partial');
+                var statusElement = document.createElement('div');
+                statusElement.className = 'attendance-status';
+                statusElement.textContent = 'Present';
+                info.el.appendChild(statusElement);
+                return;
+            }
+
+            if (isToday && !attendanceRecord[dateStr]) return;
+
+            if (attendanceRecord[dateStr]) {
+                var data = attendanceRecord[dateStr];
+                var statusText = '';
+                var className = '';
+
+                if (data.correctionStatus === 'Rejected') {
+                    className = 'day-rejected'; statusText = 'Rejected';
+                } else if (data.correctionRequested && data.correctionStatus === 'Pending') {
+                    className = 'day-pending'; statusText = 'Pending';
+                } else if (data.status === 'Present') {
+                    if (data.hours >= 9) { className = 'day-present-full'; statusText = 'P'; }
+                    else { className = 'day-present-partial'; statusText = 'Present'; }
+                } else if (data.status === 'Absent') {
+                    className = 'day-absent'; statusText = 'Absent';
+                } else if (data.status === 'Holiday') {
+                    className = 'day-holiday'; statusText = 'Holiday';
+                } else if (data.hasLogin && !data.hasLogout && !isToday) {
+                    className = 'day-present-partial'; statusText = 'Present';
+                }
+
+                if (className) info.el.classList.add(className);
+
+                var existingStatus = info.el.querySelector('.attendance-status');
+                if (existingStatus) existingStatus.remove();
+
+                if (statusText) {
+                    var statusElement = document.createElement('div');
+                    statusElement.className = 'attendance-status';
+                    statusElement.textContent = statusText;
+                    info.el.appendChild(statusElement);
+                }
+            } else {
+                if (!isFuture) {
+                    info.el.classList.add('day-absent');
+                    var statusElement = document.createElement('div');
+                    statusElement.className = 'attendance-status';
+                    statusElement.textContent = 'Absent';
+                    info.el.appendChild(statusElement);
+                }
+            }
+        },
+        events: [],
+        dateClick: function(info) {
+            var dateStr = info.dateStr;
+            updateIntervalsSection(dateStr);
+
+            var attendanceRecord = @Html.Raw(Json.Serialize(
+                attendance.ToDictionary(a => a.Date.ToString("yyyy-MM-dd"), a => new {
+                    status = a.Status ?? "Absent",
+                    login = a.LoginTime?.ToString("HH:mm"),
+                    logout = a.LogoutTime?.ToString("HH:mm"),
+                    hours = a.LoginTime != null && a.LogoutTime != null ?
+                        (a.LogoutTime.Value - a.LoginTime.Value).TotalHours.ToString("0.##") : "0",
+                    correction = a.CorrectionRequested ? (a.CorrectionStatus ?? "Pending") : null,
+                    correctionReason = a.CorrectionReason ?? "",
+                    attendanceId = a.AttendanceId,
+                    hasLoginNoLogout = a.LoginTime != null && a.LogoutTime == null,
+                    hasLogin = a.LoginTime != null,
+                    hasLogout = a.LogoutTime != null
+                })
+            ));
+
+            var todayDate = new Date();
+            var todayStr = todayDate.getFullYear() + '-' +
+                String(todayDate.getMonth() + 1).padStart(2, '0') + '-' +
+                String(todayDate.getDate()).padStart(2, '0');
+            var isToday = dateStr === todayStr;
+            var html = '';
+
+            var todayTotalHours = '@(todayIntervals != null && todayIntervals.Any() ? todayIntervals.Where(i => i.Item2.HasValue).Sum(i => (i.Item2.Value - i.Item1).TotalHours).ToString("0.##") : "0")';
+            var displayHours = isToday ? todayTotalHours : (attendanceRecord[dateStr] ? attendanceRecord[dateStr].hours : '-');
+
+            if (attendanceRecord[dateStr]) {
+                var data = attendanceRecord[dateStr];
+                var statusColor = data.status === 'Present' ? '#15803D' : data.status === 'Absent' ? '#DC2626' : '#6B7B8D';
+                var statusBg = data.status === 'Present' ? 'rgba(22,163,74,0.12)' : data.status === 'Absent' ? 'rgba(220,38,38,0.11)' : '#F0F4F8';
+
+                html = `
+                    <div style="font-size:.8rem;font-weight:700;color:#1A6FA8;margin-bottom:.5rem">
+                        ${new Date(dateStr).toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric', year:'numeric' })}
+                    </div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem;margin-bottom:.5rem">
+                        <div style="background:#F0F4F8;border-radius:7px;padding:.5rem;text-align:center;border-top:2px solid #1A6FA8">
+                            <div style="font-size:.65rem;color:#6B7B8D;text-transform:uppercase;letter-spacing:.4px">Total Hours</div>
+                            <div style="font-size:1.2rem;font-weight:700;color:#1A6FA8">${displayHours}h</div>
+                        </div>
+                        <div style="background:#FEE2E2;border-radius:7px;padding:.5rem;text-align:center;border-top:2px solid #D4A45A">
+                            <div style="font-size:.65rem;color:#6B7B8D;text-transform:uppercase;letter-spacing:.4px">Status</div>
+                            <div style="font-size:.78rem;font-weight:700;color:${statusColor};background:${statusBg};padding:2px 8px;border-radius:20px;display:inline-block;margin-top:2px">${data.status}</div>
+                        </div>
+                    </div>`;
+
+                var showCorrectionOption = !isToday && (data.hasLoginNoLogout || displayHours === '0' || displayHours === '-' || (data.hasLogin && data.hours === '-'));
+                var canManageAttendance = @Html.Raw(Json.Serialize(canManageAttendance));
+
+                if (showCorrectionOption) {
+                    if (data.correction) {
+                        var sc = data.correction === 'Approved' ? '#15803D' : data.correction === 'Rejected' ? '#DC2626' : '#B45309';
+                        var sbg = data.correction === 'Approved' ? 'rgba(22,163,74,0.1)' : data.correction === 'Rejected' ? 'rgba(220,38,38,0.1)' : 'rgba(212,164,90,0.12)';
+                        html += `
+                            <div style="background:${sbg};border:1px solid ${sc};border-radius:7px;padding:.5rem .7rem;font-size:.75rem">
+                                <div style="font-weight:700;color:${sc};margin-bottom:3px"><i class="fas fa-info-circle me-1"></i>Correction ${data.correction}</div>
+                                <div style="color:#6B7B8D">${data.correctionReason || 'No reason provided'}</div>
+                            </div>`;
+                    } else if (!canManageAttendance) {
+                        html += `
+                            <div style="background:#FEE2E2;border:1px solid #E8C27E;border-radius:7px;padding:.5rem .7rem">
+                                <p style="font-size:.72rem;font-weight:700;color:#B45309;margin:0 0 5px"><i class="fas fa-exclamation-triangle me-1"></i>Incomplete Record</p>
+                                <form id="correctionForm">
+                                    <input type="hidden" name="attendanceId" value="${data.attendanceId || 0}" />
+                                    <input type="hidden" name="agentId" value="@ViewBag.AgentId" />
+                                    <input type="hidden" name="date" value="${dateStr}" />
+                                    <textarea name="reason" class="form-control mb-2" rows="2" style="font-size:.76rem" placeholder="Reason for correction..." required></textarea>
+                                    <button type="submit" class="btn btn-warning btn-sm" style="font-size:.72rem">
+                                        <i class="fas fa-paper-plane me-1"></i>Submit Request
+                                    </button>
+                                </form>
+                            </div>`;
+                    } else {
+                        if (data.correction === 'Pending') {
+                            html += `
+                                <div style="background:rgba(212,164,90,0.12);border:1px solid #E8C27E;border-radius:7px;padding:.5rem .7rem">
+                                    <p style="font-size:.72rem;font-weight:700;color:#B45309;margin:0 0 5px"><i class="fas fa-exclamation-triangle me-1"></i>Correction Request Pending</p>
+                                    <p style="font-size:.7rem;color:#6B7B8D;margin:0 0 6px">${data.correctionReason}</p>
+                                    <div class="d-flex gap-2">
+                                        <button class="btn btn-success btn-sm approveCorrection" style="font-size:.7rem;padding:2px 9px" data-id="${data.attendanceId}"><i class="fas fa-check me-1"></i>Approve</button>
+                                        <button class="btn btn-danger btn-sm rejectCorrection" style="font-size:.7rem;padding:2px 9px" data-id="${data.attendanceId}"><i class="fas fa-times me-1"></i>Reject</button>
+                                    </div>
+                                </div>`;
+                        } else {
+                            html += `
+                                <div style="background:rgba(26,111,168,0.08);border:1px solid #B8C8D8;border-radius:7px;padding:.5rem .7rem;font-size:.72rem;color:#1A6FA8">
+                                    <i class="fas fa-info-circle me-1"></i>Incomplete record — user can submit correction request
+                                </div>`;
+                        }
+                    }
+                }
+            } else {
+                html = `
+                    <div style="text-align:center;padding:1.5rem 1rem">
+                        <i class="fas fa-calendar-times text-muted mb-2" style="font-size:1.5rem;opacity:.4;display:block"></i>
+                        <p style="font-size:.78rem;color:#6B7B8D;margin:0">No attendance record for<br><strong>${new Date(dateStr).toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' })}</strong></p>
+                    </div>`;
+            }
+
+            document.getElementById('attendanceDetails').innerHTML = html;
+        }
+    });
+
+    calendar.render();
+
+    function updateIntervalsSection(dateStr) {
+        var agentId = '@ViewBag.AgentId';
+        var canManageAttendance = @Html.Raw(Json.Serialize(canManageAttendance));
+
+        $.ajax({
+            url: '/Attendance/GetDateIntervals',
+            type: 'GET',
+            data: { agentId: agentId, date: dateStr },
+            success: function(response) {
+                var container = $('#intervalsContainer');
+                var selectedDate = new Date(dateStr);
+                var today = new Date();
+                var isToday = selectedDate.toDateString() === today.toDateString();
+                var dateTitle = isToday ? "Today's" : selectedDate.toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' });
+                var hasActiveSession = response.hasActiveSession;
+                var attendanceId = response.attendanceId || 0;
+
+                if (response.intervals && response.intervals.length > 0) {
+                    var html = `
+                        <div class="section-title"><i class="fas fa-business-time"></i> ${dateTitle} Intervals</div>
+                        <div class="table-responsive">
+                            <table class="table table-modern table-striped mb-0">
+                                <thead><tr>
+                                    <th class="text-center">#</th>
+                                    <th class="text-center">Login</th>
+                                    <th class="text-center">Logout</th>
+                                    <th class="text-center">Duration</th>
+                                </tr></thead>
+                                <tbody>`;
+
+                    response.intervals.forEach(function(interval, index) {
+                        var durClass = interval.logout ? 'badge-present' : 'badge-pending';
+                        html += `<tr>
+                            <td class="text-center fw-bold">${index + 1}</td>
+                            <td class="text-center text-success fw-bold">${interval.login}</td>
+                            <td class="text-center ${interval.logout ? 'text-danger' : 'text-warning'} fw-bold">${interval.logout || '<span>Active</span>'}</td>
+                            <td class="text-center"><span class="att-badge ${durClass}">${interval.duration}</span></td>
+                        </tr>`;
+                    });
+
+                    html += `</tbody></table></div>`;
+
+                    if (isToday && (!canManageAttendance || (canManageAttendance && agentId.toString() === '@User.Identity.Name'))) {
+                        html += `<div class="text-center mt-3">`;
+                        if (hasActiveSession) {
+                            html += `<form method="post" action="/Attendance/Logout" class="d-inline">
+                                <input type="hidden" name="agentId" value="${agentId}" />
+                                <input type="hidden" name="attendanceId" value="${attendanceId}" />
+                                <input type="hidden" name="date" value="${dateStr}" />
+                                <button type="submit" class="btn btn-danger btn-modern"><i class="fas fa-sign-out-alt"></i> Logout</button>
+                            </form>`;
+                        } else {
+                            html += `<form method="post" action="/Attendance/Login" class="d-inline">
+                                <input type="hidden" name="agentId" value="${agentId}" />
+                                <input type="hidden" name="attendanceId" value="${attendanceId}" />
+                                <input type="hidden" name="date" value="${dateStr}" />
+                                <button type="submit" class="btn btn-success btn-modern"><i class="fas fa-sign-in-alt"></i> Login</button>
+                            </form>`;
+                        }
+                        html += `</div>`;
+                    }
+                    container.html(html);
+                } else {
+                    var html = `<div class="text-center py-4">
+                        <i class="fas fa-calendar-times text-muted" style="font-size:1.5rem;opacity:.4"></i>
+                        <p class="text-muted mt-2 mb-0" style="font-size:.78rem">No login records for ${dateTitle}</p>`;
+                    if (isToday && (!canManageAttendance || (canManageAttendance && agentId.toString() === '@User.Identity.Name'))) {
+                        html += `<form method="post" action="/Attendance/Login" class="mt-3">
+                            <input type="hidden" name="agentId" value="${agentId}" />
+                            <input type="hidden" name="attendanceId" value="${attendanceId}" />
+                            <input type="hidden" name="date" value="${dateStr}" />
+                            <button type="submit" class="btn btn-success btn-modern"><i class="fas fa-sign-in-alt"></i> Start Your Day</button>
+                        </form>`;
+                    }
+                    html += `</div>`;
+                    container.html(html);
+                }
+            }
+        });
+    }
+
+    var viewingYear = @ViewBag.Year;
+    var viewingMonth = @ViewBag.Month;
+    var todayDate = new Date();
+    var isCurrentMonth = (todayDate.getFullYear() === viewingYear && (todayDate.getMonth() + 1) === viewingMonth);
+    if (isCurrentMonth) {
+        var todayStr = todayDate.getFullYear() + '-' +
+            String(todayDate.getMonth() + 1).padStart(2, '0') + '-' +
+            String(todayDate.getDate()).padStart(2, '0');
+        setTimeout(() => { calendar.trigger('dateClick', { dateStr: todayStr }); }, 500);
+    }
+
+    $('#agentSelect').on('change', function() {
+        var agentId = $(this).val();
+        window.location.href = '/Attendance/Calendar?agentId=' + agentId;
+    });
+
+    $(document).on('submit', '#correctionForm', function(e) {
+        e.preventDefault();
+        var form = $(this);
+        $.post('/Attendance/RequestCorrection', form.serialize())
+            .done(function(response) {
+                Swal.fire('Success!', 'Correction request submitted successfully!', 'success').then(() => location.reload());
+            })
+            .fail(function() {
+                Swal.fire('Error!', 'Failed to submit request. Please try again.', 'error');
+            });
+    });
+
+    $(document).on('click', '.approveCorrection', function() {
+        var id = $(this).data('id');
+        function submitApproval(hours) {
+            $.post('/Attendance/ApproveCorrection', { attendanceId: id, approvedHours: hours })
+                .done(function() {
+                    Swal.fire('Approved!', `Request approved for ${hours} hours.`, 'success').then(() => location.reload());
+                })
+                .fail(function(xhr) {
+                    Swal.fire('Error!', xhr?.responseText || 'Failed to approve request.', 'error');
+                });
+        }
+        Swal.fire({
+            title: 'Approve Request?',
+            text: 'Select hours to approve for this day.',
+            input: 'select',
+            inputOptions: { '9': 'Full Day (9 hours)', '4.5': 'Half Day (4.5 hours)', 'custom': 'Custom hours' },
+            inputValue: '9',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Continue',
+            inputValidator: (value) => { if (!value) return 'Please select hours to approve'; }
+        }).then((result) => {
+            if (result.isConfirmed) {
+                if (result.value === 'custom') {
+                    Swal.fire({
+                        title: 'Enter Approved Hours',
+                        input: 'number', inputValue: 9,
+                        inputAttributes: { min: 0.5, max: 24, step: 0.5 },
+                        showCancelButton: true, confirmButtonText: 'Approve',
+                        inputValidator: (value) => {
+                            const parsed = parseFloat(value);
+                            if (isNaN(parsed) || parsed <= 0 || parsed > 24) return 'Enter a valid number between 0 and 24';
+                        }
+                    }).then((customResult) => { if (customResult.isConfirmed) submitApproval(parseFloat(customResult.value)); });
+                } else {
+                    submitApproval(parseFloat(result.value));
+                }
+            }
+        });
+    });
+
+    $(document).on('click', '.rejectCorrection', function() {
+        var id = $(this).data('id');
+        Swal.fire({
+            title: 'Reject Request?',
+            text: 'This action cannot be undone.',
+            icon: 'warning', showCancelButton: true, confirmButtonText: 'Yes, reject it!'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                $.post('/Attendance/RejectCorrection', { attendanceId: id })
+                    .done(function() { Swal.fire('Rejected!', 'Request has been rejected.', 'success').then(() => location.reload()); })
+                    .fail(function() { Swal.fire('Error!', 'Failed to reject request.', 'error'); });
+            }
+        });
+    });
+});
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>

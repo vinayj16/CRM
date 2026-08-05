@@ -1,0 +1,377 @@
+@model List<CRM.Models.LeadIntegrationConfigModel>
+@{
+    ViewData["Title"] = "Lead Integrations";
+    var baseUrl = ViewBag.BaseUrl as string ?? "";
+
+    var platforms = new[] {
+        new { Name = "Facebook", Display = "Facebook Lead Ads", Icon = "fab fa-facebook", Color = "#2589C9", Desc = "Import leads from Facebook Lead Ad forms via Meta Business Suite", Fields = new[] { "AccessToken:Access Token (from Meta Business Suite)", "ApiKey:Ad ID (Facebook Ad ID)", "AccountId:Page ID (optional)", "ApiSecret:App Secret (optional)", "CampaignId:Lead Form ID (optional)" } },
+        new { Name = "GoogleAds", Display = "Google Ads", Icon = "fab fa-google", Color = "#2589C9", Desc = "Import leads from Google Ads Lead Form Extensions", Fields = new[] { "AccountId:Customer ID (google.ads.customer-id)", "ApiSecret:Developer Token (google.ads.developer-token)", "ApiKey:Client ID (google.ads.client-id)", "AccessToken:Client Secret (google.ads.client-secret)", "RefreshToken:Refresh Token (google.ads.refresh-token)", "CampaignId:Campaign/Form ID (optional)" } },
+        new { Name = "99Acres", Display = "99acres", Icon = "fas fa-building", Color = "#F59E0B", Desc = "Sync property inquiry leads from 99acres", Fields = new[] { "ApiKey:API Key (from 99acres Partner Dashboard)", "ApiSecret:API Secret", "AccountId:Advertiser/Account ID", "ProjectId:Listing/Project ID (optional)" } },
+        new { Name = "HousingCom", Display = "Housing.com", Icon = "fas fa-home", Color = "#DC2626", Desc = "Import leads from Housing.com listings", Fields = new[] { "ApiKey:API Key (from Housing Partner Portal)", "AccessToken:Access Token", "AccountId:Seller/Builder ID", "ProjectId:Project ID (optional)" } },
+        new { Name = "MagicBricks", Display = "MagicBricks", Icon = "fas fa-th-large", Color = "#DC2626", Desc = "Sync leads from MagicBricks property portal", Fields = new[] { "ApiKey:API Key (from MagicBricks CRM)", "ApiSecret:Secret Key", "AccountId:Advertiser ID", "ProjectId:Listing ID (optional)" } },
+        new { Name = "JustDial", Display = "JustDial", Icon = "fas fa-phone-alt", Color = "#1A6FA8", Desc = "Receive leads from JustDial business listing", Fields = new[] { "ApiKey:API Key (from JustDial Partner)", "AccountId:Business/Listing ID" } },
+        new { Name = "IndiaMART", Display = "IndiaMART", Icon = "fas fa-industry", Color = "#15803D", Desc = "Import buyer leads from IndiaMART CRM", Fields = new[] { "ApiKey:CRM Key (glusr_crm_key from IndiaMART)", "AccountId:Registered Mobile Number" } },
+        new { Name = "Sulekha", Display = "Sulekha", Icon = "fas fa-handshake", Color = "#F59E0B", Desc = "Sync service inquiry leads from Sulekha", Fields = new[] { "ApiKey:API Key (from Sulekha Business)", "AccessToken:Access Token", "AccountId:Business ID" } },
+        new { Name = "CommonFloor", Display = "CommonFloor", Icon = "fas fa-city", Color = "#6B7B8D", Desc = "Import leads from CommonFloor listings", Fields = new[] { "ApiKey:API Key", "AccessToken:Access Token", "ProjectId:Project/Listing ID" } },
+        new { Name = "NoBroker", Display = "NoBroker", Icon = "fas fa-key", Color = "#2589C9", Desc = "Sync leads from NoBroker platform", Fields = new[] { "ApiKey:API Key (from NoBroker Owner Dashboard)", "AccessToken:Access Token", "AccountId:Owner/Agent ID" } },
+        new { Name = "OLX", Display = "OLX", Icon = "fas fa-tags", Color = "#162436", Desc = "Import property inquiry leads from OLX", Fields = new[] { "ApiKey:Client ID (from OLX Developer)", "ApiSecret:Client Secret", "AccessToken:Access Token" } },
+        new { Name = "TradeIndia", Display = "TradeIndia", Icon = "fas fa-globe-asia", Color = "#DC2626", Desc = "Sync buyer inquiries from TradeIndia", Fields = new[] { "ApiKey:API Key (from TradeIndia Dashboard)", "AccountId:User/Profile ID" } }
+    };
+}
+
+<div class="container-fluid">
+    <div class="page-hd"><i class="fa-solid fa-plug"></i><h4>Lead Integrations</h4></div>
+    <div class="row mb-3">
+        <div class="col-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-0">
+                    <li class="breadcrumb-item"><a href="/home">home</a></li>
+                    <li class="breadcrumb-item active">Lead Integrations</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    <div class="row mb-3">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <div>
+                        <h5 class="card-title mb-0"><i class="fas fa-plug me-2"></i>Lead Integration Platforms</h5>
+                        <small class="text-muted">Connect lead sources to auto-import leads into your CRM</small>
+                    </div>
+                    <span class="badge bg-info">@Model.Count(c => c.IsEnabled) Active</span>
+                    <button class="btn btn-sm btn-outline-danger" onclick="clearTestLeads()">
+                        <i class="fas fa-trash-alt me-1"></i>Clear Test Data
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        @foreach (var p in platforms)
+        {
+            var config = Model.FirstOrDefault(c => c.PlatformName == p.Name);
+            var isEnabled = config?.IsEnabled == true;
+            var lastSync = config?.LastSyncedAt;
+            var leadCount = config?.LeadsSynced ?? 0;
+
+            <div class="col-12 col-sm-6 col-lg-4 col-xl-3 mb-3">
+                <div class="card integration-card h-100" style="border-top: 3px solid @p.Color;">
+                    <div class="card-body d-flex flex-column">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="integration-icon" style="background: @(p.Color)20; color: @p.Color;">
+                                    <i class="@p.Icon"></i>
+                                </div>
+                                <div>
+                                    <h6 class="mb-0">@p.Display</h6>
+                                </div>
+                            </div>
+                            <div class="form-check form-switch">
+                                <input class="form-check-input integration-toggle" type="checkbox"
+                                       data-platform="@p.Name" @(isEnabled ? "checked" : "")
+                                       id="toggle_@p.Name" title="@(isEnabled ? "Disable" : "Enable")">
+                            </div>
+                        </div>
+                        <p class="text-muted small flex-grow-1 mb-2">@p.Desc</p>
+                        <div class="small mb-2">
+                            @if (isEnabled)
+                            {
+                                <span class="badge bg-success"><i class="fas fa-check-circle me-1"></i>Active</span>
+                            }
+                            else if (config != null)
+                            {
+                                <span class="badge bg-secondary">Configured</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-warning text-dark">Not Configured</span>
+                            }
+                            @if (leadCount > 0)
+                            {
+                                <span class="badge bg-primary ms-1">@leadCount leads</span>
+                            }
+                        </div>
+                        @if (lastSync.HasValue)
+                        {
+                            <div class="text-muted small mb-2"><i class="fas fa-sync-alt me-1"></i>Last sync: @lastSync.Value.ToString("dd MMM yyyy HH:mm")</div>
+                        }
+                        <div class="d-flex gap-2 mt-auto">
+                            <button class="btn btn-sm btn-outline-primary flex-fill" onclick="openConfigModal('@p.Name')">
+                                <i class="fas fa-cog me-1"></i>Configure
+                            </button>
+                            <button class="btn btn-sm btn-outline-warning" onclick="testSync('@p.Name')" title="Test with sample leads">
+                                <i class="fas fa-flask"></i>
+                            </button>
+                            @if (isEnabled)
+                            {
+                                <button class="btn btn-sm btn-outline-success" onclick="syncNow('@p.Name')" title="Sync real leads">
+                                    <i class="fas fa-sync-alt"></i>
+                                </button>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+<!-- Config Modal -->
+<div class="modal fade" id="configModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered" style="max-width:900px;width:900px;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-cog me-2"></i><span id="modalPlatformTitle"></span> Configuration</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="configForm">
+                <div class="modal-body">
+                    <input type="hidden" id="cfgPlatformName" name="PlatformName">
+                    <div class="row g-2" id="dynamicFields"></div>
+                    <div class="row g-2 mt-2">
+                        <div class="col-md-4 mb-2">
+                            <label class="form-label">Poll Interval (minutes)</label>
+                            <input type="number" class="form-control" name="PollIntervalMinutes" id="cfgPollInterval" value="5" min="1" max="1440">
+                        </div>
+                        <div class="col-md-4 mb-2">
+                            <label class="form-label">Extra Config (JSON)</label>
+                            <input type="text" class="form-control" name="ExtraConfig" id="cfgExtraConfig" placeholder='{"key": "value"}'>
+                        </div>
+                        <div class="col-md-4 mb-2">
+                            <div class="form-check mt-4">
+                                <input type="hidden" name="IsEnabled" value="false">
+                                <input class="form-check-input" type="checkbox" name="IsEnabled" id="cfgIsEnabled" value="true">
+                                <label class="form-check-label" for="cfgIsEnabled">Enable this integration</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card bg-light mt-2" id="webhookCard">
+                        <div class="card-body py-2">
+                            <label class="form-label small fw-bold"><i class="fas fa-link me-1"></i>Webhook URL</label>
+                            <div class="input-group" style="flex-wrap:nowrap;">
+                                <input type="text" class="form-control form-control-sm" id="cfgWebhookUrl" readonly>
+                                <button class="btn btn-outline-secondary btn-sm" type="button" onclick="copyWebhook()" style="border-left:0;"><i class="fas fa-copy"></i></button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary"><i class="fas fa-save me-1"></i>Save Configuration</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    // Gate this page behind the "customapi" feature
+    if (window.FeatureGate) {
+        FeatureGate.requireFeature('customapi', 'API Integrations').then(function(hasAccess) {
+            if (!hasAccess) {
+                document.querySelectorAll('.integration-toggle, .btn-outline-primary, .btn-outline-warning, .btn-outline-success').forEach(function(el) {
+                    el.style.pointerEvents = 'none';
+                    el.style.opacity = '0.4';
+                    el.title = 'Upgrade your plan to use integrations';
+                });
+            }
+        });
+    }
+
+const platformMeta = @Html.Raw(Json.Serialize(platforms.Select(p => new { p.Name, p.Display, p.Fields })));
+const configs = @Html.Raw(Json.Serialize(Model));
+const baseUrl = '@baseUrl';
+
+function openConfigModal(platform) {
+    const meta = platformMeta.find(p => p.name === platform);
+    if (!meta) return;
+
+    document.getElementById('modalPlatformTitle').textContent = meta.display;
+    document.getElementById('cfgPlatformName').value = platform;
+
+    // Build dynamic fields
+    let html = '';
+    (meta.fields || []).forEach(f => {
+        const parts = f.split(':');
+        const fieldName = parts[0];
+        const label = parts[1] || fieldName;
+        const isSecret = fieldName.toLowerCase().includes('secret') || fieldName.toLowerCase().includes('token');
+        const isOptional = label.toLowerCase().includes('optional');
+        html += `<div class="col-md-4 mb-2">
+            <label class="form-label">${label} ${isOptional ? '' : '<span class="text-danger">*</span>'}</label>
+            <input type="${isSecret ? 'password' : 'text'}" class="form-control" name="${fieldName}" id="cfg_${fieldName}" ${isOptional ? '' : 'required'}>
+        </div>`;
+    });
+    document.getElementById('dynamicFields').innerHTML = html;
+
+    // Load existing config
+    const config = configs.find(c => c.platformName === platform);
+    if (config) {
+        (meta.fields || []).forEach(f => {
+            const fieldName = f.split(':')[0];
+            const el = document.getElementById('cfg_' + fieldName);
+            if (el && config[fieldName.charAt(0).toLowerCase() + fieldName.slice(1)])
+                el.value = config[fieldName.charAt(0).toLowerCase() + fieldName.slice(1)];
+        });
+        document.getElementById('cfgExtraConfig').value = config.extraConfig || '';
+        document.getElementById('cfgPollInterval').value = config.pollIntervalMinutes || 5;
+        document.getElementById('cfgIsEnabled').checked = config.isEnabled;
+        document.getElementById('cfgWebhookUrl').value = config.webhookUrl || `${baseUrl}/api/integrations/webhook/${platform.toLowerCase()}?key=YOUR_API_KEY`;
+    } else {
+        document.getElementById('cfgExtraConfig').value = '';
+        document.getElementById('cfgPollInterval').value = 5;
+        document.getElementById('cfgIsEnabled').checked = false;
+        document.getElementById('cfgWebhookUrl').value = `${baseUrl}/api/integrations/webhook/${platform.toLowerCase()}?key=YOUR_API_KEY`;
+    }
+
+    new bootstrap.Modal(document.getElementById('configModal')).show();
+}
+
+document.getElementById('configForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const formData = new FormData(this);
+    formData.set('IsEnabled', document.getElementById('cfgIsEnabled').checked ? 'true' : 'false');
+
+    fetch('/Integrations/SaveConfig', { method: 'POST', body: formData })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            Swal.fire({ icon: 'success', title: 'Saved!', text: data.message, timer: 1500, showConfirmButton: false });
+            setTimeout(() => location.reload(), 1500);
+        } else {
+            Swal.fire('Error', data.message, 'error');
+        }
+    }).catch(() => Swal.fire('Error', 'Failed to save configuration', 'error'));
+});
+
+// Toggle handler - auto open modal when enabling unconfigured platform
+document.querySelectorAll('.integration-toggle').forEach(toggle => {
+    toggle.addEventListener('change', function() {
+        const platform = this.dataset.platform;
+        const enable = this.checked;
+        const config = configs.find(c => c.platformName === platform);
+
+        if (enable && !config) {
+            this.checked = false;
+            openConfigModal(platform);
+            return;
+        }
+
+        fetch('/Integrations/ToggleIntegration', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: `platform=${platform}&enable=${enable}`
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                Swal.fire({ icon: 'success', title: data.message, timer: 1200, showConfirmButton: false });
+                setTimeout(() => location.reload(), 1200);
+            } else {
+                toggle.checked = !enable;
+                Swal.fire('Error', data.message, 'error');
+            }
+        }).catch(() => { toggle.checked = !enable; });
+    });
+});
+
+function syncNow(platform) {
+    Swal.fire({ title: 'Syncing...', text: `Fetching real leads from ${platform}`, allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+    fetch('/Integrations/SyncNow', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: `platform=${platform}`
+    })
+    .then(r => r.json())
+    .then(data => {
+        Swal.fire({ icon: data.success ? 'success' : 'error', title: data.success ? 'Sync Complete' : 'Sync Failed', text: data.message, showConfirmButton: true });
+        if (data.success && data.count > 0) setTimeout(() => location.reload(), 2000);
+    }).catch(() => Swal.fire('Error', 'Sync failed', 'error'));
+}
+
+function testSync(platform) {
+    Swal.fire({
+        title: `Test ${platform}?`,
+        text: 'This will generate sample leads marked as [TEST]. You can clear them anytime using the Clear Test Leads button.',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#D4A45A',
+        confirmButtonText: 'Generate Test Leads',
+        cancelButtonText: 'Cancel'
+    }).then((result) => {
+        if (!result.isConfirmed) return;
+        Swal.fire({ title: 'Generating...', text: 'Creating sample test leads', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+        fetch('/Integrations/TestSync', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: `platform=${platform}`
+        })
+        .then(r => r.json())
+        .then(data => {
+            Swal.fire({ icon: data.success ? 'success' : 'error', title: data.success ? 'Test Complete' : 'Error', text: data.message, showConfirmButton: true });
+            if (data.success) setTimeout(() => location.reload(), 2000);
+        }).catch(() => Swal.fire('Error', 'Test sync failed', 'error'));
+    });
+}
+
+function copyWebhook() {
+    const url = document.getElementById('cfgWebhookUrl');
+    navigator.clipboard.writeText(url.value).then(() => {
+        Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Webhook URL copied!', showConfirmButton: false, timer: 1500 });
+    });
+}
+
+function clearTestLeads() {
+    Swal.fire({
+        title: 'Clear All Test Leads?',
+        text: 'This will permanently delete all test/sample leads from the Leads table. Real leads will NOT be affected.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#DC2626',
+        confirmButtonText: 'Yes, Delete Test Leads',
+        cancelButtonText: 'Cancel'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            fetch('/Integrations/ClearTestLeads', { method: 'POST' })
+            .then(r => r.json())
+            .then(data => {
+                Swal.fire({ icon: data.success ? 'success' : 'error', title: data.message, timer: 2000, showConfirmButton: false });
+                if (data.success) setTimeout(() => location.reload(), 2000);
+            }).catch(() => Swal.fire('Error', 'Failed to clear test leads', 'error'));
+        }
+    });
+}
+</script>
+}
+
+<style>
+.integration-card { transition: transform 0.2s, box-shadow 0.2s; }
+.integration-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+.integration-icon { width: 40px; height: 40px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; }
+.form-check-input { cursor: pointer !important; }
+.form-check-input:checked { background-color: #1A6FA8 !important; border-color: #1A6FA8 !important; }
+.integration-toggle { width: 42px !important; height: 22px !important; cursor: pointer !important; }
+
+/* Dark mode toggle fix */
+html.dark-mode .integration-toggle { background-color: #2A3A4A !important; border-color: #2A3A4A !important; }
+html.dark-mode .integration-toggle:checked { background-color: #1A6FA8 !important; border-color: #1A6FA8 !important; }
+html.dark-mode .form-check-input { background-color: #2A3A4A !important; border-color: #2A3A4A !important; }
+html.dark-mode .form-check-input:checked { background-color: #1A6FA8 !important; border-color: #1A6FA8 !important; }
+
+/* Dark mode */
+html.dark-mode .integration-card { border-color: #2A3A4A !important; }
+html.dark-mode .integration-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
+html.dark-mode #webhookCard { background-color: #2A3A4A !important; }
+html.dark-mode #webhookCard .card-body { color: #E2E8F0 !important; }
+
+/* Responsive */
+@@media (max-width: 575px) {
+    .integration-card .card-body { padding: 0.75rem; }
+    .integration-icon { width: 32px; height: 32px; font-size: 1rem; }
+}
+</style>

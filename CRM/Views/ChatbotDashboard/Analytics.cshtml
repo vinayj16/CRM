@@ -1,0 +1,466 @@
+@model CRM.Controllers.AnalyticsViewModel
+@{
+    ViewData["Title"] = "Chatbot Analytics";
+}
+@section Scripts {
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    if (window.FeatureGate) {
+        FeatureGate.requireFeature('customapi', 'Chatbot Analytics').then(function(hasAccess) {
+            if (!hasAccess) {
+                document.body.innerHTML = '<div style="text-align:center;padding:80px 20px;font-family:sans-serif;">' +
+                    '<h2 style="color:#D4A45A;"><i class="fa-solid fa-lock me-2"></i>Feature Not Available</h2>' +
+                    '<p style="color:#6B7B8D;margin:12px 0;">Chatbot Analytics is not included in your current plan.</p>' +
+                    '<a href="/SaasSubscription/MyPlan" style="display:inline-block;padding:10px 24px;background:#1A6FA8;color:#FFFFFF;border-radius:6px;text-decoration:none;">View Plans</a>' +
+                    '</div>';
+            }
+        });
+    }
+});
+</script>
+}
+@{
+    ViewData["Title"] = "Chatbot Analytics";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container-fluid">
+    <!-- Page Header -->
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800">Chatbot Analytics</h1>
+        <div class="d-flex">
+            <select class="form-control form-control-sm mr-2" id="dateRange" onchange="updateAnalytics()">
+                <option value="7">Last 7 Days</option>
+                <option value="30" selected>Last 30 Days</option>
+                <option value="90">Last 90 Days</option>
+            </select>
+            <button class="btn btn-primary btn-sm" onclick="exportAnalytics()">
+                <i class="fas fa-download"></i> Export
+            </button>
+        </div>
+    </div>
+
+    <!-- Overall Stats -->
+    <div class="row">
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-primary shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Total Conversations</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">@Model.OverallStats.TotalAssignments</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-comments fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-success shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Resolved</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">@Model.OverallStats.ResolvedAssignments</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-check-circle fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-info shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Total Messages</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">@Model.OverallStats.TotalMessages</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-envelope fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-warning shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">Leads Generated</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">@Model.OverallStats.TotalLeadsGenerated</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-user-plus fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Message Volume Chart -->
+        <div class="col-lg-8 mb-4">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Message Volume Over Time</h6>
+                </div>
+                <div class="card-body">
+                    <canvas id="messageVolumeChart" width="400" height="200"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Conversation Status -->
+        <div class="col-lg-4 mb-4">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Conversation Status</h6>
+                </div>
+                <div class="card-body">
+                    <canvas id="conversationStatusChart" width="400" height="200"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Response Time Analytics -->
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Response Time Analytics</h6>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-bordered">
+                            <thead>
+                                <tr>
+                                    <th>Metric</th>
+                                    <th>Value</th>
+                                    <th>Trend</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>Average Response Time</td>
+                                    <td>
+                                        @if (Model.DailyMetrics.Any(m => m.AverageResponseTime.HasValue))
+                                        {
+                                            <span>@Model.DailyMetrics.Where(m => m.AverageResponseTime.HasValue).Average(m => m.AverageResponseTime.Value).ToString("F1") seconds</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">No data yet</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        @if (Model.DailyMetrics.Any(m => m.AverageResponseTime.HasValue))
+                                        {
+                                            <span class="badge badge-success">Good</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge badge-secondary">N/A</span>
+                                        }
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>Average First Response</td>
+                                    <td>
+                                        @if (Model.DailyMetrics.Any(m => m.FirstResponseTime.HasValue))
+                                        {
+                                            <span>@Model.DailyMetrics.Where(m => m.FirstResponseTime.HasValue).Average(m => m.FirstResponseTime.Value).ToString("F1") seconds</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">No data yet</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        @if (Model.DailyMetrics.Any(m => m.FirstResponseTime.HasValue))
+                                        {
+                                            <span class="badge badge-success">Good</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge badge-secondary">N/A</span>
+                                        }
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>Average Resolution Time</td>
+                                    <td>
+                                        @if (Model.DailyMetrics.Any(m => m.ResolutionTime.HasValue))
+                                        {
+                                            <span>@Model.DailyMetrics.Where(m => m.ResolutionTime.HasValue).Average(m => m.ResolutionTime.Value).ToString("F1") minutes</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">No data yet</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        @if (Model.DailyMetrics.Any(m => m.ResolutionTime.HasValue))
+                                        {
+                                            <span class="badge badge-warning">Average</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge badge-secondary">N/A</span>
+                                        }
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Lead Generation -->
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Lead Generation</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="text-center">
+                                <h4 class="text-primary">@Model.OverallStats.TotalLeadsGenerated</h4>
+                                <p class="text-muted">Total Leads Generated</p>
+                            </div>
+                        </div>
+                    </div>
+                    <canvas id="leadGenerationChart" width="400" height="200"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Detailed Metrics Table -->
+    <div class="row">
+        <div class="col-12 mb-4">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Daily Metrics</h6>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-bordered" id="dailyMetricsTable">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Total Messages</th>
+                                    <th>User Messages</th>
+                                    <th>Agent Messages</th>
+                                    <th>Avg Response Time</th>
+                                    <th>First Response Time</th>
+                                    <th>Conversation Duration</th>
+                                    <th>Resolution Time</th>
+                                    <th>Customer Satisfaction</th>
+                                    <th>Lead Generated</th>
+                                    <th>Lead Value</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var metric in Model.DailyMetrics.OrderByDescending(m => m.Date))
+                                {
+                                    <tr>
+                                        <td>@metric.Date.ToString("MMM dd, yyyy")</td>
+                                        <td>@metric.TotalMessages</td>
+                                        <td>@metric.UserMessages</td>
+                                        <td>@metric.AgentMessages</td>
+                                        <td>@(metric.AverageResponseTime?.ToString("F1") ?? "N/A")</td>
+                                        <td>@(metric.FirstResponseTime?.ToString("F1") ?? "N/A")</td>
+                                        <td>@(metric.ConversationDuration?.ToString() ?? "N/A")</td>
+                                        <td>@(metric.ResolutionTime?.ToString() ?? "N/A")</td>
+                                        <td>
+                                            @if (metric.CustomerSatisfaction.HasValue)
+                                            {
+                                                <span class="badge badge-@(metric.CustomerSatisfaction >= 4 ? "success" : metric.CustomerSatisfaction >= 3 ? "warning" : "danger")">
+                                                    @(metric.CustomerSatisfaction.Value)/5
+                                                </span>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted">N/A</span>
+                                            }
+                                        </td>
+                                        <td>
+                                            @if (metric.LeadGenerated)
+                                            {
+                                                <span class="badge badge-success">Yes</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge badge-secondary">No</span>
+                                            }
+                                        </td>
+                                        <td>
+                                            @if (metric.LeadValue.HasValue)
+                                            {
+                                                <span>₹@metric.LeadValue.Value.ToString("N0")</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted">N/A</span>
+                                            }
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        // Chart.js configuration
+        const chartColors = {
+            primary: '#2589C9',
+            success:'#2589C9',
+            info: '#2589C9',
+            warning: '#D4A45A',
+            danger: '#DC2626',
+            secondary: '#6B7B8D'
+        };
+
+        // Message Volume Chart
+        const messageVolumeCtx = document.getElementById('messageVolumeChart').getContext('2d');
+        const messageVolumeChart = new Chart(messageVolumeCtx, {
+            type: 'line',
+            data: {
+                labels: @Html.Raw(Json.Serialize(Model.DailyMetrics.Select(m => m.Date.ToString("MMM dd")))),
+                datasets: [{
+                    label: 'User Messages',
+                    data: @Html.Raw(Json.Serialize(Model.DailyMetrics.Select(m => m.UserMessages))),
+                    borderColor: chartColors.primary,
+                    // backgroundColor: 'rgba(37,137,201, 0.1)',
+                    tension: 0.4
+                }, {
+                    label: 'Agent Messages',
+                    data: @Html.Raw(Json.Serialize(Model.DailyMetrics.Select(m => m.AgentMessages))),
+                    borderColor: chartColors.success,
+                    // backgroundColor: 'rgba(22,163,74, 0.1)',
+                    tension: 0.4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+
+        // Conversation Status Chart
+        const conversationStatusCtx = document.getElementById('conversationStatusChart').getContext('2d');
+        const conversationStatusChart = new Chart(conversationStatusCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Resolved', 'Active', 'Unassigned'],
+                datasets: [{
+                    data: [
+                        @Model.OverallStats.ResolvedAssignments,
+                        @Model.OverallStats.ActiveAssignments,
+                        @Model.OverallStats.TotalAssignments - @Model.OverallStats.ResolvedAssignments - @Model.OverallStats.ActiveAssignments
+                    ],
+                    backgroundColor: [chartColors.success, chartColors.info, chartColors.warning]
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false
+            }
+        });
+
+        // Lead Generation Chart
+        const leadGenerationCtx = document.getElementById('leadGenerationChart').getContext('2d');
+        const leadGenerationChart = new Chart(leadGenerationCtx, {
+            type: 'bar',
+            data: {
+                labels: @Html.Raw(Json.Serialize(Model.DailyMetrics.Select(m => m.Date.ToString("MMM dd")))),
+                datasets: [{
+                    label: 'Lead Value',
+                    data: @Html.Raw(Json.Serialize(Model.DailyMetrics.Select(m => m.LeadValue ?? 0))),
+                    backgroundColor: chartColors.success,
+                    borderColor: chartColors.success,
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return '₹' + value.toLocaleString();
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        // Initialize DataTable
+        $(document).ready(function() {
+            $('#dailyMetricsTable').DataTable({
+                "order": [[0, "desc"]],
+                "pageLength": 10,
+                "responsive": true
+            });
+        });
+
+        function updateAnalytics() {
+            const dateRange = document.getElementById('dateRange').value;
+            window.location.href = `/ChatbotDashboard/Analytics?days=${dateRange}`;
+        }
+
+        function exportAnalytics() {
+            // Export functionality
+            const table = document.getElementById('dailyMetricsTable');
+            const rows = table.getElementsByTagName('tbody')[0].getElementsByTagName('tr');
+            
+            let csv = 'Date,Total Messages,User Messages,Agent Messages,Avg Response Time,First Response Time,Conversation Duration,Resolution Time,Customer Satisfaction,Lead Generated,Lead Value\n';
+            
+            for (let row of rows) {
+                const cells = row.getElementsByTagName('td');
+                const rowData = [];
+                for (let cell of cells) {
+                    rowData.push(cell.textContent.trim());
+                }
+                csv += rowData.join(',') + '\n';
+            }
+            
+            // Create download link
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `chatbot_analytics_${new Date().toISOString().split('T')[0]}.csv`;
+            a.click();
+            window.URL.revokeObjectURL(url);
+        }
+    </script>
+}

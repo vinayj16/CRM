@@ -1,0 +1,385 @@
+@model CRM.Models.FollowUpModel
+
+<!-- Follow-Up Modal -->
+<div class="modal fade" id="followUpModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered" style="max-width: 680px !important; width: 680px;">
+        <div class="modal-content">
+            <form id="followUpForm" onsubmit="return saveFollowUp(event)">
+                <div class="modal-header text-white" style="background: linear-gradient(135deg, #1A6FA8 0%, #125082 100%); padding: 0.875rem 1rem;">
+                    <h5 class="modal-title" style="font-size: 0.95rem; font-weight: 600; color: #FFFFFF !important;">
+                        <i class="fa-solid fa-calendar-plus me-2"></i>Add / Update Follow-Up
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+
+                <div class="modal-body" style="padding: 1.25rem;">
+                    <input type="hidden" id="fuLeadId" name="LeadId" value="0" />
+                    <input type="hidden" id="fuFollowUpId" name="FollowUpId" value="0" />
+
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Stage <span class="text-danger">*</span></label>
+                            <select class="form-control" id="fuStage" name="Stage" required>
+                                <option value="">Select Stage</option>
+                                <option value="New">New</option>
+                                <option value="Office Meeting">Office Meeting</option>
+                                <option value="Site Visit Requested">Site Visit Requested</option>
+                                <option value="Site Visit Done">Site Visit Done</option>
+                                <option value="Quotation">Quotation</option>
+                                <option value="Quotation Sent">Quotation Sent</option>
+                                <option value="Negotiation">Negotiation</option>
+                                <option value="Booked">Booked</option>
+                            </select>
+                            <div class="invalid-feedback">Please select a stage</div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">Status <span class="text-danger">*</span></label>
+                            <select class="form-control" id="fuStatus" name="Status" required>
+                                <option value="">Select Status</option>
+                                <option value="Active">Active</option>
+                                <option value="Spoke">Spoke</option>
+                                <option value="No Response">No Response</option>
+                                <option value="Lost">Lost</option>
+                            </select>
+                            <div class="invalid-feedback">Please select a status</div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">Project / Property</label>
+                            <select class="form-control" id="fuPropertyId" name="PropertyId">
+                                <option value="">Select Project</option>
+                            </select>
+                            <small class="text-muted">Select the property for site visit</small>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">Rating</label>
+                            <select class="form-control" id="fuRating" name="Rating">
+                                <option value="">Select Rating</option>
+                                <option value="Cold">Cold</option>
+                                <option value="Warm">Warm</option>
+                                <option value="Hot">Hot</option>
+                                <option value="None">None</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">Follow Up Date <span class="text-danger">*</span></label>
+                            <input type="date" class="form-control" id="fuFollowUpDate" name="FollowUpDate" required />
+                            <div class="invalid-feedback">Please select a follow-up date</div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">Follow Up Time</label>
+                            <input type="time" class="form-control" id="fuFollowUpTime" name="FollowUpTime" />
+                        </div>
+
+                        <div class="col-12">
+                            <label class="form-label">Comments / Remarks</label>
+                            <textarea class="form-control" id="fuComments" name="Comments" rows="2"
+                                      placeholder="Enter follow-up notes, discussion points, or action items..."></textarea>
+                        </div>
+                    </div>
+
+                    <!-- Alert Messages -->
+                    <div id="followUpAlert" class="alert d-none mt-2" role="alert"></div>
+                </div>
+
+                <div class="modal-footer" style="padding: 0.75rem 1rem;">
+                    <button class="btn btn-primary" type="submit" style="padding: 0.5rem 1rem; font-size: 0.875rem;">
+                        <i class="fa-solid fa-save me-1"></i>Update
+                    </button>
+                    <button class="btn btn-secondary" type="button" data-bs-dismiss="modal" style="padding: 0.5rem 1rem; font-size: 0.875rem;">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<style>
+    #followUpModal .modal-header {
+        background: linear-gradient(135deg, #1A6FA8 0%, #125082 100%);
+    }
+
+    #followUpModal .modal-header .modal-title,
+    #followUpModal .modal-header .modal-title i,
+    #followUpModal .modal-header h5,
+    #followUpModal .modal-header h5 i,
+    .card-body #followUpModal .modal-header h5,
+    body #followUpModal .modal-header h5 {
+        color: #2589C9 !important;
+        -webkit-text-fill-color: #2589C9 !important;
+    }
+
+    #followUpModal .form-label {
+        font-weight: 600;
+        color: #2A3A4A;
+        margin-bottom: 0.375rem;
+        font-size: 0.8125rem;
+    }
+
+    #followUpModal .form-control,
+    #followUpModal .form-select {
+        border-radius: 6px;
+        border: 1px solid #E2E8F0;
+        padding: 0.5rem 0.75rem;
+        transition: all 0.3s ease;
+        font-size: 0.8125rem;
+    }
+
+    #followUpModal .form-control:focus,
+    #followUpModal .form-select:focus {
+        border-color: #1A6FA8;
+        box-shadow: 0 0 0 0.15rem rgba(26,111,168, 0.15);
+    }
+
+    #followUpModal .modal-content {
+        border: none;
+        border-radius: 10px;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+    }
+
+    #followUpModal small.text-muted {
+        font-size: 0.75rem;
+    }
+
+    #followUpModal textarea.form-control {
+        min-height: 60px;
+    }
+
+    #followUpModal .text-danger {
+        font-size: 0.875rem;
+    }
+
+    #followUpModal .is-invalid {
+        border-color: #DC2626 !important;
+    }
+
+    #followUpModal .invalid-feedback {
+        display: none;
+        color: #DC2626;
+        font-size: 0.75rem;
+        margin-top: 0.25rem;
+    }
+
+    #followUpModal .is-invalid + .invalid-feedback,
+    #followUpModal .is-invalid ~ .invalid-feedback {
+        display: block !important;
+    }
+
+    #followUpModal .btn-primary {
+        background: linear-gradient(135deg, #1A6FA8 0%, #125082 100%);
+        border: none;
+        border-radius: 8px;
+        padding: 0.5rem 1rem;
+        font-weight: 600;
+        font-size: 0.875rem;
+        transition: all 0.3s ease;
+    }
+
+    #followUpModal .btn-primary:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 15px rgba(18,80,130, 0.28);
+    }
+
+    #followUpModal .btn-secondary {
+        border-radius: 8px;
+        padding: 0.5rem 1rem;
+        font-weight: 600;
+        font-size: 0.875rem;
+    }
+
+    @@media (max-width: 768px) {
+        #followUpModal .modal-dialog {
+            max-width: 95% !important;
+            width: 95% !important;
+            margin: 0.5rem auto !important;
+        }
+    }
+</style>
+
+<script>
+    // Load properties when modal is opened
+    document.getElementById('followUpModal')?.addEventListener('show.bs.modal', function () {
+        loadProperties();
+    });
+
+    // Function to load properties dropdown
+    function loadProperties() {
+        fetch('/Properties/GetAllProperties')
+            .then(response => response.json())
+            .then(data => {
+                const dropdown = document.getElementById('fuPropertyId');
+                dropdown.innerHTML = '<option value="">Select Project</option>';
+
+                if (data.success && data.properties) {
+                    data.properties.forEach(property => {
+                        const option = document.createElement('option');
+                        option.value = property.PropertyId || property.propertyId;
+                        option.textContent = property.PropertyName || property.propertyName;
+                        dropdown.appendChild(option);
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Error loading properties:', error);
+            });
+    }
+
+    function saveFollowUp(event) {
+        event.preventDefault();
+
+        // Client-side validation
+        const stage = document.getElementById('fuStage').value;
+        const status = document.getElementById('fuStatus').value;
+        const followUpDate = document.getElementById('fuFollowUpDate').value;
+        let isValid = true;
+
+        document.querySelectorAll('#followUpForm .is-invalid').forEach(el => el.classList.remove('is-invalid'));
+
+        if (!stage) {
+            document.getElementById('fuStage').classList.add('is-invalid');
+            isValid = false;
+        }
+        if (!status) {
+            document.getElementById('fuStatus').classList.add('is-invalid');
+            isValid = false;
+        }
+        if (!followUpDate) {
+            document.getElementById('fuFollowUpDate').classList.add('is-invalid');
+            isValid = false;
+        }
+
+        if (!isValid) {
+            return false;
+        }
+
+        const formData = new FormData(document.getElementById('followUpForm'));
+        const data = {};
+        formData.forEach((value, key) => {
+            if (key === 'LeadId' || key === 'FollowUpId' || key === 'ExecutiveId') {
+                data[key] = value && value !== '' ? parseInt(value) : 0;
+            } else if (key === 'PropertyId') {
+                data[key] = value && value !== '' ? parseInt(value) : null;
+            } else if (key === 'FollowUpDate') {
+                data[key] = value ? new Date(value).toISOString() : null;
+            } else if (key === 'Comments') {
+                data[key] = value || '';
+            } else {
+                data[key] = value || null;
+            }
+        });
+
+        if (!data.Comments && data.Comments !== '') data.Comments = '';
+        if (!data.ExecutiveId) data.ExecutiveId = 0;
+
+        const submitBtn = event.target.querySelector('button[type="submit"]');
+        const originalText = submitBtn.innerHTML;
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Saving...';
+
+        fetch('/Leads/SaveFollowUp', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value
+            },
+            body: JSON.stringify(data)
+        })
+        .then(response => response.json())
+        .then(result => {
+            if (result.success) {
+                // Close modal immediately
+                var modalEl = document.getElementById('followUpModal');
+                var modalInstance = bootstrap.Modal.getInstance(modalEl);
+                if (modalInstance) modalInstance.hide();
+                document.getElementById('followUpForm').reset();
+
+                // Reload follow-ups if on details page
+                if (typeof loadFollowups === 'function') {
+                    loadFollowups(data.LeadId);
+                } else {
+                    window.location.reload();
+                }
+            } else {
+                showFollowUpAlert('danger', result.message || 'Failed to save follow-up');
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalText;
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showFollowUpAlert('danger', 'An error occurred while saving the follow-up');
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalText;
+        });
+
+        return false;
+    }
+
+    function showFollowUpAlert(type, message) {
+        const alertDiv = document.getElementById('followUpAlert');
+        alertDiv.className = `alert alert-${type} mt-3`;
+        alertDiv.textContent = message;
+        alertDiv.classList.remove('d-none');
+
+        if (type === 'success') {
+            setTimeout(() => {
+                alertDiv.classList.add('d-none');
+            }, 3000);
+        }
+    }
+
+    // Reset form when modal is closed
+    document.getElementById('followUpModal')?.addEventListener('hidden.bs.modal', function () {
+        document.getElementById('followUpForm').reset();
+        document.getElementById('followUpAlert').classList.add('d-none');
+        document.querySelectorAll('#followUpForm .is-invalid').forEach(el => el.classList.remove('is-invalid'));
+
+        const submitBtn = this.querySelector('button[type="submit"]');
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '<i class="fa-solid fa-save me-1"></i>Update';
+    });
+
+    // Set minimum date to today and clear validation on change
+    document.addEventListener('DOMContentLoaded', function() {
+        const dateInput = document.getElementById('fuFollowUpDate');
+        if (dateInput) {
+            const today = new Date().toISOString().split('T')[0];
+            dateInput.setAttribute('min', today);
+        }
+
+        ['fuStage', 'fuStatus', 'fuFollowUpDate'].forEach(function(id) {
+            var el = document.getElementById(id);
+            if (el) {
+                el.addEventListener('change', function() {
+                    this.classList.remove('is-invalid');
+                });
+            }
+        });
+
+        // Auto-submit when user leaves Follow Up Time field (if all required fields filled)
+        var fuTimeInput = document.getElementById('fuFollowUpTime');
+        if (fuTimeInput) {
+            fuTimeInput.addEventListener('blur', function() {
+                if (!this.value) return;
+                // Check all required fields are filled
+                var stage = document.getElementById('fuStage').value;
+                var status = document.getElementById('fuStatus').value;
+                var date = document.getElementById('fuFollowUpDate').value;
+                if (stage && status && date) {
+                    // Small delay to allow click on other fields
+                    setTimeout(function() {
+                        var active = document.activeElement;
+                        var modal = document.getElementById('followUpModal');
+                        // Only auto-submit if focus moved outside the form fields
+                        if (!modal.contains(active) || active === modal) {
+                            document.getElementById('followUpForm').dispatchEvent(new Event('submit', { cancelable: true }));
+                        }
+                    }, 200);
+                }
+            });
+        }
+    });
+</script>

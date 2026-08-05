@@ -1,0 +1,185 @@
+@{
+    ViewData["Title"] = "Under Maintenance";
+    Layout = null;
+    var message = ViewBag.MaintenanceMessage as string ?? "System is currently under scheduled maintenance. We will be back shortly.";
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Under Maintenance</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <style>
+        :root {
+            --gold: #D4A45A;
+            --gold-light: #FEF3C7;
+            --gold-dark: #B8883E;
+            --blue: #1A6FA8;
+            --blue-dark: #125082;
+            --blue-light: #E2E8F0;
+            --body-bg: #F0F4F8;
+            --text-primary: #1A2332;
+            --text-muted: #6B7B8D;
+        }
+        html.dark-mode {
+            --body-bg: #111827;
+            --text-primary: #E8EDF2;
+            --text-muted: #8FA3B8;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--body-bg);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .mm-wrapper {
+            text-align: center;
+            padding: 40px 20px;
+            max-width: 600px;
+            width: 100%;
+        }
+        .mm-icon {
+            width: 120px;
+            height: 120px;
+            margin: 0 auto 32px;
+            background: linear-gradient(135deg, var(--blue), var(--gold));
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: pulse 2s infinite ease-in-out;
+        }
+        .mm-icon i {
+            font-size: 56px;
+            color: #FFFFFF;
+        }
+        @@keyframes pulse {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.05); opacity: 0.9; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .mm-title {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 12px;
+            background: linear-gradient(135deg, var(--blue), var(--gold));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .mm-message {
+            font-size: 1.05rem;
+            color: var(--text-muted);
+            line-height: 1.6;
+            margin-bottom: 32px;
+            padding: 0 20px;
+        }
+        .mm-card {
+            background: #FFFFFF;
+            border: 1px solid var(--gold-light);
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+        }
+        html.dark-mode .mm-card {
+            background: #1E2A3A;
+            border-color: #2A3A4A;
+        }
+        .mm-card i {
+            color: var(--gold);
+            font-size: 1.2rem;
+            margin-bottom: 8px;
+        }
+        .mm-card p {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            line-height: 1.5;
+        }
+        .mm-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 20px;
+            background: #FEE2E2;
+            color: #DC2626;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+        html.dark-mode .mm-status {
+            background: rgba(220,38,38,0.15);
+        }
+        .mm-refresh-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 28px;
+            background: linear-gradient(135deg, var(--blue), var(--blue-dark));
+            color: #FFFFFF;
+            border: none;
+            border-radius: 10px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .mm-refresh-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 14px rgba(26,111,168,0.4);
+        }
+        .mm-footer {
+            margin-top: 32px;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+    </style>
+</head>
+<body>
+    <div class="mm-wrapper">
+        <div class="mm-icon">
+            <i class="fa-solid fa-shield-halved"></i>
+        </div>
+
+        <h1 class="mm-title">Under Maintenance</h1>
+
+        <div class="mm-message">
+            @message
+        </div>
+
+        <div class="mm-card">
+            <i class="fa-solid fa-clock"></i>
+            <p>
+                We are performing scheduled maintenance to improve your experience.
+                Please check back shortly. We apologize for any inconvenience.
+            </p>
+        </div>
+
+        <div style="margin-bottom:24px;">
+            <span class="mm-status">
+                <i class="fa-solid fa-exclamation-triangle"></i>
+                Maintenance in progress
+            </span>
+        </div>
+
+        <button class="mm-refresh-btn" onclick="location.reload()">
+            <i class="fa-solid fa-rotate"></i> Check Again
+        </button>
+
+        <div class="mm-footer">
+            &copy; @DateTime.UtcNow.Year PropTech CRM. All rights reserved.
+        </div>
+    </div>
+
+    <script>
+        // Auto-refresh every 60 seconds to check if maintenance is over
+        setTimeout(function() { location.reload(); }, 60000);
+    </script>
+</body>
+</html>

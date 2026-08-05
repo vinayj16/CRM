@@ -1,0 +1,929 @@
+@using CRM.Helpers;
+@{
+    ViewData["Title"] = "Admin Dashboard";
+}
+
+<style>
+    @@keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+    @@keyframes slideInLeft { from { opacity: 0; transform: translateX(-50px); } to { opacity: 1; transform: translateX(0); } }
+
+    @@keyframes progressFill { from { width: 0%; } to { width: var(--target-width); } }
+    @@keyframes drawCircle { from { stroke-dashoffset: 100; } to { stroke-dashoffset: 0; } }
+    
+    .dashboard-card {
+        background: white;
+        border-radius: 12px;
+        padding: 0.5rem 1.25rem;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        border: 1px solid rgba(0,0,0,0.05);
+        transition: all 0.3s;
+        animation: fadeInUp 0.6s ease-out;
+    }
+    .dashboard-card:hover { transform: translateY(-5px); box-shadow: 0 12px 40px rgba(0,0,0,0.15); }
+    .stat-card { cursor: pointer; min-height: 55px; position: relative; }
+    .stat-number { font-size: 2rem; font-weight: 700; color: var(--blue); margin: 0; }
+    .stat-label { color: #6B7B8D; font-size: 0.85rem; margin-top: 0.1rem; margin-bottom: 0; }
+    .stat-icon { font-size: 2rem; color: var(--blue); opacity: 0.8; position: absolute; right: 1.25rem; top: 1.25rem; }
+    .chart-card { min-height: 320px; }
+    .chart-card canvas { height: 300px !important; }
+    .circle-chart-container { display: flex; justify-content: center; align-items: center; height: 300px; }
+    .circle-chart-container canvas { width: 300px !important; height: 300px !important; }
+    .table-card { min-height: 320px; display: flex; flex-direction: column; }
+    .table-card .mb-3 { margin-bottom: 0.75rem !important; flex-shrink: 0; }
+    .table-responsive { flex: 1; overflow-y: auto; min-height: 0; }
+    .table-responsive::-webkit-scrollbar { width: 6px; }
+    .table-responsive::-webkit-scrollbar-track { background: #F0F4F8; border-radius: 10px; }
+    .table-responsive::-webkit-scrollbar-thumb { background: #6B7B8D; border-radius: 10px; }
+    .table-responsive::-webkit-scrollbar-thumb:hover { background: #2A3A4A; }
+    .progress-thin { height: 8px; }
+    .pipeline-card { min-height: 320px; }
+    html.dark-mode #pipelineContainer .progress {
+        background-color: #FFFFFF !important;
+    }
+    html.dark-mode #pipelineContainer .progress .progress-bar {
+        background-color: var(--blue) !important;
+    }
+    .dark-mode .dashboard-card { background: #1E2A3A !important; border-color: #2A3A4A !important; color: #E2E8F0 !important; }
+    .dark-mode .stat-label { color: #8FA3B8 !important; }
+    .dark-mode .stat-icon { color: var(--blue) !important; opacity: 0.8 !important; }
+    .animated-row { animation: slideInLeft 0.5s ease-out; }
+    .animated-progress { animation: progressFill 2s ease-out; }
+    .card-1 { animation-delay: 0.1s; }
+    .card-2 { animation-delay: 0.2s; }
+    .card-3 { animation-delay: 0.3s; }
+    .card-4 { animation-delay: 0.4s; }
+    .chart-1 { animation-delay: 0.5s; }
+    .chart-2 { animation-delay: 0.6s; }
+    .chart-3 { animation-delay: 0.7s; }
+    .chart-4 { animation-delay: 0.8s; }
+    .chart-5 { animation-delay: 0.9s; }
+    .chart-6 { animation-delay: 1.0s; }
+
+    @@media (max-width: 767px) {
+        .stat-card { min-height: 0; padding: 1rem; }
+        .hero-welcome { border-radius: 12px; }
+        .hero-welcome h2 { font-size: 1.3rem !important; }
+        .circle-chart-container { height: 220px; }
+        .circle-chart-container canvas { width: 220px !important; height: 220px !important; }
+        .dashboard-card { padding: 1rem; }
+        .row.g-3 { margin-left: 0; margin-right: 0; }
+    }
+</style>
+
+<div class="content">
+    <nav class="mb-3" aria-label="breadcrumb">
+        <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item"><a href="/home">Home</a></li>
+            <li class="breadcrumb-item active">Dashboard</li>
+        </ol>
+    </nav>
+
+    <!-- Hero Welcome Section -->
+    <div class="hero-welcome card mb-4 border-0 overflow-hidden" style="background:linear-gradient(135deg,#1A6FA8 0%,#D4A45A 100%);border-radius:16px;box-shadow:0 8px 32px rgba(26,111,168,0.15);">
+        <div class="card-body p-4">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="avatar-placeholder rounded-circle d-flex align-items-center justify-content-center" style="width:64px;height:64px;flex-shrink:0;background:rgba(255,255,255,0.25);">
+                            <i class="fa-solid fa-user text-white" style="font-size:1.8rem;"></i>
+                        </div>
+                        <div>
+                            <h2 class="text-white mb-1 fw-bold" style="font-size:1.8rem;">Welcome, @ViewBag.Username!</h2>
+                            <p class="text-white-50 mb-0"><i class="fa-solid fa-briefcase me-2"></i>@ViewBag.CompanyName</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4 text-md-end mt-3 mt-md-0">
+                    <div class="d-flex align-items-center justify-content-md-end gap-3">
+                        @if (!string.IsNullOrEmpty(ViewBag.CompanyLogo as string))
+                        {
+                            <div class="company-badge-hero d-flex align-items-center gap-2 rounded-3 px-3 py-2" style="background:rgba(255,255,255,0.15);">
+                                <img src="@ViewBag.CompanyLogo" style="height:36px;width:auto;max-width:100px;object-fit:contain;border-radius:4px;" alt="Logo" />
+                                <span class="text-white fw-semibold" style="font-size:0.95rem;">@ViewBag.CompanyName</span>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="company-badge-hero d-flex align-items-center gap-2 rounded-3 px-3 py-2" style="background:rgba(255,255,255,0.15);">
+                                <i class="fa-solid fa-building text-white" style="font-size:1.4rem;"></i>
+                                <span class="text-white fw-semibold" style="font-size:0.95rem;">@ViewBag.CompanyName</span>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Plan Usage Card -->
+    <div class="row g-3 mb-3">
+        <div class="col-12">
+            <div class="dashboard-card chart-1 p-3" id="planUsageCard" style="display:none;">
+                <div class="d-flex align-items-center justify-content-between mb-3">
+                    <h5 class="mb-0"><i class="fa-solid fa-gauge-high me-2"></i>Plan Usage</h5>
+                    <span id="planBadge" class="badge" style="background:linear-gradient(135deg,#1A6FA8,#125082);font-size:0.85rem;padding:6px 14px;"></span>
+                </div>
+                <div id="planUsageBars" class="row g-2">
+                    <!-- Dynamically populated -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="row g-3 mb-3" id="statsRow">
+        <div class="col-md-3">
+            <div class="dashboard-card stat-card card-1" onclick="window.location.href='/Leads/Index'">
+                <i class="fa-solid fa-users stat-icon"></i>
+                <h2 class="stat-number" id="totalLeads">0</h2>
+                <p class="stat-label">Total Leads</p>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="dashboard-card stat-card card-2">
+                <i class="fa-brands fa-facebook stat-icon"></i>
+                <h2 class="stat-number" id="facebookLeads">0</h2>
+                <p class="stat-label">Facebook Leads</p>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="dashboard-card stat-card card-3">
+                <i class="fa-solid fa-indian-rupee-sign stat-icon"></i>
+                <h2 class="stat-number" id="totalRevenue">₹0</h2>
+                <p class="stat-label">Total Revenue</p>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="dashboard-card stat-card card-4">
+                <i class="fa-solid fa-indian-rupee-sign stat-icon"></i>
+                <h2 class="stat-number" id="totalProfit">₹0</h2>
+                <p class="stat-label">Total Profit</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-4">
+        <!-- Lead Analysis -->
+        <div class="col-lg-6">
+            <div class="dashboard-card chart-card chart-1">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="mb-0"><i class="fa-solid fa-chart-bar me-2"></i>Lead Growth</h5>
+                    <div class="btn-group btn-group-sm" role="group" id="leadGrowthToggle">
+                        <button type="button" class="btn btn-outline-primary active" data-months="6" onclick="switchChartPeriod('leadGrowth', 6)">6M</button>
+                        <button type="button" class="btn btn-outline-primary" data-months="12" onclick="switchChartPeriod('leadGrowth', 12)">12M</button>
+                    </div>
+                </div>
+                <canvas id="leadGrowthChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Traffic Sources -->
+        <div class="col-lg-6">
+            <div class="dashboard-card chart-card chart-2">
+                <h5 class="mb-3"><i class="fa-solid fa-chart-pie me-2"></i>Traffic Sources</h5>
+                <div class="circle-chart-container">
+                    <canvas id="trafficSourcesChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-4">
+        <!-- Sales Pipeline -->
+        <div class="col-lg-8">
+            <div class="dashboard-card pipeline-card chart-3">
+                <h5 class="mb-3"><i class="fa-solid fa-filter me-2"></i>Sales Pipeline Overview</h5>
+                <div id="pipelineContainer"></div>
+            </div>
+        </div>
+
+        <!-- All Leads List -->
+        <div class="col-lg-4">
+            <div class="dashboard-card table-card chart-4">
+                <div class="mb-3">
+                    <h5 class="mb-0"><i class="fa-solid fa-users me-2"></i>Leads List</h5>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-sm" id="allLeadsTable">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Contact</th>
+                                <th>Stage</th>
+                                <th>Date</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3">
+        <!-- Revenue vs Expenses -->
+        <div class="col-lg-8">
+            <div class="dashboard-card chart-card chart-5">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="mb-0"><i class="fa-solid fa-chart-line me-2"></i>Revenue vs Expenses</h5>
+                    <div class="btn-group btn-group-sm" role="group" id="revenueToggle">
+                        <button type="button" class="btn btn-outline-primary active" data-months="6" onclick="switchChartPeriod('revenue', 6)">6M</button>
+                        <button type="button" class="btn btn-outline-primary" data-months="12" onclick="switchChartPeriod('revenue', 12)">12M</button>
+                    </div>
+                </div>
+                <canvas id="revenueExpensesChart"></canvas>
+            </div>
+        </div>
+
+        <!-- All Transactions -->
+        <div class="col-lg-4">
+            <div class="dashboard-card table-card chart-6">
+                <div class="mb-3">
+                    <h5 class="mb-0"><i class="fa-solid fa-receipt me-2"></i>Transactions List</h5>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-sm" id="allTransactionsTable">
+                        <thead>
+                            <tr>
+                                <th>Amount</th>
+                                <th>Method</th>
+                                <th>Date</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Access Links -->
+    <div class="row g-3 mt-3">
+        <div class="col-12">
+            <div class="dashboard-card" style="animation-delay:1.1s;">
+                <h5 class="mb-3"><i class="fa-solid fa-bolt me-2"></i>Quick Access</h5>
+                <div class="d-flex flex-wrap gap-2">
+                    <a href="/Leads/Index" class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-user-plus me-1"></i>Leads</a>
+                    <a href="/Properties/Index" class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-home me-1"></i>Properties</a>
+                    <a href="/Bookings/Index" class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-book-open me-1"></i>Bookings</a>
+                    <a href="/Payments/Index" class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-credit-card me-1"></i>Payments</a>
+                    <a href="/Invoices/Index" class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-file-invoice me-1"></i>Invoices</a>
+                    <a href="/Quotations/Index" class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-clipboard me-1"></i>Quotations</a>
+                    <a href="/Agent/List" class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-users me-1"></i>Agents</a>
+                    <a href="/ManageUsers" class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-user-cog me-1"></i>Users</a>
+                    <a href="/Expenses/Index" class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-minus-circle me-1"></i>Expenses</a>
+                    <a href="/Revenue/Index" class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-plus-circle me-1"></i>Revenue</a>
+                    <a href="/Profile" class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-user me-1"></i>My Profile</a>
+                    <a href="/Settings/Index" class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-cog me-1"></i>Settings</a>
+                    <button type="button" class="btn btn-outline-secondary btn-sm" onclick="openCustomizeModal()"><i class="fa-solid fa-sliders me-1"></i>Customize</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Customize Dashboard Modal -->
+<div class="modal fade" id="customizeModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header" style="background:linear-gradient(135deg,#1A6FA8,#125082);color:white;">
+                <h5 class="modal-title"><i class="fa-solid fa-sliders me-2"></i>Customize Dashboard</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-muted mb-3">Toggle dashboard widgets on/off. Changes are saved per user.</p>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <div class="card" style="border:1px solid #E2E8F0;">
+                            <div class="card-header bg-light py-2"><strong>Admin Widgets</strong></div>
+                            <div class="card-body py-2">
+                                <div class="form-check form-switch mb-2">
+                                    <input class="form-check-input" type="checkbox" id="showStatsCards" checked>
+                                    <label class="form-check-label" for="showStatsCards">Stats Cards</label>
+                                </div>
+                                <div class="form-check form-switch mb-2">
+                                    <input class="form-check-input" type="checkbox" id="showPlanUsage" checked>
+                                    <label class="form-check-label" for="showPlanUsage">Plan Usage</label>
+                                </div>
+                                <div class="form-check form-switch mb-2">
+                                    <input class="form-check-input" type="checkbox" id="showLeadGrowthChart" checked>
+                                    <label class="form-check-label" for="showLeadGrowthChart">Lead Growth Chart</label>
+                                </div>
+                                <div class="form-check form-switch mb-2">
+                                    <input class="form-check-input" type="checkbox" id="showTrafficSources" checked>
+                                    <label class="form-check-label" for="showTrafficSources">Traffic Sources Chart</label>
+                                </div>
+                                <div class="form-check form-switch mb-2">
+                                    <input class="form-check-input" type="checkbox" id="showSalesPipeline" checked>
+                                    <label class="form-check-label" for="showSalesPipeline">Sales Pipeline</label>
+                                </div>
+                                <div class="form-check form-switch mb-2">
+                                    <input class="form-check-input" type="checkbox" id="showLeadsList" checked>
+                                    <label class="form-check-label" for="showLeadsList">Leads List</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card" style="border:1px solid #E2E8F0;">
+                            <div class="card-header bg-light py-2"><strong>More Widgets</strong></div>
+                            <div class="card-body py-2">
+                                <div class="form-check form-switch mb-2">
+                                    <input class="form-check-input" type="checkbox" id="showRevenueExpensesChart" checked>
+                                    <label class="form-check-label" for="showRevenueExpensesChart">Revenue vs Expenses</label>
+                                </div>
+                                <div class="form-check form-switch mb-2">
+                                    <input class="form-check-input" type="checkbox" id="showTransactionsList" checked>
+                                    <label class="form-check-label" for="showTransactionsList">Transactions List</label>
+                                </div>
+                                <div class="form-check form-switch mb-2">
+                                    <input class="form-check-input" type="checkbox" id="showQuickAccess" checked>
+                                    <label class="form-check-label" for="showQuickAccess">Quick Access Links</label>
+                                </div>
+                                <div class="form-check form-switch mb-2">
+                                    <input class="form-check-input" type="checkbox" id="showUpcomingFollowups" checked>
+                                    <label class="form-check-label" for="showUpcomingFollowups">Upcoming Follow-ups</label>
+                                </div>
+                                <div class="form-check form-switch mb-2">
+                                    <input class="form-check-input" type="checkbox" id="showRecentActivities" checked>
+                                    <label class="form-check-label" for="showRecentActivities">Recent Activities</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" onclick="saveDashboardSettings()" style="background:#1A6FA8;border-color:#1A6FA8;">Save Settings</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        let charts = {};
+        let dashboardThemeData = null;
+
+        document.addEventListener('DOMContentLoaded', function() {
+            loadPlanUsage();
+            loadDashboardSettings();
+            setTimeout(() => {
+                loadDashboardData();
+            }, 100);
+
+            setupThemeChangeRefresh();
+            
+            // Match heights on window resize
+            window.addEventListener('resize', () => {
+                setTimeout(matchCardHeights, 100);
+            });
+        });
+
+        function setupThemeChangeRefresh() {
+            const observer = new MutationObserver(() => {
+                refreshThemeSensitiveWidgets();
+            });
+
+            observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+            observer.observe(document.body, { attributes: true, attributeFilter: ['class'] });
+        }
+
+        function refreshThemeSensitiveWidgets() {
+            if (!dashboardThemeData) return;
+
+            renderLeadGrowthChart(dashboardThemeData.monthlyLeads);
+            renderTrafficSourcesChart(dashboardThemeData.sources);
+            renderPipeline(dashboardThemeData.pipeline);
+            renderRevenueExpensesChart(dashboardThemeData.revenueExpenses);
+        }
+
+        var chartPeriod = { leadGrowth: 6, revenue: 6 };
+
+        function switchChartPeriod(chart, months) {
+            chartPeriod[chart] = months;
+            // Update active button styling
+            var group = document.getElementById(chart + 'Toggle');
+            if (group) {
+                group.querySelectorAll('.btn').forEach(function(b) {
+                    b.classList.remove('active');
+                    if (parseInt(b.getAttribute('data-months')) === months) b.classList.add('active');
+                });
+            }
+            // Reload dashboard data with new period
+            loadDashboardData();
+        }
+
+        function loadDashboardData() {
+            var months = Math.max(chartPeriod.leadGrowth, chartPeriod.revenue);
+            fetch('/Home/GetDashboardData?months=' + months)
+                .then(response => response.json())
+                .then(data => {
+                    console.log('Dashboard data received:', data);
+                    dashboardThemeData = data;
+                    updateStats(data);
+                    renderLeadGrowthChart(data.monthlyLeads);
+                    renderTrafficSourcesChart(data.sources);
+                    renderPipeline(data.pipeline);
+                    // Load all leads separately
+                    fetch('/Home/GetAllLeads')
+                        .then(response => response.json())
+                        .then(allLeadsData => {
+                            console.log('All leads received:', allLeadsData.length);
+                            renderAllLeads(allLeadsData);
+                        })
+                        .catch(error => {
+                            console.error('Error loading all leads:', error);
+                            // Fallback to newLeads if GetAllLeads fails
+                            renderAllLeads(data.newLeads || []);
+                        });
+                    renderRevenueExpensesChart(data.revenueExpenses);
+                    // Load all transactions separately
+                    fetch('/Home/GetAllTransactions')
+                        .then(response => response.json())
+                        .then(allTransactionsData => {
+                            console.log('All transactions received:', allTransactionsData.length);
+                            renderAllTransactions(allTransactionsData);
+                        })
+                        .catch(error => {
+                            console.error('Error loading all transactions:', error);
+                            // Fallback to recentTransactions if GetAllTransactions fails
+                            renderAllTransactions(data.recentTransactions || []);
+                        });
+                })
+                .catch(error => console.error('Error loading dashboard:', error));
+        }
+
+        function loadDashboardSettings() {
+            fetch('/Home/GetDashboardSettings')
+                .then(r => r.json())
+                .then(data => {
+                    if (!data.success) return;
+                    var s = data.settings;
+                    // Apply widget visibility
+                    applyWidgetSetting('showStatsCards', '#statsRow', s.showStatsCards);
+                    applyWidgetSetting('showPlanUsage', '#planUsageCard', s.showPlanUsage);
+                    applyWidgetSetting('showLeadGrowthChart', '#leadGrowthToggle', s.showLeadGrowthChart);
+                    applyWidgetSetting('showTrafficSources', '#trafficSourcesChart', s.showTrafficSources);
+                    applyWidgetSetting('showSalesPipeline', '#pipelineContainer', s.showSalesPipeline);
+                    applyWidgetSetting('showLeadsList', '#allLeadsTable', s.showLeadsList);
+                    applyWidgetSetting('showRevenueExpensesChart', '#revenueExpensesChart', s.showRevenueExpensesChart);
+                    applyWidgetSetting('showTransactionsList', '#allTransactionsTable', s.showTransactionsList);
+                    applyWidgetSetting('showQuickAccess', '#quickAccessSection', s.showQuickAccess);
+                    applyWidgetSetting('showUpcomingFollowups', '#upcomingFollowups', s.showUpcomingFollowups);
+                    applyWidgetSetting('showRecentActivities', '#recentActivities', s.showRecentActivities);
+                    // Populate modal checkboxes
+                    populateCustomizeModal(s);
+                })
+                .catch(err => console.error('Error loading dashboard settings:', err));
+        }
+
+        function applyWidgetSetting(settingKey, selector, show) {
+            // For parent containers, find the closest .dashboard-card or chart row
+            var el = document.querySelector(selector);
+            if (!el) return;
+            var parent = el.closest('.dashboard-card') || el.closest('.row.g-3.mb-3') || el.closest('.row.g-3.mb-4') || el.closest('.row.g-3');
+            if (parent) {
+                parent.style.display = show ? '' : 'none';
+            }
+            // Also store in data attribute for the toggle
+            document.getElementById('' + settingKey).checked = show;
+        }
+
+        function populateCustomizeModal(s) {
+            var toggleMap = {
+                showStatsCards: 'showStatsCards',
+                showPlanUsage: 'showPlanUsage',
+                showLeadGrowthChart: 'showLeadGrowthChart',
+                showTrafficSources: 'showTrafficSources',
+                showSalesPipeline: 'showSalesPipeline',
+                showLeadsList: 'showLeadsList',
+                showRevenueExpensesChart: 'showRevenueExpensesChart',
+                showTransactionsList: 'showTransactionsList',
+                showQuickAccess: 'showQuickAccess',
+                showUpcomingFollowups: 'showUpcomingFollowups',
+                showRecentActivities: 'showRecentActivities'
+            };
+            for (var key in toggleMap) {
+                var el = document.getElementById(toggleMap[key]);
+                if (el && s[key] !== undefined) {
+                    el.checked = s[key];
+                }
+            }
+        }
+
+        function openCustomizeModal() {
+            var modal = new bootstrap.Modal(document.getElementById('customizeModal'));
+            modal.show();
+        }
+
+        function saveDashboardSettings() {
+            var settings = {
+                showStatsCards: document.getElementById('showStatsCards').checked,
+                showPlanUsage: document.getElementById('showPlanUsage').checked,
+                showLeadGrowthChart: document.getElementById('showLeadGrowthChart').checked,
+                showTrafficSources: document.getElementById('showTrafficSources').checked,
+                showSalesPipeline: document.getElementById('showSalesPipeline').checked,
+                showLeadsList: document.getElementById('showLeadsList').checked,
+                showRevenueExpensesChart: document.getElementById('showRevenueExpensesChart').checked,
+                showTransactionsList: document.getElementById('showTransactionsList').checked,
+                showQuickAccess: document.getElementById('showQuickAccess').checked,
+                showUpcomingFollowups: document.getElementById('showUpcomingFollowups').checked,
+                showRecentActivities: document.getElementById('showRecentActivities').checked
+            };
+
+            fetch('/Home/SaveDashboardSettings', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(settings)
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    // Close modal and reload to apply
+                    var modalEl = document.getElementById('customizeModal');
+                    var modal = bootstrap.Modal.getInstance(modalEl);
+                    if (modal) modal.hide();
+                    showToast('Dashboard layout saved!', 'success');
+                    setTimeout(() => location.reload(), 1200);
+                } else {
+                    showToast('Error saving layout: ' + data.message, 'error');
+                }
+            })
+            .catch(err => showToast('Error saving layout', 'error'));
+        }
+
+        function loadPlanUsage() {
+            fetch('/Home/GetPlanUsage')
+                .then(r => r.json())
+                .then(data => {
+                    if (!data.success) {
+                        document.getElementById('planUsageCard').style.display = 'block';
+                        document.getElementById('planBadge').textContent = 'Plan info unavailable';
+                        document.getElementById('planUsageBars').innerHTML = '<div class="col-12"><p class="text-muted mb-0 text-center py-2"><i class="fa-solid fa-circle-info me-2"></i>Unable to load plan usage data.</p></div>';
+                        return;
+                    }
+                    var u = data.usage;
+                    document.getElementById('planUsageCard').style.display = 'block';
+                    document.getElementById('planBadge').textContent = u.planName + ' (' + u.daysRemaining + ' days left)';
+                    
+                    var bars = [
+                        { label: 'Users', current: u.users.current, max: u.users.max, unlimited: u.users.unlimited, percent: u.users.percent },
+                        { label: 'Agents', current: u.agents.current, max: u.agents.max, unlimited: u.agents.unlimited, percent: u.agents.percent },
+                        { label: 'Leads this month', current: u.leads.current, max: u.leads.max, unlimited: u.leads.unlimited, percent: u.leads.percent },
+                        { label: 'Partners', current: u.partners.current, max: u.partners.max, unlimited: u.partners.unlimited, percent: u.partners.percent }
+                    ];
+                    
+                    var container = document.getElementById('planUsageBars');
+                    container.innerHTML = '';
+                    
+                    bars.forEach(function(b) {
+                        var col = document.createElement('div');
+                        col.className = 'col-md-3 col-6';
+                        
+                        var limitText = b.unlimited ? '' : '/ ' + b.max;
+                        var barColor = b.percent >= 90 ? '#DC2626' : b.percent >= 70 ? '#F59E0B' : '#16A34A';
+                        var showBar = !b.unlimited && b.max > 0;
+                        
+                        col.innerHTML = '<div class="p-2" style="border:1px solid #E2E8F0;border-radius:8px;">' +
+                            '<div class="d-flex justify-content-between mb-1">' +
+                            '<small class="text-muted">' + b.label + '</small>' +
+                            '<small><strong>' + b.current + '</strong> ' + limitText + '</small>' +
+                            '</div>' +
+                            (showBar ? '<div class="progress" style="height:6px;">' +
+                            '<div class="progress-bar" style="width:' + b.percent + '%;background:' + barColor + ';"></div>' +
+                            '</div>' : '<small class="text-success">Unlimited</small>') +
+                            '</div>';
+                        container.appendChild(col);
+                    });
+                })
+                .catch(err => {
+                    console.error('Error loading plan usage:', err);
+                    document.getElementById('planUsageCard').style.display = 'block';
+                    document.getElementById('planBadge').textContent = 'Plan info unavailable';
+                    document.getElementById('planUsageBars').innerHTML = '<div class="col-12"><p class="text-muted mb-0 text-center py-2"><i class="fa-solid fa-circle-info me-2"></i>Unable to load plan usage data. Check your connection.</p></div>';
+                });
+        }
+
+        function updateStats(data) {
+            animateNumber('totalLeads', data.totalLeads);
+            animateNumber('facebookLeads', data.facebookLeads);
+            animateNumber('totalRevenue', data.totalRevenue, '₹');
+            animateNumber('totalProfit', data.totalProfit, '₹');
+        }
+
+        function animateNumber(elementId, targetValue, prefix = '') {
+            const element = document.getElementById(elementId);
+            const duration = 2000;
+            const startTime = performance.now();
+            const startValue = 0;
+
+            function updateNumber(currentTime) {
+                const elapsed = currentTime - startTime;
+                const progress = Math.min(elapsed / duration, 1);
+                const easeOutQuart = 1 - Math.pow(1 - progress, 4);
+                const currentValue = Math.floor(startValue + (targetValue - startValue) * easeOutQuart);
+                
+                element.textContent = prefix + formatNumber(currentValue);
+                
+                if (progress < 1) {
+                    requestAnimationFrame(updateNumber);
+                }
+            }
+            
+            requestAnimationFrame(updateNumber);
+        }
+
+        function renderLeadGrowthChart(data) {
+            setTimeout(() => {
+                const isDarkMode = document.documentElement.classList.contains('dark-mode') || document.body.classList.contains('dark-mode');
+                const chartTextColor = isDarkMode ? '#FFFFFF' : '#111827';
+                const chartGridColor = isDarkMode ? 'rgba(255, 255, 255, 0.16)' : 'rgba(107,123,141, 0.16)';
+                const ctx = document.getElementById('leadGrowthChart').getContext('2d');
+                if (charts.leadGrowth) charts.leadGrowth.destroy();
+                charts.leadGrowth = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: data?.map(d => d.month) || ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+                        datasets: [{
+                            label: 'Leads',
+                            data: data?.map(d => d.count) || [10, 15, 12, 20, 18, 25],
+                            borderColor: '#1A6FA8',
+                            backgroundColor: 'rgba(26,111,168, 0.1)',
+                            tension: 0.4,
+                            fill: true
+                        }]
+                    },
+                    options: { 
+                        responsive: true, 
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: {
+                            x: {
+                                ticks: { color: chartTextColor },
+                                grid: { color: chartGridColor }
+                            },
+                            y: {
+                                beginAtZero: true,
+                                ticks: { color: chartTextColor },
+                                grid: { color: chartGridColor }
+                            }
+                        },
+                        animation: {
+                            duration: 2000,
+                            easing: 'easeInOutQuart'
+                        }
+                    }
+                });
+            }, 500);
+        }
+
+        function renderTrafficSourcesChart(data) {
+            setTimeout(() => {
+                const isDarkMode = document.documentElement.classList.contains('dark-mode') || document.body.classList.contains('dark-mode');
+                const chartTextColor = isDarkMode ? '#FFFFFF' : '#111827';
+                const canvas = document.getElementById('trafficSourcesChart');
+                const parent = canvas.parentElement;
+
+                if (charts.trafficSources) charts.trafficSources.destroy();
+
+                if (!data || data.length === 0) {
+                    parent.innerHTML = '<div class="text-center py-4"><i class="fa-solid fa-chart-pie text-muted mb-2" style="font-size: 2.5rem;"></i><p class="text-muted mb-0">No traffic source data available</p></div>';
+                    return;
+                }
+
+                const ctx = canvas.getContext('2d');
+                const colors = ['#1A6FA8', '#125082', '#D4A45A', '#F59E0B', '#16A34A', '#2589C9'];
+                const chartData = data;
+                charts.trafficSources = new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: chartData.map(d => d.source),
+                        datasets: [{
+                            data: chartData.map(d => d.count),
+                            backgroundColor: colors,
+                            borderWidth: 2,
+                            borderColor: '#FFFFFF'
+                        }]
+                    },
+                    options: { 
+                        responsive: true, 
+                        maintainAspectRatio: true,
+                        aspectRatio: 1,
+                        animation: {
+                            animateRotate: true,
+                            animateScale: true,
+                            duration: 2500,
+                            easing: 'easeOutQuart'
+                        },
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: {
+                                    color: chartTextColor,
+                                    padding: 15,
+                                    usePointStyle: true,
+                                    pointStyle: 'circle',
+                                    font: { size: 12 }
+                                }
+                            }
+                        }
+                    }
+                });
+            }, 600);
+        }
+
+        function renderPipeline(data) {
+            const container = document.getElementById('pipelineContainer');
+            const total = data.reduce((sum, d) => sum + d.count, 0);
+            const isDarkMode = document.documentElement.classList.contains('dark-mode') || document.body.classList.contains('dark-mode');
+            const colors = ['#1A6FA8', '#125082', '#D4A45A', '#F59E0B', '#16A34A', '#2589C9', '#125082', '#2589C9'];
+            
+            container.innerHTML = '';
+            
+            data.forEach((d, i) => {
+                const percentage = total > 0 ? (d.count / total * 100).toFixed(1) : 0;
+                
+                setTimeout(() => {
+                    const pipelineItem = document.createElement('div');
+                    pipelineItem.className = 'mb-3';
+                    pipelineItem.style.animation = 'slideInLeft 0.6s ease-out';
+                    pipelineItem.innerHTML = `
+                        <div class="d-flex justify-content-between mb-1">
+                            <span>${d.stage}</span>
+                            <span><strong>${d.count}</strong> (${percentage}%)</span>
+                        </div>
+                        <div class="progress progress-thin" style="background-color: ${isDarkMode ? '#FFFFFF' : '#E2E8F0'};">
+                            <div class="progress-bar animated-progress" style="--target-width: ${percentage}%; background-color: ${isDarkMode ? '#16A34A' : colors[i]}; width: 0%;"></div>
+                        </div>
+                    `;
+                    container.appendChild(pipelineItem);
+                    
+                    // Animate progress bar
+                    setTimeout(() => {
+                        const progressBar = pipelineItem.querySelector('.progress-bar');
+                        progressBar.style.width = percentage + '%';
+                    }, 100);
+                    
+                    // Match heights after last item is added
+                    if (i === data.length - 1) {
+                        setTimeout(() => {
+                            matchCardHeights();
+                        }, 300);
+                    }
+                }, i * 200);
+            });
+        }
+        
+        function matchCardHeights() {
+            // Match pipeline and leads cards
+            const pipelineCard = document.querySelector('.pipeline-card');
+            const leadsCard = document.querySelector('.chart-4');
+            
+            if (pipelineCard && leadsCard) {
+                const pipelineHeight = pipelineCard.offsetHeight;
+                leadsCard.style.height = pipelineHeight + 'px';
+            }
+            
+            // Match revenue and transactions cards
+            const revenueCard = document.querySelector('.chart-5');
+            const transactionsCard = document.querySelector('.chart-6');
+            
+            if (revenueCard && transactionsCard) {
+                const revenueHeight = revenueCard.offsetHeight;
+                transactionsCard.style.height = revenueHeight + 'px';
+            }
+        }
+
+        function renderAllLeads(data) {
+            const tbody = document.querySelector('#allLeadsTable tbody');
+            tbody.innerHTML = '';
+            
+            data.forEach((lead, index) => {
+                setTimeout(() => {
+                    const row = document.createElement('tr');
+                    row.className = 'animated-row';
+                    row.style.cursor = 'pointer';
+                    // row.onclick = () => window.location.href = `/Leads/Details/${lead.leadId}`;
+                                        row.onclick = () => window.location.href = `/Leaddetails/${lead.encodedId}`;
+
+
+                    
+                    let badgeClass = 'secondary';
+                    if (lead.stage === 'New') badgeClass = 'info';
+                    else if (lead.stage === 'Office Meeting') badgeClass = 'warning';
+                    else if (lead.stage === 'Site Visit Requested') badgeClass = 'primary';
+                    else if (lead.stage === 'Site Visit Done') badgeClass = 'success';
+                    else if (lead.stage === 'Quotation') badgeClass = 'info';
+                    else if (lead.stage === 'Quotation Sent') badgeClass = 'warning';
+                    else if (lead.stage === 'Negotiation') badgeClass = 'danger';
+                    else if (lead.stage === 'Booked') badgeClass = 'success';
+                    
+                    row.innerHTML = `
+                        <td><strong>${lead.name || 'N/A'}</strong></td>
+                        <td><small>${lead.contact || 'N/A'}</small></td>
+                        <td><span class="badge bg-${badgeClass}">${lead.stage || 'N/A'}</span></td>
+                        <td><small>${lead.createdOn || 'N/A'}</small></td>
+                    `;
+                    tbody.appendChild(row);
+                }, index * 30);
+            });
+        }
+        
+
+
+        function renderRevenueExpensesChart(data) {
+            setTimeout(() => {
+                const isDarkMode = document.documentElement.classList.contains('dark-mode') || document.body.classList.contains('dark-mode');
+                const chartTextColor = isDarkMode ? '#FFFFFF' : '#111827';
+                const chartGridColor = isDarkMode ? 'rgba(255, 255, 255, 0.16)' : 'rgba(107,123,141, 0.16)';
+                const ctx = document.getElementById('revenueExpensesChart').getContext('2d');
+                if (charts.revenueExpenses) charts.revenueExpenses.destroy();
+                const chartData = data?.length ? data : [
+                    {month: 'Jan', revenue: 50000, expenses: 30000},
+                    {month: 'Feb', revenue: 60000, expenses: 35000},
+                    {month: 'Mar', revenue: 55000, expenses: 32000},
+                    {month: 'Apr', revenue: 70000, expenses: 40000},
+                    {month: 'May', revenue: 65000, expenses: 38000},
+                    {month: 'Jun', revenue: 80000, expenses: 45000}
+                ];
+                charts.revenueExpenses = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: chartData.map(d => d.month),
+                        datasets: [{
+                            label: 'Revenue',
+                            data: chartData.map(d => d.revenue),
+                            borderColor: '#16A34A',
+                            backgroundColor: 'rgba(22,163,74, 0.1)',
+                            tension: 0.4
+                        }, {
+                            label: 'Expenses',
+                            data: chartData.map(d => d.expenses),
+                            borderColor: '#DC2626',
+                            backgroundColor: 'rgba(220,38,38, 0.1)',
+                            tension: 0.4
+                        }]
+                    },
+                    options: { 
+                        responsive: true, 
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                labels: {
+                                    color: chartTextColor
+                                }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                ticks: { color: chartTextColor },
+                                grid: { color: chartGridColor }
+                            },
+                            y: {
+                                beginAtZero: true,
+                                ticks: { color: chartTextColor },
+                                grid: { color: chartGridColor }
+                            }
+                        },
+                        animation: {
+                            duration: 2000,
+                            easing: 'easeOutBounce'
+                        },
+                        onAnimationComplete: () => {
+                            setTimeout(matchCardHeights, 100);
+                        }
+                    }
+                });
+            }, 900);
+        }
+
+        function renderAllTransactions(data) {
+            const tbody = document.querySelector('#allTransactionsTable tbody');
+            tbody.innerHTML = '';
+            
+            data.forEach((transaction, index) => {
+                setTimeout(() => {
+                    const row = document.createElement('tr');
+                    row.className = 'animated-row';
+                    row.style.cursor = 'pointer';
+                    row.onclick = () => window.location.href = `/Payments`;
+                    row.innerHTML = `
+                        <td><strong>₹${formatNumber(transaction.amount || 0)}</strong></td>
+                        <td><small>${transaction.paymentMethod || 'N/A'}</small></td>
+                        <td><small>${transaction.paymentDate || 'N/A'}</small></td>
+                    `;
+                    tbody.appendChild(row);
+                }, index * 30);
+            });
+        }
+
+        function formatNumber(num) {
+            return new Intl.NumberFormat('en-IN').format(num);
+        }
+    </script>
+}
+
+

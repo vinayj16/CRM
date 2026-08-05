@@ -1,0 +1,814 @@
+@model CRM.Models.PaymentModel
+@{
+    ViewData["Title"] = "Record Payment";
+    var invoice = ViewBag.Invoice as CRM.Models.InvoiceModel;
+    var pendingInvoices = ViewBag.PendingInvoices as List<CRM.Models.InvoiceModel> ?? new List<CRM.Models.InvoiceModel>();
+}
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<style>
+    @@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Sora:wght@600;700&display=swap');
+
+    :root {
+        --blue:        #1A6FA8;
+        --blue-dark:   #0F4C75;
+        --blue-light:  #2589C9;
+        --blue-dim:    rgba(26,111,168,.10);
+        --blue-dim2:   rgba(26,111,168,.18);
+        --gold:        #D4A45A;
+        --gold-light:  #E8C27E;
+        --gold-pale:   #F0F4F8;
+        --gold-dim:    rgba(212,164,90,.13);
+        --success:     #16A34A;
+        --success-dim: rgba(22,163,74,.12);
+        --danger:      #DC2626;
+        --danger-dim:  rgba(220,38,38,.10);
+        --border:      #E2E8F0;
+        --bg:          #F0F4F8;
+        --white:       #FFFFFF;
+        --text:        #1E2A3A;
+        --text-mid:    #6B7B8D;
+        --text-soft:   #6B7B8D;
+        --radius:      10px;
+        --radius-sm:   6px;
+        --shadow:      0 2px 10px rgba(26,111,168,.08);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; }
+    body, .content { font-family: 'Outfit', sans-serif; background: var(--bg); color: var(--text); }
+
+    .rp-wrap { max-width: 740px; margin: 0 auto; }
+
+    /* Breadcrumb */
+    .breadcrumb { font-size: .77rem; margin-bottom: .5rem; }
+    .breadcrumb a { color: var(--blue); text-decoration: none; }
+    .breadcrumb-item.active { color: var(--text-soft); }
+
+    /* Page Header */
+    .rp-page-header {
+        background: linear-gradient(120deg, var(--blue) 0%, var(--blue-dark) 100%);
+        border-radius: var(--radius);
+        padding: .85rem 1.1rem;
+        display: flex; align-items: center; justify-content: space-between;
+        margin-bottom: .85rem;
+        position: relative; overflow: hidden;
+    }
+    .rp-page-header::before {
+        content:''; position:absolute; right:-30px; top:-30px;
+        width:120px; height:120px; border-radius:50%;
+        background:rgba(212,164,90,.13); pointer-events:none;
+    }
+    .rp-page-header::after {
+        content:''; position:absolute; right:50px; bottom:-40px;
+        width:80px; height:80px; border-radius:50%;
+        background:rgba(255,255,255,.05); pointer-events:none;
+    }
+    .rp-page-header-left { display:flex; align-items:center; gap:.65rem; }
+    .rp-hdr-icon {
+        width:36px; height:36px;
+        background:var(--gold-dim); border:1.5px solid rgba(212,164,90,.4);
+        border-radius:var(--radius-sm); display:flex; align-items:center; justify-content:center;
+        color:var(--gold-light); font-size:1rem; flex-shrink:0;
+    }
+    .rp-hdr-title { font-family:'Sora',sans-serif; font-size:1.05rem; font-weight:700; color:#FFFFFF; line-height:1.2; }
+    .rp-hdr-sub   { font-size:.72rem; color:rgba(255,255,255,.65); margin-top:1px; }
+
+    /* Card */
+    .rp-card {
+        background:var(--white); border-radius:var(--radius);
+        border:1px solid var(--border); box-shadow:var(--shadow);
+        margin-bottom:.75rem; overflow:visible;
+    }
+    .rp-card-head {
+        background:linear-gradient(120deg,var(--blue) 0%,var(--blue-dark) 100%);
+        border-radius:var(--radius) var(--radius) 0 0;
+        padding:.55rem 1rem;
+        display:flex; align-items:center; gap:.5rem;
+        color:#FFFFFF; font-size:.82rem; font-weight:700; letter-spacing:.02em;
+        position:relative; overflow:hidden;
+    }
+    .rp-card-head::after {
+        content:''; position:absolute; right:-12px; top:-12px;
+        width:60px; height:60px; border-radius:50%;
+        background:rgba(212,164,90,.15); pointer-events:none;
+    }
+    .rp-card-head i { color:var(--gold-light); font-size:.85rem; }
+    .rp-card-body  { padding:.85rem 1rem; }
+
+    /* Invoice Summary */
+    .inv-summary {
+        background:linear-gradient(120deg,var(--blue-dim) 0%,rgba(26,111,168,.05) 100%);
+        border:1px solid rgba(26,111,168,.18);
+        border-left:3px solid var(--blue);
+        border-radius:var(--radius-sm);
+        padding:.75rem 1rem; margin-bottom:.6rem;
+    }
+    .inv-summary-row { display:flex; justify-content:space-between; gap:.5rem; flex-wrap:wrap; }
+    .inv-info p   { margin:0 0 .18rem; font-size:.79rem; color:var(--text-mid); }
+    .inv-info p strong { color:var(--text); }
+    .inv-amounts  { text-align:right; }
+    .inv-amounts p { margin:0 0 .18rem; font-size:.79rem; color:var(--text-mid); }
+    .inv-balance  { font-size:1rem; font-weight:700; color:var(--blue); margin:0 !important; }
+    .gold-accent  { color:var(--gold); }
+
+    /* Form fields */
+    .fc-group { display:flex; flex-direction:column; gap:.2rem; }
+    .fc-label {
+        font-size:.7rem; font-weight:700; color:var(--text-mid);
+        text-transform:uppercase; letter-spacing:.05em;
+        display:flex; align-items:center; gap:.25rem;
+    }
+    .fc-label .req { color:var(--danger); font-size:.75rem; }
+
+    .form-control, .form-select {
+        height:32px; padding:0 .6rem;
+        border:1.5px solid var(--border);
+        border-radius:var(--radius-sm);
+        font-size:.79rem; font-family:'Outfit',sans-serif;
+        color:var(--text); background:var(--bg);
+        transition:border-color .2s, box-shadow .2s, background .2s;
+        outline:none; width:100%;
+    }
+    textarea.form-control { height:auto; padding:.45rem .6rem; resize:vertical; }
+    .form-control:focus, .form-select:focus {
+        border-color:var(--blue); box-shadow:0 0 0 2.5px var(--blue-dim2); background:var(--white);
+    }
+
+    /* Flatpickr overrides */
+    .flatpickr-input { cursor:pointer; background:var(--bg) !important; }
+    .flatpickr-input:focus { border-color:var(--blue) !important; box-shadow:0 0 0 2.5px var(--blue-dim2) !important; background:var(--white) !important; }
+    .flatpickr-input.is-valid   { border-color:var(--success) !important; box-shadow:0 0 0 2px var(--success-dim) !important; }
+    .flatpickr-input.is-invalid { border-color:var(--danger) !important;  box-shadow:0 0 0 2px var(--danger-dim) !important; }
+
+    /* Validation icons via pseudo — only on explicit is-valid / is-invalid */
+    .form-control.is-valid,
+    .form-select.is-valid,
+    .flatpickr-input.is-valid {
+        border-color:var(--success) !important;
+        box-shadow:0 0 0 2px var(--success-dim) !important;
+        background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='%2316a34a' d='M13.485 1.431a1.473 1.473 0 0 0-2.084 0l-6.272 6.272-2.285-2.285a1.473 1.473 0 1 0-2.084 2.084l3.327 3.327a1.473 1.473 0 0 0 2.084 0l7.314-7.314a1.473 1.473 0 0 0 0-2.084z'/%3E%3C/svg%3E");
+        background-repeat:no-repeat; background-position:right .55rem center; background-size:13px; padding-right:2rem;
+    }
+    .form-control.is-invalid,
+    .form-select.is-invalid,
+    .flatpickr-input.is-invalid {
+        border-color:var(--danger) !important;
+        box-shadow:0 0 0 2px var(--danger-dim) !important;
+        background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='%23dc2626' d='M8 0a8 8 0 1 0 0 16A8 8 0 0 0 8 0zm0 4a.905.905 0 0 1 .9.995l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 4.995A.905.905 0 0 1 8 4zm.002 6a1 1 0 1 1 0 2 1 1 0 0 1 0-2z'/%3E%3C/svg%3E");
+        background-repeat:no-repeat; background-position:right .55rem center; background-size:13px; padding-right:2rem;
+    }
+
+    /* Feedback messages */
+    .fc-feedback {
+        font-size:.63rem; font-weight:600; margin-top:.15rem; display:none;
+    }
+    .fc-feedback.ok  { color:var(--success); }
+    .fc-feedback.err { color:var(--danger); }
+
+    /* Payment Method Grid */
+    .pm-grid {
+        display:grid; grid-template-columns:repeat(6,1fr);
+        gap:.5rem; margin-bottom:.85rem;
+    }
+    .pm-option {
+        border:1.5px solid var(--border); border-radius:var(--radius-sm);
+        padding:.55rem .3rem; text-align:center;
+        cursor:pointer; transition:all .2s; background:var(--bg); user-select:none;
+    }
+    .pm-option:hover { border-color:var(--blue); background:var(--blue-dim); }
+    .pm-option.active {
+        border-color:var(--gold); background:var(--gold-pale);
+        box-shadow:0 2px 8px rgba(212,164,90,.25);
+    }
+    .pm-option i { display:block; font-size:1.1rem; margin-bottom:.2rem; color:var(--text-mid); transition:color .2s; }
+    .pm-option.active i  { color:var(--gold); }
+    .pm-option:hover i   { color:var(--blue); }
+    .pm-option span { font-size:.67rem; font-weight:600; color:var(--text-mid); display:block; }
+    .pm-option.active span { color:var(--blue-dark); }
+    .pm-label { font-size:.7rem; font-weight:700; color:var(--text-mid); text-transform:uppercase; letter-spacing:.05em; margin-bottom:.35rem; }
+
+    /* Amount prefix */
+    .inp-prefix {
+        display:flex; align-items:stretch;
+        border:1.5px solid var(--border); border-radius:var(--radius-sm);
+        overflow:hidden; background:var(--bg);
+        transition:border-color .2s, box-shadow .2s;
+    }
+    .inp-prefix:focus-within { border-color:var(--blue); box-shadow:0 0 0 2.5px var(--blue-dim2); background:var(--white); }
+    .inp-prefix.is-valid   { border-color:var(--success) !important; box-shadow:0 0 0 2px var(--success-dim) !important; }
+    .inp-prefix.is-invalid { border-color:var(--danger) !important;  box-shadow:0 0 0 2px var(--danger-dim) !important; }
+    .inp-prefix-sym {
+        padding:0 .55rem; display:flex; align-items:center;
+        background:linear-gradient(135deg,var(--gold-pale),#FEE2E2);
+        border-right:1.5px solid var(--border);
+        color:var(--gold); font-weight:700; font-size:.85rem; flex-shrink:0;
+    }
+    .inp-prefix .form-control {
+        border:none !important; box-shadow:none !important;
+        background:transparent; height:30px; flex:1;
+    }
+    .inp-prefix .form-control:focus { background:transparent; }
+
+    /* Form grid */
+    .form-grid { display:grid; grid-template-columns:1fr 1fr; gap:.55rem; }
+    .form-grid .span-full { grid-column:1/-1; }
+
+    /* Submit */
+    .submit-wrap { text-align:center; margin:.85rem 0 1.25rem; }
+    .rp-submit-btn {
+        background:linear-gradient(135deg,var(--gold) 0%,var(--gold-light) 100%);
+        border:none; border-radius:50px; padding:.6rem 2.5rem;
+        font-size:.9rem; font-weight:700; color:var(--blue-dark);
+        font-family:'Outfit',sans-serif; cursor:pointer; transition:all .2s;
+        display:inline-flex; align-items:center; gap:.45rem;
+        box-shadow:0 4px 14px rgba(212,164,90,.35); letter-spacing:.03em;
+    }
+    .rp-submit-btn:hover { transform:translateY(-2px); box-shadow:0 6px 20px rgba(212,164,90,.5); }
+    .rp-submit-btn:disabled { opacity:.65; cursor:not-allowed; transform:none; }
+
+    /* Searchable dropdown */
+    .sd-wrap { position:relative; }
+    .sd-dropdown {
+        position:absolute; top:calc(100% + 3px); left:0; right:0; z-index:1050;
+        background:var(--white); border:1.5px solid var(--border);
+        border-radius:var(--radius-sm); box-shadow:0 8px 24px rgba(26,111,168,.13);
+        max-height:190px; overflow-y:auto; display:none;
+    }
+    .sd-item {
+        padding:.45rem .75rem; font-size:.78rem; color:var(--text);
+        cursor:pointer; border-bottom:1px solid var(--border); transition:background .15s;
+    }
+    .sd-item:last-child { border-bottom:none; }
+    .sd-item:hover { background:var(--blue-dim); color:var(--blue); }
+
+    /* Dark mode */
+    html.dark-mode {
+        --bg:#111827; --white:#1A2332; --border:#2A3A4A;
+        --text:#E2E8F0; --text-mid:#8FA3B8; --text-soft:#6B7B8D;
+        --gold-pale:#0D1724; --blue-dim:rgba(26,111,168,.18); --blue-dim2:rgba(26,111,168,.25);
+    }
+    html.dark-mode .rp-card { background:var(--white); border-color:var(--border); }
+    html.dark-mode .form-control,
+    html.dark-mode .form-select,
+    html.dark-mode .flatpickr-input  { background:#121F2E !important; border-color:var(--border); color:var(--text); }
+    html.dark-mode .form-control:focus,
+    html.dark-mode .form-select:focus { background:var(--white) !important; }
+    html.dark-mode .pm-option         { background:#121F2E; border-color:var(--border); }
+    html.dark-mode .pm-option:hover   { background:rgba(26,111,168,.2); }
+    html.dark-mode .pm-option.active  { background:rgba(212,164,90,.12); border-color:var(--gold); }
+    html.dark-mode .inp-prefix        { background:#121F2E; border-color:var(--border); }
+    html.dark-mode .inp-prefix .form-control { background:transparent; color:var(--text); }
+    html.dark-mode .inp-prefix-sym    { background:rgba(212,164,90,.12); border-color:var(--border); }
+    html.dark-mode .inv-summary       { background:rgba(26,111,168,.12); border-color:rgba(26,111,168,.25); }
+    html.dark-mode .sd-dropdown       { background:#1A2332; border-color:var(--border); }
+    html.dark-mode .sd-item           { color:var(--text); border-color:var(--border); }
+    html.dark-mode .sd-item:hover     { background:rgba(26,111,168,.2); }
+    html.dark-mode .flatpickr-calendar { background:#1A2332 !important; border-color:rgba(26,111,168,.3) !important; }
+    html.dark-mode .flatpickr-day     { color:var(--text) !important; }
+    html.dark-mode .flatpickr-day:hover { background:rgba(26,111,168,.2) !important; }
+    html.dark-mode .flatpickr-day.selected { background:var(--blue) !important; }
+
+    /* Responsive */
+    @@media (max-width:640px) {
+        .pm-grid { grid-template-columns:repeat(3,1fr); }
+        .form-grid { grid-template-columns:1fr; }
+        .form-grid .span-full { grid-column:1; }
+        .inv-summary-row { flex-direction:column; gap:.4rem; }
+        .inv-amounts { text-align:left; }
+        .rp-page-header { flex-direction:column; align-items:flex-start; gap:.5rem; }
+    }
+    @@media (max-width:400px) {
+        .pm-grid { grid-template-columns:repeat(2,1fr); }
+    }
+</style>
+
+<div class="content rp-wrap">
+
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-2">
+        <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item"><a href="/Home">Home</a></li>
+            <li class="breadcrumb-item"><a href="/Payments/Index">Payments</a></li>
+            <li class="breadcrumb-item active">Record New</li>
+        </ol>
+    </nav>
+
+    <!-- Page Header -->
+    <div class="rp-page-header mb-3">
+        <div class="rp-page-header-left">
+            <div class="rp-hdr-icon"><i class="fa-solid fa-money-bill-wave"></i></div>
+            <div>
+                <div class="rp-hdr-title">Record Payment</div>
+                <div class="rp-hdr-sub">Record a new payment transaction</div>
+            </div>
+        </div>
+    </div>
+
+    <form id="paymentForm" novalidate>
+
+        <!-- ── INVOICE SECTION ── -->
+        <div class="rp-card">
+            <div class="rp-card-head">
+                <i class="fa-solid fa-file-invoice"></i> Invoice Details
+            </div>
+            <div class="rp-card-body">
+
+                @if (invoice != null)
+                {
+                    <input type="hidden" id="InvoiceId"     name="InvoiceId"     value="@invoice.InvoiceId" />
+                    <input type="hidden" id="BookingId"     name="BookingId"     value="@invoice.BookingId" />
+                    <input type="hidden" id="InstallmentId" name="InstallmentId" value="@invoice.InstallmentId" />
+
+                    <div class="inv-summary">
+                        <div class="inv-summary-row">
+                            <div class="inv-info">
+                                <p><strong>Invoice:</strong> @invoice.InvoiceNumber</p>
+                                <p><strong>Customer:</strong> @invoice.Booking?.Lead?.Name</p>
+                                <p><strong>Property:</strong> @invoice.Booking?.Property?.PropertyName</p>
+                            </div>
+                            <div class="inv-amounts">
+                                <p>Total: ₹@invoice.TotalAmount.ToString("N2")</p>
+                                <p>Paid: ₹@invoice.PaidAmount.ToString("N2")</p>
+                                <p class="inv-balance">Balance: ₹@((invoice.TotalAmount - invoice.PaidAmount).ToString("N2"))</p>
+                            </div>
+                        </div>
+                    </div>
+                }
+                else
+                {
+                    <div class="fc-group" style="margin-bottom:.55rem;">
+                        <label class="fc-label">Select Invoice <span class="req">*</span></label>
+                        <div class="sd-wrap">
+                            <input type="text" class="form-control" id="invoiceSearch"
+                                   placeholder="Search by invoice, customer..." autocomplete="off">
+                            <input type="hidden" id="InvoiceIdSelect" value="" required>
+                            <div class="fc-feedback err" id="invoiceErrMsg">Please select an invoice</div>
+                            <div class="sd-dropdown" id="invoiceDropdown">
+                                <div class="sd-item" data-value="">Choose an invoice...</div>
+                                @foreach (var inv in pendingInvoices)
+                                {
+                                    var balance = inv.TotalAmount - inv.PaidAmount;
+                                    var displayText = $"{inv.InvoiceNumber} - {inv.Booking?.Lead?.Name} - Balance: ₹{balance:N0}";
+                                    <div class="sd-item"
+                                         data-value="@inv.InvoiceId"
+                                         data-booking="@inv.BookingId"
+                                         data-installment="@inv.InstallmentId"
+                                         data-balance="@balance"
+                                         data-name="@displayText">@displayText</div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="invoiceSummary" style="display:none;">
+                        <div class="inv-summary">
+                            <div id="summaryContent"></div>
+                        </div>
+                    </div>
+
+                    <input type="hidden" id="InvoiceId"     name="InvoiceId" />
+                    <input type="hidden" id="BookingId"     name="BookingId" />
+                    <input type="hidden" id="InstallmentId" name="InstallmentId" />
+                }
+
+            </div>
+        </div>
+
+        <!-- ── PAYMENT DETAILS ── -->
+        <div class="rp-card">
+            <div class="rp-card-head">
+                <i class="fa-solid fa-credit-card"></i> Payment Details
+            </div>
+            <div class="rp-card-body">
+
+                <!-- Payment Method -->
+                <div class="pm-label"><i class="fa-solid fa-wallet me-1 gold-accent"></i>Payment Method <span style="color:var(--danger)">*</span></div>
+                <div class="pm-grid">
+                    <div class="pm-option active" data-method="Cash">
+                        <i class="fa-solid fa-money-bill"></i><span>Cash</span>
+                    </div>
+                    <div class="pm-option" data-method="UPI">
+                        <i class="fa-solid fa-mobile-screen"></i><span>UPI</span>
+                    </div>
+                    <div class="pm-option" data-method="Cheque">
+                        <i class="fa-solid fa-money-check"></i><span>Cheque</span>
+                    </div>
+                    <div class="pm-option" data-method="NEFT">
+                        <i class="fa-solid fa-building-columns"></i><span>NEFT</span>
+                    </div>
+                    <div class="pm-option" data-method="RTGS">
+                        <i class="fa-solid fa-university"></i><span>RTGS</span>
+                    </div>
+                    <div class="pm-option" data-method="Card">
+                        <i class="fa-solid fa-credit-card"></i><span>Card</span>
+                    </div>
+                </div>
+                <input type="hidden" id="PaymentMethod" name="PaymentMethod" value="Cash" />
+
+                <!-- Form Fields -->
+                <div class="form-grid">
+
+                    <!-- Amount -->
+                    <div class="fc-group">
+                        <label class="fc-label">Amount <span class="req">*</span></label>
+                        <div class="inp-prefix" id="amountWrap">
+                            <span class="inp-prefix-sym">₹</span>
+                            <input type="number" class="form-control" id="Amount" name="Amount"
+                                   step="0.01" min="1" value="@Model.Amount" placeholder="0.00">
+                        </div>
+                        <div class="fc-feedback err" id="amountErr">Please enter a valid amount</div>
+                    </div>
+
+                    <!-- Payment Date (flatpickr) -->
+                    <div class="fc-group">
+                        <label class="fc-label">Payment Date <span class="req">*</span></label>
+                        <input type="text" class="form-control" id="PaymentDate" name="PaymentDate"
+                               placeholder="Select date" readonly autocomplete="off">
+                        <input type="hidden" id="PaymentDateHidden" name="PaymentDateValue">
+                        <div class="fc-feedback err" id="payDateErr">Please select payment date</div>
+                        <div class="fc-feedback ok" id="payDateOk"><i class="fa-solid fa-check me-1"></i>Date selected</div>
+                    </div>
+
+                    <!-- Transaction Reference (UPI/NEFT/RTGS/Card) -->
+                    <div class="fc-group" id="transactionRefDiv" style="display:none;">
+                        <label class="fc-label" id="transRefLabel">Transaction Reference <span class="req">*</span></label>
+                        <input type="text" class="form-control" id="TransactionReference"
+                               name="TransactionReference" placeholder="Transaction ID / UTR Number">
+                        <div class="fc-feedback err" id="transRefErr">Transaction reference is required</div>
+                        <div class="fc-feedback ok"  id="transRefOk"><i class="fa-solid fa-check me-1"></i>Looks good</div>
+                    </div>
+
+                    <!-- Bank Name -->
+                    <div class="fc-group" id="bankNameDiv" style="display:none;">
+                        <label class="fc-label" id="bankLabel">Bank Name <span class="req">*</span></label>
+                        <input type="text" class="form-control" id="BankName"
+                               name="BankName" placeholder="Bank name">
+                        <div class="fc-feedback err" id="bankErr">Bank name is required</div>
+                        <div class="fc-feedback ok"  id="bankOk"><i class="fa-solid fa-check me-1"></i>Looks good</div>
+                    </div>
+
+                    <!-- Cheque Number -->
+                    <div class="fc-group" id="chequeNumberDiv" style="display:none;">
+                        <label class="fc-label">Cheque Number <span class="req">*</span></label>
+                        <input type="text" class="form-control" id="ChequeNumber"
+                               name="ChequeNumber" placeholder="Cheque number">
+                        <div class="fc-feedback err" id="chequeNumErr">Cheque number is required</div>
+                        <div class="fc-feedback ok"  id="chequeNumOk"><i class="fa-solid fa-check me-1"></i>Looks good</div>
+                    </div>
+
+                    <!-- Cheque Date (flatpickr) -->
+                    <div class="fc-group" id="chequeDateDiv" style="display:none;">
+                        <label class="fc-label">Cheque Date <span class="req">*</span></label>
+                        <input type="text" class="form-control" id="ChequeDate" name="ChequeDate"
+                               placeholder="Select date" readonly autocomplete="off">
+                        <div class="fc-feedback err" id="chequeDateErr">Cheque date is required</div>
+                        <div class="fc-feedback ok"  id="chequeDateOk"><i class="fa-solid fa-check me-1"></i>Date selected</div>
+                    </div>
+
+                    <!-- Notes -->
+                    <div class="fc-group span-full">
+                        <label class="fc-label">Notes</label>
+                        <textarea class="form-control" id="Notes" name="Notes" rows="2"
+                                  placeholder="Additional payment notes..."></textarea>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+        <!-- Submit -->
+        <div class="submit-wrap">
+            <button type="submit" class="rp-submit-btn" id="submitBtn">
+                <i class="fa-solid fa-circle-check"></i> Record Payment
+            </button>
+        </div>
+
+    </form>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+$(function () {
+
+    /* ──────────────────────────────────────────────
+       FLATPICKR — Payment Date
+    ────────────────────────────────────────────── */
+    const fpPayDate = flatpickr('#PaymentDate', {
+        dateFormat: 'd M Y',
+        defaultDate: new Date(),
+        disableMobile: true,
+        allowInput: false,
+        onChange: function(selectedDates, dateStr) {
+            if (selectedDates.length) {
+                // Store ISO for backend
+                const d = selectedDates[0];
+                const iso = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+                $('#PaymentDateHidden').val(iso);
+                // Update name attr so form serializes the ISO value
+                $('#PaymentDate').attr('name', '');
+                $('#PaymentDateHidden').attr('name', 'PaymentDate');
+                setFieldState('#PaymentDate', 'ok', '#payDateErr', '#payDateOk');
+            } else {
+                setFieldState('#PaymentDate', 'err', '#payDateErr', '#payDateOk');
+            }
+        }
+    });
+    // Set default ISO value on load
+    (function(){
+        const d = new Date();
+        const iso = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+        $('#PaymentDateHidden').val(iso).attr('name','PaymentDate');
+        $('#PaymentDate').attr('name','').addClass('is-valid');
+        $('#payDateOk').show();
+    })();
+
+    /* ──────────────────────────────────────────────
+       FLATPICKR — Cheque Date
+    ────────────────────────────────────────────── */
+    const fpChequeDate = flatpickr('#ChequeDate', {
+        dateFormat: 'd M Y',
+        disableMobile: true,
+        allowInput: false,
+        onChange: function(selectedDates, dateStr) {
+            if (selectedDates.length) {
+                const d = selectedDates[0];
+                const iso = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+                // Store ISO via hidden or update name
+                $('#ChequeDate').data('isoVal', iso);
+                setFieldState('#ChequeDate', 'ok', '#chequeDateErr', '#chequeDateOk');
+            } else {
+                setFieldState('#ChequeDate', 'err', '#chequeDateErr', '#chequeDateOk');
+            }
+        }
+    });
+
+    /* ──────────────────────────────────────────────
+       HELPER — set valid/invalid state
+    ────────────────────────────────────────────── */
+    function setFieldState(selector, state, errId, okId) {
+        const $el = $(selector);
+        $el.removeClass('is-valid is-invalid');
+        if (errId) $(errId).hide();
+        if (okId)  $(okId).hide();
+        if (state === 'ok') {
+            $el.addClass('is-valid');
+            if (okId) $(okId).show();
+        } else if (state === 'err') {
+            $el.addClass('is-invalid');
+            if (errId) $(errId).show();
+        }
+        // reset = no classes
+    }
+
+    function clearFieldState(selector, errId, okId) {
+        $(selector).removeClass('is-valid is-invalid');
+        if (errId) $(errId).hide();
+        if (okId)  $(okId).hide();
+    }
+
+    /* ──────────────────────────────────────────────
+       PAYMENT METHOD SELECT
+    ────────────────────────────────────────────── */
+    $('.pm-option').on('click', function() {
+        $('.pm-option').removeClass('active');
+        $(this).addClass('active');
+        const method = $(this).data('method');
+        $('#PaymentMethod').val(method);
+        updatePaymentFields(method);
+    });
+
+    function updatePaymentFields(method) {
+        // Hide all conditional fields & clear their states
+        ['#transactionRefDiv','#bankNameDiv','#chequeNumberDiv','#chequeDateDiv'].forEach(function(id) {
+            $(id).hide();
+        });
+        clearFieldState('#TransactionReference','#transRefErr','#transRefOk');
+        clearFieldState('#BankName','#bankErr','#bankOk');
+        clearFieldState('#ChequeNumber','#chequeNumErr','#chequeNumOk');
+        clearFieldState('#ChequeDate','#chequeDateErr','#chequeDateOk');
+        $('#TransactionReference,#BankName,#ChequeNumber,#ChequeDate').val('');
+        if (fpChequeDate) fpChequeDate.clear();
+
+        // Show relevant fields
+        if (['UPI','NEFT','RTGS','Card'].includes(method)) $('#transactionRefDiv').show();
+        if (['NEFT','RTGS','Cheque'].includes(method))      $('#bankNameDiv').show();
+        if (method === 'Cheque') { $('#chequeNumberDiv').show(); $('#chequeDateDiv').show(); }
+    }
+
+    /* ──────────────────────────────────────────────
+       LIVE VALIDATION — Amount
+    ────────────────────────────────────────────── */
+    $('#Amount').on('input blur', function() {
+        const val = parseFloat($(this).val());
+        const $wrap = $('#amountWrap');
+        if (!$(this).val() || isNaN(val) || val <= 0) {
+            $wrap.addClass('is-invalid').removeClass('is-valid');
+            $('#amountErr').show();
+        } else {
+            $wrap.addClass('is-valid').removeClass('is-invalid');
+            $('#amountErr').hide();
+        }
+    });
+
+    /* ──────────────────────────────────────────────
+       LIVE VALIDATION — Text fields (only when visible & has value)
+    ────────────────────────────────────────────── */
+    function setupTextValidation(inputId, errId, okId) {
+        $('#'+inputId).on('input blur', function() {
+            const $div = $(this).closest('.fc-group').parent();
+            if (!$(this).closest('[id$="Div"]').is(':visible')) return;
+            if ($(this).val().trim().length > 0) {
+                setFieldState('#'+inputId, 'ok', '#'+errId, '#'+okId);
+            } else if ($(this).is(':focus') === false && document.activeElement !== this) {
+                // only show error on blur if empty
+            }
+        });
+        $('#'+inputId).on('blur', function() {
+            if (!$(this).closest('[id$="Div"]').is(':visible')) return;
+            if ($(this).val().trim() === '') {
+                setFieldState('#'+inputId, 'err', '#'+errId, '#'+okId);
+            }
+        });
+        // Input: show ok as you type, hide error
+        $('#'+inputId).on('input', function() {
+            if (!$(this).closest('[id$="Div"]').is(':visible')) return;
+            const val = $(this).val().trim();
+            if (val.length > 0) {
+                setFieldState('#'+inputId, 'ok', '#'+errId, '#'+okId);
+            } else {
+                clearFieldState('#'+inputId, '#'+errId, '#'+okId);
+            }
+        });
+    }
+
+    setupTextValidation('TransactionReference', 'transRefErr', 'transRefOk');
+    setupTextValidation('BankName', 'bankErr', 'bankOk');
+    setupTextValidation('ChequeNumber', 'chequeNumErr', 'chequeNumOk');
+
+    /* ──────────────────────────────────────────────
+       INVOICE SEARCH (dropdown)
+    ────────────────────────────────────────────── */
+    @if (invoice == null)
+    {
+        <text>
+    initializeInvoiceSearch();
+        </text>
+    }
+
+    function initializeInvoiceSearch() {
+        const $search   = $('#invoiceSearch');
+        const $hidden   = $('#InvoiceIdSelect');
+        const $dropdown = $('#invoiceDropdown');
+        const $items    = $dropdown.find('.sd-item');
+
+        $search.on('focus', function() { $dropdown.show(); filterItems(''); });
+        $(document).on('click', function(e) {
+            if (!$search.is(e.target) && !$dropdown.is(e.target) && $dropdown.has(e.target).length === 0)
+                $dropdown.hide();
+        });
+        $search.on('input', function() { filterItems($(this).val().toLowerCase()); });
+        $items.on('click', function() {
+            const value = $(this).data('value');
+            const name  = $(this).data('name') || $(this).text();
+            $hidden.val(value);
+            $search.val(name);
+            $dropdown.hide();
+            if (value) {
+                setFieldState('#invoiceSearch','ok','#invoiceErrMsg',null);
+                loadInvoiceDetails(value);
+            } else {
+                clearFieldState('#invoiceSearch','#invoiceErrMsg',null);
+                $('#invoiceSummary').hide();
+            }
+        });
+        function filterItems(term) {
+            $items.each(function() { $(this).toggle($(this).text().toLowerCase().includes(term)); });
+        }
+    }
+
+    function loadInvoiceDetails(invoiceId) {
+        $.ajax({
+            url: '/Payments/GetInvoiceDetails',
+            type: 'GET',
+            data: { invoiceId },
+            success: function(response) {
+                if (response.success) {
+                    $('#InvoiceId').val(invoiceId);
+                    $('#BookingId').val(response.bookingId);
+                    $('#InstallmentId').val(response.installmentId);
+                    $('#Amount').val(response.balanceAmount.toFixed(2)).trigger('input');
+                    $('#summaryContent').html(`
+                        <div class="inv-summary-row">
+                            <div class="inv-info">
+                                <p><strong>Invoice:</strong> ${response.invoiceNumber}</p>
+                                <p><strong>Customer:</strong> ${response.leadName}</p>
+                                <p><strong>Property:</strong> ${response.propertyName}</p>
+                            </div>
+                            <div class="inv-amounts">
+                                <p>Total: ₹${response.totalAmount.toLocaleString('en-IN')}</p>
+                                <p>Paid: ₹${response.paidAmount.toLocaleString('en-IN')}</p>
+                                <p class="inv-balance">Balance: ₹${response.balanceAmount.toLocaleString('en-IN')}</p>
+                            </div>
+                        </div>
+                    `);
+                    $('#invoiceSummary').show();
+                }
+            }
+        });
+    }
+
+    /* ──────────────────────────────────────────────
+       FORM SUBMIT — Full Validation
+    ────────────────────────────────────────────── */
+    $('#paymentForm').on('submit', function(e) {
+        e.preventDefault();
+        let valid = true;
+        const method = $('#PaymentMethod').val();
+
+        // Invoice check (when no fixed invoice)
+        @if (invoice == null)
+        {
+            <text>
+        const invId = $('#InvoiceIdSelect').val();
+        if (!invId) {
+            setFieldState('#invoiceSearch', 'err', '#invoiceErrMsg', null);
+            valid = false;
+        }
+            </text>
+        }
+
+        // Amount
+        const amtVal = parseFloat($('#Amount').val());
+        if (!$('#Amount').val() || isNaN(amtVal) || amtVal <= 0) {
+            $('#amountWrap').addClass('is-invalid').removeClass('is-valid');
+            $('#amountErr').show();
+            valid = false;
+        }
+
+        // Payment Date
+        if (!$('#PaymentDateHidden').val()) {
+            setFieldState('#PaymentDate', 'err', '#payDateErr', '#payDateOk');
+            valid = false;
+        }
+
+        // Conditional required fields
+        if (['UPI','NEFT','RTGS','Card'].includes(method)) {
+            if (!$('#TransactionReference').val().trim()) {
+                setFieldState('#TransactionReference','err','#transRefErr','#transRefOk');
+                valid = false;
+            }
+        }
+        if (['NEFT','RTGS','Cheque'].includes(method)) {
+            if (!$('#BankName').val().trim()) {
+                setFieldState('#BankName','err','#bankErr','#bankOk');
+                valid = false;
+            }
+        }
+        if (method === 'Cheque') {
+            if (!$('#ChequeNumber').val().trim()) {
+                setFieldState('#ChequeNumber','err','#chequeNumErr','#chequeNumOk');
+                valid = false;
+            }
+            if (!$('#ChequeDate').val()) {
+                setFieldState('#ChequeDate','err','#chequeDateErr','#chequeDateOk');
+                valid = false;
+            }
+        }
+
+        if (!valid) return;
+
+        // Append cheque ISO date if needed
+        if (method === 'Cheque' && $('#ChequeDate').data('isoVal')) {
+            // Already in input via flatpickr formatted value; backend parses it
+        }
+
+        const $btn = $('#submitBtn');
+        const origHtml = $btn.html();
+        $btn.prop('disabled',true).html('<i class="fa-solid fa-spinner fa-spin me-2"></i>Recording...');
+
+        $.ajax({
+            url: '/Payments/Create',
+            type: 'POST',
+            data: $(this).serialize(),
+            success: function(response) {
+                if (response.success) {
+                    Swal.fire({
+                        icon:'success', title:'Payment Recorded!',
+                        text:'Receipt Number: ' + response.receiptNumber,
+                        timer:3000, showConfirmButton:false
+                    }).then(() => { window.location.href = '/Payments/Receipt/' + response.paymentId; });
+                } else {
+                    Swal.fire('Error', response.message, 'error');
+                    $btn.prop('disabled',false).html(origHtml);
+                }
+            },
+            error: function() {
+                Swal.fire('Error','Failed to record payment','error');
+                $btn.prop('disabled',false).html(origHtml);
+            }
+        });
+    });
+
+});
+</script>

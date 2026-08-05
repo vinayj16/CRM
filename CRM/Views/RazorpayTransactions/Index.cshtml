@@ -1,0 +1,627 @@
+@model List<dynamic>
+@{
+    ViewData["Title"] = "Razorpay Transactions";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<style>
+    :root {
+        --gold:        #D4A45A;
+        --gold-light:  #FEE2E2;
+        --gold-dark:   #B8883E;
+        --navy:        #1A6FA8;
+        --navy-light:  #F0F4F8;
+        --navy-dark:   #125082;
+        --rz-red:      #DC2626;
+        --rz-orange:   #B45309;
+        --rz-amber:    #F59E0B;
+        --rz-surface:  var(--bs-body-bg, #FFFFFF);
+        --rz-border:   var(--bs-border-color, #E2E8F0);
+        --rz-muted:    var(--bs-secondary-color, #6B7B8D);
+        --rz-text:     var(--bs-body-color, #111827);
+    }
+    h1, .h1 {
+    font-size: 1.5rem !important;
+    font-weight: 700 !important;
+    margin-bottom: 1px !important;
+}
+p {
+    font-size: 0.95rem !important;
+    line-height: 1.6 !important;
+    margin-bottom: 0px !important;
+}
+    .rz-page { max-width: 100%; margin: 0 auto; padding: 0 0 2rem; }
+
+    /* ── Header ── */
+    .rz-header {
+        display: flex; align-items: center; justify-content: space-between;
+        flex-wrap: wrap; gap: 0.6rem;
+        background: linear-gradient(100deg, var(--navy) 0%, #1250821a 100%),
+                    var(--navy);
+        background: var(--navy);
+        border-radius: 10px; padding: 0.8rem 1.1rem;
+        margin-bottom: 0.75rem; color: #FFFFFF;
+        border-bottom: 3px solid var(--gold);
+    }
+    .rz-header-left { display: flex; align-items: center; gap: 0.55rem; }
+    .rz-header-left h1 { font-size: 1rem; font-weight: 700; margin: 0; }
+    .rz-header-left p  { font-size: 0.7rem; opacity: 0.8; margin: 0; }
+    .rz-export-btns { display: flex; gap: 0.3rem; flex-wrap: wrap; }
+    .rz-export-btns a,
+    .rz-export-btns button {
+        background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.25);
+        color: #FFFFFF; border-radius: 5px; padding: 0.24rem 0.6rem;
+        font-size: 0.7rem; font-weight: 500; text-decoration: none; cursor: pointer;
+        transition: background 0.15s; display: inline-flex; align-items: center; gap: 0.25rem; white-space: nowrap;
+    }
+    .rz-export-btns a:hover,
+    .rz-export-btns button:hover { background: rgba(212,164,90,0.35); border-color: var(--gold); color: #FFFFFF; }
+
+    /* ── Stats ── */
+    .rz-stats {
+        display: grid; grid-template-columns: repeat(4,1fr); gap: 0.45rem; margin-bottom: 0.65rem;
+    }
+    .rz-stat {
+        background: var(--rz-surface); border: 1px solid var(--rz-border);
+        border-radius: 8px; padding: 0.55rem 0.8rem; text-align: center;
+        border-top: 2px solid var(--gold);
+    }
+    .rz-stat-num { font-size: 1.1rem; font-weight: 800; line-height: 1.1; color: var(--rz-text); letter-spacing: -0.02em; }
+    .rz-stat-num.gold  { color: var(--gold-dark); }
+    .rz-stat-num.navy  { color: var(--navy); }
+    .rz-stat-num.red   { color: var(--rz-red); }
+    .rz-stat-lbl { font-size: 0.58rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--rz-muted); margin-top: 0.1rem; font-weight: 600; }
+
+    /* ── Filter bar ── */
+    .rz-filter {
+        background: var(--rz-surface); border: 1px solid var(--rz-border);
+        border-radius: 8px; padding: 0.65rem 0.85rem; margin-bottom: 0.65rem;
+    }
+    .rz-filter-row { display: flex; gap: 0.45rem; flex-wrap: wrap; align-items: flex-end; }
+    .rz-filter-group { display: flex; flex-direction: column; gap: 0.18rem; flex: 1; min-width: 115px; }
+    .rz-filter-group label { font-size: 0.6rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--gold-dark); }
+    .rz-filter-group select,
+    .rz-filter-group input[type="text"] {
+        background: var(--bs-body-bg,#FFFFFF); border: 1px solid var(--rz-border);
+        border-radius: 5px; padding: 0.28rem 0.5rem; font-size: 0.75rem;
+        color: var(--rz-text); outline: none; width: 100%; transition: border-color 0.15s;
+    }
+    .rz-filter-group select:focus,
+    .rz-filter-group input[type="text"]:focus { border-color: var(--navy); box-shadow: 0 0 0 2px var(--navy-light); }
+    .rz-filter-actions { display: flex; gap: 0.3rem; align-items: flex-end; flex-shrink: 0; flex-wrap: wrap; }
+    .rz-btn-apply {
+        background: var(--navy); color: #FFFFFF; border: none; border-radius: 5px;
+        padding: 0.3rem 0.75rem; font-size: 0.72rem; font-weight: 600; cursor: pointer;
+        white-space: nowrap; transition: background 0.15s;
+    }
+    .rz-btn-apply:hover { background: var(--navy-dark); }
+    .rz-btn-clear {
+        background: transparent; color: var(--rz-muted); border: 1px solid var(--rz-border);
+        border-radius: 5px; padding: 0.28rem 0.65rem; font-size: 0.72rem; font-weight: 600;
+        cursor: pointer; white-space: nowrap; transition: all 0.15s;
+    }
+    .rz-btn-clear:hover { border-color: var(--rz-red); color: var(--rz-red); }
+    .rz-quick-btns { display: flex; gap: 0.2rem; }
+    .rz-quick-btn {
+        background: transparent; color: var(--rz-muted); border: 1px solid var(--rz-border);
+        border-radius: 4px; padding: 0.24rem 0.45rem; font-size: 0.65rem; font-weight: 600;
+        cursor: pointer; white-space: nowrap; transition: all 0.15s;
+    }
+    .rz-quick-btn:hover { border-color: var(--gold); color: var(--gold-dark); background: var(--gold-light); }
+
+    /* Flatpickr */
+    .flatpickr-input { cursor: pointer; }
+    .flatpickr-day.selected, .flatpickr-day.selected:hover { background: var(--navy) !important; border-color: var(--navy) !important; }
+    .flatpickr-day:hover { background: var(--navy-light) !important; }
+
+    /* ── 2-col grid ── */
+    .rz-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.45rem;
+    }
+
+    /* ── Transaction card ── */
+    .rz-card {
+        background: var(--rz-surface);
+        border: 1px solid var(--rz-border);
+        border-left: 3px solid transparent;
+        border-radius: 8px;
+        padding: 0.6rem 0.8rem;
+        display: flex; align-items: center; gap: 0.6rem;
+        transition: box-shadow 0.15s, border-left-color 0.15s, transform 0.12s;
+        min-width: 0;
+    }
+    .rz-card:hover { box-shadow: 0 3px 12px rgba(26,111,168,0.1); transform: translateY(-1px); }
+    .rz-card.status-captured   { border-left-color: var(--navy); }
+    .rz-card.status-failed     { border-left-color: var(--rz-red); }
+    .rz-card.status-refunded   { border-left-color: var(--rz-orange); }
+    .rz-card.status-authorized { border-left-color: var(--gold); }
+    .rz-card.status-created    { border-left-color: #8FA3B8; }
+
+    .rz-card-icon {
+        width: 30px; height: 30px; border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        flex-shrink: 0; font-size: 0.78rem;
+    }
+    .icon-captured   { background: var(--navy-light); color: var(--navy); }
+    .icon-failed     { background: #FEE2E2; color: #991B1B; }
+    .icon-refunded   { background: #FEF3C7; color: #991B1B; }
+    .icon-authorized { background: var(--gold-light); color: var(--gold-dark); }
+    .icon-created    { background: #F0F4F8; color: #2A3A4A; }
+
+    .rz-card-main { flex: 1; min-width: 0; overflow: hidden; }
+    .rz-card-top  { display: flex; align-items: center; gap: 0.35rem; flex-wrap: wrap; min-width: 0; }
+    .rz-card-id   {
+        font-size: 0.72rem; font-weight: 700; color: var(--rz-text);
+        font-family: monospace; white-space: nowrap;
+        overflow: hidden; text-overflow: ellipsis; max-width: 160px;
+    }
+    .rz-card-meta { display: flex; align-items: center; gap: 0.4rem; margin-top: 0.18rem; flex-wrap: wrap; min-width: 0; }
+    .rz-meta-item {
+        font-size: 0.63rem; color: var(--rz-muted);
+        display: flex; align-items: center; gap: 0.18rem;
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 150px;
+    }
+
+    .rz-badge {
+        padding: 0.08rem 0.4rem; border-radius: 20px;
+        font-size: 0.57rem; font-weight: 700;
+        text-transform: uppercase; letter-spacing: 0.04em; flex-shrink: 0; white-space: nowrap;
+    }
+    .badge-captured   { background: var(--navy-light);  color: var(--navy-dark); }
+    .badge-failed     { background: #FEE2E2; color: #991B1B; }
+    .badge-refunded   { background: #FEF3C7; color: #991B1B; }
+    .badge-authorized { background: var(--gold-light); color: var(--gold-dark); }
+    .badge-created    { background: #F0F4F8; color: #2A3A4A; }
+    .badge-method     { background: var(--bs-secondary-bg,#F0F4F8); color: var(--rz-muted); }
+
+    [data-bs-theme="dark"] .badge-captured   { background: var(--navy-dark); color: #E2E8F0; }
+    [data-bs-theme="dark"] .badge-failed     { background: #991B1B; color: #FEE2E2; }
+    [data-bs-theme="dark"] .badge-refunded   { background: #991B1B; color: #FEF3C7; }
+    [data-bs-theme="dark"] .badge-authorized { background: #B45309; color: #FEF3C7; }
+    [data-bs-theme="dark"] .badge-created    { background: #2A3A4A; color: #B8C8D8; }
+
+    .rz-card-right { display: flex; flex-direction: column; align-items: flex-end; gap: 0.2rem; flex-shrink: 0; }
+    .rz-amount { font-size: 0.9rem; font-weight: 800; letter-spacing: -0.02em; white-space: nowrap; }
+    .amt-captured   { color: var(--navy); }
+    .amt-failed     { color: var(--rz-red); }
+    .amt-refunded   { color: var(--rz-orange); }
+    .amt-authorized { color: var(--gold-dark); }
+    .amt-created    { color: var(--rz-muted); }
+
+    .rz-btn-detail {
+        background: transparent; border: 1px solid var(--rz-border);
+        border-radius: 4px; color: var(--rz-muted);
+        padding: 0.15rem 0.4rem; font-size: 0.6rem; font-weight: 600;
+        cursor: pointer; transition: all 0.15s; white-space: nowrap;
+    }
+    .rz-btn-detail:hover { border-color: var(--navy); color: var(--navy); background: var(--navy-light); }
+
+    /* ── Pagination ── */
+    .rz-pagination { display: flex; justify-content: center; gap: 0.2rem; margin-top: 0.85rem; flex-wrap: wrap; }
+    .rz-page-btn {
+        min-width: 28px; height: 28px; border: 1px solid var(--rz-border);
+        border-radius: 5px; background: var(--rz-surface); color: var(--rz-text);
+        font-size: 0.7rem; font-weight: 600; cursor: pointer;
+        display: flex; align-items: center; justify-content: center;
+        transition: all 0.15s; padding: 0 0.35rem;
+    }
+    .rz-page-btn:hover   { border-color: var(--navy); color: var(--navy); }
+    .rz-page-btn.active  { background: var(--navy); color: #FFFFFF; border-color: var(--navy); }
+    .rz-page-btn:disabled { opacity: 0.35; cursor: default; }
+
+    /* ── Loading / empty ── */
+    .rz-loading, .rz-empty {
+        text-align: center; padding: 2.5rem 1rem;
+        background: var(--rz-surface); border: 1px solid var(--rz-border); border-radius: 8px;
+    }
+    .rz-loading p { font-size: 0.75rem; color: var(--rz-muted); margin: 0.4rem 0 0; }
+    .rz-empty i  { font-size: 2.2rem; color: var(--rz-border); display: block; margin-bottom: 0.6rem; }
+    .rz-empty h4 { font-size: 0.85rem; font-weight: 600; margin: 0 0 0.25rem; }
+    .rz-empty p  { font-size: 0.72rem; color: var(--rz-muted); margin: 0; }
+
+    .rz-spinner {
+        width: 28px; height: 28px; border: 3px solid var(--rz-border);
+        border-top-color: var(--navy); border-radius: 50%;
+        animation: spin 0.7s linear infinite; margin: 0 auto 0.6rem;
+    }
+    @@keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Modal ── */
+    .rz-modal-table { width: 100%; font-size: 0.75rem; border-collapse: collapse; }
+    .rz-modal-table td { padding: 0.28rem 0.4rem; border-bottom: 1px solid var(--rz-border); }
+    .rz-modal-table td:first-child { color: var(--rz-muted); font-weight: 600; width: 38%; }
+
+    /* ── Responsive ── */
+    @@media (max-width: 768px) {
+        .rz-grid { grid-template-columns: 1fr; }
+        .rz-stats { grid-template-columns: repeat(2,1fr); }
+        .rz-header { flex-direction: column; align-items: flex-start; }
+        .rz-filter-row { flex-direction: column; }
+        .rz-filter-group { min-width: 100%; }
+        .rz-filter-actions { width: 100%; }
+        .rz-card-id { max-width: 120px; }
+    }
+    @@media (max-width: 480px) {
+        .rz-stats { grid-template-columns: repeat(2,1fr); }
+        .rz-stat-num { font-size: 0.95rem; }
+        .rz-quick-btns { flex-wrap: wrap; }
+        .rz-card { padding: 0.5rem 0.6rem; gap: 0.45rem; }
+    }
+</style>
+
+<div class="content">
+    <nav class="mb-2" aria-label="breadcrumb">
+        <ol class="breadcrumb mb-0" style="font-size:0.73rem;">
+            <li class="breadcrumb-item"><a href="/Home">Home</a></li>
+            <li class="breadcrumb-item active">Razorpay Transactions</li>
+        </ol>
+    </nav>
+
+    <div class="rz-page">
+
+        <!-- Header -->
+        <div class="rz-header">
+            <div class="rz-header-left">
+                <i class="fa-solid fa-bolt" style="font-size:1.2rem; color:var(--gold);"></i>
+                <div>
+                    <h1>Razorpay Transactions</h1>
+                    <p>Live data from Razorpay API</p>
+                </div>
+            </div>
+            <div class="rz-export-btns">
+                <a href="/RazorpayTransactions/ExportTransactions?format=excel&status=@ViewBag.Status&method=@ViewBag.Method&fromDate=@ViewBag.FromDate&toDate=@ViewBag.ToDate">
+                    <i class="fa-solid fa-file-excel"></i> Excel
+                </a>
+                <a href="/RazorpayTransactions/ExportTransactions?format=csv&status=@ViewBag.Status&method=@ViewBag.Method&fromDate=@ViewBag.FromDate&toDate=@ViewBag.ToDate">
+                    <i class="fa-solid fa-file-csv"></i> CSV
+                </a>
+                <a href="/RazorpayTransactions/ExportTransactions?format=pdf&status=@ViewBag.Status&method=@ViewBag.Method&fromDate=@ViewBag.FromDate&toDate=@ViewBag.ToDate">
+                    <i class="fa-solid fa-file-pdf"></i> PDF
+                </a>
+                <button onclick="location.reload()"><i class="fas fa-sync-alt"></i> Refresh</button>
+            </div>
+        </div>
+
+        @if (ViewBag.Error != null)
+        {
+            <div class="alert alert-danger py-2 mb-2" style="font-size:0.76rem;">
+                <i class="fas fa-exclamation-triangle me-1"></i>@ViewBag.Error
+            </div>
+        }
+        @if (ViewBag.Debug != null)
+        {
+            <div class="alert alert-info py-2 mb-2" style="font-size:0.76rem;">
+                <strong>Debug:</strong> @ViewBag.Debug
+            </div>
+        }
+
+        <!-- Stats -->
+        <div class="rz-stats">
+            <div class="rz-stat">
+                <div class="rz-stat-num navy" id="totalCount">—</div>
+                <div class="rz-stat-lbl">Transactions</div>
+            </div>
+            <div class="rz-stat">
+                <div class="rz-stat-num gold" id="totalRevenue">—</div>
+                <div class="rz-stat-lbl">Revenue</div>
+            </div>
+            <div class="rz-stat">
+                <div class="rz-stat-num red" id="totalRefunds">—</div>
+                <div class="rz-stat-lbl">Refunds</div>
+            </div>
+            <div class="rz-stat">
+                <div class="rz-stat-num" id="netRevenue">—</div>
+                <div class="rz-stat-lbl">Net Revenue</div>
+            </div>
+        </div>
+
+        <!-- Filters -->
+        <div class="rz-filter">
+            <div class="rz-filter-row">
+                <div class="rz-filter-group">
+                    <label>Status</label>
+                    <select id="statusFilter">
+                        <option value="">All Status</option>
+                        <option value="captured">Captured</option>
+                        <option value="failed">Failed</option>
+                        <option value="authorized">Authorized</option>
+                        <option value="created">Created</option>
+                        <option value="refunded">Refunded</option>
+                    </select>
+                </div>
+                <div class="rz-filter-group">
+                    <label>Method</label>
+                    <select id="methodFilter">
+                        <option value="">All Methods</option>
+                        <option value="card">Card</option>
+                        <option value="upi">UPI</option>
+                        <option value="netbanking">Net Banking</option>
+                        <option value="wallet">Wallet</option>
+                    </select>
+                </div>
+                <div class="rz-filter-group">
+                    <label>From Date</label>
+                    <input type="text" id="fromDateFilter" placeholder="Pick date" readonly>
+                </div>
+                <div class="rz-filter-group">
+                    <label>To Date</label>
+                    <input type="text" id="toDateFilter" placeholder="Pick date" readonly>
+                </div>
+                <div class="rz-filter-actions">
+                    <button class="rz-btn-apply" onclick="applyFilters()">
+                        <i class="fa-solid fa-filter me-1"></i>Filter
+                    </button>
+                    <button class="rz-btn-clear" onclick="clearFilters()">
+                        <i class="fa-solid fa-xmark me-1"></i>Clear
+                    </button>
+                    <div class="rz-quick-btns">
+                        <button class="rz-quick-btn" onclick="setQuickFilter(7)">7d</button>
+                        <button class="rz-quick-btn" onclick="setQuickFilter(30)">30d</button>
+                        <button class="rz-quick-btn" onclick="setQuickFilter(90)">3m</button>
+                        <button class="rz-quick-btn" onclick="setQuickFilter(365)">1y</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Loading -->
+        <div id="loadingState" class="rz-loading" style="display:none;">
+            <div class="rz-spinner"></div>
+            <p>Fetching from Razorpay API…</p>
+        </div>
+
+        <!-- 2-col grid -->
+        <div id="transactionsContainer" class="rz-grid"></div>
+
+        <!-- Pagination -->
+        <div class="rz-pagination" id="pagination"></div>
+
+        <!-- Empty -->
+        <div id="emptyState" class="rz-empty" style="display:none;">
+            <i class="fa-solid fa-credit-card"></i>
+            <h4>No Transactions Found</h4>
+            <p>No payment data available from Razorpay API</p>
+        </div>
+
+    </div>
+</div>
+
+<!-- Payment Details Modal -->
+<div class="modal fade" id="paymentDetailsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header py-2 px-3" style="border-bottom:2px solid var(--gold);">
+                <h6 class="modal-title mb-0" style="color:var(--navy); font-weight:700;">
+                    <i class="fa-solid fa-receipt me-2" style="color:var(--gold);"></i>Payment Details
+                </h6>
+                <button type="button" class="btn-close btn-sm" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-3" id="paymentDetailsContent">
+                <div class="text-center py-3"><div class="rz-spinner"></div></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script>
+    let currentPage = 1;
+    const PER_PAGE = 20;
+    let allTransactions = [];
+    let currentFilters = {
+        status:   '@(ViewBag.Status ?? "")',
+        method:   '@(ViewBag.Method ?? "")',
+        fromDate: '@(ViewBag.FromDate ?? "")',
+        toDate:   '@(ViewBag.ToDate ?? "")'
+    };
+
+    const fpCfg = { dateFormat: 'Y-m-d', allowInput: false, disableMobile: false };
+    const fpFrom = flatpickr('#fromDateFilter', { ...fpCfg });
+    const fpTo   = flatpickr('#toDateFilter',   { ...fpCfg });
+
+    if (currentFilters.status)   document.getElementById('statusFilter').value = currentFilters.status;
+    if (currentFilters.method)   document.getElementById('methodFilter').value = currentFilters.method;
+    if (currentFilters.fromDate) fpFrom.setDate(currentFilters.fromDate);
+    if (currentFilters.toDate)   fpTo.setDate(currentFilters.toDate);
+
+    document.addEventListener('DOMContentLoaded', loadTransactions);
+
+    function loadTransactions() {
+        document.getElementById('loadingState').style.display = 'block';
+        document.getElementById('transactionsContainer').innerHTML = '';
+        document.getElementById('emptyState').style.display = 'none';
+        document.getElementById('pagination').innerHTML = '';
+
+        const p = new URLSearchParams();
+        if (currentFilters.status)   p.append('status',   currentFilters.status);
+        if (currentFilters.method)   p.append('method',   currentFilters.method);
+        if (currentFilters.fromDate) p.append('fromDate', currentFilters.fromDate);
+        if (currentFilters.toDate)   p.append('toDate',   currentFilters.toDate);
+
+        fetch(`/RazorpayTransactions/LoadTransactions?${p}`)
+            .then(r => r.json())
+            .then(data => {
+                document.getElementById('loadingState').style.display = 'none';
+                if (data.success) {
+                    allTransactions = data.data;
+                    updateStats(data.data);
+                    currentPage = 1;
+                    renderPage();
+                    renderPagination();
+                } else { showError(data.message); }
+            })
+            .catch(() => {
+                document.getElementById('loadingState').style.display = 'none';
+                showError('Failed to load transactions. Please try again.');
+            });
+    }
+
+    function updateStats(txns) {
+        const fmt = n => '₹' + n.toLocaleString('en-IN', { maximumFractionDigits: 0 });
+        const rev = txns.filter(p => p.status === 'captured').reduce((s, p) => s + p.amount / 100, 0);
+        const ref = txns.filter(p => p.status === 'refunded').reduce((s, p) => s + p.amount / 100, 0);
+        const net = rev - ref;
+        document.getElementById('totalCount').textContent   = txns.length.toLocaleString();
+        document.getElementById('totalRevenue').textContent = fmt(rev);
+        document.getElementById('totalRefunds').textContent = fmt(ref);
+        const el = document.getElementById('netRevenue');
+        el.textContent = fmt(net);
+        el.className   = 'rz-stat-num ' + (net >= 0 ? 'gold' : 'red');
+    }
+
+    const iconMap = {
+        captured:'fa-check', failed:'fa-xmark',
+        refunded:'fa-rotate-left', authorized:'fa-clock', created:'fa-hourglass'
+    };
+
+    function renderPage() {
+        const container = document.getElementById('transactionsContainer');
+        if (!allTransactions.length) {
+            container.innerHTML = '';
+            document.getElementById('emptyState').style.display = 'block';
+            return;
+        }
+        document.getElementById('emptyState').style.display = 'none';
+        const start = (currentPage - 1) * PER_PAGE;
+        const slice = allTransactions.slice(start, start + PER_PAGE);
+
+        container.innerHTML = slice.map(p => {
+            const icon = iconMap[p.status] || 'fa-circle-dot';
+            const date = new Date(p.created_at * 1000).toLocaleDateString('en-IN', {
+                day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit'
+            });
+            return `
+            <div class="rz-card status-${p.status}">
+                <div class="rz-card-icon icon-${p.status}">
+                    <i class="fa-solid ${icon}"></i>
+                </div>
+                <div class="rz-card-main">
+                    <div class="rz-card-top">
+                        <span class="rz-card-id" title="${p.id}">${p.id}</span>
+                        <span class="rz-badge badge-${p.status}">${p.status}</span>
+                        ${p.method ? `<span class="rz-badge badge-method">${p.method}</span>` : ''}
+                    </div>
+                    <div class="rz-card-meta">
+                        <span class="rz-meta-item"><i class="fa-solid fa-calendar-day"></i>${date}</span>
+                        ${p.email   ? `<span class="rz-meta-item" title="${p.email}"><i class="fa-solid fa-envelope"></i>${p.email}</span>` : ''}
+                        ${p.contact ? `<span class="rz-meta-item"><i class="fa-solid fa-phone"></i>${p.contact}</span>` : ''}
+                    </div>
+                </div>
+                <div class="rz-card-right">
+                    <span class="rz-amount amt-${p.status}">₹${(p.amount/100).toLocaleString('en-IN',{minimumFractionDigits:2})}</span>
+                    <button class="rz-btn-detail" onclick="viewDetails('${p.id}')">
+                        <i class="fas fa-eye me-1"></i>Details
+                    </button>
+                </div>
+            </div>`;
+        }).join('');
+    }
+
+    function renderPagination() {
+        const total = Math.ceil(allTransactions.length / PER_PAGE);
+        const el = document.getElementById('pagination');
+        if (total <= 1) { el.innerHTML = ''; return; }
+
+        let html = `<button class="rz-page-btn" onclick="gotoPage(${currentPage-1})" ${currentPage===1?'disabled':''}>‹</button>`;
+        for (let i = 1; i <= total; i++) {
+            if (total > 7 && i > 2 && i < total-1 && Math.abs(i - currentPage) > 1) {
+                if (i === 3 || i === total-2) html += `<button class="rz-page-btn" disabled>…</button>`;
+                continue;
+            }
+            html += `<button class="rz-page-btn ${i===currentPage?'active':''}" onclick="gotoPage(${i})">${i}</button>`;
+        }
+        html += `<button class="rz-page-btn" onclick="gotoPage(${currentPage+1})" ${currentPage===total?'disabled':''}>›</button>`;
+        el.innerHTML = html;
+    }
+
+    function gotoPage(p) {
+        const total = Math.ceil(allTransactions.length / PER_PAGE);
+        if (p < 1 || p > total) return;
+        currentPage = p;
+        renderPage();
+        renderPagination();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function applyFilters() {
+        currentFilters = {
+            status:   document.getElementById('statusFilter').value,
+            method:   document.getElementById('methodFilter').value,
+            fromDate: document.getElementById('fromDateFilter').value,
+            toDate:   document.getElementById('toDateFilter').value
+        };
+        loadTransactions();
+    }
+
+    function clearFilters() {
+        document.getElementById('statusFilter').value = '';
+        document.getElementById('methodFilter').value = '';
+        fpFrom.clear(); fpTo.clear();
+        currentFilters = { status:'', method:'', fromDate:'', toDate:'' };
+        loadTransactions();
+    }
+
+    function setQuickFilter(days) {
+        const from = new Date();
+        from.setDate(from.getDate() - days);
+        fpFrom.setDate(from.toISOString().split('T')[0]);
+        fpTo.clear();
+        applyFilters();
+    }
+
+    function showError(msg) {
+        document.getElementById('transactionsContainer').innerHTML =
+            `<div class="alert alert-danger py-2" style="font-size:0.76rem;"><i class="fas fa-exclamation-triangle me-1"></i>${msg}</div>`;
+        document.getElementById('emptyState').style.display = 'none';
+    }
+
+    function viewDetails(paymentId) {
+        $('#paymentDetailsModal').modal('show');
+        $('#paymentDetailsContent').html('<div class="text-center py-3"><div class="rz-spinner mx-auto"></div></div>');
+        $.get('/RazorpayTransactions/GetPaymentDetails', { paymentId })
+            .done(function(res) {
+                if (res.success) {
+                    const p = res.data;
+                    const sc = s => ({ captured:'success', failed:'danger', refunded:'warning', authorized:'warning' }[s] || 'secondary');
+                    let html = `
+                    <div class="row g-2">
+                        <div class="col-md-6">
+                            <p class="mb-1" style="font-size:0.68rem;font-weight:700;text-transform:uppercase;color:var(--gold-dark);letter-spacing:0.05em;">Payment Info</p>
+                            <table class="rz-modal-table">
+                                <tr><td>Payment ID</td><td><code style="font-size:0.68rem;">${p.id}</code></td></tr>
+                                <tr><td>Amount</td><td><strong style="color:var(--navy);">₹${(p.amount/100).toFixed(2)}</strong></td></tr>
+                                <tr><td>Status</td><td><span class="badge bg-${sc(p.status)}">${p.status}</span></td></tr>
+                                <tr><td>Method</td><td>${p.method||'N/A'}</td></tr>
+                                <tr><td>Currency</td><td>${p.currency}</td></tr>
+                                <tr><td>Created</td><td>${new Date(p.created_at*1000).toLocaleString()}</td></tr>
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <p class="mb-1" style="font-size:0.68rem;font-weight:700;text-transform:uppercase;color:var(--gold-dark);letter-spacing:0.05em;">Customer</p>
+                            <table class="rz-modal-table">
+                                <tr><td>Email</td><td>${p.email||'N/A'}</td></tr>
+                                <tr><td>Contact</td><td>${p.contact||'N/A'}</td></tr>
+                            </table>`;
+                    if (p.card) {
+                        html += `
+                            <p class="mt-2 mb-1" style="font-size:0.68rem;font-weight:700;text-transform:uppercase;color:var(--gold-dark);letter-spacing:0.05em;">Card</p>
+                            <table class="rz-modal-table">
+                                <tr><td>Network</td><td>${p.card.network}</td></tr>
+                                <tr><td>Last 4</td><td>**** ${p.card.last4}</td></tr>
+                                <tr><td>Type</td><td>${p.card.type}</td></tr>
+                            </table>`;
+                    }
+                    html += `</div></div>`;
+                    $('#paymentDetailsContent').html(html);
+                } else {
+                    $('#paymentDetailsContent').html(`<div class="alert alert-danger py-2" style="font-size:0.76rem;">${res.message}</div>`);
+                }
+            })
+            .fail(() => $('#paymentDetailsContent').html('<div class="alert alert-danger py-2" style="font-size:0.76rem;">Failed to load payment details</div>'));
+    }
+</script>
+}

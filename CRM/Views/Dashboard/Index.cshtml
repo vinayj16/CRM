@@ -1,0 +1,478 @@
+@{
+    ViewData["Title"] = "Analytics Dashboard";
+}
+
+<style>
+    .stat-card {
+        background: linear-gradient(135deg, #1A6FA8 0%, #125082 100%);
+        border-radius: 12px;
+        padding: 8px 12px;
+        color: white;
+        margin-bottom: 10px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        transition: transform 0.3s;
+    }
+    .stat-card:hover {
+        transform: translateY(-5px);
+    }
+    .stat-card.green {
+        background: linear-gradient(135deg, #1A6FA8 0%, #16A34A 100%);
+    }
+    .stat-card.orange {
+        background: linear-gradient(135deg, #F59E0B 0%, #D4A45A 100%);
+    }
+    .stat-card.blue {
+        background: linear-gradient(135deg, #2589C9 0%, #2589C9 100%);
+    }
+    .stat-value {
+        font-size: clamp(1.15rem, 1.6vw, 1.5rem);
+        font-weight: bold;
+        margin: 2px 0;
+        white-space: nowrap;
+        line-height: 1.15;
+    }
+    .stat-label {
+        font-size: 0.72rem;
+        opacity: 0.9;
+        line-height: 1.2;
+    }
+    .stat-sub {
+        font-size: 0.65rem;
+        opacity: 0.8;
+        line-height: 1.1;
+    }
+    .chart-container {
+        background: white;
+        border-radius: 14px;
+        padding: 22px;
+        margin-bottom: 20px;
+        border: 1px solid #E8EDF2;
+        box-shadow: 0 8px 22px rgba(17,24,39, 0.06);
+    }
+
+    .chart-container h5 {
+        font-weight: 700;
+        margin-bottom: 1rem;
+        color: #111827;
+    }
+    .activity-item {
+        border-left: 3px solid #1A6FA8;
+        padding: 15px;
+        margin-bottom: 15px;
+        background: #F0F4F8;
+        border-radius: 5px;
+    }
+    .followup-item {
+        padding: 15px;
+        margin-bottom: 10px;
+        background: #FFFFFF;
+        border-left: 4px solid #16A34A;
+        border-radius: 5px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    }
+    .followup-item.overdue {
+        border-left-color: #DC2626;
+        background: #FFFFFF;
+    }
+    .loading-spinner {
+        text-align: center;
+        padding: 50px;
+    }
+
+    @@media (max-width: 767px) {
+        .stat-card { padding: 8px 10px; margin-bottom: 10px; }
+        .stat-value { font-size: 1.25rem; margin: 2px 0; }
+        .stat-label { font-size: 0.68rem; }
+        .chart-container { padding: 14px; }
+        .row > [class*='col-'] { padding-left: 6px; padding-right: 6px; }
+        .container-fluid { padding-left: 10px; padding-right: 10px; }
+        .container-fluid > h2 { font-size: 1.25rem; }
+    }
+</style>
+
+<div class="container-fluid mt-4">
+    <h2 class="mb-4"><i class="fas fa-chart-line"></i> Analytics Dashboard</h2>
+
+    <div id="loadingSpinner" class="loading-spinner">
+        <div class="spinner-border text-primary" role="status">
+            <span class="sr-only">Loading...</span>
+        </div>
+        <p>Loading analytics data...</p>
+    </div>
+
+    <div id="dashboardContent" style="display: none;">
+        <!-- Overview Cards -->
+        <div class="row">
+            <div class="col-md-3">
+                <div class="stat-card">
+                    <div class="stat-label">Total Leads</div>
+                    <div class="stat-value" id="totalLeads">0</div>
+                    <div class="stat-sub"><i class="fas fa-users"></i> <span id="newLeadsToday">0</span> today</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card green">
+                    <div class="stat-label">Total Bookings</div>
+                    <div class="stat-value" id="totalBookings">0</div>
+                    <div class="stat-sub"><i class="fas fa-calendar-check"></i> <span id="bookingsThisMonth">0</span> this month</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card orange">
+                    <div class="stat-label">Total Revenue</div>
+                    <div class="stat-value" id="totalRevenue">₹0</div>
+                    <div class="stat-sub"><i class="fas fa-money-bill-wave"></i> <span id="revenueThisMonth">₹0</span> this month</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card blue">
+                    <div class="stat-label">Conversion Rate</div>
+                    <div class="stat-value" id="conversionRate">0%</div>
+                    <div class="stat-sub"><i class="fas fa-chart-line"></i> Lead to Booking</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts Row 1 -->
+        <div class="row">
+            <div class="col-md-8">
+                <div class="chart-container">
+                    <h5><i class="fas fa-chart-area"></i> Lead & Revenue Trend (Last 12 Months)</h5>
+                    <canvas id="trendChart" height="80"></canvas>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="chart-container">
+                    <h5><i class="fas fa-chart-pie"></i> Lead Status</h5>
+                    <canvas id="statusChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts Row 2 -->
+        <div class="row">
+            <div class="col-md-6">
+                <div class="chart-container">
+                    <h5><i class="fas fa-filter"></i> Sales Funnel</h5>
+                    <canvas id="funnelChart" height="100"></canvas>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="chart-container">
+                    <h5><i class="fas fa-chart-bar"></i> Top Lead Sources</h5>
+                    <canvas id="sourceChart" height="100"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Top Agents & Recent Activities -->
+        <div class="row">
+            <div class="col-md-6">
+                <div class="chart-container">
+                    <h5><i class="fas fa-trophy"></i> Top Performing Agents</h5>
+                    <div id="topAgentsContainer">
+                        <p class="text-muted">No data available</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="chart-container">
+                    <h5><i class="fas fa-bell"></i> Upcoming Follow-ups</h5>
+                    <div id="followUpsContainer" style="max-height: 400px; overflow-y: auto;">
+                        <p class="text-muted">No upcoming follow-ups</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Activities -->
+        <div class="row">
+            <div class="col-md-12">
+                <div class="chart-container">
+                    <h5><i class="fas fa-history"></i> Recent Activities</h5>
+                    <div id="recentActivitiesContainer">
+                        <p class="text-muted">No recent activities</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+    <script>
+        let charts = {};
+
+        function formatCurrency(amount) {
+            return '₹' + new Intl.NumberFormat('en-IN').format(amount);
+        }
+
+        function formatDate(dateString) {
+            return new Date(dateString).toLocaleDateString('en-IN', { year: 'numeric', month: 'short', day: 'numeric' });
+        }
+
+        async function loadDashboardData() {
+            try {
+                const response = await fetch('/Dashboard/GetAnalyticsData');
+                const result = await response.json();
+
+                if (result.success) {
+                    const data = result.data;
+
+                    // Update overview cards
+                    document.getElementById('totalLeads').textContent = data.overview.totalLeads;
+                    document.getElementById('newLeadsToday').textContent = data.overview.newLeadsToday;
+                    document.getElementById('totalBookings').textContent = data.overview.totalBookings;
+                    document.getElementById('bookingsThisMonth').textContent = data.overview.bookingsThisMonth;
+                    document.getElementById('totalRevenue').textContent = formatCurrency(data.overview.totalRevenue);
+                    document.getElementById('revenueThisMonth').textContent = formatCurrency(data.overview.revenueThisMonth);
+                    document.getElementById('conversionRate').textContent = data.overview.conversionRate + '%';
+
+                    // Create charts
+                    createTrendChart(data.monthlyTrend, data.revenueMonthlyTrend);
+                    createStatusChart(data.leadsByStatus);
+                    createFunnelChart(data.leadsByStage);
+                    createSourceChart(data.leadsBySource);
+                    displayTopAgents(data.topAgents);
+
+                    // Load recent activities and follow-ups
+                    loadRecentActivities();
+                    loadFollowUps();
+
+                    // Show dashboard
+                    document.getElementById('loadingSpinner').style.display = 'none';
+                    document.getElementById('dashboardContent').style.display = 'block';
+                }
+            } catch (error) {
+                console.error('Error loading dashboard:', error);
+                Swal.fire('Error', 'Failed to load dashboard data', 'error');
+            }
+        }
+
+        function createTrendChart(monthlyTrend, revenueMonthlyTrend) {
+            const ctx = document.getElementById('trendChart').getContext('2d');
+            
+            if (charts.trend) charts.trend.destroy();
+            
+            charts.trend = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: monthlyTrend.map(m => m.month),
+                    datasets: [{
+                        label: 'Leads',
+                        data: monthlyTrend.map(m => m.count),
+                        borderColor: '#1A6FA8',
+                        backgroundColor: 'rgba(26,111,168, 0.1)',
+                        yAxisID: 'y',
+                        tension: 0.4
+                    }, {
+                        label: 'Revenue (₹)',
+                        data: revenueMonthlyTrend.map(r => r.revenue),
+                        borderColor: '#D4A45A',
+                        backgroundColor: 'rgba(212,164,90, 0.1)',
+                        yAxisID: 'y1',
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false,
+                    },
+                    scales: {
+                        y: {
+                            type: 'linear',
+                            display: true,
+                            position: 'left',
+                        },
+                        y1: {
+                            type: 'linear',
+                            display: true,
+                            position: 'right',
+                            grid: {
+                                drawOnChartArea: false,
+                            },
+                        },
+                    }
+                }
+            });
+        }
+
+        function createStatusChart(leadsByStatus) {
+            const ctx = document.getElementById('statusChart').getContext('2d');
+            
+            if (charts.status) charts.status.destroy();
+            
+            charts.status = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: leadsByStatus.map(s => s.status || 'Unknown'),
+                    datasets: [{
+                        data: leadsByStatus.map(s => s.count),
+                        backgroundColor: [
+                            '#1A6FA8', '#DC2626', '#F59E0B', '#D4A45A',
+                            '#1A6FA8', '#16A34A', '#2589C9', '#2589C9'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+        }
+
+        function createFunnelChart(leadsByStage) {
+            const ctx = document.getElementById('funnelChart').getContext('2d');
+            
+            if (charts.funnel) charts.funnel.destroy();
+            
+            charts.funnel = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: leadsByStage.map(s => s.stage || 'Unknown'),
+                    datasets: [{
+                        label: 'Leads',
+                        data: leadsByStage.map(s => s.count),
+                        backgroundColor: '#1A6FA8'
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    }
+                }
+            });
+        }
+
+        function createSourceChart(leadsBySource) {
+            const ctx = document.getElementById('sourceChart').getContext('2d');
+            
+            if (charts.source) charts.source.destroy();
+            
+            charts.source = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: leadsBySource.map(s => s.source),
+                    datasets: [{
+                        label: 'Leads',
+                        data: leadsBySource.map(s => s.count),
+                        backgroundColor: '#1A6FA8'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    }
+                }
+            });
+        }
+
+        function displayTopAgents(topAgents) {
+            const container = document.getElementById('topAgentsContainer');
+            
+            if (!topAgents || topAgents.length === 0) {
+                container.innerHTML = '<p class="text-muted">No data available</p>';
+                return;
+            }
+
+            let html = '<table class="table table-sm">';
+            html += '<thead><tr><th>Agent</th><th>Leads</th><th>Converted</th><th>Rate</th></tr></thead>';
+            html += '<tbody>';
+            
+            topAgents.forEach((agent, index) => {
+                const medal = index === 0 ? '<i class="fa-solid fa-trophy" style="color:#F59E0B"></i>' : index === 1 ? '<i class="fa-solid fa-medal" style="color:#B8C8D8"></i>' : index === 2 ? '<i class="fa-solid fa-medal" style="color:#B8883E"></i>' : '';
+                html += `<tr>
+                    <td>${medal} ${agent.agentName}</td>
+                    <td>${agent.leadCount}</td>
+                    <td>${agent.convertedCount}</td>
+                    <td><span class="badge badge-success">${agent.conversionRate.toFixed(1)}%</span></td>
+                </tr>`;
+            });
+            
+            html += '</tbody></table>';
+            container.innerHTML = html;
+        }
+
+        async function loadRecentActivities() {
+            try {
+                const response = await fetch('/Dashboard/GetRecentActivities');
+                const result = await response.json();
+
+                if (result.success) {
+                    const container = document.getElementById('recentActivitiesContainer');
+                    let html = '';
+
+                    result.data.recentLeads.forEach(lead => {
+                        html += `<div class="activity-item">
+                            <strong><i class="fas fa-user-plus"></i> New Lead:</strong> ${lead.name}
+                            <br><small class="text-muted">${formatDate(lead.createdOn)} - ${lead.stage} - ${lead.status}</small>
+                        </div>`;
+                    });
+
+                    result.data.recentBookings.forEach(booking => {
+                        html += `<div class="activity-item">
+                            <strong><i class="fas fa-check-circle"></i> New Booking:</strong> ${booking.customerName}
+                            <br><small class="text-muted">${formatDate(booking.bookingDate)} - ${formatCurrency(booking.totalAmount)}</small>
+                        </div>`;
+                    });
+
+                    container.innerHTML = html || '<p class="text-muted">No recent activities</p>';
+                }
+            } catch (error) {
+                console.error('Error loading activities:', error);
+            }
+        }
+
+        async function loadFollowUps() {
+            try {
+                const response = await fetch('/Dashboard/GetUpcomingFollowUps');
+                const result = await response.json();
+
+                if (result.success) {
+                    const container = document.getElementById('followUpsContainer');
+                    let html = '';
+
+                    result.data.forEach(followUp => {
+                        const overdueClass = followUp.isOverdue ? 'overdue' : '';
+                        const overdueIcon = followUp.isOverdue ? '<i class="fas fa-exclamation-triangle text-danger"></i>' : '';
+                        
+                        html += `<div class="followup-item ${overdueClass}">
+                            <strong>${overdueIcon} ${followUp.leadName}</strong>
+                                                        <br><small>${followUp.leadContact || ''}</small>
+                            <br><small class="text-muted">${formatDate(followUp.followUpDate)} - ${followUp.priority || followUp.status || ''}</small>
+                            <br><small>${followUp.notes || 'No notes'}</small>
+                            <br><a href="/Leads/Details/${followUp.leadId}" class="btn btn-sm btn-primary mt-2">View Lead</a>
+                        </div>`;
+                    });
+
+                    container.innerHTML = html || '<p class="text-muted">No upcoming follow-ups</p>';
+                }
+            } catch (error) {
+                console.error('Error loading follow-ups:', error);
+            }
+        }
+
+        // Auto-refresh every 5 minutes
+        setInterval(loadDashboardData, 300000);
+
+        // Initial load
+        document.addEventListener('DOMContentLoaded', loadDashboardData);
+    </script>
+}
+
+
+

@@ -1,0 +1,132 @@
+@model CRM.ViewModels.CrmPlanViewModel
+
+@{
+	ViewData["Title"] = "My CRM Plan";
+	var sub = Model.CurrentSubscription;
+}
+
+<div class="content">
+	<nav class="mb-3" aria-label="breadcrumb">
+		<ol class="breadcrumb mb-0">
+			<li class="breadcrumb-item"><a href="/Home">Home</a></li>
+			<li class="breadcrumb-item active">My CRM Plan</li>
+		</ol>
+	</nav>
+
+	<div style="background: linear-gradient(135deg, #1A6FA8 0%, #125082 100%); color: white; padding: 1.5rem; border-radius: 12px; margin-bottom: 1.5rem;">
+		<div class="d-flex align-items-center">
+			<i class="fa-solid fa-crown me-3" style="font-size: 2rem;"></i>
+			<div>
+				<h1 class="mb-0" style="font-size: 2rem; font-weight: 700;">My CRM Plan</h1>
+				<p class="mb-0" style="opacity: 0.9;">Manage your CRM subscription - @Model.TenantName</p>
+			</div>
+		</div>
+	</div>
+
+	@if (Model.HasSubscription && sub != null)
+	{
+		<div class="card mb-4">
+			<div class="card-body">
+				<div class="row align-items-center">
+					<div class="col-md-8">
+						<h5 class="mb-1">
+							<i class="fa-solid fa-layer-group me-2 text-primary"></i>
+							@sub.PlanName
+							<span class="badge @(sub.IsExpired ? "bg-danger" : "bg-success") ms-2">@(sub.IsExpired ? "Expired" : sub.Status)</span>
+							@if (sub.IsTrial)
+							{
+								<span class="badge bg-warning text-dark ms-2">
+									<i class="fa-solid fa-clock me-1"></i>Trial Period
+								</span>
+							}
+						</h5>
+						<p class="text-muted mb-2">
+							Billing: @sub.BillingCycle | Amount: ₹@sub.Amount.ToString("N0")
+						</p>
+						<p class="mb-0">
+							<small>
+								Start: @sub.StartDate.ToString("MMM dd, yyyy") |
+								End: @sub.EndDate.ToString("MMM dd, yyyy") |
+								<strong class="@(sub.IsExpired ? "text-danger" : "text-success")">
+									@(sub.IsExpired ? "Expired" : $"{sub.DaysRemaining} days remaining")
+								</strong>
+							</small>
+						</p>
+					</div>
+				</div>
+			</div>
+		</div>
+	}
+	else
+	{
+		<div class="alert alert-info">
+			<i class="fa-solid fa-info-circle me-2"></i>
+			No active subscription. Contact your administrator to assign a plan.
+		</div>
+	}
+
+	@if (Model.AvailablePlans.Any())
+{
+	<h4 class="mb-3"><i class="fa-solid fa-rocket me-2"></i>Available Plans</h4>
+	<div class="row">
+		@foreach (var plan in Model.AvailablePlans)
+		{
+			<div class="col-lg-4 col-md-6 mb-4">
+				<div class="card h-100 @(plan.IsCurrent ? "border-primary" : "")">
+					<div class="card-body d-flex flex-column">
+						<div class="d-flex justify-content-between align-items-start mb-2">
+							<h5 class="card-title mb-0">@plan.PlanName</h5>
+							@if (plan.IsCurrent)
+							{
+								<span class="badge bg-primary">Current</span>
+							}
+						</div>
+						<p class="text-muted small">@plan.Description</p>
+
+						<div class="row text-center mb-3">
+							<div class="col-6">
+								<small class="text-muted">Monthly</small>
+								<div class="fw-bold">₹@plan.MonthlyPrice.ToString("N0")</div>
+							</div>
+							<div class="col-6">
+								<small class="text-muted">Annual</small>
+								<div class="fw-bold">₹@plan.YearlyPrice.ToString("N0")</div>
+							</div>
+						</div>
+
+						<ul class="list-unstyled small flex-grow-1">
+							<li><i class="fa-solid fa-users text-primary me-2"></i>@(plan.MaxUsers == -1 ? "Unlimited" : plan.MaxUsers.ToString()) Users</li>
+							<li><i class="fa-solid fa-user-tie text-primary me-2"></i>@(plan.MaxAgents == -1 ? "Unlimited" : plan.MaxAgents.ToString()) Agents</li>
+							<li><i class="fa-solid fa-chart-line text-primary me-2"></i>@(plan.MaxLeadsPerMonth == -1 ? "Unlimited" : plan.MaxLeadsPerMonth.ToString()) Leads per Month</li>
+							<li><i class="fa-solid fa-handshake text-primary me-2"></i>@(plan.MaxPartners == -1 ? "Unlimited" : plan.MaxPartners.ToString()) Partners</li>
+							@if (plan.HasWhatsAppIntegration)
+							{
+								<li><i class="fa-brands fa-whatsapp text-success me-2"></i>WhatsApp</li>
+							}
+							@if (plan.HasFacebookIntegration)
+							{
+								<li><i class="fa-brands fa-facebook text-primary me-2"></i>Facebook</li>
+							}
+							@if (plan.HasCustomAPIAccess)
+							{
+								<li><i class="fa-solid fa-code text-info me-2"></i>Custom API</li>
+							}
+							@if (plan.HasPrioritySupport)
+							{
+								<li><i class="fa-solid fa-headset text-warning me-2"></i>@plan.SupportLevel Support</li>
+							}
+						</ul>
+
+						@if (!plan.IsCurrent)
+						{
+							<button class="btn btn-outline-primary mt-2" disabled>
+								<i class="fa-solid fa-arrow-up me-1"></i>Contact Admin to Upgrade
+							</button>
+						}
+					</div>
+				</div>
+			</div>
+		}
+	</div>
+}
+</div>

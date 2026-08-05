@@ -1,0 +1,1044 @@
+@model List<CRM.Models.PropertyModel>
+@inject CRM.AppDbContext _context
+@{
+    ViewData["Title"] = "Properties Management";
+    var canCreate = ViewBag.CanCreate as bool? ?? User.IsInRole("Admin");
+    var canDelete = ViewBag.CanDelete as bool? ?? User.IsInRole("Admin");
+}
+
+<style>
+    :root {
+        --gold: #D4A45A;
+        --gold-dk: #B8883E;
+        --gold-lt: #FEE2E2;
+        --gold-ft: #FFFFFF;
+        --blue: #1A6FA8;
+        --blue-dk: #125082;
+        --blue-lt: #E2E8F0;
+        --blue-ft: #F0F4F8;
+        --r: 6px;
+        --bdr: 1px solid #E2E8F0;
+        --sh: 0 1px 3px rgba(0,0,0,0.06);
+        --sh2: 0 3px 12px rgba(26,111,168,0.11);
+        --txt: #2A3A4A;
+        --muted: #6B7B8D;
+        --fs: 11.5px;
+        --fs-sm: 11px;
+        --fs-xs: 10.5px;
+    }
+
+    .content { background: #F0F4F8; }
+
+    /* ── BREADCRUMB ── */
+    .prop-bc { font-size: var(--fs-sm); margin-bottom: 5px; }
+    .prop-bc a { color: #8FA3B8; text-decoration: none; }
+    .prop-bc a:hover { color: var(--blue); }
+    .prop-bc .breadcrumb-item.active { color: var(--blue); font-weight: 600; }
+    .prop-bc .breadcrumb-item + .breadcrumb-item::before { color: #B8C8D8; }
+
+    /* ── HEADER ── */
+    .prop-hdr {
+        background: linear-gradient(125deg, var(--blue) 0%, #125082 50%, #0F4C75 100%);
+        border-radius: var(--r);
+        padding: 8px 12px;
+        display: flex; align-items: center; justify-content: space-between;
+        gap: 8px; margin-bottom: 6px; flex-wrap: wrap;
+    }
+    .prop-hdr-left { display: flex; align-items: center; gap: 8px; }
+    .prop-hdr-ico {
+        width: 30px; height: 30px;
+        background: rgba(212,164,90,0.2); border: 1px solid rgba(212,164,90,0.4);
+        border-radius: 6px; display: flex; align-items: center; justify-content: center;
+        color: var(--gold); font-size: 13px; flex-shrink: 0;
+    }
+    .prop-hdr h1 { font-size: 13px !important; font-weight: 700 !important; color: #FFFFFF !important; margin: 0 !important; line-height: 1.2 !important; }
+    .prop-hdr p  { font-size: 9.5px !important; color: rgba(255,255,255,0.65) !important; margin: 0 !important; }
+    .prop-hdr-btns { display: flex; gap: 4px; flex-shrink: 0; }
+    .action-btn {
+        background: rgba(212,164,90,0.16); border: 1.5px solid rgba(212,164,90,0.5);
+        color: #FFFFFF !important; padding: 4px 10px; border-radius: 5px;
+        font-weight: 600; font-size: var(--fs-xs); cursor: pointer;
+        display: inline-flex; align-items: center; gap: 3px; margin: 0;
+        transition: background 0.18s; text-decoration: none;
+    }
+    .action-btn:hover { background: rgba(212,164,90,0.32); color: #FFFFFF !important; }
+    .action-btn i { font-size: 10px; }
+
+    /* ── FILTER CARD ── */
+    .filter-card {
+        background: #FFFFFF; border-radius: var(--r);
+        padding: 8px 10px; border: var(--bdr); box-shadow: var(--sh);
+        margin-bottom: 6px;
+    }
+    .filter-hdr-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+    .filter-hdr-title { font-size: var(--fs-sm); font-weight: 700; color: var(--blue); display: flex; align-items: center; gap: 4px; }
+    .filter-hdr-title i { color: var(--gold); font-size: 11px; }
+    .filter-grid { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 6px; margin-bottom: 6px; }
+    .filter-grid-4 { grid-template-columns: 2fr 1fr 1fr 1fr; }
+    .filter-foot { display: flex; align-items: center; justify-content: space-between; gap: 5px; flex-wrap: wrap; }
+    .filter-count { font-size: var(--fs-xs); color: #8FA3B8; }
+
+    .filter-card label { font-size: var(--fs-xs) !important; font-weight: 600 !important; color: #6B7B8D !important; margin-bottom: 2px !important; display: block; }
+    .filter-card .form-control,
+    .filter-card .form-select {
+        font-size: var(--fs-sm) !important; padding: 3px 7px !important;
+        height: 27px !important; border-color: #E2E8F0 !important;
+        border-radius: 5px !important; background: #FFFFFF !important; color: var(--txt) !important;
+    }
+    .filter-card .form-control:focus,
+    .filter-card .form-select:focus { border-color: var(--blue) !important; box-shadow: 0 0 0 2px rgba(26,111,168,0.1) !important; background: #FFFFFF !important; }
+    .filter-card .form-control::placeholder { color: #B8C8D8 !important; font-size: var(--fs-xs) !important; }
+
+    /* Micro buttons */
+    .mbtn { display: inline-flex; align-items: center; gap: 3px; padding: 3px 8px; border-radius: 4px; font-size: var(--fs-xs); font-weight: 600; cursor: pointer; border: 1px solid; white-space: nowrap; transition: all 0.15s; line-height: 1.4; }
+    .mbtn i { font-size: 10px; }
+    .mbtn-outline { background: #FFFFFF; border-color: #E2E8F0; color: #6B7B8D; }
+    .mbtn-outline:hover { border-color: var(--blue); color: var(--blue); background: var(--blue-ft); }
+    .mbtn-green { background: #16A34A; border-color: #15803D; color: #FFFFFF; }
+    .mbtn-green:hover { background: #15803D; }
+    .mbtn-blue { background: var(--blue); border-color: var(--blue-dk); color: #FFFFFF; }
+    .mbtn-blue:hover { background: var(--blue-dk); }
+
+    /* ── PROPERTIES GRID (2 columns) ── */
+    #propertiesContainer {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 4px;
+    }
+
+    /* ── PROPERTY CARD ── */
+    .prop-card {
+        background: #FFFFFF; border-radius: var(--r);
+        padding: 7px 10px;
+        border: var(--bdr); box-shadow: var(--sh);
+        transition: border-color 0.18s, box-shadow 0.18s;
+        display: flex; align-items: center; gap: 8px;
+        min-width: 0;
+    }
+    .prop-card:hover { border-color: var(--gold); box-shadow: var(--sh2); }
+    .prop-card-img {
+        width: 42px; height: 42px; border-radius: 6px; flex-shrink: 0;
+        border: 1.5px solid rgba(26,111,168,0.1); overflow: hidden;
+        background: var(--blue-ft); display: flex; align-items: center; justify-content: center;
+        color: var(--blue); font-size: 15px;
+    }
+    .prop-card-img img { width: 100%; height: 100%; object-fit: cover; }
+    .prop-card-body { flex: 1; min-width: 0; }
+    .prop-card-name {
+        font-size: var(--fs) !important; font-weight: 700 !important;
+        color: var(--blue-dk) !important; text-decoration: none !important;
+        display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        margin-bottom: 1px !important;
+    }
+    .prop-card-name:hover { color: var(--gold-dk) !important; }
+    .prop-meta-row { display: flex; flex-wrap: wrap; gap: 0px 10px; margin-bottom: 1px; }
+    .prop-meta-item { display: flex; align-items: center; gap: 2px; font-size: var(--fs-xs); color: var(--muted); white-space: nowrap; }
+    .prop-meta-item i { color: var(--gold); font-size: 9px; width: 10px; }
+    .prop-price { font-size: var(--fs-sm); font-weight: 700; color: var(--blue); }
+    .prop-card-actions { display: flex; flex-direction: column; gap: 3px; flex-shrink: 0; align-items: flex-end; }
+
+    .btn-edit-s {
+        display: inline-flex; align-items: center; gap: 2px;
+        padding: 2px 8px; border-radius: 4px; font-size: var(--fs-xs);
+        font-weight: 600; border: none; cursor: pointer; white-space: nowrap;
+        background: var(--blue-lt); color: var(--blue-dk); transition: background 0.15s, color 0.15s;
+    }
+    .btn-edit-s:hover { background: var(--blue); color: #FFFFFF; }
+    .btn-del-s {
+        display: inline-flex; align-items: center; gap: 2px;
+        padding: 2px 8px; border-radius: 4px; font-size: var(--fs-xs);
+        font-weight: 600; border: none; cursor: pointer; white-space: nowrap;
+        background: #FEE2E2; color: #DC2626; transition: background 0.15s, color 0.15s;
+    }
+    .btn-del-s:hover { background: #DC2626; color: #FFFFFF; }
+    .btn-edit-s i, .btn-del-s i { font-size: 9px; }
+
+    /* ── EMPTY STATE ── */
+    .empty-state {
+        text-align: center; padding: 2rem 1.5rem;
+        background: #FFFFFF; border-radius: var(--r);
+        border: var(--bdr); box-shadow: var(--sh);
+        grid-column: 1 / -1;
+    }
+    .empty-state i { font-size: 2.4rem; color: #E2E8F0; margin-bottom: 0.5rem; display: block; }
+
+    /* ── PAGINATION ── */
+    .pag-bar {
+        background: #FFFFFF; border-radius: var(--r);
+        padding: 6px 10px; border: var(--bdr); box-shadow: var(--sh);
+        margin-top: 5px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 5px;
+    }
+    .pag-bar .text-muted { font-size: var(--fs-xs) !important; }
+    .pag-bar .page-link { font-size: var(--fs-xs) !important; padding: 2px 7px !important; color: var(--blue) !important; border-color: #E2E8F0 !important; }
+    .pag-bar .page-item.active .page-link { background: var(--blue) !important; border-color: var(--blue) !important; color: #FFFFFF !important; }
+    .pag-bar .page-link:hover { background: var(--blue-ft) !important; border-color: var(--blue) !important; }
+
+    /* ── BULK UPLOAD MODAL ── */
+    .bulk-modal .modal-dialog { max-width: 380px !important; }
+    .bulk-modal .modal-content {
+        border-radius: 8px; border: none;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+        overflow: hidden;
+        font-size: var(--fs-xs);
+    }
+    .bulk-modal .modal-header {
+        background: linear-gradient(125deg, var(--blue) 0%, #0F4C75 100%);
+        padding: 7px 11px; border: none;
+    }
+    .bulk-modal .modal-title {
+        color: #FFFFFF; font-size: 11.5px; font-weight: 700;
+        display: flex; align-items: center; gap: 5px; margin: 0;
+    }
+    .bulk-modal .modal-title i { color:#1A2332; font-size: 11px; }
+    .bulk-modal .modal-body { padding: 10px 12px; background: #FFFFFF; }
+    .bulk-modal .modal-footer {
+        padding: 6px 12px; border-color: #F0F4F8;
+        background: #FFFFFF; display: flex; gap: 5px; justify-content: flex-end;
+    }
+
+    /* Upload drop zone */
+    .upload-zone {
+        border: 1.5px dashed #B8C8D8;
+        border-radius: 6px;
+        padding: 10px 10px 8px;
+        background: #FFFFFF;
+        text-align: center;
+        cursor: pointer;
+        transition: border-color 0.18s, background 0.18s;
+        position: relative;
+        margin-bottom: 6px;
+    }
+    .upload-zone:hover, .upload-zone.drag-over {
+        border-color: var(--blue);
+        background: var(--blue-ft);
+    }
+    .upload-zone.has-file {
+        border-color: #16A34A;
+        background: #F0F4F8;
+    }
+    .upload-zone.has-file .uz-icon i { color: #16A34A !important; }
+    .upload-zone input[type="file"] {
+        position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
+    }
+    .uz-icon { margin-bottom: 4px; }
+    .uz-icon i { font-size: 20px; color: #B8C8D8; transition: color 0.18s; }
+    .uz-title { font-size: 11px; font-weight: 700; color: var(--txt); margin-bottom: 1px; }
+    .uz-sub { font-size: 10px; color: #8FA3B8; }
+    .uz-filename {
+        font-size: 10.5px; font-weight: 600; color: #16A34A;
+        display: none; align-items: center; gap: 4px; justify-content: center; margin-top: 3px;
+    }
+    .uz-filename i { font-size: 10px; }
+    .uz-filename.show { display: flex; }
+
+    /* Validation messages */
+    .bulk-err {
+        font-size: 10px; color: #DC2626;
+        background: #FEE2E2; border: 1px solid #FEE2E2;
+        border-radius: 4px; padding: 4px 8px;
+        margin-top: 5px; display: none; align-items: center; gap: 5px;
+    }
+    .bulk-err.show { display: flex; }
+    .bulk-err i { font-size: 10px; flex-shrink: 0; }
+
+    /* Info row */
+    .bulk-info-row {
+        background: var(--blue-ft); border: 1px solid rgba(26,111,168,0.15);
+        border-radius: 5px; padding: 6px 9px;
+        display: flex; align-items: center; justify-content: space-between; gap: 8px;
+        margin-top: 6px;
+    }
+    .bulk-info-row span { font-size: 10px; color: var(--blue-dk); }
+    .bulk-info-row i { color: var(--blue); font-size: 10px; }
+
+    /* Progress bar */
+    .bulk-progress {
+        margin-top: 6px; display: none;
+    }
+    .bulk-progress.show { display: block; }
+    .bulk-progress-bar {
+        height: 4px; background: #E2E8F0; border-radius: 2px; overflow: hidden;
+    }
+    .bulk-progress-fill {
+        height: 100%; width: 0%; background: var(--blue);
+        border-radius: 2px; transition: width 0.3s;
+        animation: prog-anim 1.2s ease-in-out infinite;
+    }
+    @@keyframes prog-anim {
+        0%   { width: 15%; }
+        50%  { width: 75%; }
+        100% { width: 15%; }
+    }
+    .bulk-progress-txt { font-size: 10px; color: var(--muted); margin-top: 3px; text-align: center; }
+
+    /* Modal footer buttons */
+    .bmf-btn {
+        display: inline-flex; align-items: center; gap: 3px;
+        padding: 3px 11px; border-radius: 4px; font-size: 10.5px; font-weight: 600;
+        cursor: pointer; border: 1px solid; transition: all 0.15s; white-space: nowrap;
+    }
+    .bmf-btn i { font-size: 9px; }
+    .bmf-cancel { background: #FFFFFF; border-color: #E2E8F0; color: #6B7B8D; }
+    .bmf-cancel:hover { border-color: #B8C8D8; background: #F0F4F8; }
+    .bmf-upload { background: var(--blue); border-color: var(--blue-dk); color: #FFFFFF; }
+    .bmf-upload:hover { background: var(--blue-dk); }
+    .bmf-upload:disabled { opacity: 0.55; cursor: not-allowed; }
+
+    /* File type badges */
+    .file-types { display: flex; gap: 4px; justify-content: center; margin-top: 4px; }
+    .ftype-badge {
+        font-size: 9px; padding: 1px 5px; border-radius: 3px; font-weight: 700; letter-spacing: 0.3px;
+    }
+    .ftype-xlsx { background: #E8EDF2; color: #15803D; border: 1px solid #B8C8D8; }
+    .ftype-xls  { background: #E8EDF2; color: #1A6FA8; border: 1px solid #B8C8D8; }
+
+    /* ── RESPONSIVE ── */
+    @@media (max-width: 900px) {
+        #propertiesContainer { grid-template-columns: 1fr; }
+    }
+    @@media (max-width: 768px) {
+        .filter-grid, .filter-grid-4 { grid-template-columns: 1fr; gap: 5px; }
+        .filter-toggle-mob { display: flex !important; align-items: center; justify-content: space-between; cursor: pointer; margin-bottom: 0; }
+        .filter-mob-content { display: none; }
+        .filter-mob-content.show { display: block; padding-top: 6px; }
+        .filter-tog-icon { transition: transform 0.22s; }
+        .filter-tog-icon.rotated { transform: rotate(180deg); }
+        #propertiesContainer { grid-template-columns: 1fr; }
+        .prop-card { padding: 7px 9px; gap: 7px; }
+        .prop-card-actions { flex-direction: row; }
+        .prop-hdr { padding: 7px 10px; }
+        .prop-hdr h1 { font-size: 12px !important; }
+        .mobile-header-buttons { display: flex !important; gap: 4px; width: 100%; }
+        .mobile-header-buttons .action-btn { flex: 1; justify-content: center; padding: 3px 6px; }
+        .bulk-modal .modal-dialog { max-width: 96vw !important; margin: 10px auto; }
+    }
+    @@media (max-width: 480px) {
+        .prop-card-img { width: 36px; height: 36px; }
+    }
+
+    /* ── DARK MODE ── */
+    .dark-mode .filter-card { background: #1A2332 !important; border-color: #2A3A4A !important; }
+    .dark-mode .filter-hdr-title { color: #8FA3B8 !important; }
+    .dark-mode .filter-card label { color: #8FA3B8 !important; }
+    .dark-mode .filter-card .form-control,
+    .dark-mode .filter-card .form-select { background: #1E2A3A !important; border-color: #2A3A4A !important; color: #B8C8D8 !important; }
+    .dark-mode .prop-card { background: #1A2332 !important; border-color: #2A3A4A !important; }
+    .dark-mode .prop-card-name { color: #8FA3B8 !important; }
+    .dark-mode .prop-meta-item { color: #8FA3B8 !important; }
+    .dark-mode .prop-price { color: #8FA3B8 !important; }
+    .dark-mode .empty-state { background: #1A2332 !important; border-color: #2A3A4A !important; color: #B8C8D8 !important; }
+    .dark-mode .pag-bar { background: #1A2332 !important; border-color: #2A3A4A !important; }
+    .dark-mode .pag-bar .page-link { background: #1E2A3A !important; border-color: #2A3A4A !important; color: #8FA3B8 !important; }
+    .dark-mode .mbtn-outline { background: #1E2A3A !important; border-color: #2A3A4A !important; color: #8FA3B8 !important; }
+    .dark-mode .btn-edit-s { background: #2A3A4A !important; color: #8FA3B8 !important; }
+    .dark-mode .btn-del-s { background: #1A2332 !important; color: #D4A45A !important; }
+    .dark-mode i { color: #B8C8D8 !important; }
+    .dark-mode .btn-edit-s i, .dark-mode .btn-del-s i { color: inherit !important; }
+    .dark-mode .action-btn i { color: #FFFFFF !important; }
+    .dark-mode .bulk-modal .modal-body { background: #1A2332 !important; }
+    .dark-mode .bulk-modal .modal-footer { background: #121F2E !important; border-color: #2A3A4A !important; }
+    .dark-mode .upload-zone { background: #1E2A3A !important; border-color: #2A3A4A !important; }
+    .dark-mode .upload-zone:hover { background: #1E2A3A !important; border-color: var(--blue) !important; }
+    .dark-mode .uz-title { color: #B8C8D8 !important; }
+    .dark-mode .bulk-info-row { background: #1E2A3A !important; border-color: #0F4C75 !important; }
+    .dark-mode .bulk-info-row span { color: #8FA3B8 !important; }
+    .dark-mode .bmf-cancel { background: #1E2A3A !important; border-color: #2A3A4A !important; color: #8FA3B8 !important; }
+
+    /* compatibility aliases */
+    .btn-action { display: inline-flex; align-items: center; gap: 2px; }
+    .btn-edit { padding: 2px 8px; border-radius: 4px; font-size: var(--fs-xs); font-weight: 600; border: none; cursor: pointer; background: var(--blue-lt); color: var(--blue-dk); white-space: nowrap; transition: background .15s, color .15s; }
+    .btn-edit:hover { background: var(--blue); color: #FFFFFF; }
+    .btn-delete { padding: 2px 8px; border-radius: 4px; font-size: var(--fs-xs); font-weight: 600; border: none; cursor: pointer; background: #FEE2E2; color: #DC2626; white-space: nowrap; transition: background .15s, color .15s; }
+    .btn-delete:hover { background: #DC2626; color: #FFFFFF; }
+    .property-name { font-size: var(--fs) !important; font-weight: 700 !important; color: var(--blue-dk) !important; text-decoration: none !important; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 1px !important; }
+    .property-name:hover { color: var(--gold-dk) !important; }
+    .property-info { display: flex; align-items: center; gap: 2px; font-size: var(--fs-xs); color: var(--muted); }
+    .property-info i { color: var(--gold); font-size: 9px; width: 10px; }
+    .property-image { width: 42px; height: 42px; object-fit: cover; border-radius: 6px; border: 1.5px solid rgba(26,111,168,0.1); }
+    .prop-price-badge { font-size: var(--fs-sm); font-weight: 700; color: var(--blue); }
+    .prop-id-badge { font-size: 9.5px; color: #B8C8D8; }
+    .action-buttons { display: flex; flex-direction: column; gap: 3px; align-items: flex-end; }
+    .pagination-wrapper { background: #FFFFFF; border-radius: var(--r); padding: 6px 10px; border: var(--bdr); box-shadow: var(--sh); margin-top: 5px; }
+    .pagination-wrapper .text-muted { font-size: var(--fs-xs) !important; }
+    .pagination-wrapper .page-link { font-size: var(--fs-xs) !important; padding: 2px 7px !important; color: var(--blue) !important; border-color: #E2E8F0 !important; }
+    .pagination-wrapper .page-item.active .page-link { background: var(--blue) !important; border-color: var(--blue) !important; color: #FFFFFF !important; }
+</style>
+
+<!-- Alerts -->
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show py-2" role="alert" style="font-size:12px;">
+        <i class="fas fa-check-circle me-2"></i>@TempData["Success"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" style="font-size:10px;"></button>
+    </div>
+}
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show py-2" role="alert" style="font-size:12px;">
+        <i class="fas fa-exclamation-circle me-2"></i>@TempData["Error"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" style="font-size:10px;"></button>
+    </div>
+}
+
+<div class="content" style="padding:8px 0;">
+
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="prop-bc">
+        <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item"><a href="/Home">Home</a></li>
+            <li class="breadcrumb-item active">Properties</li>
+        </ol>
+    </nav>
+
+    <!-- Header -->
+    <div class="prop-hdr">
+        <div class="prop-hdr-left">
+            <div class="prop-hdr-ico"><i class="fa-solid fa-building"></i></div>
+            <div>
+                <h1>Properties Management</h1>
+                <p>Manage all properties and track their performance</p>
+            </div>
+        </div>
+        <div class="prop-hdr-btns">
+            <div class="d-none d-md-flex gap-2">
+                @if (canCreate)
+                {
+                    <button type="button" class="action-btn" data-bs-toggle="modal" data-bs-target="#addPropertyModal">
+                        <i class="fa-solid fa-plus"></i> Add Property
+                    </button>
+                    <button type="button" class="action-btn" data-bs-toggle="modal" data-bs-target="#bulkUploadModal">
+                        <i class="fa-solid fa-upload"></i> Bulk Upload
+                    </button>
+                }
+            </div>
+            <div class="d-md-none mobile-header-buttons">
+                @if (canCreate)
+                {
+                    <button type="button" class="action-btn" data-bs-toggle="modal" data-bs-target="#addPropertyModal">
+                        <i class="fa-solid fa-plus"></i> Add
+                    </button>
+                    <button type="button" class="action-btn" data-bs-toggle="modal" data-bs-target="#bulkUploadModal">
+                        <i class="fa-solid fa-upload"></i> Upload
+                    </button>
+                }
+            </div>
+        </div>
+    </div>
+
+    <!-- Filter Card -->
+    <div class="filter-card">
+
+        <!-- Desktop header row -->
+        <div class="filter-hdr-row d-none d-md-flex">
+            <div class="filter-hdr-title">
+                <i class="fa-solid fa-filter"></i> Filter &amp; Search
+            </div>
+            <div class="filter-count">
+                Showing <span id="showingStart">0</span>–<span id="showingEnd">0</span> of <span id="totalRecords">0</span> properties
+            </div>
+        </div>
+
+        <!-- Mobile toggle -->
+        <div class="filter-toggle-mob d-md-none" onclick="toggleFilters()">
+            <div style="display:flex;align-items:center;gap:5px;">
+                <i class="fa-solid fa-filter" style="color:var(--gold);font-size:11px;"></i>
+                <span style="font-size:11px;font-weight:700;color:var(--blue);">Filter &amp; Search</span>
+            </div>
+            <i class="fa-solid fa-chevron-down filter-tog-icon" id="filterToggleIcon" style="font-size:10px;color:#8FA3B8;"></i>
+        </div>
+
+        <!-- Filter controls -->
+        <div class="filter-mob-content" id="filterContent">
+            <div class="filter-grid @(ViewBag.IsPartnerTeam == true ? "" : "filter-grid-4") mt-0">
+                <div>
+                    <label><i class="fa-solid fa-magnifying-glass me-1"></i>Search</label>
+                    <input type="text" class="form-control" id="searchBox" placeholder="Name, location, builder...">
+                </div>
+                <div>
+                    <label>Builder</label>
+                    <select id="filterBuilder" class="form-select">
+                        <option value="">All Builders</option>
+                        @if (ViewBag.Builders != null)
+                        {
+                            foreach (var builder in ViewBag.Builders)
+                            {
+                                <option value="@builder.BuilderId">@builder.BuilderName</option>
+                            }
+                        }
+                    </select>
+                </div>
+@if (ViewBag.IsPartnerTeam != true)
+{
+    <div>
+        <label>Assigned To</label>
+        <select id="filterAssignedTo" class="form-select">
+            <option value="">All Sales</option>
+            @if (ViewBag.Executives != null)
+            {
+                foreach (var exec in ViewBag.Executives)
+                {
+                    <option value="@exec.UserId">@exec.Username</option>
+                }
+            }
+        </select>
+    </div>
+}
+            </div>
+
+            <div class="filter-foot mt-1">
+                <span class="filter-count d-md-none">
+                    Showing <span id="showingStartMob">0</span>–<span id="showingEndMob">0</span> of <span id="totalRecordsMob">0</span>
+                </span>
+                <div style="display:flex;gap:4px;flex-wrap:wrap;">
+                    <button type="button" class="mbtn mbtn-outline" onclick="clearFilters()">
+                        <i class="fa-solid fa-rotate-left"></i> Clear
+                    </button>
+                    @if (canCreate)
+                    {
+                        <button type="button" class="mbtn mbtn-green" id="exportExcel">
+                            <i class="fa-solid fa-file-excel"></i>
+                            <span class="d-none d-sm-inline">Export </span>Excel
+                        </button>
+                        <button type="button" class="mbtn mbtn-blue" id="exportCSV">
+                            <i class="fa-solid fa-file-csv"></i>
+                            <span class="d-none d-sm-inline">Export </span>CSV
+                        </button>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Properties Grid -->
+    <div id="propertiesContainer"></div>
+
+    <!-- Pagination -->
+    <div class="pagination-wrapper" id="paginationWrapper" style="display:none;">
+        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+            <p class="text-muted mb-0">Showing <span id="showingStart2">0</span> to <span id="showingEnd2">0</span> of <span id="totalRecords2">0</span> entries</p>
+            <nav><ul class="pagination justify-content-end mb-0" id="pagination"></ul></nav>
+        </div>
+    </div>
+</div>
+
+<!-- Add/Edit Property Modal -->
+@await Html.PartialAsync("_PropertyModal")
+
+<!-- ── Bulk Upload Modal ── -->
+<div class="modal fade bulk-modal" id="bulkUploadModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+
+            <!-- Header -->
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fa-solid fa-file-arrow-up"></i> Bulk Upload Properties
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" style="font-size:10px;"></button>
+            </div>
+
+            <!-- Body -->
+            <form id="bulkUploadForm" novalidate>
+                <div class="modal-body">
+
+                    <!-- Drop zone -->
+                    <div class="upload-zone" id="uploadZone">
+                        <input type="file" id="bulkUploadFile" accept=".xlsx,.xls" tabindex="-1">
+                        <div class="uz-icon"><i class="fa-solid fa-cloud-arrow-up"></i></div>
+                        <div class="uz-title">Drop file here or click to browse</div>
+                        <div class="uz-sub">Supports Excel files only</div>
+                        <div class="file-types">
+                            <span class="ftype-badge ftype-xlsx">.xlsx</span>
+                            <span class="ftype-badge ftype-xls">.xls</span>
+                        </div>
+                        <div class="uz-filename" id="uzFilename">
+                            <i class="fa-solid fa-file-excel"></i>
+                            <span id="uzFilenameText"></span>
+                        </div>
+                    </div>
+
+                    <!-- Error message -->
+                    <div class="bulk-err" id="bulkErr">
+                        <i class="fa-solid fa-triangle-exclamation"></i>
+                        <span id="bulkErrText"></span>
+                    </div>
+
+                    <!-- Progress -->
+                    <div class="bulk-progress" id="bulkProgress">
+                        <div class="bulk-progress-bar"><div class="bulk-progress-fill"></div></div>
+                        <div class="bulk-progress-txt">Uploading, please wait...</div>
+                    </div>
+
+                    <!-- Sample download row -->
+                    <div class="bulk-info-row">
+                        <span><i class="fa-solid fa-circle-info me-1"></i>Download sample template to fill data</span>
+                        <button type="button" id="downloadSample"
+                                style="background:var(--blue);color:#FFFFFF;border:none;border-radius:4px;font-size:10px;padding:3px 9px;font-weight:600;cursor:pointer;white-space:nowrap;display:inline-flex;align-items:center;gap:3px;">
+                            <i class="fa-solid fa-download" style="font-size:9px;"></i>Download
+                        </button>
+                    </div>
+
+                </div>
+
+                <!-- Footer -->
+                <div class="modal-footer">
+                    <button type="button" class="bmf-btn bmf-cancel" data-bs-dismiss="modal">
+                        <i class="fa-solid fa-xmark"></i> Cancel
+                    </button>
+                    <button type="submit" class="bmf-btn bmf-upload" id="btnBulkUpload" disabled>
+                        <i class="fa-solid fa-upload"></i> Upload
+                    </button>
+                </div>
+            </form>
+
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+    <script>
+        // ── Global variables ──────────────────────────────────────────────
+       
+        let allProperties = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model));
+        const _enc = {@foreach(var l in Model){
+        @Html.Raw($"'{l.PropertyId}': '{IdObfuscator.Encode(l.PropertyId)}',")
+    }
+    };
+
+    allProperties.forEach(l => l.EncodedId = _enc[l.PropertyId]);
+
+    let filteredProperties = [...allProperties];
+        let currentPage = 1;
+        let pageSize = 10;
+        let isEditMode = false;
+        userRole = '@User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value';
+        let canCreateProperty = @Html.Raw((canCreate ? "true" : "false"));
+        let canDeleteProperty = @Html.Raw((canDelete ? "true" : "false"));
+
+        function canEdit()   { return canCreateProperty; }
+        function canDelete() { return canDeleteProperty; }
+
+        function getEditButton(propertyId) {
+            if (canEdit()) {
+                return `<button class="btn-action btn-edit" onclick="editProperty(${propertyId})" title="Edit">
+                    <i class="fa-solid fa-pen-to-square"></i> Edit
+                </button>`;
+            }
+            return '';
+        }
+        function getDeleteButton(propertyId) {
+            if (canDelete()) {
+                return `<button class="btn-action btn-delete" onclick="deleteProperty(${propertyId})" title="Delete">
+                    <i class="fa-solid fa-trash"></i> Del
+                </button>`;
+            }
+            return '';
+        }
+
+        // ── Data from server ──────────────────────────────────────────────
+        let builders   = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(ViewBag.Builders   ?? new object[0]));
+        let executives = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(ViewBag.Executives ?? new object[0]));
+
+        function getBuilderName(builderId) {
+            if (!builderId || !builders) return '-';
+            const b = builders.find(b => b.BuilderId === builderId);
+            return b ? b.BuilderName : '-';
+        }
+        function getExecutiveName(executiveId) {
+            if (!executiveId || !executives) return '-';
+            const e = executives.find(e => e.UserId === executiveId);
+            if (!e) return '-';
+            return (e.FullName && e.FullName.trim()) || (e.Username && e.Username.trim()) || '-';
+        }
+
+        // ── Init ──────────────────────────────────────────────────────────
+        document.addEventListener('DOMContentLoaded', function () {
+            renderTable();
+            attachEventListeners();
+            initFilters();
+            initBulkUpload();
+            setTimeout(() => {
+                document.querySelectorAll('.alert').forEach(a => bootstrap.Alert.getOrCreateInstance(a).close());
+            }, 5000);
+        });
+
+        function initFilters() {
+            const fc = document.getElementById('filterContent');
+            if (window.innerWidth > 768) fc.classList.add('show');
+        }
+        function toggleFilters() {
+            document.getElementById('filterContent').classList.toggle('show');
+            document.getElementById('filterToggleIcon').classList.toggle('rotated');
+        }
+
+        function attachEventListeners() {
+            document.getElementById('searchBox').addEventListener('input', applyFilters);
+            document.getElementById('filterBuilder').addEventListener('change', applyFilters);
+            const af = document.getElementById('filterAssignedTo');
+            if (af) af.addEventListener('change', applyFilters);
+            document.getElementById('exportExcel').addEventListener('click', exportToExcel);
+            document.getElementById('exportCSV').addEventListener('click', exportToCSV);
+            document.getElementById('downloadSample').addEventListener('click', downloadSample);
+            document.getElementById('bulkUploadForm').addEventListener('submit', handleBulkUpload);
+        }
+
+        // ── Bulk Upload UI logic ──────────────────────────────────────────
+        function initBulkUpload() {
+            const zone   = document.getElementById('uploadZone');
+            const input  = document.getElementById('bulkUploadFile');
+            const modal  = document.getElementById('bulkUploadModal');
+
+            // Reset on modal open
+            modal.addEventListener('show.bs.modal', resetBulkModal);
+
+            // File selected via click
+            input.addEventListener('change', function () {
+                handleFileSelected(this.files[0]);
+            });
+
+            // Drag & drop
+            zone.addEventListener('dragover', function (e) {
+                e.preventDefault(); zone.classList.add('drag-over');
+            });
+            zone.addEventListener('dragleave', function () {
+                zone.classList.remove('drag-over');
+            });
+            zone.addEventListener('drop', function (e) {
+                e.preventDefault(); zone.classList.remove('drag-over');
+                const file = e.dataTransfer.files[0];
+                if (file) { input.files = e.dataTransfer.files; handleFileSelected(file); }
+            });
+        }
+
+        function resetBulkModal() {
+            document.getElementById('bulkUploadFile').value = '';
+            document.getElementById('uploadZone').classList.remove('has-file', 'drag-over');
+            document.getElementById('uzFilename').classList.remove('show');
+            document.getElementById('uzFilenameText').textContent = '';
+            hideBulkErr();
+            document.getElementById('bulkProgress').classList.remove('show');
+            document.getElementById('btnBulkUpload').disabled = true;
+        }
+
+        function handleFileSelected(file) {
+            hideBulkErr();
+            if (!file) return;
+
+            // Validate type
+            const allowed = ['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                             'application/vnd.ms-excel'];
+            const ext = file.name.split('.').pop().toLowerCase();
+            if (!allowed.includes(file.type) && ext !== 'xlsx' && ext !== 'xls') {
+                showBulkErr('Invalid file type. Please upload a .xlsx or .xls file only.');
+                document.getElementById('bulkUploadFile').value = '';
+                document.getElementById('uploadZone').classList.remove('has-file');
+                document.getElementById('uzFilename').classList.remove('show');
+                document.getElementById('btnBulkUpload').disabled = true;
+                return;
+            }
+
+            // Validate size (max 10 MB)
+            const maxMB = 10;
+            if (file.size > maxMB * 1024 * 1024) {
+                showBulkErr(`File too large. Maximum allowed size is ${maxMB} MB.`);
+                document.getElementById('bulkUploadFile').value = '';
+                document.getElementById('uploadZone').classList.remove('has-file');
+                document.getElementById('uzFilename').classList.remove('show');
+                document.getElementById('btnBulkUpload').disabled = true;
+                return;
+            }
+
+            // All good
+            document.getElementById('uploadZone').classList.add('has-file');
+            document.getElementById('uzFilenameText').textContent = file.name;
+            document.getElementById('uzFilename').classList.add('show');
+            document.getElementById('btnBulkUpload').disabled = false;
+        }
+
+        function showBulkErr(msg) {
+            const el = document.getElementById('bulkErr');
+            document.getElementById('bulkErrText').textContent = msg;
+            el.classList.add('show');
+        }
+        function hideBulkErr() {
+            document.getElementById('bulkErr').classList.remove('show');
+        }
+
+        // ── Filters ───────────────────────────────────────────────────────
+        function applyFilters() {
+            const search = document.getElementById('searchBox').value.toLowerCase();
+            const bld = document.getElementById('filterBuilder').value;
+            const af = document.getElementById('filterAssignedTo');
+            const asgn = af ? af.value : '';
+            filteredProperties = allProperties.filter(p => {
+                const nm = (p.PropertyName || '').toLowerCase();
+                const lc = (p.Location || '').toLowerCase();
+                const ok1 = !search || nm.includes(search) || lc.includes(search) || getBuilderName(p.BuilderId).toLowerCase().includes(search);
+                const ok2 = !bld  || p.BuilderId  == parseInt(bld);
+                const ok3 = !asgn || p.AssignedTo == parseInt(asgn);
+                return ok1 && ok2 && ok3;
+            });
+            currentPage = 1;
+            renderTable();
+        }
+        function clearFilters() {
+            document.getElementById('searchBox').value = '';
+            document.getElementById('filterBuilder').value = '';
+            const af = document.getElementById('filterAssignedTo');
+            if (af) af.value = '';
+            filteredProperties = [...allProperties];
+            currentPage = 1;
+            renderTable();
+        }
+
+        // ── Render ────────────────────────────────────────────────────────
+        function renderTable() {
+            const container = document.getElementById('propertiesContainer');
+            const start = (currentPage - 1) * pageSize;
+            const paged = filteredProperties.slice(start, start + pageSize);
+            container.innerHTML = '';
+
+            if (paged.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fa-solid fa-building"></i>
+                        <h5 style="font-size:12px;font-weight:700;color:#2A3A4A;margin-bottom:4px;">No Properties Found</h5>
+                        <p style="font-size:11px;color:#8FA3B8;margin-bottom:8px;">Add your first property or adjust the filters</p>
+                        ${canCreateProperty ? '<button type="button" class="mbtn mbtn-blue" data-bs-toggle="modal" data-bs-target="#addPropertyModal"><i class="fa-solid fa-plus me-1"></i>Add Property</button>' : ''}
+                    </div>`;
+                document.getElementById('paginationWrapper').style.display = 'none';
+            } else {
+                paged.forEach(p => {
+                    const card = document.createElement('div');
+                    card.className = 'prop-card';
+
+                    let imgHtml = `<div class="prop-card-img"><i class="fa-solid fa-image" style="opacity:.4;font-size:14px;"></i></div>`;
+                    if (p.PropertyImage) {
+                        try {
+                            let b64 = '';
+                            if (typeof p.PropertyImage === 'string') {
+                                b64 = p.PropertyImage;
+                            } else if (p.PropertyImage.length > 0) {
+                                const bytes = new Uint8Array(p.PropertyImage);
+                                let bin = '';
+                                for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+                                b64 = btoa(bin);
+                            }
+                            if (b64) imgHtml = `<div class="prop-card-img"><img src="data:image/jpeg;base64,${b64}" alt="Property"></div>`;
+                        } catch (e) { console.error('Image error', e); }
+                    }
+
+                    const pid  = p.PropertyId;
+                    const nm   = p.PropertyName || 'Unnamed Property';
+                    const loc  = p.Location || 'No location';
+                    const sqft = p.AreaSqft;
+                    const pr   = p.Price;
+                    const bid  = p.BuilderId;
+                    const aid  = p.AssignedTo;
+                    const dt   = p.CreatedOn;
+
+                    card.innerHTML = `
+                        ${imgHtml}
+                        <div class="prop-card-body">
+        <a href="/propertydetails/${p.EncodedId}" class="prop-card-name">${nm}</a>
+                            <div class="prop-meta-row">
+                                <div class="prop-meta-item"><i class="fa-solid fa-map-marker-alt"></i>${loc}</div>
+                                <div class="prop-meta-item"><i class="fa-solid fa-hashtag"></i>ID: ${pid}</div>
+                                <div class="prop-meta-item"><i class="fa-solid fa-hammer"></i>${getBuilderName(bid)}</div>
+                                <div class="prop-meta-item"><i class="fa-solid fa-user-tie"></i>${getExecutiveName(aid)}</div>
+                                <div class="prop-meta-item"><i class="fa-solid fa-calendar"></i>${formatDate(dt)}</div>
+                                <div class="prop-meta-item"><i class="fa-solid fa-ruler-combined"></i>${sqft || 'N/A'} sqft</div>
+                            </div>
+                            <div class="prop-price">₹${pr ? pr.toLocaleString() : 'N/A'}</div>
+                        </div>
+                        <div class="action-buttons">
+                            ${getEditButton(pid)}
+                            ${getDeleteButton(pid)}
+                        </div>`;
+                    container.appendChild(card);
+                });
+                document.getElementById('paginationWrapper').style.display = 'block';
+            }
+            updatePaginationInfo();
+            renderPagination();
+            updateStats();
+        }
+
+        function updateStats() {
+            const el = document.getElementById('totalProperties');
+            if (el) el.textContent = filteredProperties.length;
+        }
+        function formatDate(d) {
+            if (!d) return '-';
+            return new Date(d).toLocaleDateString('en-GB');
+        }
+        function updatePaginationInfo() {
+            const total = filteredProperties.length;
+            const s = total === 0 ? 0 : (currentPage - 1) * pageSize + 1;
+            const e = Math.min(currentPage * pageSize, total);
+            ['showingStart','showingStartMob'].forEach(id => { const el = document.getElementById(id); if (el) el.textContent = s; });
+            ['showingEnd','showingEndMob'].forEach(id => { const el = document.getElementById(id); if (el) el.textContent = e; });
+            ['totalRecords','totalRecordsMob','totalRecords2'].forEach(id => { const el = document.getElementById(id); if (el) el.textContent = total; });
+            const s2 = document.getElementById('showingStart2'); if (s2) s2.textContent = s;
+            const e2 = document.getElementById('showingEnd2');   if (e2) e2.textContent = e;
+        }
+
+        // ── Pagination ────────────────────────────────────────────────────
+        function renderPagination() {
+            const ul = document.getElementById('pagination');
+            const totalPages = Math.ceil(filteredProperties.length / pageSize);
+            ul.innerHTML = '';
+            if (totalPages <= 1) {
+                const li = document.createElement('li'); li.className = 'page-item active';
+                li.innerHTML = '<span class="page-link">1</span>'; ul.appendChild(li); return;
+            }
+            const prev = document.createElement('li');
+            prev.className = `page-item ${currentPage===1?'disabled':''}`;
+            prev.innerHTML = `<a class="page-link" href="#" onclick="changePage(${currentPage-1});return false;"><span class="d-none d-sm-inline">Prev</span><span class="d-inline d-sm-none">&laquo;</span></a>`;
+            ul.appendChild(prev);
+            const sp = Math.max(1, currentPage-2), ep = Math.min(totalPages, currentPage+2);
+            if (sp > 1) {
+                const li = document.createElement('li'); li.className = 'page-item';
+                li.innerHTML = `<a class="page-link" href="#" onclick="changePage(1);return false;">1</a>`; ul.appendChild(li);
+                if (sp > 2) { const d = document.createElement('li'); d.className = 'page-item disabled'; d.innerHTML = '<span class="page-link">…</span>'; ul.appendChild(d); }
+            }
+            for (let i = sp; i <= ep; i++) {
+                const li = document.createElement('li'); li.className = `page-item ${i===currentPage?'active':''}`;
+                li.innerHTML = `<a class="page-link" href="#" onclick="changePage(${i});return false;">${i}</a>`; ul.appendChild(li);
+            }
+            if (ep < totalPages) {
+                if (ep < totalPages-1) { const d = document.createElement('li'); d.className = 'page-item disabled'; d.innerHTML = '<span class="page-link">…</span>'; ul.appendChild(d); }
+                const li = document.createElement('li'); li.className = 'page-item';
+                li.innerHTML = `<a class="page-link" href="#" onclick="changePage(${totalPages});return false;">${totalPages}</a>`; ul.appendChild(li);
+            }
+            const next = document.createElement('li');
+            next.className = `page-item ${currentPage===totalPages?'disabled':''}`;
+            next.innerHTML = `<a class="page-link" href="#" onclick="changePage(${currentPage+1});return false;"><span class="d-none d-sm-inline">Next</span><span class="d-inline d-sm-none">&raquo;</span></a>`;
+            ul.appendChild(next);
+        }
+        function changePage(page) {
+            const tp = Math.ceil(filteredProperties.length / pageSize);
+            if (page < 1 || page > tp) return;
+            currentPage = page; renderTable();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // ── CRUD ──────────────────────────────────────────────────────────
+        function editProperty(id) {
+            fetch(`/Properties/GetProperty?id=${id}`)
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success) {
+                        if (window.populatePropertyModal) window.populatePropertyModal(data);
+                        new bootstrap.Modal(document.getElementById('addPropertyModal')).show();
+                    } else showToast(data.message || 'Error loading property', 'error');
+                })
+                .catch(() => showToast('Error loading property', 'error'));
+        }
+        function deleteProperty(id) {
+            if (!confirm('Are you sure you want to delete this property?')) return;
+            fetch(`/Properties/Delete?id=${id}`, { method: 'POST' })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success) {
+                        allProperties       = allProperties.filter(p => p.PropertyId !== id);
+                        filteredProperties  = filteredProperties.filter(p => p.PropertyId !== id);
+                        renderTable(); showToast('Property deleted successfully!', 'success');
+                    } else showToast(data.message || 'Error deleting property', 'error');
+                })
+                .catch(() => showToast('Error deleting property', 'error'));
+        }
+
+        // ── Export / Download ─────────────────────────────────────────────
+        function downloadSample() {
+            const sampleData = [
+                ['Property Name','Builder Name','Location','Area (Sqft)','Price','Purchase Type','Flat Number','Floor Number','Unit','Property Group','Inventory','Assigned To (User ID)'],
+                ['Sample Property 1','Sample Builder','Hyderabad','1200','5000000','Sale','101','1','Sqft','Residential','Available','1'],
+                ['Sample Property 2','Sample Builder','Bangalore','1500','7500000','Rent','201','2','Sqft','Commercial','Sold','1']
+            ];
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.aoa_to_sheet(sampleData);
+            ws['!cols'] = [{wch:25},{wch:20},{wch:15},{wch:12},{wch:15},{wch:15},{wch:12},{wch:12},{wch:10},{wch:15},{wch:12},{wch:20}];
+            XLSX.utils.book_append_sheet(wb, ws, 'Properties');
+            XLSX.writeFile(wb, 'Properties_Sample_Template.xlsx');
+            showToast('Sample template downloaded!', 'success');
+        }
+        function exportToExcel() {
+            if (!filteredProperties.length) { showToast('No data to export','error'); return; }
+            const rows = [['Property ID','Property Name','Builder','Location','Area (Sqft)','Price','Purchase Type','Assigned To','Created Date']];
+            filteredProperties.forEach(p => rows.push([p.PropertyId||'',p.PropertyName||'',getBuilderName(p.BuilderId),p.Location||'',p.AreaSqft||'',p.Price||'',p.PurchaseType||'',getExecutiveName(p.AssignedTo),formatDate(p.CreatedOn)]));
+            const wb = XLSX.utils.book_new(), ws = XLSX.utils.aoa_to_sheet(rows);
+            ws['!cols'] = [{wch:12},{wch:25},{wch:20},{wch:20},{wch:12},{wch:15},{wch:15},{wch:20},{wch:15}];
+            XLSX.utils.book_append_sheet(wb, ws, 'Properties');
+            XLSX.writeFile(wb, `Properties_Export_${new Date().toISOString().split('T')[0]}.xlsx`);
+            showToast('Excel exported!', 'success');
+        }
+        function exportToCSV() {
+            if (!filteredProperties.length) { showToast('No data to export','error'); return; }
+            let csv = 'Property ID,Property Name,Builder,Location,Area (Sqft),Price,Purchase Type,Assigned To,Created Date\n';
+            filteredProperties.forEach(p => { csv += [p.PropertyId||'',escapeCSV(p.PropertyName),escapeCSV(getBuilderName(p.BuilderId)),escapeCSV(p.Location),p.AreaSqft||'',p.Price||'',escapeCSV(p.PurchaseType),escapeCSV(getExecutiveName(p.AssignedTo)),formatDate(p.CreatedOn)].join(',') + '\n'; });
+            const a = Object.assign(document.createElement('a'),{href:URL.createObjectURL(new Blob([csv],{type:'text/csv'})),download:`Properties_Export_${new Date().toISOString().split('T')[0]}.csv`});
+            a.click(); URL.revokeObjectURL(a.href);
+            showToast('CSV exported!', 'success');
+        }
+        function escapeCSV(v) {
+            if (!v) return ''; v = v.toString();
+            return (v.includes(',') || v.includes('"') || v.includes('\n')) ? '"' + v.replace(/"/g,'""') + '"' : v;
+        }
+
+        function handleBulkUpload(e) {
+            e.preventDefault();
+            hideBulkErr();
+
+            const file = document.getElementById('bulkUploadFile').files[0];
+            if (!file) {
+                showBulkErr('Please select a file before uploading.');
+                return;
+            }
+
+            // Re-validate on submit
+            const ext = file.name.split('.').pop().toLowerCase();
+            if (ext !== 'xlsx' && ext !== 'xls') {
+                showBulkErr('Invalid file. Only .xlsx or .xls files are accepted.');
+                return;
+            }
+            if (file.size > 10 * 1024 * 1024) {
+                showBulkErr('File size exceeds 10 MB limit.');
+                return;
+            }
+
+            // Show progress & disable button
+            document.getElementById('bulkProgress').classList.add('show');
+            document.getElementById('btnBulkUpload').disabled = true;
+
+            const fd = new FormData();
+            fd.append('file', file);
+            const tok = document.querySelector('input[name="__RequestVerificationToken"]');
+            if (tok) fd.append('__RequestVerificationToken', tok.value);
+
+            fetch('/Properties/BulkUpload', { method: 'POST', body: fd })
+                .then(r => r.json())
+                .then(data => {
+                    document.getElementById('bulkProgress').classList.remove('show');
+                    if (data.success) {
+                        showToast(data.message || 'Bulk upload successful!', 'success');
+                        bootstrap.Modal.getInstance(document.getElementById('bulkUploadModal')).hide();
+                        setTimeout(() => location.reload(), 1500);
+                    } else {
+                        showBulkErr(data.message || 'Upload failed. Please check the file and try again.');
+                        document.getElementById('btnBulkUpload').disabled = false;
+                    }
+                })
+                .catch(() => {
+                    document.getElementById('bulkProgress').classList.remove('show');
+                    showBulkErr('Network error. Please check your connection and try again.');
+                    document.getElementById('btnBulkUpload').disabled = false;
+                });
+        }
+
+        // showToast is global from _Layout.cshtml
+        window.addEventListener('property-saved', function () { setTimeout(() => location.reload(), 1000); });
+    </script>
+}

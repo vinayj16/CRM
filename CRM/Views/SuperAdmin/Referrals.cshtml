@@ -1,0 +1,234 @@
+@model List<CRM.Models.ReferralEarningModel>
+@{
+    ViewData["Title"] = "Referral Management";
+}
+
+<style>
+    .referral-root * { box-sizing: border-box; }
+    .referral-header { background: linear-gradient(135deg, #1A6FA8, #D4A45A) !important; color: #FFFFFF; padding: 20px; border-radius: 12px; margin-bottom: 20px; }
+    .referral-card { background: var(--card-bg); border-radius: 12px; border: 1px solid var(--border-color); padding: 20px; margin-bottom: 20px; }
+    .referral-stat { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; text-align: center; padding: 8px 10px; min-height: 0; background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 12px; transition: transform 0.15s, box-shadow 0.15s; }
+    .referral-stat:hover { transform: translateY(-2px); box-shadow: 0 4px 14px rgba(26,111,168,0.12); }
+    .referral-stat > i { font-size: 14px; }
+    .referral-stat > div:last-child { font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.85; }
+    .referral-stat-number { font-size: 1.1rem; font-weight: 700; line-height: 1.1; margin-bottom: 0; }
+    .stat-blue .referral-stat-number { color: #1A6FA8; }
+    .stat-green .referral-stat-number { color: #16A34A; }
+    .stat-amber .referral-stat-number { color: #D4A45A; }
+    .referral-badge { padding: 3px 10px; border-radius: 4px; font-size: 11px; font-weight: 600; }
+    .badge-referrer { background: #E8EDF2; color: #1A6FA8; }
+    .badge-joiner { background: #DCFCE7; color: #15803D; }
+    .badge-refund { background: #FEE2E2; color: #991B1B; }
+    .referral-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .referral-table th, .referral-table td { padding: 12px; border-bottom: 1px solid var(--border-color); }
+    .referral-table th { background: var(--blue); color: #FFFFFF; font-weight: 600; }
+    .referral-table tr:hover { background: rgba(26,111,168, 0.04); }
+
+    /* Dark mode for referrals */
+    html.dark-mode .referral-stat { color: var(--text-primary); }
+    html.dark-mode .stat-blue .referral-stat-number { color: #8FA3B8; }
+    html.dark-mode .stat-green .referral-stat-number { color: #8FA3B8; }
+    html.dark-mode .stat-amber .referral-stat-number { color: #E8C27E; }
+    html.dark-mode .badge-referrer { background: rgba(232,237,242,0.12); color: #8FA3B8; }
+    html.dark-mode .badge-joiner { background: rgba(220,252,231,0.12); color: #8FA3B8; }
+    html.dark-mode .badge-refund { background: rgba(254,226,226,0.12); color: #E8C27E; }
+    html.dark-mode .referral-table tr:hover { background: rgba(26,111,168,0.10); }
+    html.dark-mode .referral-table code { color: #8FA3B8; background: rgba(26,111,168,0.10); padding: 1px 4px; border-radius: 3px; }
+    html.dark-mode .referral-card h5 { color: var(--text-primary); }
+    html.dark-mode .referral-card .text-muted { color: #8FA3B8 !important; }
+
+    @@media (max-width: 767px) {
+        .referral-header { flex-direction: column; align-items: flex-start !important; gap: 8px !important; }
+        .referral-stat { padding: 6px 8px; min-height: 0; }
+        .referral-stat > i { font-size: 13px !important; }
+        .referral-stat-number { font-size: 1rem; }
+        .referral-table { font-size: 12px; }
+        .referral-table th, .referral-table td { padding: 8px; }
+    }
+</style>
+
+<div class="referral-root">
+    <nav aria-label="breadcrumb" style="margin-bottom:10px;">
+        <ol class="breadcrumb mb-0" style="font-size:.76rem;background:transparent;padding:0;">
+            <li class="breadcrumb-item"><a href="/superadmin/dashboard" style="color:var(--text-muted);text-decoration:none;">Dashboard</a></li>
+            <li class="breadcrumb-item active" style="color:var(--text-muted)">Referrals</li>
+        </ol>
+    </nav>
+
+    <div class="referral-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <div>
+            <h2 style="margin:0;font-weight:700;"><i class="fa-solid fa-gift me-2"></i>Referral Management</h2>
+            <p style="margin:5px 0 0 0;opacity:0.9;">Track and manage referral earnings across all tenants</p>
+        </div>
+        <div class="d-flex gap-2">
+            <button class="btn btn-light btn-sm" onclick="showAddReferralModal()" title="Manually add a referral earning">
+                <i class="fa-solid fa-plus me-1"></i> Add Referral
+            </button>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="referral-stat stat-blue">
+                <i class="fa-solid fa-coins"></i>
+                <div class="referral-stat-number" id="totalReferralBalance">₹0</div>
+                <div>Total Referral Balance</div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="referral-stat stat-green">
+                <i class="fa-solid fa-user-plus"></i>
+                <div class="referral-stat-number" id="totalReferrers">0</div>
+                <div>Total Referrers</div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="referral-stat stat-amber">
+                <i class="fa-solid fa-users"></i>
+                <div class="referral-stat-number" id="totalJoiners">0</div>
+                <div>Total Joiners</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="referral-card">
+        <h5 class="mb-3"><i class="fa-solid fa-list me-2"></i>All Referral Earnings</h5>
+        <div class="table-responsive">
+            <table class="referral-table">
+                <thead>
+                    <tr>
+                        <th>Tenant</th>
+                        <th>Type</th>
+                        <th>Amount</th>
+                        <th>Description</th>
+                        <th>Referral Code</th>
+                        <th>Status</th>
+                        <th>Date</th>
+                        <th style="width:90px;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="referralTableBody">
+                    <tr>
+                        <td colspan="8" class="text-center">Loading referral data...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+@{
+    // Razor sections compile to a separate method; page-level locals are out of scope.
+    // Re-declare the tenants list inside the section from ViewBag.
+    var tenants = ViewBag.Tenants as List<CRM.MasterDb.Models.TenantModel> ?? new List<CRM.MasterDb.Models.TenantModel>();
+}
+<script>
+    $(document).ready(function() {
+        loadAllReferrals();
+    });
+
+    function loadAllReferrals() {
+        $.get('/SuperAdmin/GetAllReferrals', function(data) {
+            if (data.success) {
+                var html = '';
+                var totalBalance = 0;
+                var referrers = new Set();
+                var joiners = 0;
+
+                if (data.referrals && data.referrals.length > 0) {
+                    data.referrals.forEach(function(r) {
+                        var badgeClass = r.type === 'Referrer' ? 'badge-referrer' 
+                                       : r.type === 'Joiner' ? 'badge-joiner' 
+                                       : 'badge-refund';
+                        
+                        var statusBadge = r.isUsed ? '<span class="badge bg-secondary">Used</span>' 
+                                         : '<span class="badge bg-warning text-dark">Available</span>';
+
+                        if (!r.isUsed) totalBalance += (r.amount || 0);
+                        if (r.type === 'Referrer') referrers.add(r.tenantName || 'Unknown');
+                        if (r.type === 'Joiner') joiners++;
+
+                        var toggleBtn = r.isUsed 
+                            ? '<button class="btn btn-sm btn-outline-secondary" title="Mark available" onclick="toggleReferral(\'' + r.id + '\', false)"><i class="fa-solid fa-rotate-left"></i></button>'
+                            : '<button class="btn btn-sm btn-outline-warning" title="Mark used" onclick="toggleReferral(\'' + r.id + '\', true)"><i class="fa-solid fa-check"></i></button>';
+                        var delBtn = '<button class="btn btn-sm btn-outline-danger" title="Delete" onclick="deleteReferral(\'' + r.id + '\')"><i class="fa-solid fa-trash"></i></button>';
+
+                        html += '<tr>' +
+                            '<td>' + (r.tenantName || '-') + '</td>' +
+                            '<td><span class="referral-badge ' + badgeClass + '">' + r.type + '</span></td>' +
+                            '<td><strong>₹' + (r.amount || 0).toLocaleString('en-IN') + '</strong></td>' +
+                            '<td>' + (r.description || '-') + '</td>' +
+                            '<td><code>' + (r.referralCode || '-') + '</code></td>' +
+                            '<td>' + statusBadge + '</td>' +
+                            '<td>' + (r.createdOn ? new Date(r.createdOn).toLocaleDateString() : '-') + '</td>' +
+                            '<td style="white-space:nowrap;">' + toggleBtn + ' ' + delBtn + '</td>' +
+                            '</tr>';
+                    });
+                } else {
+                    html = '<tr><td colspan="8" class="text-center text-muted">No referral earnings found</td></tr>';
+                }
+
+                $('#referralTableBody').html(html);
+                $('#totalReferralBalance').text('₹' + totalBalance.toLocaleString('en-IN'));
+                $('#totalReferrers').text(referrers.size);
+                $('#totalJoiners').text(joiners);
+            }
+        }).fail(function() {
+            $('#referralTableBody').html('<tr><td colspan="8" class="text-center text-danger">Failed to load referral data</td></tr>');
+        });
+    }
+
+    function toggleReferral(id, isUsed) {
+        $.post('/SuperAdmin/UpdateReferralStatus', { id: id, isUsed: isUsed }, function(data) {
+            if (data.success) loadAllReferrals();
+            else alert(data.message || 'Update failed');
+        }).fail(function() { alert('Update failed'); });
+    }
+
+    function deleteReferral(id) {
+        if (!confirm('Delete this referral earning?')) return;
+        $.post('/SuperAdmin/DeleteReferral', { id: id }, function(data) {
+            if (data.success) loadAllReferrals();
+            else alert(data.message || 'Delete failed');
+        }).fail(function() { alert('Delete failed'); });
+    }
+
+    function showAddReferralModal() {
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                title: 'Add Referral Earning',
+                html:
+                    '<select id="swalTenant" class="swal2-select"><option value="">-- Select Tenant --</option>@foreach (var t in tenants) { <option value="@t.TenantId">@t.CompanyName</option> }</select>' +
+                    '<input id="swalType" class="swal2-input" placeholder="Type (Referrer/Joiner)" value="Referrer">' +
+                    '<input id="swalAmount" class="swal2-input" type="number" placeholder="Amount">' +
+                    '<input id="swalCode" class="swal2-input" placeholder="Referral Code">' +
+                    '<textarea id="swalDesc" class="swal2-textarea" placeholder="Description"></textarea>',
+                showCancelButton: true,
+                confirmButtonText: 'Create',
+                preConfirm: function() {
+                    var tenantId = parseInt($('#swalTenant').val() || '0');
+                    if (!tenantId) { Swal.showValidationMessage('Please select a tenant'); return false; }
+                    return $.post('/SuperAdmin/CreateReferral', {
+                        tenantId: tenantId,
+                        referralCode: $('#swalCode').val(),
+                        type: $('#swalType').val(),
+                        amount: parseFloat($('#swalAmount').val() || '0'),
+                        description: $('#swalDesc').val()
+                    }).then(function(res) {
+                        if (!res.success) { Swal.showValidationMessage(res.message || 'Create failed'); return false; }
+                        loadAllReferrals();
+                    });
+                }
+            });
+        } else {
+            var tenantId = prompt('Tenant ID:');
+            var amount = prompt('Amount:');
+            $.post('/SuperAdmin/CreateReferral', { tenantId: tenantId, amount: amount, description: 'Manual referral' }, function(data) {
+                alert(data.message || 'Done');
+                loadAllReferrals();
+            });
+        }
+    }
+</script>
+}

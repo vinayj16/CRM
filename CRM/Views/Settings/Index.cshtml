@@ -1,0 +1,837 @@
+@model Dictionary<string, string>
+@{
+    ViewData["Title"] = "System Settings";
+}
+
+<style>
+    :root {
+        --clr-gold: #D4A45A;
+        --clr-blue: #1A6FA8;
+        --clr-gold-soft: rgba(212,164,90, 0.12);
+        --clr-blue-soft: rgba(26,111,168, 0.10);
+    }
+
+    .settings-container {
+        max-width: 1100px;
+        margin: 0 auto;
+    }
+
+    .btn-primary, .bg-primary, .badge.bg-primary{
+        background:linear-gradient(135deg, var(--clr-blue) 0%, #0F4C75 100%) !important;
+    }
+
+    .settings-card {
+        border: none;
+        border-radius: 10px;
+        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+        transition: box-shadow 0.25s ease, transform 0.25s ease;
+        margin-bottom: 1.25rem;
+        overflow: hidden;
+    }
+
+    .settings-card:hover {
+        box-shadow: 0 4px 14px rgba(26,111,168, 0.15);
+    }
+
+    .settings-header {
+        background: linear-gradient(135deg, var(--clr-blue) 0%, #0F4C75 100%);
+        color: #FFFFFF;
+        padding: 0.9rem 1.25rem;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        border-bottom: 3px solid var(--clr-gold);
+    }
+
+    .settings-header h4 {
+        margin: 0;
+        font-weight: 600;
+        font-size: 1.05rem;
+    }
+
+    .settings-header small {
+        opacity: 0.85;
+        font-size: 0.78rem;
+    }
+
+    .settings-body {
+        padding: 1.25rem;
+        background: #FFFFFF;
+    }
+
+    .form-label {
+        font-weight: 600;
+        color: #2A3A4A;
+        margin-bottom: 0.3rem;
+        font-size: 0.8rem;
+    }
+
+    .form-control, .form-select {
+        border-radius: 7px;
+        border: 1px solid #E2E8F0;
+        padding: 0.5rem 0.7rem;
+        font-size: 0.85rem;
+        transition: all 0.2s ease;
+    }
+
+    .form-control:focus, .form-select:focus {
+        border-color: var(--clr-blue);
+        box-shadow: 0 0 0 0.15rem var(--clr-blue-soft);
+    }
+
+    .settings-icon {
+        width: 34px;
+        height: 34px;
+        flex-shrink: 0;
+        background: rgba(255, 255, 255, 0.18);
+        border: 1px solid rgba(255, 255, 255, 0.35);
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1rem;
+        color: var(--clr-gold);
+    }
+
+    .save-btn {
+        background: linear-gradient(135deg, var(--clr-gold) 0%, #B8883E 100%);
+        border: none;
+        color: #FFFFFF !important;
+        padding: 0.65rem 2rem;
+        border-radius: 7px;
+        font-weight: 600;
+        font-size: 0.9rem;
+        transition: all 0.25s ease;
+        box-shadow: 0 3px 10px rgba(212,164,90, 0.35);
+    }
+
+    .save-btn:hover {
+        color: #FFFFFF !important;
+        transform: translateY(-2px);
+        box-shadow: 0 6px 16px rgba(212,164,90, 0.45);
+    }
+
+    .save-btn:focus,
+    .save-btn:active,
+    .save-btn:disabled,
+    html.dark-mode .save-btn,
+    html.dark-mode .save-btn:hover,
+    html.dark-mode .save-btn:focus,
+    html.dark-mode .save-btn:active,
+    html.dark-mode .save-btn:disabled {
+        color: #FFFFFF !important;
+    }
+
+    .save-btn i,
+    html.dark-mode .save-btn i {
+        color: #FFFFFF !important;
+    }
+
+    html.dark-mode .settings-body {
+        background: #1A2332;
+    }
+
+    html.dark-mode .settings-header h4,
+    html.dark-mode .settings-header small,
+    html.dark-mode .settings-body strong,
+    html.dark-mode .form-label,
+    html.dark-mode .help-text {
+        color: #E2E8F0 !important;
+    }
+
+    html.dark-mode .form-control,
+    html.dark-mode .form-select {
+        background-color: #1E2A3A;
+        border-color: #2A3A4A;
+        color: #E2E8F0;
+    }
+
+    .help-text {
+        font-size: 0.72rem;
+        color: #8FA3B8;
+        margin-top: 0.2rem;
+    }
+
+    .input-group-text {
+        background-color: var(--clr-gold-soft);
+        border: 1px solid #E2E8F0;
+        border-radius: 7px 0 0 7px;
+        font-weight: 600;
+        color: var(--clr-blue);
+    }
+
+    .text-danger {
+        color: #DC2626 !important;
+    }
+
+    .is-invalid {
+        border-color: #DC2626 !important;
+        box-shadow: 0 0 0 0.15rem rgba(220,38,38, 0.2) !important;
+    }
+
+    .invalid-feedback {
+        color: #DC2626;
+        font-size: 0.78rem;
+        margin-top: 0.2rem;
+    }
+
+    .btn-outline-primary {
+        color: var(--clr-blue);
+        border-color: var(--clr-blue);
+        font-size: 0.85rem;
+    }
+
+    .btn-outline-primary:hover {
+        background-color: var(--clr-blue);
+        border-color: var(--clr-blue);
+        color: #FFFFFF;
+    }
+
+    .btn-outline-warning {
+        color: var(--clr-gold);
+        border-color: var(--clr-gold);
+        font-size: 0.85rem;
+    }
+
+    .btn-outline-warning:hover {
+        background-color: var(--clr-gold);
+        border-color: var(--clr-gold);
+        color: #FFFFFF;
+    }
+
+    .alert-info {
+        background-color: var(--clr-blue-soft);
+        border: 1px solid var(--clr-blue);
+        color: #0F4C75;
+        font-size: 0.82rem;
+        padding: 0.75rem 1rem;
+        border-radius: 8px;
+    }
+
+    .alert-info i {
+        color: var(--clr-blue);
+    }
+
+    .logo-box {
+        border: 1px solid #E2E8F0 !important;
+        background: var(--clr-gold-soft) !important;
+        border-radius: 8px;
+    }
+
+    .logo-placeholder {
+        border: 1px dashed #B8C8D8 !important;
+        background: #FFFFFF !important;
+        border-radius: 8px;
+        min-height: 80px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .btn-remove-settings {
+        background-color: #DC2626;
+        border: 2px solid #FFFFFF;
+    }
+
+    @@media (max-width: 768px) {
+        .settings-body {
+            padding: 0.9rem;
+        }
+
+        .settings-header {
+            padding: 0.75rem 1rem;
+        }
+
+        .settings-header h4 {
+            font-size: 0.95rem;
+        }
+
+        .save-btn {
+            width: 100%;
+        }
+
+        .d-flex.justify-content-between.align-items-center.mb-4 {
+            flex-direction: column;
+            align-items: flex-start !important;
+            gap: 0.75rem;
+        }
+
+        .d-flex.justify-content-between.align-items-center.mb-4 > div:last-child {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .d-flex.justify-content-between.align-items-center.mb-4 .btn {
+            width: 100%;
+            margin: 0 !important;
+        }
+    }
+
+    @@media (max-width: 768px) {
+        .btn-remove-settings {
+            width: 20px !important;
+            height: 20px !important;
+            font-size: 10px !important;
+            line-height: 20px !important;
+        }
+    }
+</style>
+
+<div class="content settings-container">
+    <!-- Breadcrumb -->
+    <nav class="mb-3" aria-label="breadcrumb">
+        <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item"><a href="/Home">Home</a></li>
+            <li class="breadcrumb-item active">Settings</li>
+        </ol>
+    </nav>
+
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-1" style="color:var(--clr-blue); font-weight:700;">System Settings</h2>
+            <p class="text-muted mb-0" style="font-size:0.88rem;">Configure company information and default values</p>
+        </div>
+        @{
+            var currentRole = User?.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value;
+        }
+        @if (currentRole == "Admin")
+        {
+            <div class="d-flex gap-2 flex-wrap">
+                <button type="button" class="btn btn-warning" id="editBtn" onclick="toggleEdit()">
+                    <i class="fa-solid fa-pen me-2"></i>Edit Settings
+                </button>
+                <a href="@Url.Action("Branding", "Settings")" class="btn btn-outline-primary">
+                    <i class="fas fa-palette me-2"></i>Landing Page Branding
+                </a>
+                <a href="@Url.Action("Impersonation", "Settings")" class="btn btn-outline-warning">
+                    <i class="fas fa-user-secret me-2"></i>User Impersonation
+                </a>
+            </div>
+        }
+    </div>
+
+    <form id="settingsForm">
+    @Html.AntiForgeryToken()
+        <!-- Company Information Card -->
+        <div class="card settings-card">
+            <div class="settings-header">
+                <div class="settings-icon">
+                    <i class="fa-solid fa-building"></i>
+                </div>
+                <div>
+                    <h4>Company Information</h4>
+                    <small>Details that appear on quotations, invoices, and receipts</small>
+                </div>
+            </div>
+            <div class="settings-body">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label for="CompanyName" class="form-label">
+                            <i class="fa-solid fa-building text-primary me-2" style="color:var(--clr-blue) !important;"></i>Company Name <span class="text-danger">*</span>
+                        </label>
+                        <input type="text" class="form-control" id="CompanyName" name="CompanyName" 
+                               value="@(Model.ContainsKey("CompanyName") ? Model["CompanyName"] : "")" 
+                               placeholder="Enter company name" required disabled>
+                        <div class="help-text">Legal name of your company</div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label for="CompanyGST" class="form-label">
+                            <i class="fa-solid fa-file-invoice text-primary me-2" style="color:var(--clr-blue) !important;"></i>GST Number <span class="text-danger">*</span>
+                        </label>
+                        <input type="text" class="form-control" id="CompanyGST" name="CompanyGST" 
+                               value="@(Model.ContainsKey("CompanyGST") ? Model["CompanyGST"] : "")" 
+                               placeholder="XXXXXXXXXXXXXXX" maxlength="15" required disabled
+                               oninput="this.value=this.value.replace(/[^0-9]/g,'').slice(0,15)">
+                        <div class="help-text">15-digit GST identification number</div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label for="CompanyAddress" class="form-label">
+                            <i class="fa-solid fa-location-dot text-primary me-2" style="color:var(--clr-blue) !important;"></i>Address <span class="text-danger">*</span>
+                        </label>
+                        <textarea class="form-control" id="CompanyAddress" name="CompanyAddress" 
+                                  rows="3" placeholder="Enter complete address" required>@(Model.ContainsKey("CompanyAddress") ? Model["CompanyAddress"] : "")</textarea>
+                        <div class="help-text">Complete office address with pincode</div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label for="CompanyMapUrl" class="form-label">
+                            <i class="fa-solid fa-map text-primary me-2" style="color:var(--clr-blue) !important;"></i>Map URL
+                        </label>
+                        <input type="url" class="form-control" id="CompanyMapUrl" name="CompanyMapUrl" 
+                               value="@(Model.ContainsKey("CompanyMapUrl") ? Model["CompanyMapUrl"] : "")" 
+                               placeholder="https://maps.google.com/...">
+                        <div class="help-text">Google Maps or other map service URL</div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label for="CompanyPhone" class="form-label">
+                            <i class="fa-solid fa-phone text-primary me-2" style="color:var(--clr-blue) !important;"></i>Phone Number <span class="text-danger">*</span>
+                        </label>
+                        <input type="text" class="form-control" id="CompanyPhone" name="CompanyPhone" 
+                               value="@(Model.ContainsKey("CompanyPhone") ? Model["CompanyPhone"] : "")" 
+                               placeholder="+91-XXXXXXXXXX" required>
+                        <div class="help-text">Primary contact number</div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label for="CompanyEmail" class="form-label">
+                            <i class="fa-solid fa-envelope text-primary me-2" style="color:var(--clr-blue) !important;"></i>Email Address <span class="text-danger">*</span>
+                        </label>
+                        <input type="email" class="form-control" id="CompanyEmail" name="CompanyEmail" 
+                               value="@(Model.ContainsKey("CompanyEmail") ? Model["CompanyEmail"] : "")" 
+                               placeholder="info@company.com" required>
+                        <div class="help-text">Official email for correspondence</div>
+                    </div>
+
+                    <div class="col-md-12">
+                        <label for="CopyrightText" class="form-label">
+                            <i class="fa-solid fa-copyright text-primary me-2" style="color:var(--clr-blue) !important;"></i>Copyright Text
+                        </label>
+                        <input type="text" class="form-control" id="CopyrightText" name="CopyrightText" 
+                               value="@(Model.ContainsKey("CopyrightText") ? Model["CopyrightText"] : "")" 
+                               placeholder="">
+                        <div class="help-text">Custom copyright text for footer. Leave empty for default.</div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label for="CompanyLogo" class="form-label">
+                            <i class="fa-solid fa-image text-primary me-2" style="color:var(--clr-blue) !important;"></i>Company Logo
+                        </label>
+                        <input type="file" class="form-control" id="CompanyLogo" name="CompanyLogo" 
+                               accept="image/png,image/jpeg,image/jpg,image/gif">
+                        <div class="help-text">Upload logo (PNG, JPG, GIF - Max 2MB)</div>
+                    <div class="mt-2" id="companyLogoPreviewCol">
+                        @if (Model.ContainsKey("CompanyLogo") && !string.IsNullOrEmpty(Model["CompanyLogo"]))
+                        {
+                            <div class="logo-box p-3 position-relative" style="max-width: 280px;" id="companyLogoBox">
+                                <button type="button" class="btn btn-danger btn-sm position-absolute btn-remove-settings" style="top: -10px; right: -10px; width: 26px; height: 26px; padding: 0; border-radius: 50%; font-size: 14px; line-height: 26px; z-index: 1;" id="removeLogo" title="Remove Logo">&times;</button>
+                                <img src="@Model["CompanyLogo"]" alt="Company Logo" class="img-fluid" style="max-height: 90px;" id="currentLogo">
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="logo-box p-3 position-relative" style="max-width: 280px;" id="companyLogoBox">
+                                <img src="/icons/PropTech_Logo_Color.png" alt="Default Company Logo" class="img-fluid" style="max-height: 90px;" id="currentLogo">
+                            </div>
+                        }
+                    </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label for="CollapsedLogo" class="form-label">
+                            <i class="fa-solid fa-compress text-primary me-2" style="color:var(--clr-blue) !important;"></i>Collapsed Sidebar Logo
+                        </label>
+                        <input type="file" class="form-control" id="CollapsedLogo" name="CollapsedLogo" 
+                               accept="image/png,image/jpeg,image/jpg,image/gif">
+                        <div class="help-text">Small logo for collapsed sidebar (PNG, JPG, GIF - Max 2MB)</div>
+                    <div class="mt-2" id="collapsedLogoPreviewCol">
+                        @if (Model.ContainsKey("CollapsedLogo") && !string.IsNullOrEmpty(Model["CollapsedLogo"]))
+                        {
+                            <div class="logo-box p-3 position-relative" style="max-width: 190px;" id="collapsedLogoBox">
+                                <button type="button" class="btn btn-danger btn-sm position-absolute btn-remove-settings" style="top: -10px; right: -10px; width: 26px; height: 26px; padding: 0; border-radius: 50%; font-size: 14px; line-height: 26px; z-index: 1;" id="removeCollapsedLogo" title="Remove Collapsed Logo">&times;</button>
+                                <img src="@Model["CollapsedLogo"]" alt="Collapsed Logo" class="img-fluid" style="max-height: 55px;" id="currentCollapsedLogo">
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="logo-box p-3 position-relative" style="max-width: 190px;" id="collapsedLogoBox">
+                                <img src="/icons/PropTech_Logo_Color.png" alt="Default Collapsed Logo" class="img-fluid" style="max-height: 55px;" id="currentCollapsedLogo">
+                            </div>
+                        }
+                    </div>
+                        </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Financial Configuration Card -->
+        <div class="card settings-card">
+            <div class="settings-header">
+                <div class="settings-icon">
+                    <i class="fa-solid fa-indian-rupee-sign"></i>
+                </div>
+                <div>
+                    <h4>Financial Configuration</h4>
+                    <small>Tax rates and payment defaults</small>
+                </div>
+            </div>
+            <div class="settings-body">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label for="GSTRate" class="form-label">
+                            <i class="fa-solid fa-percent me-2" style="color:var(--clr-gold);"></i>GST Rate (%) <span class="text-danger">*</span>
+                        </label>
+                        <input type="number" class="form-control" id="GSTRate" name="GSTRate" 
+                               value="@(Model.ContainsKey("GSTRate") ? Model["GSTRate"] : "5")" 
+                               step="0.01" min="0" max="100" required>
+                        <div class="help-text">Applied on all invoices</div>
+                    </div>
+
+                    <div class="col-md-4">
+                        <label for="BookingPercentage" class="form-label">
+                            <i class="fa-solid fa-percent me-2" style="color:var(--clr-gold);"></i>Default Booking (%) <span class="text-danger">*</span>
+                        </label>
+                        <input type="number" class="form-control" id="BookingPercentage" name="BookingPercentage" 
+                               value="@(Model.ContainsKey("BookingPercentage") ? Model["BookingPercentage"] : "20")" 
+                               step="1" min="0" max="100" required>
+                        <div class="help-text">Initial payment percentage</div>
+                    </div>
+
+                    <div class="col-md-4">
+                        <label for="EMIStructure" class="form-label">
+                            <i class="fa-solid fa-chart-line me-2" style="color:var(--clr-blue);"></i>EMI Structure <span class="text-danger">*</span>
+                        </label>
+                        <input type="text" class="form-control" id="EMIStructure" name="EMIStructure" 
+                               value="@(Model.ContainsKey("EMIStructure") ? Model["EMIStructure"] : "20-30-30-20")" 
+                               placeholder="20-30-30-20" required>
+                        <div class="help-text">Percentages separated by hyphen</div>
+                    </div>
+
+                    <div class="col-12">
+                        <div class="alert alert-info d-flex align-items-start mb-0">
+                            <i class="fa-solid fa-info-circle me-2 mt-1"></i>
+                            <div>
+                                <strong>EMI Structure Example:</strong> 20-30-30-20 means:
+                                <ul class="mb-0 mt-2">
+                                    <li>20% at Booking</li>
+                                    <li>30% at Agreement</li>
+                                    <li>30% at Foundation/Construction</li>
+                                    <li>20% at Possession</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar Settings Card -->
+        <div class="card settings-card">
+            <div class="settings-header">
+                <div class="settings-icon">
+                    <i class="fa-solid fa-bars"></i>
+                </div>
+                <div>
+                    <h4>Sidebar Preferences</h4>
+                    <small>Customize your sidebar appearance</small>
+                </div>
+            </div>
+            <div class="settings-body">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label">
+                            <i class="fa-solid fa-compress me-2" style="color:var(--clr-blue);"></i>Default Sidebar State
+                        </label>
+                        <div class="form-check form-switch mt-2">
+                            <input type="hidden" name="SidebarCollapsed" value="false" />
+                            <input class="form-check-input" type="checkbox" role="switch" id="SidebarCollapsed" name="SidebarCollapsed" value="true"
+                                   @(Model.ContainsKey("SidebarCollapsed") && Model["SidebarCollapsed"] == "true" ? "checked" : "") disabled>
+                            <label class="form-check-label" for="SidebarCollapsed">
+                                @(Model.ContainsKey("SidebarCollapsed") && Model["SidebarCollapsed"] == "true" ? "Collapsed (icons only)" : "Expanded (full width)")
+                            </label>
+                        </div>
+                        <div class="help-text">When collapsed, the sidebar shows only icons to save screen space. Changes apply after saving and page reload.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Document Numbering Card -->
+        <div class="card settings-card">
+            <div class="settings-header">
+                <div class="settings-icon">
+                    <i class="fa-solid fa-hashtag"></i>
+                </div>
+                <div>
+                    <h4>Document Numbering</h4>
+                    <small>Prefixes for automatic number generation</small>
+                </div>
+            </div>
+            <div class="settings-body">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label for="InvoicePrefix" class="form-label">
+                            <i class="fa-solid fa-file-invoice me-2" style="color:var(--clr-blue);"></i>Invoice Prefix <span class="text-danger">*</span>
+                        </label>
+                        <input type="text" class="form-control" id="InvoicePrefix" name="InvoicePrefix" 
+                               value="@(Model.ContainsKey("InvoicePrefix") ? Model["InvoicePrefix"] : "INV")" 
+                               placeholder="INV" required>
+                        <div class="help-text">Format: INV-2025-0001</div>
+                    </div>
+
+                    <div class="col-md-4">
+                        <label for="QuotationPrefix" class="form-label">
+                            <i class="fa-solid fa-file-lines me-2" style="color:var(--clr-gold);"></i>Quotation Prefix <span class="text-danger">*</span>
+                        </label>
+                        <input type="text" class="form-control" id="QuotationPrefix" name="QuotationPrefix" 
+                               value="@(Model.ContainsKey("QuotationPrefix") ? Model["QuotationPrefix"] : "QT")" 
+                               placeholder="QT" required>
+                        <div class="help-text">Format: QT-2025-0001</div>
+                    </div>
+
+                    <div class="col-md-4">
+                        <label for="BookingPrefix" class="form-label">
+                            <i class="fa-solid fa-book me-2" style="color:var(--clr-gold);"></i>Booking Prefix <span class="text-danger">*</span>
+                        </label>
+                        <input type="text" class="form-control" id="BookingPrefix" name="BookingPrefix" 
+                               value="@(Model.ContainsKey("BookingPrefix") ? Model["BookingPrefix"] : "BK")" 
+                               placeholder="BK" required>
+                        <div class="help-text">Format: BK-2025-0001</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Save / Cancel Buttons (hidden by default, shown in edit mode) -->
+        <div id="saveBtnRow" class="text-end mb-3" style="display:none;">
+            <button type="button" class="btn btn-secondary me-2" id="cancelBtnRow" onclick="cancelEdit()">
+                <i class="fa-solid fa-times me-2"></i>Cancel
+            </button>
+            <button type="button" class="btn btn-primary save-btn" onclick="validateAndSave()">
+                <i class="fa-solid fa-save me-2"></i>Save All Settings
+            </button>
+        </div>
+    </form>
+
+    <!-- Backup / Export Section -->
+    <div class="card settings-card mt-4">
+        <div class="settings-header">
+            <div class="settings-icon">
+                <i class="fa-solid fa-database"></i>
+            </div>
+            <div>
+                <h4>Backup & Export</h4>
+                <small>Export all company data to JSON file</small>
+            </div>
+        </div>
+        <div class="settings-body">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <p class="mb-1"><strong>Database Backup</strong></p>
+                    <p class="text-muted mb-0" style="font-size:0.85rem;">
+                        Export all your data (leads, properties, bookings, users, settings) to a JSON file. 
+                        This includes all companies and tenants visible to the SuperAdmin.
+                    </p>
+                </div>
+                <div class="col-md-4 text-end">
+                    <button type="button" class="btn btn-outline-primary" id="exportBtn" onclick="exportBackup()">
+                        <i class="fa-solid fa-download me-2"></i>Download Backup
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    var isEditing = false;
+
+    function toggleEdit() {
+        isEditing = !isEditing;
+        if (isEditing) {
+            $('#settingsForm input, #settingsForm textarea, #settingsForm select').prop('disabled', false);
+            $('#settingsForm input[type="file"]').prop('disabled', false);
+            $('#editBtn').hide();
+            $('#saveBtnRow').show();
+            $('#cancelBtnRow').show();
+        } else {
+            $('#settingsForm input, #settingsForm textarea, #settingsForm select').prop('disabled', true);
+            $('#settingsForm input[type="file"]').prop('disabled', true);
+            $('#editBtn').show();
+            $('#saveBtnRow').hide();
+            $('#cancelBtnRow').hide();
+        }
+    }
+
+    function validateAndSave() {
+        console.log('Save button clicked - starting validation');
+        
+        $('.invalid-feedback').remove();
+        $('.is-invalid').removeClass('is-invalid');
+        
+        let isValid = true;
+        
+        $('#settingsForm').find('input[required], textarea[required], select[required]').each(function() {
+            const field = $(this);
+            if (field.prop('disabled')) return;
+            const fieldValue = field.val();
+            
+            if (!fieldValue || fieldValue.trim() === '') {
+                field.addClass('is-invalid');
+                const label = field.closest('.col-md-6, .col-md-4, .col-12').find('label').first();
+                let labelText = label.text().replace(/\*/g, '').trim();
+                const errorMsg = $('<div class="invalid-feedback d-block" style="color: #DC2626 !important; font-size: 14px; margin-top: 5px;">' + labelText + ' is required</div>');
+                field.after(errorMsg);
+                isValid = false;
+            }
+        });
+        
+        if (!isValid) {
+            console.log('Validation failed - stopping submission');
+            return false;
+        }
+        
+        console.log('Validation passed - proceeding with submission');
+        const submitBtn = $('.save-btn');
+        const originalText = submitBtn.html();
+        submitBtn.prop('disabled', true).html('<i class="fa-solid fa-spinner fa-spin me-2"></i>Saving...');
+
+        const formData = new FormData($('#settingsForm')[0]);
+
+        $.ajax({
+            url: '/Settings/UpdateSettings',
+            type: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            success: function(response) {
+                if (response.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Success!',
+                        text: 'Settings updated successfully',
+                        timer: 1500,
+                        showConfirmButton: false
+                    }).then(() => {
+                        location.reload();
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: response.message || 'Failed to update settings'
+                    });
+                }
+            },
+            error: function(xhr, status, error) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'An error occurred while saving settings'
+                });
+            },
+            complete: function() {
+                submitBtn.prop('disabled', false).html(originalText);
+            }
+        });
+    }
+
+    function cancelEdit() {
+        isEditing = false;
+        $('#settingsForm input, #settingsForm textarea, #settingsForm select').prop('disabled', true);
+        $('#settingsForm input[type="file"]').prop('disabled', true);
+        $('#editBtn').show();
+        $('#saveBtnRow').hide();
+        $('#cancelBtnRow').hide();
+        location.reload();
+    }
+
+    function exportBackup() {
+        var btn = $('#exportBtn');
+        btn.prop('disabled', true).html('<i class="fa-solid fa-spinner fa-spin me-2"></i>Preparing...');
+        // Trigger browser file download
+        window.location.href = '/api/export/download';
+        setTimeout(function() {
+            btn.prop('disabled', false).html('<i class="fa-solid fa-download me-2"></i>Download Backup');
+        }, 3000);
+    }
+
+    // Live preview when selecting a new logo file
+    $('#CompanyLogo').on('change', function() {
+        var file = this.files[0];
+        if (!file) return;
+        var reader = new FileReader();
+        reader.onload = function(e) {
+            var container = $('#companyLogoBox');
+            if (container.length) {
+                container.find('img').attr('src', e.target.result);
+            } else {
+                $('#companyLogoPreviewCol').html(
+                    '<label class="form-label">Current Logo</label>' +
+                    '<div class="logo-box p-3 position-relative" style="max-width: 280px;" id="companyLogoBox">' +
+                    '<button type="button" class="btn btn-danger btn-sm position-absolute btn-remove-settings" style="top: -10px; right: -10px; width: 26px; height: 26px; padding: 0; border-radius: 50%; font-size: 14px; line-height: 26px; z-index: 1;" id="removeLogo" title="Remove Logo">&times;</button>' +
+                    '<img src="' + e.target.result + '" alt="Company Logo" class="img-fluid" style="max-height: 90px;" id="currentLogo">' +
+                    '</div>'
+                );
+            }
+        };
+        reader.readAsDataURL(file);
+    });
+
+    // Live preview when selecting a new collapsed logo file
+    $('#CollapsedLogo').on('change', function() {
+        var file = this.files[0];
+        if (!file) return;
+        var reader = new FileReader();
+        reader.onload = function(e) {
+            var container = $('#collapsedLogoBox');
+            if (container.length) {
+                container.find('img').attr('src', e.target.result);
+            } else {
+                $('#collapsedLogoPreviewCol').html(
+                    '<label class="form-label">Current Collapsed Logo</label>' +
+                    '<div class="logo-box p-3 position-relative" style="max-width: 190px;" id="collapsedLogoBox">' +
+                    '<button type="button" class="btn btn-danger btn-sm position-absolute btn-remove-settings" style="top: -10px; right: -10px; width: 26px; height: 26px; padding: 0; border-radius: 50%; font-size: 14px; line-height: 26px; z-index: 1;" id="removeCollapsedLogo" title="Remove Collapsed Logo">&times;</button>' +
+                    '<img src="' + e.target.result + '" alt="Collapsed Logo" class="img-fluid" style="max-height: 55px;" id="currentCollapsedLogo">' +
+                    '</div>'
+                );
+            }
+        };
+        reader.readAsDataURL(file);
+    });
+
+    $(document).on('click', '#removeLogo', function() {
+        Swal.fire({
+            title: 'Remove Logo?',
+            text: 'Are you sure you want to remove the company logo?',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#DC2626',
+            confirmButtonText: 'Yes, remove'
+        }).then((result) => {
+            if (!result.isConfirmed) return;
+            $.post('/Settings/RemoveLogo', function(data) {
+                if (data.success) {
+                    $('#companyLogoPreviewCol').html('<div class="logo-placeholder" style="max-width: 280px;"><span class="text-muted" style="font-size:0.8rem;">No logo uploaded</span></div>');
+                } else {
+                    Swal.fire('Error', data.message || 'Failed to remove logo', 'error');
+                }
+            }).fail(function() {
+                Swal.fire('Error', 'Failed to communicate with server', 'error');
+            });
+        });
+    });
+
+    $(document).ready(function() {
+        // Disable all form fields on page load (view mode)
+        $('#settingsForm input, #settingsForm textarea, #settingsForm select').prop('disabled', true);
+        $('#settingsForm input[type="file"]').prop('disabled', true);
+    });
+
+    $(document).on('click', '#removeCollapsedLogo', function() {
+        Swal.fire({
+            title: 'Remove Logo?',
+            text: 'Are you sure you want to remove the collapsed logo?',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#DC2626',
+            confirmButtonText: 'Yes, remove'
+        }).then((result) => {
+            if (!result.isConfirmed) return;
+            $.post('/Settings/RemoveCollapsedLogo', function(data) {
+                if (data.success) {
+                    $('#collapsedLogoPreviewCol').html('<label class="form-label">Collapsed Logo Preview</label><div class="logo-placeholder" style="max-width: 190px;"><span class="text-muted" style="font-size:0.8rem;">No collapsed logo</span></div>');
+                } else {
+                    Swal.fire('Error', data.message || 'Failed to remove collapsed logo', 'error');
+                }
+            }).fail(function() {
+                Swal.fire('Error', 'Failed to communicate with server', 'error');
+            });
+        });
+    });
+</script>

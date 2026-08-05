@@ -1,0 +1,1144 @@
+@model CRM.Models.UserProfile
+@{
+    ViewData["Title"] = "Profile";
+    
+    string profileImageSrc = Model?.ProfileImage != null
+        ? $"data:image/png;base64,{Convert.ToBase64String(Model.ProfileImage)}"
+        : "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23cbd5e1'%3E%3Cpath d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z'/%3E%3C/svg%3E";
+}
+
+<style>
+    .modern-header {
+        background: linear-gradient(135deg, #1A6FA8 0%, #125082 100%);
+        position: relative;
+        overflow: hidden;
+        border-radius: 16px;
+        margin-bottom: 2rem;
+        box-shadow: 0 8px 32px rgba(18,80,130, 0.15);
+    }
+
+    .modern-header::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="50" cy="50" r="1" fill="%23ffffff" opacity="0.1"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>') repeat;
+        opacity: 0.3;
+    }
+
+    .header-content {
+        position: relative;
+        z-index: 2;
+        padding: 1.1rem 1.5rem;
+        color: white;
+    }
+
+    .header-title {
+        font-size: 1.5rem;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .header-subtitle {
+        font-size: 1.1rem;
+        opacity: 0.9;
+        margin-bottom: 0;
+        font-weight: 400;
+    }
+
+    .action-btn {
+        background: rgba(255, 255, 255, 0.2);
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        color: white;
+        padding: 0.875rem 2rem;
+        border-radius: 50px;
+        font-weight: 600;
+        font-size: 1rem;
+        backdrop-filter: blur(10px);
+        transition: all 0.3s ease;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin: 0.25rem;
+    }
+
+    .action-btn:hover {
+        background: rgba(255, 255, 255, 0.3);
+        border-color: rgba(255, 255, 255, 0.5);
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+        color: white;
+    }
+
+    .profile-card {
+        background: white;
+        border-radius: 16px;
+        padding: 2rem;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        border: 1px solid rgba(0, 0, 0, 0.05);
+        transition: all 0.3s ease;
+        margin-bottom: 2rem;
+    }
+
+    .profile-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+        border-color: rgba(26,111,168, 0.2);
+    }
+
+    .profile-image-preview {
+        transition: transform 0.3s ease;
+        border: 4px solid rgba(26,111,168, 0.1);
+        box-shadow: 0 4px 20px rgba(18,80,130, 0.15);
+        width: 100px !important;
+        height: 100px !important;
+        object-fit: cover;
+    }
+
+    .profile-image-preview:hover {
+        transform: scale(1.05);
+    }
+
+    .profile-info-item {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        margin-bottom: 1rem;
+        padding: 0.75rem;
+        background: rgba(26,111,168, 0.05);
+        border-radius: 8px;
+        transition: all 0.2s ease;
+    }
+
+    .profile-info-item:hover {
+        background: rgba(26,111,168, 0.1);
+    }
+
+    .profile-info-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 8px;
+        background: linear-gradient(135deg, #1A6FA8 0%, #125082 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 1rem;
+    }
+
+    .form-control:focus {
+        border-color: #1A6FA8;
+        box-shadow: 0 0 0 0.2rem rgba(18,80,130, 0.15);
+    }
+
+    .form-control.border-primary {
+        border-color: #1A6FA8 !important;
+        box-shadow: 0 0 0 0.2rem rgba(18,80,130, 0.15);
+    }
+
+    input[readonly] {
+        background-color: #F0F4F8;
+        cursor: not-allowed;
+    }
+
+    .card-header {
+        background: linear-gradient(135deg, #F0F4F8 0%, #E8EDF2 100%);
+        border-bottom: 2px solid rgba(26,111,168, 0.1);
+        border-radius: 16px 16px 0 0 !important;
+    }
+
+    .btn-success {
+        background: linear-gradient(135deg, #16A34A 0%, #16A34A 100%);
+        border: none;
+        border-radius: 8px;
+        padding: 0.75rem 1.5rem;
+        font-weight: 600;
+        transition: all 0.3s ease;
+    }
+
+    .btn-success:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(22,163,74, 0.25);
+    }
+
+    .btn-secondary {
+        background: #6B7B8D;
+        border: none;
+        border-radius: 8px;
+        padding: 0.75rem 1.5rem;
+        font-weight: 600;
+        transition: all 0.3s ease;
+    }
+
+    .btn-secondary:hover {
+        background: #2A3A4A;
+        transform: translateY(-2px);
+    }
+
+    .btn-primary {
+        background: linear-gradient(135deg, #1A6FA8 0%, #125082 100%);
+        border: none;
+        border-radius: 8px;
+        padding: 0.75rem 1.5rem;
+        font-weight: 600;
+        transition: all 0.3s ease;
+    }
+
+    .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(18,80,130, 0.25);
+    }
+
+    .form-label {
+        font-weight: 600;
+        color: #2A3A4A;
+        margin-bottom: 0.5rem;
+    }
+
+    .profile-card .form-label {
+        font-weight: 700;
+        color: #1E2A3A;
+    }
+
+    .text-danger {
+        color: #DC2626 !important;
+    }
+
+    @@media (max-width: 768px) {
+        .header-content {
+            padding: 2rem 1.5rem;
+        }
+        
+        .header-title {
+            font-size: 2rem;
+        }
+        
+        .profile-card {
+            padding: 1.5rem;
+        }
+
+        .action-btn {
+            padding: 0.6rem 1rem;
+            font-size: 0.85rem;
+        }
+
+        .modal-footer {
+            padding-bottom: 2rem !important;
+            justify-content: flex-end !important;
+        }
+
+        .modal-footer .btn {
+            width: auto;
+            margin-bottom: 0;
+        }
+    }
+
+    .dark-mode .profile-card {
+        background: #1E2A3A !important;
+        border-color: #2A3A4A !important;
+        color: #E2E8F0 !important;
+    }
+    
+    .dark-mode .card-header {
+        background: #2A3A4A !important;
+        color: #E2E8F0 !important;
+    }
+    
+    .dark-mode .form-label {
+        color: #E2E8F0 !important;
+    }
+    
+    .dark-mode .profile-info-item {
+        background: rgba(26,111,168, 0.1) !important;
+        color: #E2E8F0 !important;
+    }
+    
+    .dark-mode .profile-info-item:hover {
+        background: rgba(26,111,168, 0.2) !important;
+    }
+
+
+
+    .form-control-plaintext {
+        padding: 0.625rem 1rem;
+        background-color: #F0F4F8;
+        border: 1px solid #E8EDF2;
+        border-radius: 8px;
+        color: #2A3A4A;
+        font-weight: 500;
+        min-height: 38px;
+    }
+
+    .dark-mode .form-control-plaintext {
+        background-color: #2A3A4A !important;
+        border-color: #2A3A4A !important;
+        color: #E2E8F0 !important;
+    }
+
+    .modal-content {
+        border-radius: 16px;
+        border: none;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    }
+
+    #editProfileModal .modal-dialog {
+        max-width: 900px !important;
+        width: 900px !important;
+    }
+
+    @@media (max-width: 768px) {
+        #editProfileModal .modal-dialog {
+            max-width: 95% !important;
+            width: 95% !important;
+            margin: 0.5rem auto;
+        }
+    }
+
+    .modal-header {
+        border-radius: 16px 16px 0 0;
+        border-bottom: none;
+        padding: 1.5rem 2rem;
+    }
+
+    .modal-body {
+        padding: 2rem;
+    }
+
+    .modal-footer {
+        border-top: 1px solid #E8EDF2;
+        padding: 1.25rem 2rem;
+        display: flex;
+        flex-wrap: nowrap;
+    }
+
+    .border-end {
+        border-right: 2px solid #E8EDF2 !important;
+    }
+
+    .dark-mode .border-end {
+        border-right-color: #2A3A4A !important;
+    }
+
+    @@media (max-width: 991px) {
+        .border-end {
+            border-right: none !important;
+            border-bottom: 2px solid #E8EDF2 !important;
+            padding-bottom: 2rem;
+            margin-bottom: 2rem;
+        }
+    }
+</style>
+
+<!-- Success/Error Messages -->
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="fa-solid fa-check-circle me-2"></i>@TempData["Success"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="fa-solid fa-exclamation-circle me-2"></i>@TempData["Error"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+<div class="content">
+    <!-- Breadcrumb -->
+    <nav class="mb-3" aria-label="breadcrumb">
+        <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item"><a href="/home">Home</a></li>
+            <li class="breadcrumb-item active">Profile</li>
+        </ol>
+    </nav>
+
+    <!-- Modern Header -->
+    <div class="modern-header">
+        <div class="header-content">
+            <div class="row align-items-center">
+                <div class="col-lg-8">
+                    <div class="d-flex align-items-center">
+                        <div class="me-3">
+                            <i class="fa-solid fa-user-circle" style="font-size: 2.5rem; opacity: 0.9;"></i>
+                        </div>
+                        <div>
+                            <h1 class="header-title mb-0">Profile Settings</h1>
+                            <p class="header-subtitle">Manage your personal information and preferences</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-4 text-lg-end">
+                    @{
+                        var role = ViewBag.UserRole as string;
+                        var channelPartnerId = ViewBag.ChannelPartnerId as int?;
+                        var agentId = ViewBag.AgentId as int?;
+                        
+                        string profileUrl = "";
+                        bool showFullProfile = false;
+                        
+                        if (role?.ToLower() == "partner" && channelPartnerId.HasValue)
+                        {
+                            profileUrl = Url.Action("PartnerDetails", "ManageUsers", new { id = IdObfuscator.Encode(channelPartnerId.Value) });
+                            showFullProfile = true;
+                        }
+                        else if ((role?.ToLower() == "agent" || role?.ToLower() == "sales") && agentId.HasValue)
+                        {
+                            profileUrl = Url.Action("Details", "Agent", new { id = IdObfuscator.Encode( agentId.Value) });
+                            showFullProfile = true;
+                        }
+                    }
+                    @if (showFullProfile)
+                    {
+                        <a href="@profileUrl" class="action-btn">
+                            <i class="fa-solid fa-id-card"></i>
+                            <span>Full Profile</span>
+                        </a>
+                    }
+                    <button type="button" class="action-btn" onclick="toggleInlineEdit()">
+                        <i class="fa-solid fa-edit"></i>
+                        <span>Edit Profile</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Full Width Profile Card -->
+        <div class="col-12">
+            <div class="profile-card">
+                <div class="row">
+                    <!-- Profile Image Section -->
+                    <div class="col-lg-2 text-center border-end" style="min-width:0;overflow:hidden;">
+                        <img src="@profileImageSrc" alt="User Avatar" class="img-fluid rounded-circle mb-2 profile-image-preview" width="100" height="100" id="profileImagePreview" style="object-fit: cover;" />
+                        <h5 class="fw-bold mb-1" style="word-break:break-word;overflow-wrap:break-word;">@(!string.IsNullOrEmpty(Model?.FirstName) && !string.IsNullOrEmpty(Model?.LastName) ? $"{Model.FirstName} {Model.LastName}" : Model?.Username)</h5>
+                        <p class="text-muted mb-2 small" style="word-break:break-word;overflow-wrap:break-word;">@Model?.Location</p>
+                        <span class="badge bg-success px-2 py-1 mb-2" style="font-size: 0.75rem;">Active User</span>
+                    </div>
+
+                    <!-- Contact Information - Wider -->
+                    <div class="col-lg-4 border-end">
+                        <h5 class="fw-bold mb-4">
+                            <i class="fa-solid fa-address-card me-2 text-primary"></i>Contact Info
+                        </h5>
+                        @if (!string.IsNullOrEmpty(Model?.Email))
+                        {
+                            <div class="profile-info-item">
+                                <div class="profile-info-icon">
+                                    <i class="fa-solid fa-envelope"></i>
+                                </div>
+                                <div style="flex: 1; overflow: hidden;">
+                                    <small class="text-muted d-block">Email</small>
+                                    <strong style="word-break: break-all; font-size: 0.95rem;">@Model.Email</strong>
+                                </div>
+                            </div>
+                        }
+                        @if (!string.IsNullOrEmpty(Model?.PhoneNumber))
+                        {
+                            <div class="profile-info-item">
+                                <div class="profile-info-icon">
+                                    <i class="fa-solid fa-phone"></i>
+                                </div>
+                                <div>
+                                    <small class="text-muted d-block">Phone</small>
+                                    <strong>@Model.PhoneNumber</strong>
+                                </div>
+                            </div>
+                        }
+                    </div>
+
+                    <!-- Location Information -->
+                    <div class="col-lg-3 border-end">
+                        <h5 class="fw-bold mb-4">
+                            <i class="fa-solid fa-map-marker-alt me-2 text-primary"></i>Location
+                        </h5>
+                        @if (!string.IsNullOrEmpty(Model?.City))
+                        {
+                            <div class="profile-info-item">
+                                <div class="profile-info-icon">
+                                    <i class="fa-solid fa-home"></i>
+                                </div>
+                                <div>
+                                    <small class="text-muted d-block">City</small>
+                                    <strong>@Model.City</strong>
+                                </div>
+                            </div>
+                        }
+                        @if (!string.IsNullOrEmpty(Model?.State))
+                        {
+                            <div class="profile-info-item">
+                                <div class="profile-info-icon">
+                                    <i class="fa-solid fa-map"></i>
+                                </div>
+                                <div>
+                                    <small class="text-muted d-block">State</small>
+                                    <strong>@Model.State</strong>
+                                </div>
+                            </div>
+                        }
+                    </div>
+
+                    <!-- Additional Information -->
+                    <div class="col-lg-3">
+                        <h5 class="fw-bold mb-4">
+                            <i class="fa-solid fa-info-circle me-2 text-primary"></i>Details
+                        </h5>
+                        @if (!string.IsNullOrEmpty(Model?.Country))
+                        {
+                            <div class="profile-info-item">
+                                <div class="profile-info-icon">
+                                    <i class="fa-solid fa-flag"></i>
+                                </div>
+                                <div>
+                                    <small class="text-muted d-block">Country</small>
+                                    <strong>@Model.Country</strong>
+                                </div>
+                            </div>
+                        }
+                        @if (!string.IsNullOrEmpty(Model?.PostalCode))
+                        {
+                            <div class="profile-info-item">
+                                <div class="profile-info-icon">
+                                    <i class="fa-solid fa-mail-bulk"></i>
+                                </div>
+                                <div>
+                                    <small class="text-muted d-block">Postal Code</small>
+                                    <strong>@Model.PostalCode</strong>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Full Width Details Card -->
+        <!-- Full Width Details Card -->
+        <div class="col-12">
+            <div class="profile-card">
+                <div class="card-header">
+                    <h5 class="mb-0 fw-bold">
+                        <i class="fa-solid fa-user me-2"></i>
+                        Personal Information
+                    </h5>
+                </div>
+                <div class="card-body p-4">
+                    <!-- Inline Edit Form -->
+                    <form id="inlineProfileForm" action="/Profile/UpdateProfile" method="post" enctype="multipart/form-data">
+                        @Html.AntiForgeryToken()
+                        <div id="profileReadOnlyView">
+                            <div class="row">
+                                <div class="col-md-4 mb-4">
+                                    <label class="form-label">First Name</label>
+                                    <p class="form-control-plaintext field-display" data-field="FirstName">@(Model?.FirstName ?? "")</p>
+                                    <input type="text" name="FirstName" id="field-FirstName" class="form-control field-input" style="display:none;" value="@(Model?.FirstName ?? "")" placeholder="Enter first name" />
+                                </div>
+                                
+                                <div class="col-md-4 mb-4">
+                                    <label class="form-label">Last Name</label>
+                                    <p class="form-control-plaintext field-display" data-field="LastName">@(Model?.LastName ?? "")</p>
+                                    <input type="text" name="LastName" id="field-LastName" class="form-control field-input" style="display:none;" value="@(Model?.LastName ?? "")" placeholder="Enter last name" />
+                                </div>
+                                
+                                <div class="col-md-4 mb-4">
+                                    <label class="form-label">Email</label>
+                                    <p class="form-control-plaintext field-display" data-field="Email">@(Model?.Email ?? "")</p>
+                                    <input type="email" name="Email" id="field-Email" class="form-control field-input" style="display:none;" value="@(Model?.Email ?? "")" placeholder="Enter email address" required />
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-4 mb-4">
+                                    <label class="form-label">Phone</label>
+                                    <p class="form-control-plaintext field-display" data-field="PhoneNumber">@(Model?.PhoneNumber ?? "")</p>
+                                    <input type="text" name="PhoneNumber" id="field-PhoneNumber" class="form-control field-input" style="display:none;" value="@(Model?.PhoneNumber ?? "")" maxlength="10" pattern="[0-9]{10}" placeholder="10-digit number" />
+                                </div>
+                                
+                                <div class="col-md-4 mb-4">
+                                    <label class="form-label">Location/Position</label>
+                                    <p class="form-control-plaintext field-display" data-field="Location">@(Model?.Location ?? "")</p>
+                                    <input type="text" name="Location" id="field-Location" class="form-control field-input" style="display:none;" value="@(Model?.Location ?? "")" placeholder="e.g., Administrator" />
+                                </div>
+                                
+                                <div class="col-md-4 mb-4">
+                                    <label class="form-label">City</label>
+                                    <p class="form-control-plaintext field-display" data-field="City">@(Model?.City ?? "")</p>
+                                    <input type="text" name="City" id="field-City" class="form-control field-input" style="display:none;" value="@(Model?.City ?? "")" placeholder="Enter city" />
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-4 mb-4">
+                                    <label class="form-label">State</label>
+                                    <p class="form-control-plaintext field-display" data-field="State">@(Model?.State ?? "")</p>
+                                    <input type="text" name="State" id="field-State" class="form-control field-input" style="display:none;" value="@(Model?.State ?? "")" placeholder="Enter state" />
+                                </div>
+
+                                <div class="col-md-4 mb-4">
+                                    <label class="form-label">Country</label>
+                                    <p class="form-control-plaintext field-display" data-field="Country">@(Model?.Country ?? "")</p>
+                                    <input type="text" name="Country" id="field-Country" class="form-control field-input" style="display:none;" value="@(Model?.Country ?? "")" placeholder="Enter country" />
+                                </div>
+                                
+                                <div class="col-md-4 mb-4">
+                                    <label class="form-label">Postal Code</label>
+                                    <p class="form-control-plaintext field-display" data-field="PostalCode">@(Model?.PostalCode ?? "")</p>
+                                    <input type="text" name="PostalCode" id="field-PostalCode" class="form-control field-input" style="display:none;" value="@(Model?.PostalCode ?? "")" placeholder="Enter postal code" />
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-12 mb-4">
+                                    <label class="form-label">Address</label>
+                                    <p class="form-control-plaintext field-display" data-field="Address">@(Model?.Address ?? "")</p>
+                                    <textarea name="Address" id="field-Address" class="form-control field-input" style="display:none;" rows="2" placeholder="Enter address">@(Model?.Address ?? "")</textarea>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-4 mb-4">
+                                    <label class="form-label">Age</label>
+                                    <p class="form-control-plaintext field-display" data-field="Age">@(Model?.Age?.ToString() ?? "")</p>
+                                    <input type="number" name="Age" id="field-Age" class="form-control field-input" style="display:none;" value="@(Model?.Age?.ToString() ?? "")" placeholder="Enter age" />
+                                </div>
+                                <div class="col-md-4 mb-4">
+                                    <label class="form-label">Date of Birth</label>
+                                    <p class="form-control-plaintext field-display" data-field="DOB">@(Model?.DOB ?? "")</p>
+                                    <input type="date" name="DOB" id="field-DOB" class="form-control field-input" style="display:none;" value="@(Model?.DOB ?? "")" placeholder="YYYY-MM-DD" />
+                                </div>
+                                <div class="col-md-4 mb-4">
+                                    <label class="form-label">Gender</label>
+                                    <p class="form-control-plaintext field-display" data-field="Gender">@(Model?.Gender ?? "")</p>
+                                    <select name="Gender" id="field-Gender" class="form-control field-input" style="display:none;">
+                                        <option value="">Select Gender</option>
+                                        <option value="Male">Male</option>
+                                        <option value="Female">Female</option>
+                                        <option value="Other">Other</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-4 mb-4">
+                                    <label class="form-label">Designation</label>
+                                    <p class="form-control-plaintext field-display" data-field="Designation">@(Model?.Designation ?? "")</p>
+                                    <input type="text" name="Designation" id="field-Designation" class="form-control field-input" style="display:none;" value="@(Model?.Designation ?? "")" placeholder="e.g., Administrator" />
+                                </div>
+                                <div class="col-md-4 mb-4">
+                                    <label class="form-label">Employee ID</label>
+                                    <p class="form-control-plaintext field-display" data-field="EmployeeId">@(Model?.EmployeeId ?? "")</p>
+                                    <input type="text" name="EmployeeId" id="field-EmployeeId" class="form-control field-input" style="display:none;" value="@(Model?.EmployeeId ?? "")" placeholder="EMP0001" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Inline Edit Buttons -->
+                        <div id="inlineEditControls" style="display:none;" class="mt-3">
+                            <button type="button" class="btn btn-secondary me-2" onclick="cancelInlineEdit()">
+                                <i class="fa-solid fa-times me-2"></i>Cancel
+                            </button>
+                            <button type="submit" class="btn btn-primary" id="inlineSaveBtn">
+                                <i class="fa-solid fa-save me-2"></i>Save Changes
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Change Password Card -->
+        <div class="col-12">
+            <div class="profile-card">
+                <div class="card-header">
+                    <h5 class="mb-0 fw-bold">
+                        <i class="fa-solid fa-lock me-2"></i>
+                        Change Password
+                    </h5>
+                </div>
+                <div class="card-body p-4">
+                    <form asp-controller="Account" asp-action="ResetPassword" method="post" id="changePasswordForm" novalidate>
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="Username" value="@Model?.Username" />
+                        <div class="row">
+                            <div class="col-md-4 mb-4">
+                                <label for="oldPassword" class="form-label">Current Password</label>
+                                <input type="password" class="form-control" id="oldPassword" name="oldPassword" placeholder="Enter current password" required />
+                                <div id="oldPasswordFeedback" class="form-text"></div>
+                            </div>
+                            <div class="col-md-4 mb-4">
+                                <label for="NewPassword" class="form-label">New Password</label>
+                                <input type="password" class="form-control" id="NewPassword" name="NewPassword" placeholder="Enter new password" required disabled pattern="^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\x40$!%*?&])[A-Za-z\d\x40$!%*?&]{6,}$" title="Password must contain uppercase, lowercase, number, and special character (min 6 chars)." />
+                                <div id="newPasswordFeedback" class="form-text"></div>
+                            </div>
+                            <div class="col-md-4 mb-4">
+                                <label for="ConfirmPassword" class="form-label">Confirm Password</label>
+                                <input type="password" class="form-control" id="ConfirmPassword" name="ConfirmPassword" placeholder="Confirm new password" required disabled />
+                                <div id="confirmPasswordFeedback" class="form-text"></div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-12">
+                                <button type="submit" class="btn btn-primary" id="updatePasswordButton" disabled>
+                                    <i class="fa-solid fa-key me-2"></i>Update Password
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Profile Modal -->
+<style>
+    #editProfileModal .modal-header,
+    #editProfileModal .modal-header *,
+    #editProfileModal .modal-header h5,
+    #editProfileModal .modal-header i,
+    #editProfileModal .modal-header span,
+    #editProfileModal .modal-header .modal-title,
+    #editProfileModal .modal-header .modal-title * {
+        color: #FFFFFF !important;
+        -webkit-text-fill-color: #FFFFFF !important;
+    }
+    #editProfileModal .modal-header .btn-close {
+        filter: brightness(0) invert(1) !important;
+        opacity: 1 !important;
+    }
+</style>
+
+<div class="modal fade" id="editProfileModal" tabindex="-1" aria-labelledby="editProfileModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" style="max-width: 900px !important; width: 900px;">
+        <div class="modal-content">
+            <div class="modal-header" style="padding: 12px 20px; border-bottom: 3px solid #DC2626;">
+                <h5 class="modal-title" id="editProfileModalLabel" style="color:#DC2626!important;-webkit-text-fill-color:#DC2626!important">
+                    <i class="fa-solid fa-edit me-2" style="color:#DC2626!important;-webkit-text-fill-color:#DC2626!important"></i><span style="color:#DC2626!important;-webkit-text-fill-color:#DC2626!important">Edit Profile Information</span>
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" style="filter:brightness(0) invert(1)!important;opacity:1!important"></button>
+            </div>
+            <form asp-action="UpdateProfile" method="post" enctype="multipart/form-data" id="editProfileForm">
+                @Html.AntiForgeryToken()
+                <div class="modal-body">
+                    <!-- Profile Image Upload -->
+                    <div class="mb-2 d-flex align-items-center gap-3" style="padding: 8px 14px; background: #FFFFFF; border-radius: 10px; border: 1px solid #E8EDF2;">
+                        <img src="@profileImageSrc" alt="Profile Preview" class="rounded-circle" width="56" height="56" id="modalProfileImagePreview" style="border: 2px solid #1A6FA8; object-fit: cover; flex-shrink: 0;" />
+                        <div class="d-flex flex-column gap-1">
+                            <div class="d-flex align-items-center gap-2 flex-wrap">
+                                <label for="modalProfileImage" class="btn btn-sm btn-outline-primary mb-0" style="font-size: 0.82rem;">
+                                    <i class="fa-solid fa-camera me-1"></i>Change Photo
+                                </label>
+                                <button type="button" class="btn btn-sm btn-outline-danger mb-0" style="font-size: 0.82rem;" onclick="removeProfileImage()">
+                                    <i class="fa-solid fa-trash me-1"></i>Remove
+                                </button>
+                                <input type="file" class="d-none" id="modalProfileImage" name="profileImage" accept="image/*" onchange="previewModalImage(event)" />
+                                <input type="hidden" id="removeImageFlag" name="removeImage" value="false" />
+                            </div>
+                            <small class="text-muted" style="font-size: 0.78rem;">JPG, PNG, GIF - Max 5MB</small>
+                        </div>
+                    </div>
+
+                    <div class="row g-2">
+                        <div class="col-md-4">
+                            <label asp-for="FirstName" class="form-label">First Name</label>
+                            <input asp-for="FirstName" class="form-control" placeholder="Enter first name" />
+                            <span asp-validation-for="FirstName" class="text-danger"></span>
+                        </div>
+                        <div class="col-md-4">
+                            <label asp-for="LastName" class="form-label">Last Name</label>
+                            <input asp-for="LastName" class="form-control" placeholder="Enter last name" />
+                            <span asp-validation-for="LastName" class="text-danger"></span>
+                        </div>
+                        <div class="col-md-4">
+                            <label asp-for="Email" class="form-label">Email <span class="text-danger">*</span></label>
+                            <input asp-for="Email" type="email" class="form-control" placeholder="Enter email address" required />
+                            <span asp-validation-for="Email" class="text-danger"></span>
+                        </div>
+                        <div class="col-md-4">
+                            <label asp-for="PhoneNumber" class="form-label">Phone</label>
+                            <input asp-for="PhoneNumber" type="tel" class="form-control" placeholder="+1 (555) 123-4567" maxlength="10" pattern="[0-9]{10}" title="Please enter exactly 10 digits" />
+                            <span asp-validation-for="PhoneNumber" class="text-danger"></span>
+                        </div>
+                        <div class="col-md-4">
+                            <label asp-for="Location" class="form-label">Location/Position</label>
+                            <input asp-for="Location" class="form-control" placeholder="e.g., Administrator, Developer" />
+                            <span asp-validation-for="Location" class="text-danger"></span>
+                        </div>
+                        <div class="col-md-4">
+                            <label asp-for="City" class="form-label">City</label>
+                            <input asp-for="City" class="form-control" placeholder="San Francisco" />
+                            <span asp-validation-for="City" class="text-danger"></span>
+                        </div>
+                        <div class="col-12">
+                            <label asp-for="Address" class="form-label">Address</label>
+                            <textarea asp-for="Address" class="form-control" placeholder="123 Main Street" rows="2"></textarea>
+                            <span asp-validation-for="Address" class="text-danger"></span>
+                        </div>
+                        <div class="col-md-4">
+                            <label asp-for="Age" class="form-label">Age</label>
+                            <input asp-for="Age" type="number" class="form-control" placeholder="25" />
+                            <span asp-validation-for="Age" class="text-danger"></span>
+                        </div>
+                        <div class="col-md-4">
+                            <label asp-for="DOB" class="form-label">Date of Birth</label>
+                            <input asp-for="DOB" type="date" class="form-control" />
+                            <span asp-validation-for="DOB" class="text-danger"></span>
+                        </div>
+                        <div class="col-md-4">
+                            <label asp-for="Gender" class="form-label">Gender</label>
+                            <select asp-for="Gender" class="form-control">
+                                <option value="">Select Gender</option>
+                                <option value="Male">Male</option>
+                                <option value="Female">Female</option>
+                                <option value="Other">Other</option>
+                            </select>
+                            <span asp-validation-for="Gender" class="text-danger"></span>
+                        </div>
+                        <div class="col-md-4">
+                            <label asp-for="Designation" class="form-label">Designation</label>
+                            <input asp-for="Designation" class="form-control" placeholder="Administrator" />
+                            <span asp-validation-for="Designation" class="text-danger"></span>
+                        </div>
+                        <div class="col-md-4">
+                            <label asp-for="EmployeeId" class="form-label">Employee ID</label>
+                            <input asp-for="EmployeeId" class="form-control" placeholder="EMP0001" />
+                            <span asp-validation-for="EmployeeId" class="text-danger"></span>
+                        </div>
+                        <div class="col-md-4">
+                            <label asp-for="State" class="form-label">State</label>
+                            <input asp-for="State" class="form-control" placeholder="Maharashtra" />
+                            <span asp-validation-for="State" class="text-danger"></span>
+                        </div>
+                        <div class="col-md-4">
+                            <label asp-for="Country" class="form-label">Country</label>
+                            <input asp-for="Country" class="form-control" value="India" readonly />
+                            <span asp-validation-for="Country" class="text-danger"></span>
+                        </div>
+                        <div class="col-md-4">
+                            <label asp-for="PostalCode" class="form-label">Postal Code</label>
+                            <input asp-for="PostalCode" class="form-control" placeholder="400001" />
+                            <span asp-validation-for="PostalCode" class="text-danger"></span>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fa-solid fa-times me-2"></i>Cancel
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fa-solid fa-save me-2"></i>Save Changes
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        function previewModalImage(event) {
+            const file = event.target.files[0];
+            if (file) {
+                // Check file size (5MB limit)
+                if (file.size > 5 * 1024 * 1024) {
+                    Swal.fire('File Too Large', 'File size must be less than 5MB', 'warning');
+                    event.target.value = '';
+                    return;
+                }
+
+                // Check file type
+                if (!file.type.match('image.*')) {
+                    Swal.fire('Invalid File', 'Please select an image file', 'warning');
+                    event.target.value = '';
+                    return;
+                }
+
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const preview = document.getElementById('modalProfileImagePreview');
+                    if (preview) {
+                        preview.src = e.target.result;
+                    }
+                    document.getElementById('removeImageFlag').value = 'false';
+                }
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function removeProfileImage() {
+            const preview = document.getElementById('modalProfileImagePreview');
+            if (preview) {
+                // Use a data URL for a default user silhouette icon
+                preview.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23cbd5e1"%3E%3Cpath d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z"/%3E%3C/svg%3E';
+            }
+            document.getElementById('modalProfileImage').value = '';
+            document.getElementById('removeImageFlag').value = 'true';
+        }
+
+        // Inline Edit Toggle
+        window.toggleInlineEdit = function() {
+            const displays = document.querySelectorAll('.field-display');
+            const inputs = document.querySelectorAll('.field-input');
+            const controls = document.getElementById('inlineEditControls');
+            const editBtn = document.querySelector('.action-btn[onclick*="toggleInlineEdit"]');
+
+            const isEditing = controls.style.display !== 'none';
+
+            if (isEditing) {
+                // Switch to read-only mode
+                displays.forEach(d => d.style.display = '');
+                inputs.forEach(i => i.style.display = 'none');
+                controls.style.display = 'none';
+                editBtn.innerHTML = '<i class="fa-solid fa-edit"></i><span>Edit Profile</span>';
+            } else {
+                // Switch to edit mode
+                displays.forEach(d => d.style.display = 'none');
+                inputs.forEach(i => i.style.display = '');
+                controls.style.display = 'block';
+                editBtn.innerHTML = '<i class="fa-solid fa-times"></i><span>Cancel</span>';
+            }
+        };
+
+        window.cancelInlineEdit = function() {
+            window.toggleInlineEdit();
+        };
+
+        // Handle inline form submission
+        document.addEventListener('DOMContentLoaded', function() {
+            const inlineForm = document.getElementById('inlineProfileForm');
+            if (inlineForm) {
+                inlineForm.addEventListener('submit', function(e) {
+                    const saveBtn = document.getElementById('inlineSaveBtn');
+                    saveBtn.disabled = true;
+                    saveBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-2"></i>Saving...';
+                });
+            }
+        });
+
+        // Auto-dismiss alerts after 5 seconds
+        document.addEventListener('DOMContentLoaded', function() {
+            // Phone validation
+            const phoneInput = document.querySelector('input[name="PhoneNumber"]');
+            if (phoneInput) {
+                phoneInput.addEventListener('input', function() {
+                    this.value = this.value.replace(/[^0-9]/g, '').slice(0, 10);
+                });
+            }
+            
+            const alerts = document.querySelectorAll('.alert');
+            alerts.forEach(alert => {
+                setTimeout(() => {
+                    const bsAlert = new bootstrap.Alert(alert);
+                    bsAlert.close();
+                }, 5000);
+            });
+
+            // Change password validation + gating
+            const changePasswordForm = document.getElementById('changePasswordForm');
+            const oldPasswordInput = document.getElementById('oldPassword');
+            const newPasswordInput = document.getElementById('NewPassword');
+            const confirmPasswordInput = document.getElementById('ConfirmPassword');
+            const updatePasswordButton = document.getElementById('updatePasswordButton');
+            const oldPasswordFeedback = document.getElementById('oldPasswordFeedback');
+            const newPasswordFeedback = document.getElementById('newPasswordFeedback');
+            const confirmPasswordFeedback = document.getElementById('confirmPasswordFeedback');
+            const passwordRuleRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\x40$!%*?&])[A-Za-z\d\x40$!%*?&]{6,}$/;
+
+            if (changePasswordForm && oldPasswordInput && newPasswordInput && confirmPasswordInput && updatePasswordButton) {
+                let currentPasswordVerified = false;
+                let verifyTimer = null;
+
+                function setPasswordFieldsEnabled(enabled) {
+                    newPasswordInput.disabled = !enabled;
+                    confirmPasswordInput.disabled = !enabled;
+                    updatePasswordButton.disabled = !enabled;
+
+                    if (!enabled) {
+                        newPasswordInput.value = '';
+                        confirmPasswordInput.value = '';
+                        newPasswordInput.classList.remove('is-invalid', 'is-valid');
+                        confirmPasswordInput.classList.remove('is-invalid', 'is-valid');
+                        if (newPasswordFeedback) newPasswordFeedback.textContent = '';
+                        if (confirmPasswordFeedback) confirmPasswordFeedback.textContent = '';
+                    }
+                }
+
+                function setOldPasswordFeedback(text, isValid) {
+                    if (!oldPasswordFeedback) return;
+
+                    oldPasswordFeedback.textContent = text;
+                    oldPasswordFeedback.classList.remove('text-danger', 'text-success', 'text-muted');
+                    oldPasswordFeedback.classList.add(isValid ? 'text-success' : 'text-danger');
+                    oldPasswordInput.classList.toggle('is-valid', isValid);
+                    oldPasswordInput.classList.toggle('is-invalid', !isValid && !!text);
+                }
+
+                function validateNewPasswordField() {
+                    const value = newPasswordInput.value || '';
+                    if (!value) {
+                        newPasswordInput.setCustomValidity('New password is required.');
+                        if (newPasswordFeedback) {
+                            newPasswordFeedback.textContent = 'New password is required.';
+                            newPasswordFeedback.className = 'form-text text-danger';
+                        }
+                        newPasswordInput.classList.remove('is-valid');
+                        newPasswordInput.classList.add('is-invalid');
+                        return false;
+                    }
+
+                    if (!passwordRuleRegex.test(value)) {
+                        const error = 'Password must contain uppercase, lowercase, number, and special character (min 6 chars).';
+                        newPasswordInput.setCustomValidity(error);
+                        if (newPasswordFeedback) {
+                            newPasswordFeedback.textContent = error;
+                            newPasswordFeedback.className = 'form-text text-danger';
+                        }
+                        newPasswordInput.classList.remove('is-valid');
+                        newPasswordInput.classList.add('is-invalid');
+                        return false;
+                    }
+
+                    newPasswordInput.setCustomValidity('');
+                    if (newPasswordFeedback) {
+                        newPasswordFeedback.textContent = 'Password looks good.';
+                        newPasswordFeedback.className = 'form-text text-success';
+                    }
+                    newPasswordInput.classList.remove('is-invalid');
+                    newPasswordInput.classList.add('is-valid');
+                    return true;
+                }
+
+                function validateConfirmPasswordField() {
+                    const newPassword = newPasswordInput.value || '';
+                    const confirmPassword = confirmPasswordInput.value || '';
+
+                    if (!confirmPassword) {
+                        confirmPasswordInput.setCustomValidity('Confirm password is required.');
+                        if (confirmPasswordFeedback) {
+                            confirmPasswordFeedback.textContent = 'Confirm password is required.';
+                            confirmPasswordFeedback.className = 'form-text text-danger';
+                        }
+                        confirmPasswordInput.classList.remove('is-valid');
+                        confirmPasswordInput.classList.add('is-invalid');
+                        return false;
+                    }
+
+                    if (newPassword !== confirmPassword) {
+                        const error = 'New password and confirm password do not match.';
+                        confirmPasswordInput.setCustomValidity(error);
+                        if (confirmPasswordFeedback) {
+                            confirmPasswordFeedback.textContent = error;
+                            confirmPasswordFeedback.className = 'form-text text-danger';
+                        }
+                        confirmPasswordInput.classList.remove('is-valid');
+                        confirmPasswordInput.classList.add('is-invalid');
+                        return false;
+                    }
+
+                    confirmPasswordInput.setCustomValidity('');
+                    if (confirmPasswordFeedback) {
+                        confirmPasswordFeedback.textContent = 'Passwords match.';
+                        confirmPasswordFeedback.className = 'form-text text-success';
+                    }
+                    confirmPasswordInput.classList.remove('is-invalid');
+                    confirmPasswordInput.classList.add('is-valid');
+                    return true;
+                }
+
+                async function verifyCurrentPassword() {
+                    const currentPassword = oldPasswordInput.value.trim();
+                    if (!currentPassword) {
+                        currentPasswordVerified = false;
+                        setPasswordFieldsEnabled(false);
+                        setOldPasswordFeedback('', false);
+                        return;
+                    }
+
+                    setOldPasswordFeedback('Checking current password...', false);
+                    oldPasswordFeedback.classList.remove('text-danger', 'text-success');
+                    oldPasswordFeedback.classList.add('text-muted');
+
+                    try {
+                        const response = await fetch('@Url.Action("ValidateCurrentPassword", "Account")', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'
+                            },
+                            body: `currentPassword=${encodeURIComponent(currentPassword)}`
+                        });
+
+                        if (!response.ok) {
+                            currentPasswordVerified = false;
+                            setPasswordFieldsEnabled(false);
+                            setOldPasswordFeedback('Unable to verify current password. Please try again.', false);
+                            return;
+                        }
+
+                        const result = await response.json();
+                        currentPasswordVerified = !!result.isValid;
+                        setPasswordFieldsEnabled(currentPasswordVerified);
+                        setOldPasswordFeedback(result.message || (currentPasswordVerified ? 'Current password is correct.' : 'Current password is incorrect.'), currentPasswordVerified);
+                    } catch {
+                        currentPasswordVerified = false;
+                        setPasswordFieldsEnabled(false);
+                        setOldPasswordFeedback('Unable to verify current password. Please try again.', false);
+                    }
+                }
+
+                setPasswordFieldsEnabled(false);
+
+                oldPasswordInput.addEventListener('input', function() {
+                    currentPasswordVerified = false;
+                    setPasswordFieldsEnabled(false);
+                    setOldPasswordFeedback('', false);
+
+                    if (verifyTimer) {
+                        clearTimeout(verifyTimer);
+                    }
+
+                    verifyTimer = setTimeout(verifyCurrentPassword, 400);
+                });
+
+                oldPasswordInput.addEventListener('blur', function() {
+                    if (verifyTimer) {
+                        clearTimeout(verifyTimer);
+                    }
+                    verifyCurrentPassword();
+                });
+
+                newPasswordInput.addEventListener('input', function() {
+                    validateNewPasswordField();
+                    if (confirmPasswordInput.value) {
+                        validateConfirmPasswordField();
+                    }
+                });
+
+                confirmPasswordInput.addEventListener('input', validateConfirmPasswordField);
+
+                changePasswordForm.addEventListener('submit', function(event) {
+                    if (!currentPasswordVerified) {
+                        event.preventDefault();
+                        setOldPasswordFeedback('Enter correct current password to continue.', false);
+                        oldPasswordInput.focus();
+                        return;
+                    }
+
+                    const isNewPasswordValid = validateNewPasswordField();
+                    const isConfirmPasswordValid = validateConfirmPasswordField();
+                    if (!isNewPasswordValid || !isConfirmPasswordValid) {
+                        event.preventDefault();
+                    }
+                });
+            }
+        });
+    </script>
+}
+
+

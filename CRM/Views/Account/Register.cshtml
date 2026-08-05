@@ -1,0 +1,691 @@
+@model CRM.Models.RegisterModel
+@{
+    ViewData["Title"] = "Register";
+    Layout = "_LayoutLogin";
+}
+
+<style>
+    #docModal .modal-dialog {
+        max-width: 720px;
+        max-height: 90vh;
+    }
+
+    #docModal .modal-content {
+        border-radius: 16px;
+        border: 1px solid #E2E8F0;
+        max-height: 90vh;
+    }
+
+    #docModal .modal-header {
+        background: linear-gradient(120deg, #F0F4F8 0%, #F0F4F8 100%);
+        border-bottom: 1px solid #E2E8F0;
+        border-radius: 16px 16px 0 0;
+        padding: 18px 24px;
+    }
+
+        #docModal .modal-header h5 {
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: #2A3A4A;
+            margin: 0;
+        }
+
+    #docModal .modal-body {
+        padding: 20px 24px;
+        overflow-y: auto;
+    }
+
+        #docModal .modal-body > p {
+            font-size: 0.95rem;
+            color: #6B7B8D;
+            margin: 0 0 18px;
+        }
+
+    #docModal .modal-footer {
+        padding: 14px 24px;
+        border-top: 1px solid #E8EDF2;
+    }
+
+        #docModal .modal-footer .btn {
+            font-size: 0.95rem;
+            padding: 8px 20px;
+        }
+
+    .doc-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 18px 24px;
+    }
+
+    .doc-item label {
+        display: block;
+        font-size: 0.95rem;
+        font-weight: 600;
+        color: #2A3A4A;
+        margin-bottom: 6px;
+    }
+
+        .doc-item label .req {
+            color: #DC2626;
+        }
+
+        .doc-item label .opt {
+            color: #6B7B8D;
+            font-weight: 400;
+        }
+
+    .doc-item input[type="file"] {
+        width: 100%;
+        font-size: 0.9rem;
+        padding: 10px 12px;
+        border: 1px solid #E2E8F0;
+        border-radius: 8px;
+        background: #FFFFFF;
+    }
+
+        .doc-item input[type="file"]::file-selector-button {
+            font-size: 0.88rem;
+            padding: 6px 14px;
+            border: 1px solid #E2E8F0;
+            border-radius: 6px;
+            background: #FFFFFF;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+
+    .doc-status {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        font-size: 0.9rem;
+        font-weight: 600;
+        margin-top: 4px;
+    }
+
+        .doc-status.pending {
+            color: #6B7B8D;
+        }
+
+        .doc-status.ready {
+            color: #16A34A;
+        }
+
+    @@media (max-width: 640px) {
+        .doc-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+
+<div class="login-container auth-v5 auth-register-page">
+    <aside class="login-left auth-showcase">
+        <div class="auth-showcase-header">
+            <div class="brand-logo">
+                @if (!string.IsNullOrEmpty(ViewBag.CompanyLogo))
+                {
+                    <img src="@ViewBag.CompanyLogo" alt="@(ViewBag.CompanyName ?? "Company Logo")" />
+                }
+                else
+                {
+                    <i class="fas fa-rocket"></i>
+                }
+            </div>
+            <h1>@(ViewBag.CompanyName ?? "PropTech CRM")</h1>
+            <p>Create your account and start managing your pipeline in minutes.</p>
+        </div>
+        <ul class="auth-points list-unstyled">
+            <li><i class="fas fa-user-check"></i> Fast onboarding</li>
+            <li><i class="fas fa-sliders"></i> Custom role permissions</li>
+            <li><i class="fas fa-mobile-alt"></i> Fully responsive workspace</li>
+        </ul>
+    </aside>
+
+    <section class="login-form-section">
+        <div class="form-brand">
+            <div class="form-brand-logo">
+                @if (!string.IsNullOrEmpty(ViewBag.CompanyLogo))
+                {
+                    <img src="@ViewBag.CompanyLogo" alt="@(ViewBag.CompanyName ?? "Company Logo")" />
+                }
+                else
+                {
+                    <i class="fas fa-rocket"></i>
+                }
+            </div>
+            <div class="form-brand-meta">
+                <h2>@(ViewBag.CompanyName ?? "PropTech CRM")</h2>
+                <p>Account setup</p>
+            </div>
+        </div>
+
+        <div class="login-header">
+            <h1>Create Account</h1>
+            <p>Fill details below to start using the platform.</p>
+        </div>
+
+        @if (ViewBag.Message != null)
+        {
+            <div class="alert alert-danger" id="serverAlert" role="alert">
+                <i class="fas fa-circle-exclamation"></i>
+                <span>@ViewBag.Message</span>
+            </div>
+        }
+        <div class="alert alert-danger" id="ajaxAlert" role="alert" style="display:none;">
+            <i class="fas fa-circle-exclamation"></i>
+            <span id="ajaxAlertMsg"></span>
+        </div>
+
+        <form id="registerForm" asp-action="Register" method="post" enctype="multipart/form-data" novalidate>
+            @Html.AntiForgeryToken()
+            <div class="form-row">
+                <div class="input-wrapper">
+                    <label asp-for="Username" class="form-label">Username <span style="color:#DC2626;">*</span></label>
+                    <i class="fas fa-user"></i>
+                    <input asp-for="Username" class="form-control" placeholder="Username" autocomplete="username" required />
+                    <span asp-validation-for="Username" class="text-danger"></span>
+                </div>
+                <div class="input-wrapper">
+                    <label asp-for="Email" class="form-label">Email <span style="color:#DC2626;">*</span></label>
+                    <i class="fas fa-envelope"></i>
+                    <input asp-for="Email" class="form-control" placeholder="Email" type="email" autocomplete="email" required />
+                    <span asp-validation-for="Email" class="text-danger"></span>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="input-wrapper">
+                    <label asp-for="Phone" class="form-label">Phone <span style="color:#DC2626;">*</span></label>
+                    <i class="fas fa-phone"></i>
+                    <input asp-for="Phone" class="form-control" placeholder="Phone" maxlength="10" autocomplete="tel" required oninput="this.value=this.value.replace(/[^0-9]/g,'').slice(0,10)" />
+                    <span asp-validation-for="Phone" class="text-danger"></span>
+                </div>
+                <div class="input-wrapper">
+                    <label asp-for="Password" class="form-label">Password <span style="color:#DC2626;">*</span></label>
+                    <i class="fas fa-lock"></i>
+                    <input asp-for="Password" type="password" class="form-control" placeholder="Password" autocomplete="new-password" required />
+                    <button type="button" class="password-toggle" id="togglePassword">
+                        <i class="fas fa-eye" id="toggleIcon"></i>
+                    </button>
+                    <span asp-validation-for="Password" class="text-danger"></span>
+                </div>
+            </div>
+
+            <div class="input-wrapper">
+                <label asp-for="Role" class="form-label">Role <span style="color:#DC2626;">*</span></label>
+                <i class="fas fa-user-tag"></i>
+                <select asp-for="Role" class="form-control" asp-items="@(new SelectList(ViewBag.Roles as List<string> ?? new List<string>(), Model?.Role))" required>
+                    <option value="">Select role</option>
+                </select>
+                <span asp-validation-for="Role" class="text-danger"></span>
+                <span id="docStatusLabel"></span>
+            </div>
+
+            <!-- Dynamic file inputs are injected by ensureFormInputs() in JS -->
+            <input type="hidden" name="CompanyName" id="fPartnerCompanyName" aria-label="Company Name" />
+            <div id="fileInputsContainer"></div>
+
+            <button type="submit" class="btn-primary" style="margin-top:8px;">
+                <i class="fas fa-user-plus"></i> Create Account
+            </button>
+
+            <p class="signup-text">
+                Already have an account? <a href="/Account/Login">Sign In</a>
+            </p>
+        </form>
+    </section>
+</div>
+
+<!-- Document Upload Modal -->
+<div class="modal fade" id="docModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 id="docModalTitle"><i class="fas fa-file-alt me-2"></i>Upload Verification Documents</h5>
+                <button type="button" class="btn-close" id="docModalClose"></button>
+            </div>
+            <div class="modal-body">
+
+                <!-- Agent doc fields in modal -->
+                <div id="modalAgentDocs" style="display:none;">
+                    <div class="doc-grid">
+                        <div class="doc-item">
+                            <label for="mAgentAadhar">Aadhar Card <span class="req">(optional) </span></label>
+                            <input type="file" id="mAgentAadhar" accept=".pdf,.jpg,.jpeg,.png" />
+                        </div>
+                        <div class="doc-item">
+                            <label for="mAgentPAN">PAN Card <span class="req">(optional) </span></label>
+                            <input type="file" id="mAgentPAN" accept=".pdf,.jpg,.jpeg,.png" />
+                        </div>
+                        <div class="doc-item">
+                            <label for="mAgentResume">Resume <span class="req">(optional) </span></label>
+                            <input type="file" id="mAgentResume" accept=".pdf,.doc,.docx" />
+                        </div>
+                        <div class="doc-item">
+                            <label for="mAgentExperienceLetter">Experience Letter <span class="opt">(optional)</span></label>
+                            <input type="file" id="mAgentExperienceLetter" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" />
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Partner doc fields in modal -->
+                <div id="modalPartnerDocs" style="display:none;">
+                    <div class="mb-3">
+                        <label for="mPartnerCompanyName" class="form-label" style="font-size:0.95rem;font-weight:600;color:#2A3A4A;"> Company Name <span style="color:#DC2626;">*</span></label>
+                        <input type="text" id="mPartnerCompanyName" class="form-control" placeholder="Company Name" required oninput="document.getElementById('fPartnerCompanyName').value = this.value;" autocomplete="organization" />
+                    </div>
+                    <div class="doc-grid">
+                        <div class="doc-item">
+                            <label for="mPartnerBusinessReg">Business Registration <span class="req">(optional) </span></label>
+                            <input type="file" id="mPartnerBusinessReg" accept=".pdf,.jpg,.jpeg,.png" />
+                        </div>
+                        <div class="doc-item">
+                            <label for="mPartnerTaxCert">Tax Certificate <span class="req">(optional) </span></label>
+                            <input type="file" id="mPartnerTaxCert" accept=".pdf,.jpg,.jpeg,.png" />
+                        </div>
+                        <div class="doc-item">
+                            <label for="mPartnerIDProof">ID Proof <span class="req">(optional) </span></label>
+                            <input type="file" id="mPartnerIDProof" accept=".pdf,.jpg,.jpeg,.png" />
+                        </div>
+                        <div class="doc-item">
+                            <label for="mPartnerAadhar">Aadhar Card <span class="req">(optional) </span></label>
+                            <input type="file" id="mPartnerAadhar" accept=".pdf,.jpg,.jpeg,.png" />
+                        </div>
+                        <div class="doc-item">
+                            <label for="mPartnerPAN">PAN Card <span class="req">(optional) </span></label>
+                            <input type="file" id="mPartnerPAN" accept=".pdf,.jpg,.jpeg,.png" />
+                        </div>
+
+
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" id="docModalConfirm">
+                    <i class="fas fa-check me-1"></i>Confirm Documents
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+        var roleSelect = document.getElementById('Role');
+        var docStatusLabel = document.getElementById('docStatusLabel');
+        var modal = null;
+        var docsConfirmed = false;
+
+        // Map: modal input id -> dynamically created form input config
+        var agentMap = {
+            'mAgentAadhar': { name: 'AgentAadhar', accept: '.pdf,.jpg,.jpeg,.png' },
+            'mAgentPAN': { name: 'AgentPAN', accept: '.pdf,.jpg,.jpeg,.png' },
+            'mAgentResume': { name: 'AgentResume', accept: '.pdf,.doc,.docx' },
+            'mAgentExperienceLetter': { name: 'AgentExperienceLetter', accept: '.pdf,.jpg,.jpeg,.png,.doc,.docx' }
+        };
+        var partnerMap = {
+            'mPartnerBusinessReg': { name: 'PartnerBusinessReg', accept: '.pdf,.jpg,.jpeg,.png' },
+            'mPartnerTaxCert': { name: 'PartnerTaxCert', accept: '.pdf,.jpg,.jpeg,.png' },
+            'mPartnerIDProof': { name: 'PartnerIDProof', accept: '.pdf,.jpg,.jpeg,.png' },
+            'mPartnerAadhar': { name: 'PartnerAadhar', accept: '.pdf,.jpg,.jpeg,.png' },
+            'mPartnerPAN': { name: 'PartnerPAN', accept: '.pdf,.jpg,.jpeg,.png' }
+        };
+
+        // Dynamically create file inputs to avoid accessibility warnings from hidden elements
+        var _dynamicInputs = {};
+        function ensureFormInputs(type) {
+            var container = document.getElementById('fileInputsContainer');
+            container.innerHTML = '';
+            _dynamicInputs = {};
+            var map = type === 'agent' ? agentMap : partnerMap;
+            Object.keys(map).forEach(function(modalId) {
+                var cfg = map[modalId];
+                var input = document.createElement('input');
+                input.type = 'file';
+                input.name = cfg.name;
+                input.id = 'f' + cfg.name;
+                input.accept = cfg.accept;
+                input.style.cssText = 'position:absolute;opacity:0;pointer-events:none;width:0;height:0;';
+                container.appendChild(input);
+                _dynamicInputs[modalId] = input.id;
+            });
+        }
+
+        function getFormInputId(modalId) {
+            return _dynamicInputs[modalId];
+        }
+
+        function getFormInput(modalId) {
+            var id = getFormInputId(modalId);
+            return id ? document.getElementById(id) : null;
+        }
+        function getRoleType() {
+            var v = (roleSelect.value || '').toLowerCase();
+            if (v === 'agent' || v === 'sales') return 'agent';
+            if (v === 'partner') return 'partner';
+            return null;
+        }
+
+        function needsDocs() { return getRoleType() !== null; }
+
+        function getActiveMap() { return getRoleType() === 'agent' ? agentMap : partnerMap; }
+        function getActiveRequired() { return getRoleType() === 'agent' ? agentRequired : partnerRequired; }
+
+        @* function checkModalRequired() {
+            var req = getActiveRequired();
+            var allFilled = req.every(function(id) { return document.getElementById(id).files.length > 0; });
+            if (getRoleType() === 'partner') {
+                var cn = document.getElementById('mPartnerCompanyName'); if (!cn || !cn.value.trim()) allFilled =false;
+             }
+        document.getElementById('docModalConfirm').disabled = !allFilled;
+        } *@
+        function checkModalRequired() {
+                   
+                document.getElementById('docModalConfirm').disabled = false;
+                }
+
+        function updateStatusLabel() {
+            if (!needsDocs()) {
+                docStatusLabel.innerHTML = '';
+                return;
+            }
+            if (docsConfirmed) {
+                docStatusLabel.innerHTML = '<span class="doc-status ready"><i class="fas fa-check-circle"></i> Documents uploaded</span>';
+            } else {
+                docStatusLabel.innerHTML = '<span class="doc-status pending"><i class="fas fa-exclamation-circle"></i> Documents required — <a href="#" id="openDocModal" style="color:#2589C9;font-weight:600;">Upload now</a></span>';
+                document.getElementById('openDocModal').addEventListener('click', function(e) {
+                    e.preventDefault();
+                    openModal();
+                });
+            }
+        }
+
+        function openModal() {
+            var type = getRoleType();
+            document.getElementById('modalAgentDocs').style.display = type === 'agent' ? 'block' : 'none';
+            document.getElementById('modalPartnerDocs').style.display = type === 'partner' ? 'block' : 'none';
+            document.getElementById('docModalTitle').innerHTML = '<i class="fas fa-file-alt me-2"></i>' +
+                (type === 'agent' ? 'Agent' : 'Partner') + ' Verification Documents';
+            checkModalRequired();
+            if (!modal) modal = new bootstrap.Modal(document.getElementById('docModal'));
+            modal.show();
+        }
+
+        function clearModalInputs() {
+            Object.keys(agentMap).concat(Object.keys(partnerMap)).forEach(function(id) {
+                document.getElementById(id).value = '';
+            });
+        }
+
+        function clearFormFileInputs() {
+            var container = document.getElementById('fileInputsContainer');
+            container.innerHTML = '';
+            _dynamicInputs = {};
+        }
+
+        // Modal input change: check required
+        document.getElementById('docModal').addEventListener('change', function(e) {
+            if (e.target.type === 'file') checkModalRequired();
+        });
+
+        // Confirm: copy files from modal inputs to dynamically created form inputs
+        document.getElementById('docModalConfirm').addEventListener('click', function() {
+            var type = getRoleType();
+            if (type) {
+                ensureFormInputs(type);
+            }
+            var map = getActiveMap();
+            Object.keys(map).forEach(function(modalId) {
+                var formInput = getFormInput(modalId);
+                var modalInput = document.getElementById(modalId);
+                if (formInput && modalInput && modalInput.files.length > 0) {
+                    var dt = new DataTransfer();
+                    dt.items.add(modalInput.files[0]);
+                    formInput.files = dt.files;
+                }
+            });
+        var companyinput =document.getElementById('mPartnerCompanyName');
+        var CompanyHidden = document.getElementById('fPartnerCompanyName');
+        if (companyinput && CompanyHidden) {
+            CompanyHidden.value = companyinput.value;
+        }
+            docsConfirmed = true;
+            updateStatusLabel();
+            modal.hide();
+        });
+
+        // Role change: open modal if agent/partner
+        roleSelect.addEventListener('change', function() {
+            docsConfirmed = false;
+            clearFormFileInputs();
+            clearModalInputs();
+            updateStatusLabel();
+            var type = getRoleType();
+            if (type) {
+                ensureFormInputs(type);
+                openModal();
+            }
+        });
+
+        // Close (X) button: reset role if no docs confirmed yet
+        document.getElementById('docModalClose').addEventListener('click', function() {
+            if (!docsConfirmed) {
+                roleSelect.value = '';
+                clearModalInputs();
+                clearFormFileInputs();
+            }
+            updateStatusLabel();
+            modal.hide();
+        });
+
+        // Also handle modal backdrop close same as cancel
+        document.getElementById('docModal').addEventListener('hidden.bs.modal', function() {
+            if (!docsConfirmed && needsDocs()) {
+                roleSelect.value = '';
+                clearModalInputs();
+                clearFormFileInputs();
+                updateStatusLabel();
+            }
+        });
+
+        // Form submit: AJAX so page never reloads and documents are preserved
+        var _isSubmitting = false;
+        document.getElementById('registerForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            if (_isSubmitting) return;
+
+            // Hide previous errors first
+            var ajaxAlert = document.getElementById('ajaxAlert');
+            var serverAlert = document.getElementById('serverAlert');
+            ajaxAlert.style.display = 'none';
+            if (serverAlert) serverAlert.style.display = 'none';
+
+            // Client-side required field validation
+            var form = document.getElementById('registerForm');
+            var username = (form.querySelector('[name="Username"]')?.value || '').trim();
+            var email = (form.querySelector('[name="Email"]')?.value || '').trim();
+            var phone = (form.querySelector('[name="Phone"]')?.value || '').trim();
+            var password = (form.querySelector('[name="Password"]')?.value || '').trim();
+            var role = (form.querySelector('[name="Role"]')?.value || '').trim();
+            if (!username || !email || !phone || !password || !role) {
+                var missing = [];
+                if (!username) missing.push('Username');
+                if (!email) missing.push('Email');
+                if (!phone) missing.push('Phone');
+                if (!password) missing.push('Password');
+                if (!role) missing.push('Role');
+                document.getElementById('ajaxAlertMsg').textContent = 'Please fill: ' + missing.join(', ');
+                ajaxAlert.style.display = 'flex';
+                return;
+            }
+
+
+
+            @* if (needsDocs() && !docsConfirmed) {
+                openModal();
+                return;
+            } *@
+            if (!validatePassword()) {
+                pwStrengthContainer.style.display = 'block';
+                pwShown = true;
+                pwInput.focus();
+                return;
+            }
+
+            var form = document.getElementById('registerForm');
+            var formData = new FormData(form);
+            var submitBtn = form.querySelector('button[type="submit"]');
+            var originalHtml = '<i class="fas fa-user-plus"></i> Create Account';
+            _isSubmitting = true;
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating...';
+
+            fetch(form.action, {
+                method: 'POST',
+                headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                body: formData
+            })
+            .then(function(r) { return r.json().catch(function() { throw new Error('Server error. Please try again.'); }); })
+            .then(function(data) {
+                _isSubmitting = false;
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalHtml;
+                if (data.success) {
+                    if (data.requiresApproval) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Registration Complete!',
+                            html: 'Your account has been created successfully.<br>It is pending admin approval. You will be notified once approved.',
+                            confirmButtonText: 'Go to Login',
+                            confirmButtonColor: '#DC2626',
+                            allowOutsideClick: false
+                        }).then(function() {
+                            window.location.href = data.redirect || '/Account/Login';
+                        });
+                    } else {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Account Created!',
+                            text: 'Your account is ready. Redirecting to login...',
+                            confirmButtonColor: '#DC2626',
+                            timer: 2000,
+                            showConfirmButton: false
+                        }).then(function() {
+                            window.location.href = data.redirect || '/Account/Login';
+                        });
+                    }
+                } else {
+                    document.getElementById('ajaxAlertMsg').textContent = data.message || 'Registration failed.';
+                    ajaxAlert.style.display = 'flex';
+                }
+            })
+            .catch(function(err) {
+                _isSubmitting = false;
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalHtml;
+                document.getElementById('ajaxAlertMsg').textContent = err.message || 'Network error. Please try again.';
+                ajaxAlert.style.display = 'flex';
+            });
+        });
+
+        // Page show reset
+        window.addEventListener("pageshow", function(event) {
+            if (event.persisted || (performance.getEntriesByType("navigation")[0] && performance.getEntriesByType("navigation")[0].type === "back_forward")) {
+                document.getElementById('registerForm').reset();
+                docsConfirmed = false;
+                clearModalInputs();
+                clearFormFileInputs();
+                updateStatusLabel();
+            }
+        });
+
+        // Password strength bar container
+        var pwStrengthContainer = document.createElement('div');
+        pwStrengthContainer.id = 'pwStrengthBar';
+        pwStrengthContainer.style.cssText = 'margin-top:6px;display:none;';
+        pwStrengthContainer.innerHTML =
+            '<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">' +
+                '<div id="pwBarBg" style="flex:1;height:6px;background:#E2E8F0;border-radius:3px;overflow:hidden;">' +
+                    '<div id="pwBar" style="height:100%;width:0%;border-radius:3px;transition:all 0.3s ease;"></div>' +
+                '</div>' +
+                '<span id="pwStrengthLabel" style="font-size:0.72rem;font-weight:600;min-width:56px;text-align:right;"></span>' +
+            '</div>' +
+            '<div id="pwReqs" style="font-size:0.76rem;line-height:1.8;">' +
+                '<div id="reqLen"><i class="fas fa-times-circle"></i> Min 8 chars</div>' +
+                '<div id="reqUpper"><i class="fas fa-times-circle"></i> Uppercase letter</div>' +
+                '<div id="reqLower"><i class="fas fa-times-circle"></i> Lowercase letter</div>' +
+                '<div id="reqDigit"><i class="fas fa-times-circle"></i> Digit (0-9)</div>' +
+                '<div id="reqSpecial"><i class="fas fa-times-circle"></i> Special character (!&#64;#$ etc.)</div>' +
+            '</div>';
+        pwInput.parentNode.appendChild(pwStrengthContainer);
+
+        function updateReq(id, pass) {
+            var el = document.getElementById(id);
+            el.style.color = pass ? '#16A34A' : '#8FA3B8';
+            el.querySelector('i').className = pass ? 'fas fa-check-circle' : 'fas fa-circle';
+        }
+
+        function updateStrengthBar(pass) {
+            var rules = [
+                pass.length >= 8,
+                /[A-Z]/.test(pass),
+                /[a-z]/.test(pass),
+                /[0-9]/.test(pass),
+                /[^A-Za-z0-9]/.test(pass)
+            ];
+            var met = rules.filter(Boolean).length;
+            var bar = document.getElementById('pwBar');
+            var label = document.getElementById('pwStrengthLabel');
+            var colors = ['#DC2626','#DC2626','#F59E0B','#16A34A','#16A34A'];
+            var levels = ['Weak','Weak','Fair','Strong','Very Strong'];
+            var pct = (met / 5) * 100;
+            bar.style.width = pct + '%';
+            bar.style.background = met < 3 ? colors[met] : (met === 3 ? colors[met] : colors[met]);
+            label.textContent = levels[met] || '';
+            label.style.color = colors[met] || '#8FA3B8';
+        }
+
+        function validatePassword() {
+            var v = pwInput.value;
+            updateReq('reqLen', v.length >= 8);
+            updateReq('reqUpper', /[A-Z]/.test(v));
+            updateReq('reqLower', /[a-z]/.test(v));
+            updateReq('reqDigit', /[0-9]/.test(v));
+            updateReq('reqSpecial', /[^A-Za-z0-9]/.test(v));
+            updateStrengthBar(v);
+            return v.length >= 8 && /[A-Z]/.test(v) && /[a-z]/.test(v) && /[0-9]/.test(v) && /[^A-Za-z0-9]/.test(v);
+        }
+        var pwShown = false;
+        pwInput.addEventListener('focus', function() {
+            pwStrengthContainer.style.display = 'block';
+            pwShown = true;
+            if (pwInput.value.length > 0) validatePassword();
+        });
+        pwInput.addEventListener('input', function() {
+            if (pwInput.value.length > 0) {
+                pwStrengthContainer.style.display = 'block';
+                pwShown = true;
+                validatePassword();
+            } else {
+                pwStrengthContainer.style.display = 'none';
+                pwShown = false;
+            }
+        });
+        pwInput.addEventListener('blur', function() {
+            if (pwInput.value.length === 0) {
+                pwStrengthContainer.style.display = 'none';
+                pwShown = false;
+            }
+        });
+
+        // Clear error alert on any input change
+        document.getElementById('registerForm').addEventListener('input', function() {
+            document.getElementById('ajaxAlert').style.display = 'none';
+            var sa = document.getElementById('serverAlert');
+            if (sa) sa.style.display = 'none';
+        });
+
+        // Init
+        updateStatusLabel();
+    </script>
+}

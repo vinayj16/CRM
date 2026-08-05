@@ -1,0 +1,845 @@
+@using CRM.Controllers
+@model List<CRM.Controllers.MilestoneTrackingViewModel>
+@{
+    ViewData["Title"] = "Milestone Payment Tracking";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+
+<style>
+    @@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Sora:wght@400;600;700&display=swap');
+
+    :root {
+        --gold: #D4A45A;
+        --gold-light: #E8C27E;
+        --gold-pale: #F0F4F8;
+        --gold-dim: rgba(212,164,90, 0.15);
+        --blue: #1A6FA8;
+        --blue-light: #2589C9;
+        --blue-pale: #F0F4F8;
+        --blue-dim: rgba(26,111,168, 0.12);
+        --text-dark: #1E2A3A;
+        --text-mid: #6B7B8D;
+        --text-soft: #6B7B8D;
+        --border: #E2E8F0;
+        --bg: #F0F4F8;
+        --white: #FFFFFF;
+        --radius: 10px;
+        --radius-sm: 6px;
+        --shadow: 0 2px 12px rgba(26,111,168, 0.08);
+        --shadow-hover: 0 6px 24px rgba(26,111,168, 0.14);
+    }
+
+    * { box-sizing: border-box; }
+
+    body, .content { font-family: 'Outfit', sans-serif; background: var(--bg); color: var(--text-dark); }
+
+    /* ── BREADCRUMB ── */
+    .breadcrumb { font-size: 0.78rem; color: var(--text-soft); margin-bottom: 0.6rem; }
+    .breadcrumb a { color: var(--blue); text-decoration: none; }
+    .breadcrumb-item.active { color: var(--text-soft); }
+
+    /* ── HEADER ── */
+    .mpt-header {
+        background: linear-gradient(120deg, var(--blue) 0%, #0F4C75 100%);
+        border-radius: var(--radius);
+        padding: 1rem 1.25rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 0.9rem;
+        position: relative;
+        overflow: hidden;
+    }
+    .mpt-header::before {
+        content: '';
+        position: absolute;
+        right: -40px; top: -40px;
+        width: 160px; height: 160px;
+        border-radius: 50%;
+        background: rgba(212,164,90, 0.12);
+        pointer-events: none;
+    }
+    .mpt-header::after {
+        content: '';
+        position: absolute;
+        right: 60px; bottom: -50px;
+        width: 100px; height: 100px;
+        border-radius: 50%;
+        background: rgba(255,255,255,0.05);
+        pointer-events: none;
+    }
+    .mpt-header-left { display: flex; align-items: center; gap: 0.75rem; }
+    .mpt-header-icon {
+        width: 40px; height: 40px;
+        background: var(--gold-dim);
+        border: 1.5px solid rgba(212,164,90,0.4);
+        border-radius: var(--radius-sm);
+        display: flex; align-items: center; justify-content: center;
+        color: var(--gold-light);
+        font-size: 1.1rem;
+        flex-shrink: 0;
+    }
+    .mpt-header-title { font-family: 'Sora', sans-serif; font-size: 1.15rem; font-weight: 700; color: #FFFFFF; line-height: 1.2; }
+    .mpt-header-sub { font-size: 0.75rem; color: rgba(255,255,255,0.65); margin-top: 1px; }
+    .mpt-export-btn {
+        background: linear-gradient(135deg, var(--gold) 0%, var(--gold-light) 100%);
+        color: var(--text-dark);
+        border: none;
+        border-radius: 50px;
+        padding: 0.45rem 1rem;
+        font-size: 0.78rem;
+        font-weight: 600;
+        cursor: pointer;
+        display: inline-flex; align-items: center; gap: 0.35rem;
+        transition: all 0.2s;
+        white-space: nowrap;
+        font-family: 'Outfit', sans-serif;
+    }
+    .mpt-export-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 14px rgba(212,164,90,0.45); }
+
+    /* ── FILTER CARD ── */
+    .filter-card {
+        background: var(--white);
+        border-radius: var(--radius);
+        border: 1px solid var(--border);
+        margin-bottom: 0.9rem;
+        box-shadow: var(--shadow);
+        overflow: hidden;
+    }
+    .filter-card-header {
+        padding: 0.6rem 1rem;
+        display: flex; align-items: center; justify-content: space-between;
+        border-bottom: 1px solid var(--border);
+        cursor: pointer;
+        background: var(--gold-pale);
+    }
+    .filter-card-header-left {
+        display: flex; align-items: center; gap: 0.5rem;
+        font-size: 0.82rem; font-weight: 600; color: var(--text-dark);
+    }
+    .filter-card-header-left i { color: var(--gold); }
+    .filter-toggle-icon { color: var(--text-soft); font-size: 0.7rem; transition: transform 0.3s; }
+    .filter-toggle-icon.rotated { transform: rotate(180deg); }
+    .filter-body { padding: 0.75rem 1rem 0.85rem; }
+
+    /* ── FILTER GRID ── */
+    .filter-row {
+        display: grid;
+        grid-template-columns: 2fr 1.1fr 1.1fr 1.1fr 1.1fr;
+        gap: 0.65rem;
+        align-items: end;
+    }
+
+    /* ── FORM CONTROLS ── */
+    .fc-label {
+        font-size: 0.7rem; font-weight: 600; color: var(--text-mid);
+        margin-bottom: 0.25rem; display: block;
+        text-transform: uppercase; letter-spacing: 0.04em;
+        white-space: nowrap;
+    }
+    .fc-field { display: flex; flex-direction: column; }
+
+    .fc-input, .fc-select {
+        width: 100%; height: 32px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        padding: 0 0.6rem;
+        font-size: 0.79rem; color: var(--text-dark);
+        background: var(--bg);
+        font-family: 'Outfit', sans-serif;
+        transition: border-color 0.2s, box-shadow 0.2s;
+        outline: none;
+        display: block;
+    }
+    .fc-input:focus, .fc-select:focus {
+        border-color: var(--blue);
+        box-shadow: 0 0 0 2.5px var(--blue-dim);
+        background: var(--white);
+    }
+    .fc-input.valid { border-color: #16A34A; box-shadow: 0 0 0 2px rgba(22,163,74,0.15); }
+    .fc-input.invalid { border-color: #DC2626; box-shadow: 0 0 0 2px rgba(220,38,38,0.15); }
+    .fc-hint { font-size: 0.65rem; margin-top: 0.18rem; min-height: 0.85rem; line-height: 1.2; }
+    .fc-hint.valid { color: #16A34A; }
+    .fc-hint.invalid { color: #DC2626; }
+
+    /* ── FLATPICKR OVERRIDES ── */
+    .flatpickr-input {
+        cursor: pointer !important;
+        width: 100% !important;
+        height: 32px !important;
+        border: 1px solid var(--border) !important;
+        border-radius: var(--radius-sm) !important;
+        padding: 0 0.6rem !important;
+        font-size: 0.79rem !important;
+        color: var(--text-dark) !important;
+        background: var(--bg) !important;
+        font-family: 'Outfit', sans-serif !important;
+        outline: none !important;
+        transition: border-color 0.2s, box-shadow 0.2s !important;
+        box-sizing: border-box !important;
+    }
+    .flatpickr-input:focus {
+        border-color: var(--blue) !important;
+        box-shadow: 0 0 0 2.5px var(--blue-dim) !important;
+        background: var(--white) !important;
+    }
+    .flatpickr-input.valid { border-color: #16A34A !important; box-shadow: 0 0 0 2px rgba(22,163,74,0.15) !important; }
+    .flatpickr-input.invalid { border-color: #DC2626 !important; box-shadow: 0 0 0 2px rgba(220,38,38,0.15) !important; }
+    .flatpickr-calendar {
+        font-family: 'Outfit', sans-serif !important;
+        font-size: 0.78rem !important;
+        border-radius: var(--radius) !important;
+        box-shadow: 0 8px 32px rgba(26,111,168,0.18) !important;
+        border: 1px solid var(--border) !important;
+    }
+    .flatpickr-day.selected, .flatpickr-day.selected:hover {
+        background: var(--blue) !important;
+        border-color: var(--blue) !important;
+    }
+    .flatpickr-day.today { border-color: var(--gold) !important; color: var(--gold) !important; font-weight: 700; }
+    .flatpickr-months .flatpickr-month { background: var(--blue) !important; color: #FFFFFF !important; border-radius: 10px 10px 0 0 !important; }
+    .flatpickr-current-month, .flatpickr-monthDropdown-months, .flatpickr-current-month input.cur-year { color: #FFFFFF !important; }
+    .flatpickr-prev-month svg, .flatpickr-next-month svg { fill: #FFFFFF !important; }
+    .flatpickr-weekday { color: var(--gold) !important; font-weight: 700 !important; font-size: 0.7rem !important; }
+    /* Remove double arrow from flatpickr wrapper */
+    .flatpickr-wrapper { width: 100%; display: block; }
+
+    /* ── ACTION BUTTONS ── */
+    .filter-actions {
+        display: flex; gap: 0.4rem;
+        margin-top: 0.75rem;
+        flex-wrap: wrap;
+        align-items: center;
+    }
+    .btn-sm-action {
+        height: 30px; padding: 0 0.75rem;
+        border-radius: 50px; font-size: 0.75rem; font-weight: 600;
+        display: inline-flex; align-items: center; gap: 0.3rem;
+        cursor: pointer; border: 1.5px solid; transition: all 0.2s;
+        font-family: 'Outfit', sans-serif;
+    }
+    .btn-clear { background: transparent; border-color: var(--border); color: var(--text-mid); }
+    .btn-clear:hover { border-color: var(--blue); color: var(--blue); background: var(--blue-dim); }
+    .btn-excel { background: #16A34A; border-color: #16A34A; color: #FFFFFF; }
+    .btn-excel:hover { background: #15803D; transform: translateY(-1px); }
+    .btn-csv { background: var(--blue); border-color: var(--blue); color: #FFFFFF; }
+    .btn-csv:hover { background: var(--blue-light); transform: translateY(-1px); }
+    .result-count { margin-left: auto; font-size: 0.72rem; color: var(--text-soft); align-self: center; }
+
+    /* ── MILESTONES 2-COLUMN GRID ── */
+    .ms-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.65rem;
+    }
+
+    /* ── MILESTONE CARD ── */
+    .ms-card {
+        background: var(--white);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 0.85rem 1rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.55rem;
+        transition: all 0.2s;
+        box-shadow: var(--shadow);
+        border-left: 3px solid var(--blue);
+        position: relative;
+        overflow: hidden;
+    }
+    .ms-card::after {
+        content: '';
+        position: absolute;
+        top: 0; right: 0;
+        width: 60px; height: 60px;
+        border-radius: 50%;
+        background: var(--blue-dim);
+        transform: translate(20px, -20px);
+        pointer-events: none;
+        transition: all 0.3s;
+    }
+    .ms-card:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-hover);
+        border-left-color: var(--gold);
+    }
+    .ms-card:hover::after { background: var(--gold-dim); }
+
+    /* Card top: lead + meta */
+    .ms-card-top {}
+    .ms-name {
+        font-size: 0.9rem; font-weight: 700; color: var(--blue);
+        margin-bottom: 0.25rem; line-height: 1.3;
+    }
+    .ms-meta {
+        font-size: 0.74rem; color: var(--text-soft);
+        display: flex; align-items: center; gap: 0.3rem;
+        margin-top: 0.12rem;
+    }
+    .ms-meta i { font-size: 0.68rem; color: var(--gold); flex-shrink: 0; }
+
+    /* Card middle: milestone + dates */
+    .ms-card-mid {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        padding: 0.5rem 0;
+        border-top: 1px dashed var(--border);
+        border-bottom: 1px dashed var(--border);
+        gap: 0.5rem;
+    }
+    .ms-label { font-size: 0.68rem; color: var(--text-soft); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 0.15rem; }
+    .ms-value { font-size: 0.84rem; font-weight: 700; color: var(--text-dark); }
+    .ms-due { font-size: 0.73rem; color: var(--text-soft); margin-top: 0.2rem; display: flex; align-items: center; gap: 0.25rem; }
+    .ms-due i { font-size: 0.65rem; color: var(--gold); }
+
+    /* Card bottom: amounts + badge */
+    .ms-card-bottom {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+    }
+    .ms-amounts {}
+    .ms-amount { font-size: 0.82rem; font-weight: 700; color: var(--blue); display: flex; align-items: center; gap: 0.25rem; }
+    .ms-amount i { font-size: 0.72rem; }
+    .ms-paid { font-size: 0.75rem; color: #16A34A; display: flex; align-items: center; gap: 0.25rem; margin-top: 0.18rem; }
+    .ms-paid i { font-size: 0.68rem; }
+
+    /* ── STATUS BADGES ── */
+    .badge-status {
+        display: inline-flex; align-items: center; gap: 0.25rem;
+        padding: 0.28rem 0.75rem;
+        border-radius: 50px;
+        font-size: 0.72rem; font-weight: 700;
+        letter-spacing: 0.02em;
+        border: 1.5px solid transparent;
+        white-space: nowrap;
+        flex-shrink: 0;
+    }
+    .badge-status::before { content: ''; width: 5px; height: 5px; border-radius: 50%; background: currentColor; display: inline-block; }
+    .st-paid    { background: #DCFCE7; color: #15803D; border-color: #B8C8D8; }
+    .st-pending { background: #FEF3C7; color: #B45309; border-color: #E8C27E; }
+    .st-partial { background: #E2E8F0; color: #1A6FA8; border-color: #B8C8D8; }
+    .st-overdue { background: #FEE2E2; color: #991B1B; border-color: #E8C27E; }
+
+    /* ── EMPTY STATE ── */
+    .empty-state {
+        background: var(--white);
+        border-radius: var(--radius);
+        padding: 1.25rem 1rem;
+        text-align: center;
+        border: 1px dashed var(--border);
+        color: var(--text-soft);
+        box-shadow: var(--shadow);
+        grid-column: 1 / -1;
+    }
+    .empty-state i { font-size: 2.5rem; color: var(--border); display: block; margin-bottom: 0.75rem; }
+    .empty-state h5 { font-size: 0.95rem; font-weight: 600; color: var(--text-mid); margin-bottom: 0.25rem; }
+    .empty-state p { font-size: 0.8rem; margin: 0; }
+
+    /* ── PAGINATION ── */
+    .pag-wrap {
+        background: var(--white);
+        border-radius: var(--radius);
+        border: 1px solid var(--border);
+        padding: 0.6rem 1rem;
+        display: flex; align-items: center; justify-content: space-between;
+        margin-top: 0.6rem;
+        box-shadow: var(--shadow);
+        flex-wrap: wrap; gap: 0.5rem;
+    }
+    .pag-info { font-size: 0.76rem; color: var(--text-soft); }
+    .pag-info strong { color: var(--blue); }
+    .pagination { display: flex; gap: 0.25rem; list-style: none; margin: 0; padding: 0; }
+    .page-item .page-link {
+        width: 28px; height: 28px;
+        display: flex; align-items: center; justify-content: center;
+        border-radius: var(--radius-sm);
+        border: 1px solid var(--border);
+        background: var(--bg);
+        color: var(--text-mid);
+        font-size: 0.75rem; font-weight: 600;
+        cursor: pointer; text-decoration: none;
+        transition: all 0.15s;
+    }
+    .page-item.active .page-link { background: var(--blue); border-color: var(--blue); color: #FFFFFF; }
+    .page-item .page-link:hover:not(.disabled) { background: var(--blue-dim); border-color: var(--blue); color: var(--blue); }
+    .page-item.disabled .page-link { opacity: 0.4; cursor: not-allowed; }
+
+    /* ── DARK MODE ── */
+    .dark-mode {
+        --bg: #111827; --white: #1A2332; --border: #2A3A4A;
+        --text-dark: #E2E8F0; --text-mid: #8FA3B8; --text-soft: #6B7B8D;
+        --gold-pale: #0D1724; --blue-pale: #0D1A24;
+        --blue-dim: rgba(26,111,168,0.2);
+    }
+    .dark-mode .mpt-header { background: linear-gradient(120deg, #0F4C75 0%, #1E2A3A 100%); }
+    .dark-mode .ms-card { background: var(--white); border-color: var(--border); }
+    .dark-mode .fc-input, .dark-mode .fc-select,
+    .dark-mode .flatpickr-input { background: #121F2E !important; border-color: var(--border) !important; color: var(--text-dark) !important; }
+    .dark-mode .fc-input:focus, .dark-mode .fc-select:focus,
+    .dark-mode .flatpickr-input:focus { background: var(--white) !important; }
+    .dark-mode .btn-clear { border-color: var(--border); color: var(--text-mid); }
+    .dark-mode .st-paid    { background: rgba(22,163,74,0.2);  color: #16A34A; border-color: #15803D; }
+    .dark-mode .st-pending { background: rgba(245,158,11,0.2);  color: #F59E0B; border-color: #B45309; }
+    .dark-mode .st-partial { background: rgba(37,137,201,0.2); color: #8FA3B8; border-color: #1A6FA8; }
+    .dark-mode .st-overdue { background: rgba(220,38,38,0.2);  color: #D4A45A; border-color: #991B1B; }
+    .dark-mode .pag-wrap, .dark-mode .filter-card, .dark-mode .empty-state { background: var(--white); border-color: var(--border); }
+    .dark-mode .filter-card-header { background: #121F2E; }
+    .dark-mode .page-item .page-link { background: #121F2E; border-color: var(--border); color: var(--text-mid); }
+
+    /* ── RESPONSIVE ── */
+    @@media (max-width: 992px) {
+        .filter-row {
+            grid-template-columns: 1fr 1fr 1fr;
+        }
+        .filter-row .fc-search { grid-column: 1 / -1; }
+    }
+    @@media (max-width: 768px) {
+        .mpt-header { flex-direction: column; align-items: flex-start; gap: 0.6rem; }
+        .ms-grid { grid-template-columns: 1fr; }
+        .filter-row {
+            grid-template-columns: 1fr 1fr;
+        }
+        .filter-row .fc-search { grid-column: 1 / -1; }
+        .filter-row .fc-fromdate,
+        .filter-row .fc-todate { grid-column: span 1; }
+    }
+    @@media (max-width: 480px) {
+        .filter-row { grid-template-columns: 1fr; }
+        .filter-row .fc-search,
+        .filter-row .fc-fromdate,
+        .filter-row .fc-todate { grid-column: 1; }
+        .ms-card-bottom { flex-direction: column; align-items: flex-start; gap: 0.4rem; }
+    }
+</style>
+
+<div class="content">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-2">
+        <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item"><a href="/home">Home</a></li>
+            <li class="breadcrumb-item active">Milestone Tracking</li>
+        </ol>
+    </nav>
+
+    <!-- Header -->
+    <div class="mpt-header mb-3">
+        <div class="mpt-header-left">
+            <div class="mpt-header-icon">
+                <i class="fa-solid fa-flag-checkered"></i>
+            </div>
+            <div>
+                <div class="mpt-header-title">Milestone Payment Tracking</div>
+                <div class="mpt-header-sub">Track and manage all milestone payments and statuses</div>
+            </div>
+        </div>
+        <button class="mpt-export-btn" id="exportPDF">
+            <i class="fa-solid fa-file-pdf"></i> Export PDF
+        </button>
+    </div>
+
+    <!-- Filter Card -->
+    <div class="filter-card">
+        <div class="filter-card-header" id="filterToggle">
+            <div class="filter-card-header-left">
+                <i class="fa-solid fa-sliders"></i>
+                <span>Filter &amp; Search</span>
+            </div>
+            <i class="fa-solid fa-chevron-down filter-toggle-icon" id="filterChevron"></i>
+        </div>
+        <div class="filter-body" id="filterBody">
+            <div class="filter-row">
+                <!-- Search -->
+                <div class="fc-field fc-search">
+                    <label class="fc-label"><i class="fa-solid fa-magnifying-glass me-1"></i>Search</label>
+                    <input type="text" class="fc-input" id="searchBox" placeholder="Lead, project, flat, milestone...">
+                    <div class="fc-hint" id="searchHint"></div>
+                </div>
+                <!-- Status -->
+                <div class="fc-field">
+                    <label class="fc-label">Status</label>
+                    <select class="fc-select" id="filterStatus">
+                        <option value="">All Status</option>
+                        <option value="Paid"><i class="fa-solid fa-check"></i> Paid</option>
+                        <option value="Pending">⏳ Pending</option>
+                        <option value="Partial"><i class="fa-solid fa-rotate"></i> Partial</option>
+                        <option value="Overdue"><i class="fa-solid fa-exclamation-triangle"></i> Overdue</option>
+                    </select>
+                    <div class="fc-hint"></div>
+                </div>
+                <!-- Milestone -->
+                <div class="fc-field">
+                    <label class="fc-label">Milestone</label>
+                    <select class="fc-select" id="filterMilestone">
+                        <option value="">All</option>
+                        <option value="Booking">Booking</option>
+                        <option value="Agreement">Agreement</option>
+                        <option value="Foundation">Foundation</option>
+                        <option value="Possession">Possession</option>
+                    </select>
+                    <div class="fc-hint"></div>
+                </div>
+                <!-- From Date -->
+                <div class="fc-field fc-fromdate">
+                    <label class="fc-label">From Date</label>
+                    <input type="text" class="fc-input" id="filterFromDate" placeholder="DD/MM/YYYY" readonly>
+                    <div class="fc-hint" id="dateHint"></div>
+                </div>
+                <!-- To Date -->
+                <div class="fc-field fc-todate">
+                    <label class="fc-label">To Date</label>
+                    <input type="text" class="fc-input" id="filterToDate" placeholder="DD/MM/YYYY" readonly>
+                    <div class="fc-hint"></div>
+                </div>
+            </div>
+
+            <div class="filter-actions">
+                <button class="btn-sm-action btn-clear" id="clearFilters">
+                    <i class="fa-solid fa-rotate-left"></i> Clear
+                </button>
+                <button class="btn-sm-action btn-excel" id="exportExcel">
+                    <i class="fa-solid fa-file-excel"></i> Excel
+                </button>
+                <button class="btn-sm-action btn-csv" id="exportCSV">
+                    <i class="fa-solid fa-file-csv"></i> CSV
+                </button>
+                <span class="result-count" id="resultCount"></span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Milestones 2-column Grid -->
+    <div class="ms-grid" id="milestonesContainer"></div>
+
+    <!-- Pagination -->
+    <div class="pag-wrap" id="paginationWrapper" style="display:none;">
+        <div class="pag-info">
+            Showing <strong id="showingStart">0</strong>–<strong id="showingEnd">0</strong> of <strong id="totalRecords">0</strong> records
+        </div>
+        <nav><ul class="pagination" id="pagination"></ul></nav>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+
+    <script>
+        // ── BACKEND DATA (do not modify) ──
+        let allMilestones = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model));
+        let filteredMilestones = [...allMilestones];
+        let currentPage = 1;
+        const pageSize = 10;
+
+        // Internal ISO date values for filtering
+        let fromDateISO = '';
+        let toDateISO = '';
+
+        document.addEventListener('DOMContentLoaded', function () {
+            initFlatpickr();
+            renderMilestones();
+            attachEventListeners();
+            initFilterToggle();
+        });
+
+        /* ── FLATPICKR INIT ── */
+        function initFlatpickr() {
+            flatpickr('#filterFromDate', {
+                dateFormat: 'd/m/Y',
+                allowInput: false,
+                disableMobile: true,
+                onChange: function(selectedDates, dateStr) {
+                    fromDateISO = selectedDates.length ? selectedDates[0].toISOString().split('T')[0] : '';
+                    document.getElementById('filterFromDate').classList.toggle('valid', !!dateStr);
+                    document.getElementById('filterFromDate').classList.remove('invalid');
+                    validateDates();
+                    applyFilters();
+                },
+                onReady: function(_, __, fp) {
+                    fp.calendarContainer && fp.calendarContainer.classList.add('mpt-fp-cal');
+                }
+            });
+
+            flatpickr('#filterToDate', {
+                dateFormat: 'd/m/Y',
+                allowInput: false,
+                disableMobile: true,
+                onChange: function(selectedDates, dateStr) {
+                    toDateISO = selectedDates.length ? selectedDates[0].toISOString().split('T')[0] : '';
+                    document.getElementById('filterToDate').classList.toggle('valid', !!dateStr);
+                    document.getElementById('filterToDate').classList.remove('invalid');
+                    validateDates();
+                    applyFilters();
+                }
+            });
+        }
+
+        /* ── FILTER TOGGLE ── */
+        function initFilterToggle() {
+            const toggle = document.getElementById('filterToggle');
+            const body = document.getElementById('filterBody');
+            const chevron = document.getElementById('filterChevron');
+            toggle.addEventListener('click', function () {
+                const open = body.style.display !== 'none';
+                body.style.display = open ? 'none' : 'block';
+                chevron.classList.toggle('rotated', !open);
+            });
+        }
+
+        /* ── EVENT LISTENERS ── */
+        function attachEventListeners() {
+            ['searchBox', 'filterStatus', 'filterMilestone']
+                .forEach(id => document.getElementById(id).addEventListener('input', applyFilters));
+
+            document.getElementById('clearFilters').addEventListener('click', clearFilters);
+            document.getElementById('exportExcel').addEventListener('click', exportToExcel);
+            document.getElementById('exportCSV').addEventListener('click', exportToCSV);
+            document.getElementById('exportPDF').addEventListener('click', exportToPDF);
+
+            // Live search validation
+            document.getElementById('searchBox').addEventListener('input', function () {
+                const hint = document.getElementById('searchHint');
+                const val = this.value.trim();
+                if (val.length > 0 && val.length < 2) {
+                    this.classList.remove('valid'); this.classList.add('invalid');
+                    hint.textContent = 'Enter at least 2 characters'; hint.className = 'fc-hint invalid';
+                } else if (val.length >= 2) {
+                    this.classList.remove('invalid'); this.classList.add('valid');
+                    hint.textContent = 'Searching...'; hint.className = 'fc-hint valid';
+                } else {
+                    this.classList.remove('valid', 'invalid');
+                    hint.textContent = ''; hint.className = 'fc-hint';
+                }
+            });
+        }
+
+        function validateDates() {
+            const hint = document.getElementById('dateHint');
+            if (fromDateISO && toDateISO && new Date(fromDateISO) > new Date(toDateISO)) {
+                document.getElementById('filterFromDate').classList.add('invalid');
+                document.getElementById('filterToDate').classList.add('invalid');
+                hint.textContent = 'From date must be before To date';
+                hint.className = 'fc-hint invalid';
+                return false;
+            } else {
+                document.getElementById('filterFromDate').classList.remove('invalid');
+                document.getElementById('filterToDate').classList.remove('invalid');
+                hint.textContent = '';
+                hint.className = 'fc-hint';
+                return true;
+            }
+        }
+
+        /* ── FILTERS ── */
+        function applyFilters() {
+            if (!validateDates()) return;
+
+            const searchText = document.getElementById('searchBox').value.toLowerCase().trim();
+            const status = document.getElementById('filterStatus').value;
+            const milestone = document.getElementById('filterMilestone').value;
+
+            filteredMilestones = allMilestones.filter(m => {
+                const matchSearch = !searchText || searchText.length < 2 ||
+                    [m.LeadName, m.Project, m.Flat, m.Milestone].some(f => f && f.toLowerCase().includes(searchText));
+                const matchStatus = !status || m.Status === status;
+                const matchMilestone = !milestone || m.Milestone === milestone;
+                let matchDate = true;
+                if (fromDateISO || toDateISO) {
+                    const d = new Date(m.DueDate);
+                    if (fromDateISO) matchDate = matchDate && d >= new Date(fromDateISO);
+                    if (toDateISO)   matchDate = matchDate && d <= new Date(toDateISO + 'T23:59:59');
+                }
+                return matchSearch && matchStatus && matchMilestone && matchDate;
+            });
+
+            currentPage = 1;
+            renderMilestones();
+        }
+
+        function clearFilters() {
+            document.getElementById('searchBox').value = '';
+            document.getElementById('filterStatus').value = '';
+            document.getElementById('filterMilestone').value = '';
+
+            // Clear flatpickr
+            const fpFrom = document.getElementById('filterFromDate')._flatpickr;
+            const fpTo   = document.getElementById('filterToDate')._flatpickr;
+            if (fpFrom) fpFrom.clear();
+            if (fpTo)   fpTo.clear();
+
+            fromDateISO = '';
+            toDateISO   = '';
+
+            ['filterFromDate','filterToDate','searchBox'].forEach(id =>
+                document.getElementById(id).classList.remove('valid','invalid'));
+
+            ['searchHint','dateHint'].forEach(id => {
+                document.getElementById(id).textContent = '';
+                document.getElementById(id).className = 'fc-hint';
+            });
+
+            filteredMilestones = [...allMilestones];
+            currentPage = 1;
+            renderMilestones();
+        }
+
+        /* ── RENDER ── */
+        function renderMilestones() {
+            const container = document.getElementById('milestonesContainer');
+            const start = (currentPage - 1) * pageSize;
+            const paged = filteredMilestones.slice(start, start + pageSize);
+            const count = document.getElementById('resultCount');
+
+            count.textContent = filteredMilestones.length + ' result' + (filteredMilestones.length !== 1 ? 's' : '');
+
+            if (paged.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fa-solid fa-flag-checkered"></i>
+                        <h5>No Milestones Found</h5>
+                        <p>No milestone payments match your current filters.</p>
+                    </div>`;
+                document.getElementById('paginationWrapper').style.display = 'none';
+                return;
+            }
+
+            container.innerHTML = '';
+            paged.forEach(m => {
+                const stClass = { Paid: 'st-paid', Pending: 'st-pending', Partial: 'st-partial', Overdue: 'st-overdue' }[m.Status] || 'st-pending';
+                const card = document.createElement('div');
+                card.className = 'ms-card';
+                card.innerHTML = `
+                    <div class="ms-card-top">
+                        <div class="ms-name">${m.LeadName || 'Unknown Lead'}</div>
+                        <div class="ms-meta"><i class="fa-solid fa-building"></i>${m.Project || '—'}</div>
+                        <div class="ms-meta"><i class="fa-solid fa-door-open"></i>${m.Flat || '—'}</div>
+                    </div>
+                    <div class="ms-card-mid">
+                        <div>
+                            <div class="ms-label">Milestone</div>
+                            <div class="ms-value">${m.Milestone || '—'}</div>
+                            <div class="ms-due"><i class="fa-solid fa-calendar-days"></i>Due: ${formatDate(m.DueDate)}</div>
+                        </div>
+                    </div>
+                    <div class="ms-card-bottom">
+                        <div class="ms-amounts">
+                            <div class="ms-amount"><i class="fa-solid fa-indian-rupee-sign"></i><strong>₹${(m.Amount || 0).toLocaleString('en-IN')}</strong></div>
+                            <div class="ms-paid"><i class="fa-solid fa-circle-check"></i>Paid: ₹${(m.Paid || 0).toLocaleString('en-IN')}</div>
+                        </div>
+                        <span class="badge-status ${stClass}">${m.Status || 'Pending'}</span>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+
+            document.getElementById('paginationWrapper').style.display = 'flex';
+            updatePagInfo();
+            renderPagination();
+        }
+
+        function formatDate(d) {
+            if (!d) return '—';
+            return new Date(d).toLocaleDateString('en-GB');
+        }
+
+        function updatePagInfo() {
+            const total = filteredMilestones.length;
+            document.getElementById('showingStart').textContent = total === 0 ? 0 : (currentPage - 1) * pageSize + 1;
+            document.getElementById('showingEnd').textContent = Math.min(currentPage * pageSize, total);
+            document.getElementById('totalRecords').textContent = total;
+        }
+
+        function renderPagination() {
+            const pag = document.getElementById('pagination');
+            const total = Math.ceil(filteredMilestones.length / pageSize);
+            pag.innerHTML = '';
+            if (total <= 1) {
+                pag.innerHTML = `<li class="page-item active"><span class="page-link">1</span></li>`;
+                return;
+            }
+            const mkBtn = (label, page, disabled, active) => {
+                const li = document.createElement('li');
+                li.className = `page-item${disabled ? ' disabled' : ''}${active ? ' active' : ''}`;
+                li.innerHTML = `<a class="page-link" href="#" onclick="changePage(${page});return false;">${label}</a>`;
+                return li;
+            };
+            pag.appendChild(mkBtn('‹', currentPage - 1, currentPage === 1, false));
+            const s = Math.max(1, currentPage - 2), e = Math.min(total, currentPage + 2);
+            for (let i = s; i <= e; i++) pag.appendChild(mkBtn(i, i, false, i === currentPage));
+            pag.appendChild(mkBtn('›', currentPage + 1, currentPage === total, false));
+        }
+
+        function changePage(p) {
+            const total = Math.ceil(filteredMilestones.length / pageSize);
+            if (p < 1 || p > total) return;
+            currentPage = p;
+            renderMilestones();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        /* ── EXPORTS ── */
+        function exportToExcel() {
+            const ws_data = [['Lead Name', 'Project', 'Flat', 'Milestone', 'Due Date', 'Amount', 'Paid', 'Status']];
+            filteredMilestones.forEach(m => ws_data.push([
+                m.LeadName || '', m.Project || '', m.Flat || '', m.Milestone || '',
+                formatDate(m.DueDate), m.Amount || 0, m.Paid || 0, m.Status || ''
+            ]));
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.aoa_to_sheet(ws_data);
+            ws['!cols'] = [{ wch: 20 }, { wch: 20 }, { wch: 15 }, { wch: 15 }, { wch: 12 }, { wch: 15 }, { wch: 15 }, { wch: 12 }];
+            XLSX.utils.book_append_sheet(wb, ws, "Milestones");
+            XLSX.writeFile(wb, `Milestone_Tracking_${new Date().toISOString().split('T')[0]}.xlsx`);
+        }
+
+        function exportToCSV() {
+            let csv = 'Lead Name,Project,Flat,Milestone,Due Date,Amount,Paid,Status\n';
+            filteredMilestones.forEach(m => {
+                csv += [
+                    escCSV(m.LeadName), escCSV(m.Project), escCSV(m.Flat), escCSV(m.Milestone),
+                    formatDate(m.DueDate), m.Amount || 0, m.Paid || 0, escCSV(m.Status)
+                ].join(',') + '\n';
+            });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
+            a.download = `Milestone_Tracking_${new Date().toISOString().split('T')[0]}.csv`;
+            a.click();
+        }
+
+        function exportToPDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            doc.setFontSize(16); doc.text('Milestone Payment Tracking', 14, 18);
+            doc.setFontSize(9); doc.text(`Generated: ${new Date().toLocaleDateString()}`, 14, 25);
+            doc.autoTable({
+                head: [['Lead', 'Project', 'Flat', 'Milestone', 'Due Date', 'Amount', 'Paid', 'Status']],
+                body: filteredMilestones.map(m => [
+                    m.LeadName || '', m.Project || '', m.Flat || '', m.Milestone || '',
+                    formatDate(m.DueDate),
+                    `₹${(m.Amount || 0).toLocaleString()}`,
+                    `₹${(m.Paid || 0).toLocaleString()}`,
+                    m.Status || ''
+                ]),
+                startY: 30,
+                styles: { fontSize: 7.5 },
+                headStyles: { fillColor: [26, 111, 168] }
+            });
+            doc.save(`Milestone_Tracking_${new Date().toISOString().split('T')[0]}.pdf`);
+        }
+
+        function escCSV(v) {
+            if (!v) return '';
+            v = v.toString();
+            return (v.includes(',') || v.includes('"') || v.includes('\n'))
+                ? '"' + v.replace(/"/g, '""') + '"'
+                : v;
+        }
+    </script>
+}

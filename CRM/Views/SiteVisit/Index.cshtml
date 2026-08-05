@@ -1,0 +1,196 @@
+@{
+    ViewData["Title"] = "Site Visits";
+}
+<div class="content">
+    <div class="d-flex align-items-center justify-content-between mb-3">
+        <div>
+            <h2 class="mb-0">Site Visit Management</h2>
+            <p class="text-muted mb-0">Schedule, track and complete customer site visits with GPS check-in/out.</p>
+        </div>
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#visitModal">
+            <i class="fa-solid fa-plus me-1"></i> Schedule Visit
+        </button>
+    </div>
+
+    <div class="row g-2 mb-3">
+        <div class="col-md-3">
+            <select id="filterStatus" class="form-select">
+                <option value="">All Status</option>
+                <option value="Scheduled">Scheduled</option>
+                <option value="Completed">Completed</option>
+                <option value="Cancelled">Cancelled</option>
+                <option value="No-Show">No-Show</option>
+            </select>
+        </div>
+        <div class="col-md-4">
+            <input id="searchBox" class="form-control" placeholder="Search lead, property, executive..." />
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0" id="visitsTable">
+                    <thead>
+                        <tr>
+                            <th>ID</th><th>Lead</th><th>Property</th><th>Executive</th>
+                            <th>Scheduled</th><th>Status</th><th>Rating</th><th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal -->
+<div class="modal fade" id="visitModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form id="visitForm">
+                <div class="modal-header">
+                    <h5 class="modal-title">Schedule Site Visit</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="siteVisitId" value="0" />
+                    <div class="mb-2">
+                        <label>Lead</label>
+                        <select id="leadId" class="form-select" required></select>
+                    </div>
+                    <div class="mb-2">
+                        <label>Property</label>
+                        <select id="propertyId" class="form-select"></select>
+                    </div>
+                    <div class="mb-2">
+                        <label>Executive</label>
+                        <select id="executiveId" class="form-select"></select>
+                    </div>
+                    <div class="row">
+                        <div class="col-6 mb-2">
+                            <label>Scheduled Date</label>
+                            <input type="date" id="scheduledDate" class="form-control" required />
+                        </div>
+                        <div class="col-6 mb-2">
+                            <label>Time Slot</label>
+                            <input type="text" id="timeSlot" class="form-control" placeholder="10:00 AM" />
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-6 mb-2">
+                            <label>Vehicle</label>
+                            <input type="text" id="vehicle" class="form-control" />
+                        </div>
+                        <div class="col-6 mb-2">
+                            <label>Driver</label>
+                            <input type="text" id="driverName" class="form-control" />
+                        </div>
+                    </div>
+                    <div class="mb-2">
+                        <label>Notes</label>
+                        <textarea id="notes" class="form-control" rows="2"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-primary">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    const $ = (id) => document.getElementById(id);
+    let visits = [], leads = [], props = [], execs = [];
+
+    function loadAll() {
+        fetch('/SiteVisits/GetLeads').then(r => r.json()).then(d => { leads = d; fillLeads(); });
+        fetch('/SiteVisits/GetProperties').then(r => r.json()).then(d => { props = d; fillProps(); });
+        fetch('/SiteVisits/GetAll').then(r => r.json()).then(d => { visits = d; render(); });
+        fetch('/ManageUsers/Index').catch(()=>{});
+    }
+
+    function fillLeads() {
+        $('leadId').innerHTML = '<option value="">Select Lead</option>' + leads.map(l => `<option value="${l.LeadId}">${l.Name || 'Lead ' + l.LeadId}</option>`).join('');
+    }
+    function fillProps() {
+        $('propertyId').innerHTML = '<option value="">Select Property</option>' + props.map(p => `<option value="${p.PropertyId}">${p.PropertyName}</option>`).join('');
+    }
+    function fillExecs() {
+        // reuse leads' executive ids mapped to users
+        fetch('/SiteVisits/GetAll').catch(()=>{});
+    }
+
+    function render() {
+        const status = $('filterStatus').value;
+        const search = $('searchBox').value.toLowerCase();
+        let data = visits.slice();
+        if (status) data = data.filter(v => v.Status === status);
+        if (search) data = data.filter(v => (v.LeadName||'').toLowerCase().includes(search) || (v.PropertyName||'').toLowerCase().includes(search) || (v.ExecutiveName||'').toLowerCase().includes(search));
+        const tb = document.querySelector('#visitsTable tbody');
+        if (!data.length) { tb.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-3">No site visits found</td></tr>'; return; }
+        tb.innerHTML = data.map(v => `
+            <tr>
+                <td>${v.SiteVisitId}</td>
+                <td>${v.LeadName || '-'}</td>
+                <td>${v.PropertyName || '-'}</td>
+                <td>${v.ExecutiveName || '-'}</td>
+                <td>${new Date(v.ScheduledDate).toLocaleDateString('en-GB')} ${v.TimeSlot || ''}</td>
+                <td><span class="badge bg-${v.Status==='Completed'?'success':v.Status==='Cancelled'?'danger':'warning'}">${v.Status}</span></td>
+                <td>${v.Rating ? '<i class="fa-solid fa-star text-warning"></i>'.repeat(v.Rating) : '-'}</td>
+                <td>
+                    <button class="btn btn-sm btn-outline-primary" onclick="editVisit(${v.SiteVisitId})"><i class="fa-solid fa-edit"></i></button>
+                    <button class="btn btn-sm btn-outline-success" onclick="checkIn(${v.SiteVisitId})" title="Check In"><i class="fa-solid fa-sign-in-alt"></i></button>
+                    <button class="btn btn-sm btn-outline-danger" onclick="delVisit(${v.SiteVisitId})"><i class="fa-solid fa-trash"></i></button>
+                </td>
+            </tr>`).join('');
+    }
+
+    function editVisit(id) {
+        const v = visits.find(x => x.SiteVisitId === id); if (!v) return;
+        $('siteVisitId').value = v.SiteVisitId;
+        $('leadId').value = v.LeadId || '';
+        $('propertyId').value = v.PropertyId || '';
+        $('scheduledDate').value = v.ScheduledDate ? v.ScheduledDate.split('T')[0] : '';
+        $('timeSlot').value = v.TimeSlot || '';
+        $('vehicle').value = v.Vehicle || '';
+        $('driverName').value = v.DriverName || '';
+        $('notes').value = v.Notes || '';
+        new bootstrap.Modal($('visitModal')).show();
+    }
+
+    $('visitForm').addEventListener('submit', function (e) {
+        e.preventDefault();
+        const fd = new FormData();
+        fd.append('SiteVisitId', $('siteVisitId').value);
+        fd.append('LeadId', $('leadId').value);
+        fd.append('PropertyId', $('propertyId').value);
+        fd.append('ExecutiveId', $('leadId').value ? (leads.find(l=>l.LeadId==$('leadId').value)?.ExecutiveId || 0) : 0);
+        fd.append('ScheduledDate', $('scheduledDate').value);
+        fd.append('TimeSlot', $('timeSlot').value);
+        fd.append('Vehicle', $('vehicle').value);
+        fd.append('DriverName', $('driverName').value);
+        fd.append('Notes', $('notes').value);
+        fetch('/SiteVisits/Save', { method: 'POST', body: fd }).then(r => r.json()).then(d => {
+            if (d.success) { bootstrap.Modal.getInstance($('visitModal')).hide(); loadAll(); }
+            else alert(d.message);
+        });
+    });
+
+    function checkIn(id) {
+        if (!confirm('Check in for this visit?')) return;
+        fetch('/SiteVisits/CheckIn?id=' + id + '&location=Manual', { method: 'POST' }).then(() => loadAll());
+    }
+    function delVisit(id) {
+        if (!confirm('Delete this visit?')) return;
+        fetch('/SiteVisits/Delete?id=' + id, { method: 'POST' }).then(() => loadAll());
+    }
+
+    $('filterStatus').addEventListener('change', render);
+    $('searchBox').addEventListener('input', render);
+    loadAll();
+</script>
+}

@@ -1,0 +1,817 @@
+@model CRM.Controllers.ConversationViewModel
+@{
+    ViewData["Title"] = "Conversation - " + Model.ConversationId;
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+@Html.AntiForgeryToken()
+
+<style>
+/* WhatsApp-style Chat Interface */
+.whatsapp-container {
+    background-color: #FEE2E2;
+    height: calc(100vh - 200px);
+    display: flex;
+    flex-direction: column;
+}
+
+.whatsapp-header {
+    background: linear-gradient(135deg, #1A6FA8 0%, #125082 100%);
+    color: white;
+    padding: 15px 20px;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.whatsapp-avatar {
+    width: 45px;
+    height: 45px;
+    border-radius: 50%;
+    background: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    color: #1A6FA8;
+    font-size: 18px;
+}
+
+.whatsapp-info h5 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.whatsapp-info span {
+    font-size: 12px;
+    opacity: 0.9;
+}
+
+.whatsapp-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect fill="%23e5ddd5" width="100" height="100"/></svg>');
+}
+
+.message-row {
+    display: flex;
+    margin-bottom: 8px;
+}
+
+.message-row.user {
+    justify-content: flex-end;
+}
+
+.message-row.bot,
+.message-row.agent {
+    justify-content: flex-start;
+}
+
+.message-bubble {
+    max-width: 65%;
+    padding: 10px 15px;
+    border-radius: 12px;
+    position: relative;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+}
+
+.message-row.user .message-bubble {
+    background: linear-gradient(135deg, #1A6FA8 0%, #125082 100%);
+    color: white;
+    border-bottom-right-radius: 2px;
+}
+
+.message-row.bot .message-bubble,
+.message-row.agent .message-bubble {
+    background: white;
+    color: #2A3A4A;
+    border-bottom-left-radius: 2px;
+}
+
+.message-sender {
+    font-size: 11px;
+    font-weight: 600;
+    margin-bottom: 4px;
+    color: #6B7B8D;
+}
+
+.message-row.user .message-sender {
+    color: rgba(255,255,255,0.9);
+}
+
+.message-text {
+    font-size: 14px;
+    line-height: 1.4;
+    word-wrap: break-word;
+    white-space: pre-wrap;
+}
+
+.message-time {
+    font-size: 10px;
+    text-align: right;
+    margin-top: 4px;
+    opacity: 0.7;
+}
+
+.message-row.user .message-time {
+    color: rgba(255,255,255,0.8);
+}
+
+.message-row.bot .message-time,
+.message-row.agent .message-time {
+    color: #6B7B8D;
+}
+
+.whatsapp-input {
+    background: #E8EDF2;
+    padding: 15px 20px;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    border-top: 1px solid #E2E8F0;
+}
+
+.whatsapp-input input {
+    flex: 1;
+    border: none;
+    padding: 12px 20px;
+    border-radius: 25px;
+    font-size: 14px;
+    outline: none;
+}
+
+.whatsapp-input button {
+    background: linear-gradient(135deg, #1A6FA8 0%, #125082 100%);
+    color: white;
+    border: none;
+    width: 45px;
+    height: 45px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+.whatsapp-input button:hover {
+    transform: scale(1.05);
+}
+
+.quick-replies {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 10px;
+}
+
+.quick-reply-btn {
+    background: white;
+    border: 1px solid #E2E8F0;
+    padding: 8px 15px;
+    border-radius: 20px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.quick-reply-btn:hover {
+    background: #FEE2E2;
+    border-color: #1A6FA8;
+}
+
+/* Scrollbar styling */
+.whatsapp-messages::-webkit-scrollbar {
+    width: 6px;
+}
+
+.whatsapp-messages::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.whatsapp-messages::-webkit-scrollbar-thumb {
+    background: rgba(0,0,0,0.2);
+    border-radius: 3px;
+}
+</style>
+
+<div class="container-fluid">
+    <!-- Page Header -->
+    <div class="d-sm-flex align-items-center justify-content-between mb-3">
+        <h1 class="h4 mb-0 text-gray-800">
+            <i class="fas fa-comments"></i> Conversation
+        </h1>
+        <div class="d-flex">
+            <a href="/ChatbotDashboard/Index" class="btn btn-outline-secondary btn-sm mr-2">
+                <i class="fas fa-arrow-left"></i> Back
+            </a>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Conversation Info Sidebar -->
+        <div class="col-lg-3 mb-4">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <h6 class="font-weight-bold mb-3">Conversation Info</h6>
+                    @if (Model.Assignment != null)
+                    {
+                        <div class="mb-2">
+                            <small class="text-muted">Status</small>
+                            <div>
+                                <span class="badge badge-@(Model.Assignment.Status == "Assigned" ? "success" : "secondary")">
+                                    @Model.Assignment.Status
+                                </span>
+                            </div>
+                        </div>
+                        <div class="mb-2">
+                            <small class="text-muted">Priority</small>
+                            <div>
+                                <span class="badge badge-@(Model.Assignment.Priority == "High" ? "danger" : "info")">
+                                    @Model.Assignment.Priority
+                                </span>
+                            </div>
+                        </div>
+                        <div class="mb-2">
+                            <small class="text-muted">Started</small>
+                            <div>@Model.Assignment.AssignedAt.ToString("MMM dd, HH:mm")</div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- WhatsApp-style Chat -->
+        <div class="col-lg-9 mb-4">
+            <div class="card shadow-sm">
+                <div class="card-body p-0">
+                    <div class="whatsapp-container">
+                        <!-- Header -->
+                        <div class="whatsapp-header">
+                            <div class="whatsapp-avatar">
+                                <i class="fas fa-user"></i>
+                            </div>
+                            <div class="whatsapp-info">
+                                <h5>@Model.ConversationId</h5>
+                                <span>@(Model.Messages?.Count ?? 0) messages</span>
+                            </div>
+                        </div>
+
+                        <!-- Messages -->
+                        <div class="whatsapp-messages" id="messagesContainer">
+                            @if (Model.Messages != null && Model.Messages.Any())
+                            {
+                                @foreach (var message in Model.Messages)
+                                {
+                                    var isUser = message.MessageType == "User";
+                                    var isBot = message.MessageType == "Bot";
+                                    var isAgent = message.MessageType == "Agent";
+                                    
+                                    <div class="message-row @(isUser ? "user" : isBot ? "bot" : "agent")">
+                                        <div class="message-bubble">
+                                            @if (!isUser)
+                                            {
+                                                <div class="message-sender">@message.SenderName</div>
+                                            }
+                                            <div class="message-text">@message.MessageText</div>
+                                            <div class="message-time">
+                                                @message.SentAt.ToString("HH:mm")
+                                                @if (isUser)
+                                                {
+                                                    <i class="fas fa-check-double ml-1"></i>
+                                                }
+                                            </div>
+                                        </div>
+                                    </div>
+                                }
+                            }
+                            else
+                            {
+                                <div class="text-center py-5">
+                                    <p class="text-muted">No messages yet</p>
+                                </div>
+                            }
+                        </div>
+
+                        <!-- Input -->
+                        <div class="whatsapp-input">
+                            <input type="text" id="messageInput" placeholder="Type a message..." onkeypress="handleKeyPress(event)">
+                            <button onclick="sendMessage()">
+                                <i class="fas fa-paper-plane"></i>
+                            </button>
+                        </div>
+
+                        <!-- Quick Replies -->
+                        <div class="px-4 pb-3">
+                            <div class="quick-replies">
+                                <button class="quick-reply-btn" onclick="sendQuickResponse('Thank you for your message. I\'ll help you with that.')">
+                                    Thank you
+                                </button>
+                                <button class="quick-reply-btn" onclick="sendQuickResponse('I understand. Let me check that for you.')">
+                                    Checking...
+                                </button>
+                                <button class="quick-reply-btn" onclick="sendQuickResponse('Is there anything else I can help with?')">
+                                    Anything else?
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Transfer Modal -->
+<div class="modal fade" id="transferModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Transfer Conversation</h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="transferAgent">Select Agent:</label>
+                    <select class="form-control" id="transferAgent">
+                        <option value="">Loading agents...</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="transferReason">Reason:</label>
+                    <textarea class="form-control" id="transferReason" rows="3" placeholder="Reason for transfer..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="confirmTransfer()">Transfer</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Notes Modal -->
+<div class="modal fade" id="notesModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add Notes</h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="notesText">Notes:</label>
+                    <textarea class="form-control" id="notesText" rows="4" placeholder="Add your notes here..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="saveNotes()">Save Notes</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        if (window.FeatureGate) {
+            FeatureGate.requireFeature('customapi', 'Chatbot Conversations');
+        }
+    });
+    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/7.0.5/signalr.min.js"></script>
+    <script>
+        const conversationId = "@Model.ConversationId";
+        console.log("DEBUG: conversationId =", conversationId);
+        let connection;
+
+        // Initialize SignalR connection
+        $(document).ready(function() {
+            // Scroll to bottom first
+            scrollToBottom();
+            
+            // Setup SignalR
+            setupSignalR();
+        });
+        
+        function setupSignalR() {
+            try {
+                connection = new signalR.HubConnectionBuilder()
+                    .withUrl("/chatHub")
+                    .withAutomaticReconnect([0, 2000, 5000, 10000, 30000])
+                    .configureLogging(signalR.LogLevel.Information)
+                    .build();
+
+                // Handle incoming user messages
+                connection.on("ReceiveMessage", function (data) {
+                    console.log("Received message via SignalR:", data);
+                    if (data.conversationId === conversationId) {
+                        // Reload page to show new message
+                        location.reload();
+                    }
+                });
+                
+                // Handle agent messages (for confirmation)
+                connection.on("ReceiveAgentMessage", function (data) {
+                    console.log("Received agent message confirmation:", data);
+                });
+
+                // Start connection
+                connection.start()
+                    .then(function () {
+                        console.log("SignalR Connected!");
+                        // Join the SAME session group as the user (using SessionGuid)
+                        return connection.invoke("JoinSession", conversationId);
+                    })
+                    .then(function () {
+                        console.log("Joined session group:", conversationId);
+                    })
+                    .catch(function (err) {
+                        console.error("SignalR Error:", err.toString());
+                    });
+
+                // Handle reconnection
+                connection.onreconnecting(function (error) {
+                    console.warn("SignalR reconnecting...", error);
+                });
+                
+                connection.onreconnected(function (connectionId) {
+                    console.log("SignalR reconnected!");
+                    // Rejoin session after reconnect
+                    connection.invoke("JoinSession", conversationId)
+                        .catch(function (err) {
+                            console.error("Error rejoining session:", err.toString());
+                        });
+                });
+
+            } catch (err) {
+                console.error("Failed to setup SignalR:", err);
+            }
+        }
+
+        function sendMessage() {
+            const input = document.getElementById("messageInput");
+            const message = input.value.trim();
+            
+            console.log("DEBUG sendMessage: conversationId =", conversationId);
+            console.log("DEBUG sendMessage: message =", message);
+            
+            if (!conversationId) {
+                Swal.fire('Error', 'Conversation ID is empty!', 'error');
+                return;
+            }
+            
+            if (message) {
+                console.log("DEBUG sendMessage: Sending request with sessionGuid:", conversationId);
+                
+                // Send via API to store in database
+                fetch('/ChatbotDashboard/SendMessage', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val()
+                    },
+                    body: JSON.stringify({
+                        sessionGuid: conversationId,
+                        message: message
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Clear input
+                        input.value = "";
+                        // Reload page to show new message
+                        location.reload();
+                    } else {
+                        Swal.fire('Error', 'Error sending message: ' + data.error, 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error sending message:', error);
+                    Swal.fire('Error', 'Error sending message', 'error');
+                });
+            }
+        }
+
+        function sendQuickResponse(message) {
+            document.getElementById("messageInput").value = message;
+            sendMessage();
+        }
+
+        function handleKeyPress(event) {
+            if (event.key === "Enter") {
+                sendMessage();
+            }
+        }
+
+        function addMessage(messageData) {
+            const container = document.getElementById("messagesContainer");
+            const isUser = messageData.senderType === 'User';
+            const isAgent = messageData.senderType === 'Agent';
+            const bubbleTypeClass = isAgent ? 'agent-bubble' : (isUser ? 'user-bubble' : 'bot-bubble');
+            
+            const messageHtml = `
+                <div class="message ${isUser ? 'user-message' : (isAgent ? 'agent-message' : 'bot-message')}" data-message-id="${messageData.id}">
+                    <div class="chat-row">
+                        <div class="chat-bubble ${bubbleTypeClass} slide-in-bottom">
+                            <div class="sender">${messageData.senderName}</div>
+                            <div class="text">${messageData.message}</div>
+                            <div class="time">
+                                ${new Date(messageData.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            container.insertAdjacentHTML('beforeend', messageHtml);
+            scrollToBottom();
+        }
+
+        function scrollToBottom() {
+            const container = document.getElementById("messagesContainer");
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function refreshMessages() {
+            location.reload();
+        }
+
+        function resolveConversation() {
+            Swal.fire({
+                title: 'Confirm',
+                text: 'Are you sure you want to mark this conversation as resolved?',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'Yes, resolve it'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    fetch(`/api/RealTimeChat/conversations/${conversationId}/resolve`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        }
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            Swal.fire('Resolved', 'Conversation marked as resolved', 'success').then(() => {
+                                location.href = "/ChatbotDashboard/Index";
+                            });
+                        } else {
+                            Swal.fire('Error', 'Failed to resolve conversation: ' + data.error, 'error');
+                        }
+                    })
+                    .catch(error => {
+                        console.error("Error resolving conversation:", error);
+                        Swal.fire('Error', 'Error resolving conversation', 'error');
+                    });
+                }
+            });
+        }
+
+        function transferConversation() {
+            // Load online agents
+            fetch('/api/RealTimeChat/online-agents')
+                .then(response => response.json())
+                .then(data => {
+                    const select = document.getElementById("transferAgent");
+                    select.innerHTML = '<option value="">Select an agent...</option>';
+                    
+                    if (data.success && data.data) {
+                        data.data.forEach(agent => {
+                            if (agent.agentId !== getCurrentUserId()) {
+                                select.innerHTML += `<option value="${agent.agentId}">${agent.agentName} (${agent.currentStatus})</option>`;
+                            }
+                        });
+                    }
+                })
+                .catch(error => console.error("Error loading agents:", error));
+
+            $('#transferModal').modal('show');
+        }
+
+        function confirmTransfer() {
+            const agentId = document.getElementById("transferAgent").value;
+            const reason = document.getElementById("transferReason").value;
+            
+            if (!agentId) {
+                Swal.fire('Selection Required', 'Please select an agent', 'warning');
+                return;
+            }
+
+            fetch(`/api/RealTimeChat/conversations/${conversationId}/transfer`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    agentId: parseInt(agentId),
+                    reason: reason
+                })
+            })
+            .then(response => response.json())                .then(data => {
+                    if (data.success) {
+                        Swal.fire('Transferred', 'Conversation transferred successfully', 'success').then(() => {
+                            $('#transferModal').modal('hide');
+                            location.href = "/ChatbotDashboard/Index";
+                        });
+                    } else {
+                        Swal.fire('Error', 'Failed to transfer conversation: ' + data.error, 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error("Error transferring conversation:", error);
+                    Swal.fire('Error', 'Error transferring conversation', 'error');
+                });
+        }
+
+        function escalateConversation() {
+            Swal.fire({
+                title: 'Confirm',
+                text: 'Are you sure you want to escalate this conversation?',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'Yes, escalate it'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    fetch(`/api/RealTimeChat/conversations/${conversationId}/escalate`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        }
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            Swal.fire('Escalated', 'Conversation escalated successfully', 'success');
+                            location.reload();
+                        } else {
+                            Swal.fire('Error', 'Failed to escalate conversation: ' + data.error, 'error');
+                        }
+                    })
+                    .catch(error => {
+                        console.error("Error escalating conversation:", error);
+                        Swal.fire('Error', 'Error escalating conversation', 'error');
+                    });
+                }
+            });
+        }
+
+        function addNotes() {
+            $('#notesModal').modal('show');
+        }
+
+        function saveNotes() {
+            const notes = document.getElementById("notesText").value;
+            
+            if (!notes.trim()) {
+                Swal.fire('Input Required', 'Please enter notes', 'warning');
+                return;
+            }
+
+            fetch(`/api/RealTimeChat/conversations/${conversationId}/notes`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    notes: notes
+                })
+            })
+            .then(response => response.json())                .then(data => {
+                    if (data.success) {
+                        Swal.fire('Saved', 'Notes saved successfully', 'success').then(() => {
+                            $('#notesModal').modal('hide');
+                            location.reload();
+                        });
+                    } else {
+                        Swal.fire('Error', 'Failed to save notes: ' + data.error, 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error("Error saving notes:", error);
+                    Swal.fire('Error', 'Error saving notes', 'error');
+                });
+        }
+
+        function getCurrentUserId() {
+            return @ViewBag.CurrentUserId;
+        }
+    </script>
+    <style>
+    /* Chat container */
+        border: 2px solid var(--crm-primary, #DC2626);
+        border-radius: 12px;
+        background-color: #FFFFFF;
+        box-shadow: inset 0 2px 10px rgba(0,0,0,0.03);
+        scroll-behavior: smooth;
+    
+    /* Each message row */
+    .chat-row {
+        display: flex;
+        width: 100%;
+        margin-bottom: 15px;
+    }
+
+    /* LEFT SIDE (User + Bot) */
+    .user-message .chat-row,
+    .bot-message .chat-row {
+        justify-content: flex-start;
+    }
+
+    /* RIGHT SIDE (Agent) */
+    .agent-message .chat-row {
+        justify-content: flex-end;
+    }
+
+    /* Chat bubble base */
+    .chat-bubble {
+        max-width: 65%;
+        padding: 12px 16px;
+        border-radius: 16px;
+        color: #FFFFFF;
+        word-wrap: break-word;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        transition: transform 0.2s ease;
+    }
+    
+    .chat-bubble:hover {
+        transform: translateY(-2px);
+    }
+
+    /* Dynamic bubble colors from CRM theme */
+    .agent-bubble {
+        background: linear-gradient(135deg, var(--crm-teal, #1A6FA8) 0%, #125082 100%);
+        border-bottom-right-radius: 4px;
+    }
+
+    .user-bubble {
+        background-color: #FFFFFF;
+        color: var(--crm-text, #1A2332);
+        border: 1px solid var(--crm-border, #E2E8F0);
+        border-bottom-left-radius: 4px;
+    }
+    
+    .bot-bubble {
+        background: linear-gradient(135deg, var(--crm-secondary, #F59E0B) 0%, #F59E0B 100%);
+        border-bottom-left-radius: 4px;
+    }
+
+    /* Sender name */
+    .chat-bubble .sender {
+        font-weight: 700;
+        font-size: 12px;
+        margin-bottom: 4px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        opacity: 0.9;
+    }
+    
+    .user-bubble .sender {
+        color: var(--crm-primary, #DC2626);
+    }
+
+    /* Message text */
+    .chat-bubble .text {
+        font-size: 14px;
+        line-height: 1.5;
+    }
+
+    /* Time */
+    .chat-bubble .time {
+        font-size: 10px;
+        text-align: right;
+        margin-top: 6px;
+        opacity: 0.7;
+    }
+    
+    /* Animation for new messages */
+    @@keyframes slideInBottom {
+        from {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    .slide-in-bottom {
+        animation: slideInBottom 0.3s cubic-bezier(0.25, 0.8, 0.25, 1) forwards;
+    }
+    </style>
+}
+

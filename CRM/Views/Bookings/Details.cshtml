@@ -1,0 +1,558 @@
+@model CRM.Models.BookingModel
+@{
+    ViewData["Title"] = "Booking Details";
+    var lead         = Model.Lead;
+    var property     = Model.Property;
+    var flat         = Model.Flat;
+    var documents    = ViewBag.Documents   as List<CRM.Models.BookingDocumentModel>   ?? new List<CRM.Models.BookingDocumentModel>();
+    var paymentPlan  = ViewBag.PaymentPlan as CRM.Models.PaymentPlanModel;
+    var installments = ViewBag.Installments as List<CRM.Models.PaymentInstallmentModel> ?? new List<CRM.Models.PaymentInstallmentModel>();
+
+    var companyName    = ViewBag.CompanyName?.ToString()    ?? "Company Name";
+    var companyAddress = ViewBag.CompanyAddress?.ToString() ?? "Company Address";
+    var companyPhone   = ViewBag.CompanyPhone?.ToString()   ?? "Phone";
+    var companyEmail   = ViewBag.CompanyEmail?.ToString()   ?? "Email";
+    var companyGst     = ViewBag.CompanyGST?.ToString()     ?? "GST Number";
+
+    var flatAreaText =
+        flat?.AreaSqft.HasValue == true ? flat.AreaSqft.Value.ToString("N0") :
+        !string.IsNullOrWhiteSpace(flat?.Area) ? flat!.Area! : "N/A";
+    var floorText =
+        !string.IsNullOrWhiteSpace(flat?.FloorNumber) ? flat!.FloorNumber! :
+        !string.IsNullOrWhiteSpace(flat?.FloorName)   ? flat!.FloorName!   : "N/A";
+
+    var milestonePaid        = paymentPlan?.PaidAmount ?? 0m;
+    var displayedOutstanding = Math.Max(Model.TotalAmount - Model.BookingAmount - milestonePaid, 0m);
+    var totalPaid            = milestonePaid;
+}
+
+<style>
+/* =============================================
+   BOOKING DETAILS — COMPACT DESIGN
+   #D4A45A (gold)  ·  #1A6FA8 (blue)
+   ============================================= */
+:root{
+    --dg:#D4A45A; --dgl:rgba(212,164,90,.14); --dgd:#B8883E;
+    --db:#1A6FA8; --dbl:rgba(26,111,168,.10); --dbd:#125082;
+    --dbor:rgba(26,111,168,.14);
+    --dtx:#1E2A3A; --dmu:#6B7B8D;
+    --dbg:#F0F4F8; --dcb:#FFFFFF;
+    --dr:9px; --drs:5px;
+}
+
+/* ── Wrapper ── */
+.bd-wrap{
+    max-width:900px;margin:0 auto;
+    background:var(--dcb);
+    box-shadow:0 2px 16px rgba(26,111,168,.12);
+    border-radius:var(--dr);
+    overflow:hidden;
+}
+html.dark-mode .bd-wrap{background:#1E2A3A!important;box-shadow:0 2px 16px rgba(0,0,0,.3)!important;}
+
+/* ── Action bar ── */
+.bd-abar{
+    background:linear-gradient(135deg,var(--db) 0%,var(--dbd) 100%);
+    padding:9px 14px;display:flex;justify-content:space-between;align-items:center;gap:6px;
+}
+.bd-abtn{
+    background:rgba(255,255,255,.15);border:1.5px solid rgba(255,255,255,.25);
+    color:#FFFFFF;padding:4px 11px;border-radius:14px;font-size:.72rem;font-weight:600;
+    display:inline-flex;align-items:center;gap:4px;cursor:pointer;transition:all .15s;
+    text-decoration:none;
+}
+.bd-abtn:hover{background:rgba(255,255,255,.28);border-color:rgba(255,255,255,.45);color:#FFFFFF;}
+
+/* ── Print section ── */
+.bd-print{padding:18px 20px;}
+html.dark-mode .bd-print{background:#1E2A3A!important;color:#E2E8F0!important;}
+
+/* ── Company header ── */
+.bd-co-hdr{
+    text-align:center;
+    border-bottom:2px solid var(--db);
+    padding-bottom:10px;margin-bottom:14px;
+}
+.bd-co-name{color:var(--db);font-size:1.1rem;font-weight:800;margin-bottom:3px;}
+.bd-co-info{font-size:.72rem;color:var(--dmu);margin-bottom:1px;}
+html.dark-mode .bd-co-info{color:#8FA3B8!important;}
+
+/* ── Booking number strip ── */
+.bd-bnum{
+    background:linear-gradient(135deg,var(--db) 0%,var(--dbd) 100%);
+    color:#FFFFFF;padding:8px 14px;border-radius:var(--drs);
+    font-size:.88rem;font-weight:800;display:flex;
+    align-items:center;justify-content:space-between;
+    margin-bottom:12px;
+}
+
+/* ── Status badges ── */
+.status-badge{padding:2px 9px;border-radius:10px;font-size:.62rem;font-weight:700;display:inline-block;}
+.status-pending  {background:rgba(245,158,11,.14);color:#B45309;border:1px solid rgba(245,158,11,.22);}
+.status-confirmed{background:rgba(22,163,74,.12);color:#16A34A;border:1px solid rgba(22,163,74,.22);}
+.status-cancelled{background:rgba(220,38,38,.12);color:#DC2626;border:1px solid rgba(220,38,38,.2);}
+.status-completed{background:rgba(26,111,168,.12);color:var(--db);border:1px solid rgba(26,111,168,.2);}
+
+/* ── Two-col header grid ── */
+.bd-top-grid{display:grid;grid-template-columns:1fr auto;gap:10px;margin-bottom:12px;}
+.bd-dates-col{display:flex;flex-direction:column;gap:3px;text-align:right;}
+.bd-date-row{font-size:.72rem;color:var(--dtx);}
+.bd-date-row strong{color:var(--db);}
+
+/* ── Section cards ── */
+.bd-sec{
+    background:var(--dbg);border:1px solid var(--dbor);
+    border-radius:var(--drs);padding:10px 13px;margin-bottom:10px;
+}
+html.dark-mode .bd-sec{background:#2A3A4A!important;border-color:rgba(26,111,168,.22)!important;}
+
+.bd-sec-title{
+    font-size:.72rem;font-weight:800;color:var(--db);
+    text-transform:uppercase;letter-spacing:.06em;
+    display:flex;align-items:center;gap:5px;
+    margin-bottom:8px;padding-bottom:5px;
+    border-bottom:1px solid var(--dbor);
+}
+.bd-sec-title i{font-size:.65rem;}
+
+/* info grid inside sections */
+.bd-info-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:5px;}
+.bd-info-item{}
+.bd-info-lbl{font-size:.6rem;font-weight:700;color:var(--dmu);text-transform:uppercase;letter-spacing:.04em;margin-bottom:1px;}
+.bd-info-val{font-size:.76rem;font-weight:600;color:var(--dtx);}
+html.dark-mode .bd-info-val{color:#E2E8F0!important;}
+html.dark-mode .bd-info-lbl{color:#8FA3B8!important;}
+
+/* narrative text */
+.bd-narrative{font-size:.76rem;color:var(--dtx);line-height:1.65;}
+html.dark-mode .bd-narrative{color:#E2E8F0!important;}
+.bd-narrative strong{color:var(--db);}
+
+/* ── Payment summary strip ── */
+.bd-pay-strip{
+    background:linear-gradient(135deg,var(--db) 0%,var(--dbd) 100%);
+    border-radius:var(--drs);padding:9px 14px;
+    display:flex;flex-wrap:wrap;gap:12px;margin-bottom:10px;
+    align-items:center;justify-content:space-between;
+    color:#FFFFFF;
+}
+.bd-pay-item{text-align:center;}
+.bd-pay-label{font-size:.6rem;opacity:.75;margin-bottom:1px;}
+.bd-pay-val{font-size:.88rem;font-weight:800;}
+
+/* ── Installments table ── */
+.bd-tbl{width:100%;border-collapse:collapse;border-radius:var(--drs);overflow:hidden;font-size:.73rem;}
+.bd-tbl thead tr th{
+    background:var(--db);color:#FFFFFF;
+    padding:6px 8px;font-weight:700;font-size:.67rem;
+    text-align:left;
+}
+.bd-tbl tbody tr td{
+    padding:5px 8px;border-bottom:1px solid var(--dbor);
+    color:var(--dtx);
+}
+html.dark-mode .bd-tbl tbody tr td{color:#E2E8F0!important;border-bottom-color:rgba(26,111,168,.18)!important;}
+.bd-tbl tbody tr:last-child td{border-bottom:none;}
+.bd-tbl tbody tr:hover td{background:var(--dbl);}
+
+/* installment status */
+.ins-status{padding:1px 7px;border-radius:8px;font-size:.62rem;font-weight:700;display:inline-block;}
+.status-paid        {background:rgba(22,163,74,.13);color:#16A34A;border:1px solid rgba(22,163,74,.22);}
+.status-partial     {background:rgba(245,158,11,.13);color:#B45309;border:1px solid rgba(245,158,11,.22);}
+.status-pending-ins {background:rgba(245,158,11,.13);color:#B45309;border:1px solid rgba(245,158,11,.22);}
+.status-overdue     {background:rgba(220,38,38,.13);color:#DC2626;border:1px solid rgba(220,38,38,.2);}
+
+/* ── Documents ── */
+.bd-doc-item{
+    display:flex;align-items:center;justify-content:space-between;
+    background:var(--dcb);border:1px solid var(--dbor);
+    padding:6px 10px;border-radius:var(--drs);margin-bottom:4px;
+    font-size:.73rem;
+}
+html.dark-mode .bd-doc-item{background:#1E2A3A!important;border-color:rgba(26,111,168,.22)!important;color:#E2E8F0!important;}
+.bd-doc-btn{
+    background:var(--dbl);color:var(--db);border:1px solid rgba(26,111,168,.2);
+    border-radius:var(--drs);padding:2px 8px;font-size:.65rem;font-weight:600;
+    cursor:pointer;transition:all .14s;text-decoration:none;
+    display:inline-flex;align-items:center;gap:3px;
+}
+.bd-doc-btn:hover{background:var(--db);color:#FFFFFF;}
+
+/* ── Terms ── */
+.bd-terms{margin-top:12px;padding-top:10px;border-top:1px solid var(--dbor);}
+html.dark-mode .bd-terms{border-top-color:rgba(26,111,168,.22)!important;}
+.bd-terms-title{font-size:.7rem;font-weight:800;color:var(--db);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;}
+.bd-terms ul{padding-left:14px;margin-bottom:0;}
+.bd-terms ul li{font-size:.7rem;color:var(--dmu);margin-bottom:3px;line-height:1.5;}
+html.dark-mode .bd-terms ul li{color:#8FA3B8!important;}
+
+/* ── Footer ── */
+.bd-footer{text-align:center;margin-top:12px;padding-top:8px;border-top:1px solid var(--dbor);}
+.bd-footer p{font-size:.68rem;color:var(--dmu);margin-bottom:2px;}
+html.dark-mode .bd-footer p{color:#8FA3B8!important;}
+html.dark-mode .bd-terms{border-top-color:rgba(26,111,168,.2)!important;}
+
+/* ── Notes ── */
+.bd-notes{font-size:.73rem;color:var(--dtx);background:var(--dbg);border:1px solid var(--dbor);border-radius:var(--drs);padding:8px 10px;margin-bottom:10px;}
+html.dark-mode .bd-notes{background:#2A3A4A!important;color:#E2E8F0!important;border-color:rgba(26,111,168,.22)!important;}
+
+/* ── Mobile cards for installments ── */
+.bd-mob-ins{display:none;}
+@@media(max-width:640px){
+    .bd-tbl{display:none;}
+    .bd-mob-ins{display:block!important;}
+    .bd-mob-ic{
+        background:var(--dcb);border:1px solid var(--dbor);
+        border-radius:var(--drs);padding:8px 10px;margin-bottom:6px;
+    }
+    html.dark-mode .bd-mob-ic{background:#1E2A3A!important;border-color:rgba(26,111,168,.22)!important;}
+    .bd-mob-ic-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;}
+    .bd-mob-ic-num{font-size:.74rem;font-weight:800;color:var(--db);}
+    .bd-mob-ic-ms{font-size:.74rem;font-weight:700;color:var(--dtx);margin-bottom:4px;}
+    html.dark-mode .bd-mob-ic-ms{color:#E2E8F0!important;}
+    .bd-mob-ic-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px;}
+    .bd-mob-ic-lbl{font-size:.6rem;color:var(--dmu);}
+    .bd-mob-ic-val{font-size:.71rem;font-weight:700;color:var(--dtx);}
+    html.dark-mode .bd-mob-ic-val{color:#E2E8F0!important;}
+
+    .bd-abar{flex-wrap:wrap;}
+    .bd-abar>div{display:flex;gap:4px;}
+    .bd-abtn{font-size:.66rem;padding:3px 8px;flex:1;justify-content:center;}
+    .bd-print{padding:12px 13px;}
+    .bd-top-grid{grid-template-columns:1fr;}
+    .bd-dates-col{text-align:left;}
+}
+
+/* ── Print ── */
+@@media print{
+    .bd-abar,.no-print{display:none!important;}
+    .bd-wrap{box-shadow:none!important;background:white!important;}
+    .bd-print{padding:1rem;background:white!important;color:black!important;}
+    .bd-sec{background:#F0F4F8!important;}
+    .bd-narrative,.bd-info-val,.bd-date-row,.bd-doc-item,.bd-footer p,.bd-terms ul li{color:black!important;}
+    .bd-tbl tbody tr td{color:black!important;border-color:#E8EDF2!important;}
+    .bd-doc-item{background:#F0F4F8!important;border-color:#E8EDF2!important;}
+    .bd-terms{border-top-color:#E8EDF2!important;}
+}
+
+/* booking-pdf-mode (unchanged) */
+html.booking-pdf-mode #sidebar,html.booking-pdf-mode .sidebar,html.booking-pdf-mode .navbar,
+html.booking-pdf-mode .navbar-bg,html.booking-pdf-mode .sidebar-toggle,html.booking-pdf-mode #navbar-skeleton,
+html.booking-pdf-mode .global-search-container,html.booking-pdf-mode .global-search-overlay,
+html.booking-pdf-mode .offcanvas,html.booking-pdf-mode .modal-backdrop{display:none!important;}
+html.booking-pdf-mode .main{margin-left:0!important;width:100%!important;overflow:visible!important;}
+html.booking-pdf-mode main.content{padding-top:0!important;margin-top:0!important;overflow:visible!important;height:auto!important;}
+html.booking-pdf-mode,html.booking-pdf-mode body,html.booking-pdf-mode .wrapper,html.booking-pdf-mode .content{overflow:visible!important;overflow-x:hidden!important;height:auto!important;scrollbar-width:none!important;}
+html.booking-pdf-mode::-webkit-scrollbar,html.booking-pdf-mode body::-webkit-scrollbar,html.booking-pdf-mode .content::-webkit-scrollbar,html.booking-pdf-mode main.content::-webkit-scrollbar{display:none!important;width:0!important;height:0!important;}
+html.booking-pdf-mode .bd-wrap{box-shadow:none!important;}
+</style>
+
+<div class="content">
+<div class="bd-wrap">
+
+    <!-- Action Bar -->
+    <div class="bd-abar no-print">
+        <div>
+            <a href="/Bookings/Index" class="bd-abtn">
+                <i class="fa-solid fa-arrow-left"></i>Back to List
+            </a>
+        </div>
+        <div>
+                <a href="/bookingdetails/@IdObfuscator.Encode(Model.BookingId)" class="bd-abtn"
+               onclick="sessionStorage.setItem('bookingAutoPrint','1');">
+                <i class="fa-solid fa-download"></i>Download PDF
+            </a>
+        </div>
+    </div>
+
+    <!-- Printable content -->
+    <div class="bd-print">
+
+        <!-- Company header -->
+        <div class="bd-co-hdr">
+            <div class="bd-co-name">@companyName</div>
+            <div class="bd-co-info">@companyAddress</div>
+            <div class="bd-co-info"><i class="fa-solid fa-phone"></i> @companyPhone &nbsp;|&nbsp; <i class="fa-solid fa-envelope"></i> @companyEmail</div>
+            <div class="bd-co-info"><strong>GST: @companyGst</strong></div>
+        </div>
+
+        <!-- Booking number + status -->
+        <div class="bd-bnum">
+            <span><i class="fa-solid fa-file-contract me-2" style="color:rgba(212,164,90,.8);"></i>BOOKING CONFIRMATION: @Model.BookingNumber</span>
+            <span class="status-badge status-@Model.Status.ToLower()">@Model.Status</span>
+        </div>
+
+        <!-- Dates + Customer in 2-col -->
+        <div class="bd-top-grid">
+            <!-- Customer details -->
+            <div class="bd-sec" style="margin-bottom:0;">
+                <div class="bd-sec-title"><i class="fa-solid fa-user"></i>Customer Details</div>
+                <div class="bd-info-grid">
+                    <div class="bd-info-item">
+                        <div class="bd-info-lbl">Name</div>
+                        <div class="bd-info-val">@lead?.Name</div>
+                    </div>
+                    <div class="bd-info-item">
+                        <div class="bd-info-lbl">Contact</div>
+                        <div class="bd-info-val">@lead?.Contact</div>
+                    </div>
+                    <div class="bd-info-item" style="grid-column:1/-1;">
+                        <div class="bd-info-lbl">Email</div>
+                        <div class="bd-info-val" style="word-break:break-all;">@lead?.Email</div>
+                    </div>
+                </div>
+            </div>
+            <!-- Dates -->
+            <div class="bd-dates-col">
+                <div class="bd-date-row"><span style="color:var(--dmu);font-size:.62rem;">Booking Date</span><br><strong>@Model.BookingDate.ToString("dd MMM yyyy")</strong></div>
+                @if (Model.AgreementDate.HasValue)
+                {
+                    <div class="bd-date-row"><span style="color:var(--dmu);font-size:.62rem;">Agreement Date</span><br><strong>@Model.AgreementDate.Value.ToString("dd MMM yyyy")</strong></div>
+                }
+                @if (Model.PossessionDate.HasValue)
+                {
+                    <div class="bd-date-row"><span style="color:var(--dmu);font-size:.62rem;">Possession Date</span><br><strong>@Model.PossessionDate.Value.ToString("dd MMM yyyy")</strong></div>
+                }
+            </div>
+        </div>
+
+        <!-- Property details -->
+        <div class="bd-sec">
+            <div class="bd-sec-title"><i class="fa-solid fa-building"></i>Property Details</div>
+            <div class="bd-info-grid" style="margin-bottom:8px;">
+                <div class="bd-info-item">
+                    <div class="bd-info-lbl">Property</div>
+                    <div class="bd-info-val">@property?.PropertyName</div>
+                </div>
+                <div class="bd-info-item">
+                    <div class="bd-info-lbl">Location</div>
+                    <div class="bd-info-val">@property?.Location</div>
+                </div>
+                @if (!string.IsNullOrEmpty(property?.Developer))
+                {
+                    <div class="bd-info-item">
+                        <div class="bd-info-lbl">Developer</div>
+                        <div class="bd-info-val">@property.Developer</div>
+                    </div>
+                }
+                <div class="bd-info-item">
+                    <div class="bd-info-lbl">Flat</div>
+                    <div class="bd-info-val">@flat?.FlatName</div>
+                </div>
+                <div class="bd-info-item">
+                    <div class="bd-info-lbl">BHK / Floor</div>
+                    <div class="bd-info-val">@flat?.BHK — @floorText</div>
+                </div>
+                <div class="bd-info-item">
+                    <div class="bd-info-lbl">Area</div>
+                    <div class="bd-info-val">@flatAreaText sq.ft</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Payment summary strip -->
+        <div class="bd-pay-strip">
+            <div class="bd-pay-item">
+                <div class="bd-pay-label">Total Value</div>
+                <div class="bd-pay-val indian-currency" data-amount="@Model.TotalAmount">₹@Model.TotalAmount.ToString("N0")</div>
+            </div>
+            <div class="bd-pay-item">
+                <div class="bd-pay-label">Booking Amount</div>
+                <div class="bd-pay-val indian-currency" data-amount="@Model.BookingAmount">₹@Model.BookingAmount.ToString("N0")</div>
+            </div>
+            <div class="bd-pay-item">
+                <div class="bd-pay-label">Paid (Milestones)</div>
+                <div class="bd-pay-val indian-currency" data-amount="@totalPaid">₹@totalPaid.ToString("N0")</div>
+            </div>
+            <div class="bd-pay-item">
+                <div class="bd-pay-label">Outstanding</div>
+                <div class="bd-pay-val indian-currency" data-amount="@displayedOutstanding">₹@displayedOutstanding.ToString("N0")</div>
+            </div>
+            <div class="bd-pay-item">
+                <div class="bd-pay-label">Payment Type</div>
+                <div class="bd-pay-val">@Model.PaymentType</div>
+            </div>
+        </div>
+
+        <!-- Payment narrative -->
+        <div class="bd-sec">
+            <div class="bd-sec-title"><i class="fa-solid fa-receipt"></i>Payment Summary</div>
+            <p class="bd-narrative">
+                The total property value is <strong class="indian-currency" data-amount="@Model.TotalAmount">₹@Model.TotalAmount.ToString("N2")</strong>.
+                @if (Model.PaymentType == "FullPayment")
+                {
+                    <text>The customer has opted for <strong>Full Payment</strong> and has paid the entire amount of <strong class="indian-currency" data-amount="@Model.TotalAmount">₹@Model.TotalAmount.ToString("N2")</strong>.</text>
+                }
+                else
+                {
+                    <text>The customer has opted for <strong>EMI Payment</strong> plan.</text>
+                    if (paymentPlan != null)
+                    {
+                        if (totalPaid > 0)
+                        {
+                            <text> A total of <strong class="indian-currency" data-amount="@totalPaid">₹@totalPaid.ToString("N2")</strong> has been paid so far, and the outstanding balance is <strong class="indian-currency" data-amount="@displayedOutstanding">₹@displayedOutstanding.ToString("N2")</strong> under the <strong>@paymentPlan.PlanType</strong> plan.</text>
+                        }
+                        else
+                        {
+                            <text> The outstanding balance is <strong class="indian-currency" data-amount="@Model.TotalAmount">₹@displayedOutstanding.ToString("N2")</strong>. No payments have been made yet under the <strong>@paymentPlan.PlanType</strong> plan.</text>
+                        }
+                    }
+                }
+            </p>
+        </div>
+
+        <!-- EMI Schedule -->
+        @if (Model.PaymentType == "EMI" && installments.Any())
+        {
+            <div class="bd-sec">
+                <div class="bd-sec-title"><i class="fa-solid fa-calendar-days"></i>EMI Payment Schedule</div>
+
+                <!-- Desktop table -->
+                <table class="bd-tbl">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Milestone</th>
+                            <th>Due Date</th>
+                            <th class="text-end">Amount</th>
+                            <th class="text-end">Paid</th>
+                            <th class="text-center">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var installment in installments)
+                        {
+                            <tr>
+                                <td>@installment.InstallmentNumber</td>
+                                <td>@installment.MilestoneName</td>
+                                <td>@installment.DueDate.ToString("dd MMM yyyy")</td>
+                                <td class="text-end indian-currency" data-amount="@installment.Amount">₹@installment.Amount.ToString("N2")</td>
+                                <td class="text-end indian-currency" data-amount="@installment.PaidAmount">₹@installment.PaidAmount.ToString("N2")</td>
+                                <td class="text-center">
+                                    <span class="ins-status status-@installment.Status.ToLower()@(installment.Status=="Pending"?"-ins":"")">
+                                        @installment.Status
+                                    </span>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+
+                <!-- Mobile cards -->
+                <div class="bd-mob-ins">
+                    @foreach (var installment in installments)
+                    {
+                        <div class="bd-mob-ic">
+                            <div class="bd-mob-ic-hdr">
+                                <div class="bd-mob-ic-num">#@installment.InstallmentNumber</div>
+                                <span class="ins-status status-@installment.Status.ToLower()@(installment.Status=="Pending"?"-ins":"")">@installment.Status</span>
+                            </div>
+                            <div class="bd-mob-ic-ms">@installment.MilestoneName</div>
+                            <div class="bd-mob-ic-grid">
+                                <div><div class="bd-mob-ic-lbl">Due Date</div><div class="bd-mob-ic-val">@installment.DueDate.ToString("dd MMM yyyy")</div></div>
+                                <div><div class="bd-mob-ic-lbl">Amount</div><div class="bd-mob-ic-val indian-currency" data-amount="@installment.Amount">₹@installment.Amount.ToString("N2")</div></div>
+                                <div><div class="bd-mob-ic-lbl">Paid</div><div class="bd-mob-ic-val indian-currency" data-amount="@installment.PaidAmount">₹@installment.PaidAmount.ToString("N2")</div></div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+
+        <!-- Documents -->
+        @if (documents.Any())
+        {
+            <div class="bd-sec">
+                <div class="bd-sec-title"><i class="fa-solid fa-file-alt"></i>Uploaded Documents</div>
+                @foreach (var doc in documents)
+                {
+                    <div class="bd-doc-item">
+                        <div>
+                            <i class="fa-solid fa-file me-2" style="color:var(--db);font-size:.68rem;"></i>
+                            <strong>@doc.DocumentType:</strong> @doc.DocumentName
+                            <span style="font-size:.62rem;color:var(--dmu);margin-left:6px;">@doc.UploadedOn.ToString("dd MMM yyyy")</span>
+                        </div>
+                        <a href="@doc.FilePath" target="_blank" class="bd-doc-btn">
+                            <i class="fa-solid fa-download"></i>Download
+                        </a>
+                    </div>
+                }
+            </div>
+        }
+
+        <!-- Notes -->
+        @if (!string.IsNullOrEmpty(Model.Notes))
+        {
+            <div class="bd-sec">
+                <div class="bd-sec-title"><i class="fa-solid fa-sticky-note"></i>Notes</div>
+                <p class="bd-narrative" style="margin-bottom:0;">@Model.Notes</p>
+            </div>
+        }
+
+        <!-- Terms & Conditions -->
+        <div class="bd-terms">
+            <div class="bd-terms-title">Terms &amp; Conditions</div>
+            <ul>
+                <li>This booking is subject to the terms and conditions as per the agreement.</li>
+                <li>All payments should be made as per the payment schedule.</li>
+                <li>Property specifications are subject to change as per approved plans.</li>
+                <li>Possession date is tentative and subject to completion of construction.</li>
+                <li>All payments are non-refundable unless specified otherwise in the agreement.</li>
+            </ul>
+        </div>
+
+        <!-- Footer -->
+        <div class="bd-footer booking-footer">
+            <p>Thank you for choosing <strong>@companyName</strong></p>
+            <p>For any queries, contact us at @companyPhone or @companyEmail</p>
+        </div>
+
+    </div><!-- /bd-print -->
+</div><!-- /bd-wrap -->
+</div><!-- /content -->
+
+<script>
+    window.addEventListener('load', function () {
+        // Format Indian currency
+        document.querySelectorAll('.indian-currency').forEach(function(el){
+            var amount = parseFloat(el.dataset.amount);
+            if(isNaN(amount)) return;
+            var prefix = el.textContent.includes('Paid:') ? 'Paid: ' : '';
+            var numStr = Math.floor(amount).toString();
+            var lastThree = numStr.substring(numStr.length - 3);
+            var otherNumbers = numStr.substring(0, numStr.length - 3);
+            if(otherNumbers !== '') lastThree = ',' + lastThree;
+            var formatted = '₹' + otherNumbers.replace(/\B(?=(\d{2})+(?!\d))/g, ',') + lastThree;
+            el.textContent = prefix + formatted;
+        });
+
+        // Auto-print logic (backend unchanged)
+        var params = new URLSearchParams(window.location.search);
+        var shouldAutoPrint = params.get('autoPrint') === 'true' || sessionStorage.getItem('bookingAutoPrint') === '1';
+        if (!shouldAutoPrint) return;
+
+        sessionStorage.removeItem('bookingAutoPrint');
+        document.documentElement.classList.add('booking-pdf-mode');
+        document.body.classList.add('booking-pdf-mode');
+
+        if (window.location.search) {
+            history.replaceState({}, document.title, window.location.pathname);
+        }
+
+        var hasReloaded = false;
+        var reloadOnce = function () {
+            if (hasReloaded) return;
+            hasReloaded = true;
+            window.location.replace(window.location.pathname);
+        };
+
+        window.addEventListener('afterprint', function () {
+            setTimeout(reloadOnce, 120);
+        }, { once: true });
+
+        setTimeout(function () {
+            window.print();
+            setTimeout(reloadOnce, 2500);
+        }, 300);
+    });
+</script>

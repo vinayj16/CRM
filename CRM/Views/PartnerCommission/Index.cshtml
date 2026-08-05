@@ -1,0 +1,681 @@
+@model IEnumerable<dynamic>
+@{
+    ViewData["Title"] = "Partner Payouts";
+    Func<string, string> getFullMonthName = (abbr) => {
+        var monthMap = new Dictionary<string, string> {
+            {"Jan","January"},{"Feb","February"},{"Mar","March"},{"Apr","April"},
+            {"May","May"},{"Jun","June"},{"Jul","July"},{"Aug","August"},
+            {"Sep","September"},{"Oct","October"},{"Nov","November"},{"Dec","December"}
+        };
+        return monthMap.ContainsKey(abbr) ? monthMap[abbr] : abbr;
+    };
+}
+
+<style>
+/* =============================================
+   PARTNER PAYOUTS — COMPACT DESIGN
+   #D4A45A (gold)  ·  #1A6FA8 (blue)
+   ============================================= */
+:root{
+    --pp-g:#D4A45A; --pp-gl:rgba(212,164,90,.14); --pp-gd:#B8883E;
+    --pp-b:#1A6FA8; --pp-bl:rgba(26,111,168,.10); --pp-bd:#125082;
+    --pp-bor:rgba(26,111,168,.14);
+    --pp-tx:#1E2A3A; --pp-mu:#6B7B8D;
+    --pp-bg:#F0F4F8; --pp-cb:#FFFFFF;
+    --pp-r:9px; --pp-rs:5px;
+    --pp-sh:0 1px 5px rgba(26,111,168,.08);
+    --pp-shh:0 3px 12px rgba(26,111,168,.14);
+    --pp-green:#16A34A; --pp-red:#DC2626;
+}
+
+.breadcrumb {
+    padding:  0px !important;
+    margin-bottom:0px !important;
+    font-size: 0.9rem !important;
+    background-color: transparent !important;
+}
+.modal.show .modal-dialog {
+    transform: none !important;
+    width: 35% !important;
+}
+/* ── Header ── */
+.pp-hdr{
+    background:linear-gradient(135deg,var(--pp-b) 0%,var(--pp-bd) 100%);
+    border-radius:var(--pp-r);padding:12px 16px;margin-bottom:9px;
+    box-shadow:0 2px 10px rgba(26,111,168,.22);position:relative;overflow:hidden;
+}
+.pp-hdr::before{content:'';position:absolute;inset:0;
+    background:radial-gradient(circle at 82% 50%,rgba(212,164,90,.18) 0%,transparent 55%);pointer-events:none;}
+.pp-hdr-ic{width:34px;height:34px;flex-shrink:0;border-radius:7px;
+    background:rgba(212,164,90,.22);display:flex;align-items:center;justify-content:center;
+    color:rgba(232,194,126,.9);font-size:.95rem;}
+.pp-title{font-size:.88rem;font-weight:700;color:#FFFFFF;line-height:1.2;}
+.pp-sub  {font-size:.67rem;color:rgba(255,255,255,.58);}
+.pp-bc   {font-size:.64rem;margin-bottom:2px;}
+.pp-bc .breadcrumb{background:none;padding:0;margin:0;}
+.pp-bc .breadcrumb-item a{color:rgba(255,255,255) !important;text-decoration:none;}
+.pp-bc .breadcrumb-item.active{color:rgba(255,255,255,.8);}
+.pp-bc .breadcrumb-item+.breadcrumb-item::before{color:rgba(255,255,255,.35);}
+.breadcrumb-item.active {
+    color: #F0F4F8 !important;
+}
+/* stats strip */
+.pp-stats{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px;}
+.pp-stat{
+    flex:1;min-width:110px;background:rgba(255,255,255,.13);
+    border:1px solid rgba(255,255,255,.18);border-radius:var(--pp-rs);
+    padding:6px 10px;text-align:center;backdrop-filter:blur(8px);transition:background .15s;
+}
+.pp-stat:hover{background:rgba(255,255,255,.22);}
+.pp-stat-n{font-size:1.0rem;font-weight:800;color:#FFFFFF;line-height:1.1;margin-bottom:1px;}
+.pp-stat-l{font-size:.6rem;color:rgba(255,255,255,.7);text-transform:uppercase;letter-spacing:.04em;}
+
+/* header action buttons */
+.pp-hbtn{
+    background:rgba(255,255,255,.14);border:1.5px solid rgba(255,255,255,.22);
+    color:#FFFFFF;padding:4px 11px;border-radius:15px;font-size:.7rem;font-weight:600;
+    cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;gap:4px;white-space:nowrap;
+}
+.pp-hbtn:hover{background:rgba(255,255,255,.26);border-color:rgba(255,255,255,.45);color:#FFFFFF;}
+.pp-hbtn-gold{
+    background:linear-gradient(135deg,var(--pp-g) 0%,var(--pp-gd) 100%);
+    color:#FFFFFF;border:none;border-radius:var(--pp-rs);
+    padding:4px 13px;font-size:.7rem;font-weight:700;
+    cursor:pointer;box-shadow:0 2px 7px rgba(212,164,90,.28);transition:all .15s;
+    display:inline-flex;align-items:center;gap:4px;white-space:nowrap;
+}
+.pp-hbtn-gold:hover{box-shadow:0 3px 11px rgba(212,164,90,.42);transform:translateY(-1px);color:#FFFFFF;}
+
+/* ── Filter ── */
+.pp-filt{
+    background:var(--pp-cb);border:1px solid var(--pp-bor);
+    border-radius:var(--pp-r);padding:8px 12px;
+    margin-bottom:8px;box-shadow:var(--pp-sh);
+}
+.pp-lbl{font-size:.66rem;font-weight:700;color:var(--pp-tx);display:block;margin-bottom:2px;}
+.pp-inp,.pp-sel{
+    display:block;width:100%;padding:5px 8px;
+    font-size:.73rem;color:var(--pp-tx);background:#FFFFFF;
+    border:1.5px solid var(--pp-bor);border-radius:var(--pp-rs);
+    outline:none;transition:border-color .14s,box-shadow .14s;line-height:1.4;
+}
+.pp-inp:focus,.pp-sel:focus{border-color:var(--pp-b);box-shadow:0 0 0 2px var(--pp-bl);}
+
+/* ── Payout Cards ── */
+.payout-card{
+    background:var(--pp-cb);border:1px solid var(--pp-bor);
+    border-radius:var(--pp-r);padding:8px 11px;margin-bottom:5px;
+    box-shadow:var(--pp-sh);transition:transform .14s,box-shadow .14s;
+    position:relative;overflow:visible!important;z-index:1;
+}
+.payout-card:hover{transform:translateY(-1px);box-shadow:var(--pp-shh);}
+.payout-card:has(.dropdown.show),.payout-card.dropdown-active{z-index:9999!important;}
+.payout-card .dropdown{position:static!important;}
+.payout-card .dropdown-menu{z-index:999999!important;position:absolute!important;font-size:.76rem;}
+.dropdown-menu.show{z-index:999999!important;}
+.dropdown-menu{z-index:999999!important;}
+
+/* card content */
+.pp-co-name{font-size:.82rem;font-weight:700;color:var(--pp-b);display:flex;align-items:center;gap:5px;margin-bottom:2px;}
+.pp-period  {font-size:.68rem;color:var(--pp-mu);display:flex;align-items:center;gap:3px;}
+
+.pp-meta-lbl{font-size:.6rem;color:var(--pp-mu);margin-bottom:1px;}
+.pp-meta-val{font-size:.78rem;font-weight:700;color:var(--pp-tx);}
+
+/* amounts */
+.pp-commission{font-size:.95rem;font-weight:800;color:var(--pp-green);}
+.pp-booking-amt{font-size:.78rem;font-weight:700;color:var(--pp-tx);}
+
+/* status badges */
+.status-badge{padding:2px 7px;border-radius:10px;font-size:.6rem;font-weight:700;border:1px solid transparent;display:inline-block;}
+.status-pending {background:rgba(245,158,11,.12);color:#B45309;border-color:rgba(245,158,11,.22);}
+.status-approved{background:rgba(22,163,74,.12);color:#16A34A;border-color:rgba(22,163,74,.22);}
+.status-paid    {background:rgba(26,111,168,.12);color:var(--pp-b);border-color:rgba(26,111,168,.2);}
+
+/* action btn */
+.pp-act-btn{
+    background:var(--pp-bl);color:var(--pp-b);border:1px solid rgba(26,111,168,.2);
+    border-radius:var(--pp-rs);padding:3px 7px;font-size:.65rem;cursor:pointer;transition:all .14s;
+}
+.pp-act-btn:hover{background:var(--pp-b);color:#FFFFFF;}
+
+/* ── Empty ── */
+.empty-state{text-align:center;padding:32px 20px;background:var(--pp-cb);border-radius:var(--pp-r);border:1px dashed var(--pp-bor);}
+.empty-state i{font-size:2.5rem;color:#E2E8F0;display:block;margin-bottom:10px;}
+.empty-state h3{font-size:.88rem;font-weight:700;color:var(--pp-tx);margin-bottom:3px;}
+.empty-state p{font-size:.72rem;color:var(--pp-mu);margin-bottom:10px;}
+
+/* ── Modal ── */
+.pp-mc  {border:1px solid var(--pp-bor);border-radius:var(--pp-r);overflow:hidden;box-shadow:0 6px 28px rgba(26,111,168,.18);}
+.pp-mh  {background:linear-gradient(135deg,var(--pp-b) 0%,var(--pp-bd) 100%);padding:10px 14px;display:flex;align-items:center;justify-content:space-between;color:#FFFFFF;}
+.pp-mh .modal-title{font-size:.86rem;font-weight:700;color:#FFFFFF;}
+.pp-mhic{width:25px;height:25px;background:rgba(212,164,90,.25);border-radius:5px;display:flex;align-items:center;justify-content:center;color:rgba(232,194,126,.9);font-size:.72rem;}
+.pp-mclose{background:rgba(255,255,255,.12);border:none;color:#FFFFFF;width:23px;height:23px;border-radius:4px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:.68rem;transition:background .14s;}
+.pp-mclose:hover{background:rgba(255,255,255,.22);}
+.pp-mb  {padding:12px 14px;background:var(--pp-bg);max-height:65vh;overflow-y:auto;}
+.pp-mf  {padding:8px 14px;background:#FFFFFF;border-top:1px solid var(--pp-bor);display:flex;justify-content:flex-end;gap:6px;}
+
+/* calc summary */
+.pp-calc-sum{
+    background:linear-gradient(135deg,var(--pp-b) 0%,var(--pp-bd) 100%);
+    color:#FFFFFF;padding:10px 14px;border-radius:var(--pp-rs);margin-bottom:10px;
+}
+.pp-calc-sum h5{font-size:.82rem;font-weight:700;margin-bottom:1px;}
+.pp-calc-sum p{font-size:.68rem;opacity:.78;margin-bottom:0;}
+.pp-calc-sum h4{font-size:.95rem;font-weight:800;margin-bottom:1px;}
+
+/* calc table */
+.pp-calc-tbl{width:100%;border-collapse:collapse;border-radius:var(--pp-rs);overflow:hidden;font-size:.72rem;}
+.pp-calc-tbl thead th{background:var(--pp-b);color:#FFFFFF;padding:5px 8px;font-weight:700;font-size:.65rem;}
+.pp-calc-tbl tbody td{padding:5px 8px;border-bottom:1px solid var(--pp-bor);color:var(--pp-tx);}
+.pp-calc-tbl tfoot th{background:rgba(22,163,74,.13);color:#16A34A;padding:5px 8px;font-size:.72rem;}
+
+/* modal footer buttons */
+.pp-mcancel{background:#F0F4F8;color:var(--pp-mu);border:1px solid #E2E8F0;border-radius:var(--pp-rs);padding:5px 13px;font-size:.76rem;font-weight:600;cursor:pointer;transition:all .14s;}
+.pp-mcancel:hover{background:#E2E8F0;}
+.pp-maction{border:none;border-radius:var(--pp-rs);padding:5px 14px;font-size:.76rem;font-weight:700;cursor:pointer;box-shadow:0 2px 7px rgba(26,111,168,.22);transition:all .14s;}
+.pp-maction-approve{background:linear-gradient(135deg,var(--pp-green) 0%,#16A34A 100%);color:#FFFFFF;}
+.pp-maction-paid   {background:linear-gradient(135deg,var(--pp-b) 0%,var(--pp-bd) 100%);color:#FFFFFF;}
+
+/* ── Dark Mode ── */
+html.dark-mode{
+    --pp-tx:#E2E8F0; --pp-mu:#8FA3B8;
+    --pp-bg:#121F2E; --pp-cb:#1E2A3A;
+    --pp-bor:rgba(26,111,168,.22);
+    --pp-sh:0 1px 5px rgba(0,0,0,.28); --pp-shh:0 3px 12px rgba(0,0,0,.42);
+}
+html.dark-mode .payout-card,
+html.dark-mode .pp-filt,
+html.dark-mode .empty-state{background:#1E2A3A;border-color:rgba(26,111,168,.22);}
+html.dark-mode .pp-inp,html.dark-mode .pp-sel{background:#1E2A3A;color:var(--pp-tx);border-color:rgba(26,111,168,.25);}
+html.dark-mode .pp-lbl{color:var(--pp-tx);}
+html.dark-mode .pp-mc{background:#1E2A3A;}
+html.dark-mode .pp-mb{background:#121F2E;}
+html.dark-mode .pp-mf{background:#1E2A3A;border-color:rgba(26,111,168,.22);}
+html.dark-mode .pp-calc-tbl tbody td{color:#E2E8F0!important;border-color:rgba(26,111,168,.18)!important;}
+html.dark-mode .dropdown-menu{background:#1E2A3A!important;border-color:rgba(26,111,168,.25)!important;}
+html.dark-mode .dropdown-item{color:#E2E8F0!important;}
+html.dark-mode .dropdown-item:hover{background:rgba(26,111,168,.18)!important;}
+html.dark-mode .dropdown-divider{border-color:rgba(26,111,168,.22)!important;}
+html.dark-mode .pp-meta-val{color:#E2E8F0;}
+html.dark-mode .pp-booking-amt{color:#E2E8F0;}
+html.dark-mode .pp-mcancel{background:#2A3A4A;color:var(--pp-mu);border-color:rgba(26,111,168,.22);}
+html.dark-mode .pp-mcancel:hover{background:#2A3A4A;}
+html.dark-mode .status-pending {background:rgba(245,158,11,.18);}
+html.dark-mode .status-approved{background:rgba(22,163,74,.18);}
+html.dark-mode .status-paid    {background:rgba(26,111,168,.18);}
+
+/* Mobile layout */
+.payout-card>.card-body>.row{display:flex;}
+.payout-card .mobile-layout{display:none!important;}
+@@media(max-width:767px){
+    .payout-card>.card-body>.row{display:none!important;}
+    .payout-card .mobile-layout{display:block!important;}
+    .payout-card{padding:7px 9px;}
+    .pp-stats{gap:5px;}
+    .pp-stat{min-width:90px;padding:5px 7px;}
+    .pp-stat-n{font-size:.9rem;}
+    .pp-hdr{padding:9px 11px;}
+    .pp-hdr .d-flex.gap-2{flex-wrap:wrap;gap:4px!important;}
+}
+@@media(max-width:575px){
+    .pp-title{font-size:.8rem;}
+    .pp-hbtn,.pp-hbtn-gold{font-size:.65rem;padding:3px 8px;}
+}
+</style>
+
+<div class="content">
+
+<!-- ── Header ── -->
+<div class="pp-hdr">
+    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
+        <div class="d-flex align-items-center gap-2">
+            <div class="pp-hdr-ic"><i class="fa-solid fa-handshake"></i></div>
+            <div>
+                <nav class="pp-bc" aria-label="breadcrumb">
+                    <ol class="breadcrumb mb-0">
+                        <li class="breadcrumb-item"><a href="/Home">Home</a></li>
+                        <li class="breadcrumb-item active">Partner Payouts</li>
+                    </ol>
+                </nav>
+                <div class="pp-title">Partner Payouts</div>
+                <div class="pp-sub">Manage partner commissions and payouts</div>
+            </div>
+        </div>
+        <div class="d-flex flex-wrap gap-2 align-items-center">
+            <button class="pp-hbtn" onclick="resetPayoutStatuses()">
+                <i class="fa-solid fa-refresh"></i>Reset Statuses
+            </button>
+            <button class="pp-hbtn-gold" onclick="processPayments()">
+                <i class="fa-solid fa-cogs"></i>Process Payments
+            </button>
+        </div>
+    </div>
+    <!-- Stats -->
+    <div class="pp-stats">
+        <div class="pp-stat">
+            <div class="pp-stat-n">@ViewBag.TotalPartners</div>
+            <div class="pp-stat-l">Partners</div>
+        </div>
+        <div class="pp-stat">
+            <div class="pp-stat-n">@ViewBag.TotalSales</div>
+            <div class="pp-stat-l">Total Sales</div>
+        </div>
+        <div class="pp-stat">
+            <div class="pp-stat-n">₹@ViewBag.TotalCommission.ToString("N0")</div>
+            <div class="pp-stat-l">Commission</div>
+        </div>
+        <div class="pp-stat">
+            <div class="pp-stat-n">₹@ViewBag.TotalPayouts.ToString("N0")</div>
+            <div class="pp-stat-l">Payouts</div>
+        </div>
+    </div>
+</div>
+
+<!-- ── Filter ── -->
+<div class="pp-filt">
+    <div class="row g-2 align-items-end">
+        <div class="col-6 col-sm-3 col-md-3">
+            <label class="pp-lbl">Month</label>
+            <select class="pp-sel" id="month" onchange="filterByMonthYear()">
+                <option value="">All Months</option>
+                <option value="Jan" selected="@(ViewBag.SelectedMonth=="Jan")">January</option>
+                <option value="Feb" selected="@(ViewBag.SelectedMonth=="Feb")">February</option>
+                <option value="Mar" selected="@(ViewBag.SelectedMonth=="Mar")">March</option>
+                <option value="Apr" selected="@(ViewBag.SelectedMonth=="Apr")">April</option>
+                <option value="May" selected="@(ViewBag.SelectedMonth=="May")">May</option>
+                <option value="Jun" selected="@(ViewBag.SelectedMonth=="Jun")">June</option>
+                <option value="Jul" selected="@(ViewBag.SelectedMonth=="Jul")">July</option>
+                <option value="Aug" selected="@(ViewBag.SelectedMonth=="Aug")">August</option>
+                <option value="Sep" selected="@(ViewBag.SelectedMonth=="Sep")">September</option>
+                <option value="Oct" selected="@(ViewBag.SelectedMonth=="Oct")">October</option>
+                <option value="Nov" selected="@(ViewBag.SelectedMonth=="Nov")">November</option>
+                <option value="Dec" selected="@(ViewBag.SelectedMonth=="Dec")">December</option>
+            </select>
+        </div>
+        <div class="col-6 col-sm-2 col-md-2">
+            <label class="pp-lbl">Year</label>
+            <select class="pp-sel" id="year" onchange="filterByMonthYear()">
+                <option value="">All Years</option>
+                @for (int i = DateTime.Now.Year + 1; i >= DateTime.Now.Year - 5; i--)
+                {
+                    <option value="@i" selected="@(ViewBag.SelectedYear != null && ViewBag.SelectedYear == i)">@i</option>
+                }
+            </select>
+        </div>
+        <div class="col-sm-4 col-md-4">
+            <label class="pp-lbl">Search Partner</label>
+            <input type="text" class="pp-inp" id="search" placeholder="Company name..." oninput="filterBySearch()">
+        </div>
+        <div class="col-sm-3 col-md-3">
+            <label class="pp-lbl">Status</label>
+            <select class="pp-sel" id="statusFilter" onchange="filterByStatus()">
+                <option value=""   selected="@(string.IsNullOrEmpty(ViewBag.SelectedStatus))">All Status</option>
+                <option value="Pending"  selected="@(ViewBag.SelectedStatus=="Pending")">Pending</option>
+                <option value="Approved" selected="@(ViewBag.SelectedStatus=="Approved")">Approved</option>
+                <option value="Paid"     selected="@(ViewBag.SelectedStatus=="Paid")">Paid</option>
+            </select>
+        </div>
+    </div>
+</div>
+
+<!-- ── Payout Cards ── -->
+@if (Model.Any())
+{
+    foreach (var payout in Model)
+    {
+        <div class="card payout-card">
+            <div class="card-body" style="padding:0;">
+
+                <!-- Desktop row -->
+                <div class="row align-items-center g-0" style="padding:7px 10px;">
+                    <div class="col-md-3">
+                        <div class="pp-co-name">
+                            <i class="fa-solid fa-building" style="color:var(--pp-g);font-size:.68rem;"></i>
+                            @payout.Partner?.CompanyName
+                        </div>
+                        <div class="pp-period">
+                            <i class="fa-solid fa-calendar" style="font-size:.6rem;"></i>
+                            @payout.Month @payout.Year
+                        </div>
+                    </div>
+                    <div class="col-md-2 text-center">
+                        <div class="pp-meta-lbl">Commission Rate</div>
+                        <div class="pp-meta-val" style="color:var(--pp-b);">@payout.FixedCommissionPerSale%</div>
+                    </div>
+                    <div class="col-md-2 text-center">
+                        <div class="pp-meta-lbl">Total Sales</div>
+                        <div class="pp-meta-val">@payout.TotalSales Sales</div>
+                    </div>
+                    <div class="col-md-2 text-center">
+                        <div class="pp-meta-lbl">Booking Amount</div>
+                        <div class="pp-booking-amt">₹@payout.TotalBookingAmount.ToString("N0")</div>
+                    </div>
+                    <div class="col-md-2 text-center">
+                        <div class="pp-meta-lbl">Commission</div>
+                        <div class="pp-commission">₹@payout.TotalCommission.ToString("N0")</div>
+                        <span class="status-badge status-@payout.Status.ToLower()">@payout.Status</span>
+                    </div>
+                    <div class="col-md-1 text-end">
+                        <div class="dropdown">
+                            <button class="pp-act-btn" type="button" data-bs-toggle="dropdown">
+                                <i class="fa-solid fa-ellipsis-v"></i>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li>
+                                    <a class="dropdown-item" href="#" onclick="viewCalculation(@payout.PayoutId)">
+                                        <i class="fa-solid fa-calculator me-2"></i>View Calculation
+                                    </a>
+                                </li>
+                                @if (payout.Status == "Pending")
+                                {
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li>
+                                        <a class="dropdown-item text-success" href="#" onclick="approvePayout(@payout.PayoutId)">
+                                            <i class="fa-solid fa-check me-2"></i>Approve Payment
+                                        </a>
+                                    </li>
+                                }
+                                @if (payout.Status == "Approved")
+                                {
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li>
+                                        <a class="dropdown-item text-primary" href="#" onclick="markAsPaid(@payout.PayoutId)">
+                                            <i class="fa-solid fa-money-bill me-2"></i>Mark as Paid
+                                        </a>
+                                    </li>
+                                }
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Mobile layout -->
+                <div class="mobile-layout" style="padding:7px 9px;">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <div class="pp-co-name">
+                            <i class="fa-solid fa-building" style="color:var(--pp-g);font-size:.68rem;"></i>
+                            @payout.Partner?.CompanyName
+                        </div>
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="status-badge status-@payout.Status.ToLower()">@payout.Status</span>
+                            <div class="dropdown">
+                                <button class="pp-act-btn" type="button" data-bs-toggle="dropdown">
+                                    <i class="fa-solid fa-ellipsis-v"></i>
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end">
+                                    <li>
+                                        <a class="dropdown-item" href="#" onclick="viewCalculation(@payout.PayoutId)">
+                                            <i class="fa-solid fa-calculator me-2"></i>View Calculation
+                                        </a>
+                                    </li>
+                                    @if (payout.Status == "Pending")
+                                    {
+                                        <li><hr class="dropdown-divider"></li>
+                                        <li>
+                                            <a class="dropdown-item text-success" href="#" onclick="approvePayout(@payout.PayoutId)">
+                                                <i class="fa-solid fa-check me-2"></i>Approve Payment
+                                            </a>
+                                        </li>
+                                    }
+                                    @if (payout.Status == "Approved")
+                                    {
+                                        <li><hr class="dropdown-divider"></li>
+                                        <li>
+                                            <a class="dropdown-item text-primary" href="#" onclick="markAsPaid(@payout.PayoutId)">
+                                                <i class="fa-solid fa-money-bill me-2"></i>Mark as Paid
+                                            </a>
+                                        </li>
+                                    }
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="pp-period mb-2"><i class="fa-solid fa-calendar" style="font-size:.58rem;"></i>@payout.Month @payout.Year</div>
+                    <div class="row g-2">
+                        <div class="col-6">
+                            <div class="pp-meta-lbl">Commission Rate</div>
+                            <div class="pp-meta-val" style="color:var(--pp-b);">@payout.FixedCommissionPerSale%</div>
+                        </div>
+                        <div class="col-6">
+                            <div class="pp-meta-lbl">Total Sales</div>
+                            <div class="pp-meta-val">@payout.TotalSales Sales</div>
+                        </div>
+                        <div class="col-6">
+                            <div class="pp-meta-lbl">Booking Amount</div>
+                            <div class="pp-booking-amt">₹@payout.TotalBookingAmount.ToString("N0")</div>
+                        </div>
+                        <div class="col-6">
+                            <div class="pp-meta-lbl">Commission</div>
+                            <div class="pp-commission">₹@payout.TotalCommission.ToString("N0")</div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    }
+}
+else
+{
+    <div class="empty-state">
+        <i class="fa-solid fa-handshake"></i>
+        <h3>No Payouts Found</h3>
+        <p class="text-muted">Process payments to calculate partner commissions from confirmed bookings</p>
+        <button class="pp-hbtn-gold mt-2" onclick="processPayments()">
+            <i class="fa-solid fa-cogs"></i>Process Payments
+        </button>
+    </div>
+}
+
+</div>
+
+<!-- ── Calculation Modal ── -->
+<div class="modal fade" id="calculationModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content pp-mc">
+            <div class="pp-mh">
+                <div class="d-flex align-items-center gap-2">
+                    <div class="pp-mhic"><i class="fa-solid fa-calculator"></i></div>
+                    <h5 class="modal-title mb-0">Commission Calculation Details</h5>
+                </div>
+                <button type="button" class="pp-mclose" data-bs-dismiss="modal"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="pp-mb">
+                <div id="calculationContent">
+                    <div class="text-center py-4">
+                        <i class="fa-solid fa-spinner fa-spin fa-2x" style="color:var(--pp-b);"></i>
+                        <p class="mt-2" style="font-size:.75rem;color:var(--pp-mu);">Loading calculation details...</p>
+                    </div>
+                </div>
+            </div>
+            <div class="pp-mf">
+                <button type="button" class="pp-mcancel" data-bs-dismiss="modal">Close</button>
+                <div id="calculationActions"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    setTimeout(function(){
+        if(typeof $==='undefined')return;
+        $('.payout-card .dropdown').on('show.bs.dropdown',function(){
+            $('.payout-card').removeClass('dropdown-active').css('z-index','1');
+            $(this).closest('.payout-card').addClass('dropdown-active').css('z-index','99999');
+        });
+        $('.payout-card .dropdown').on('hide.bs.dropdown',function(){
+            $(this).closest('.payout-card').removeClass('dropdown-active').css('z-index','1');
+        });
+    },1000);
+
+    function resetPayoutStatuses(){
+        const btn=event.target;
+        Swal.fire({
+            title: 'Confirm Reset',
+            text: 'This will reset all non-paid payouts to Pending status. Continue?',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#DC2626',
+            cancelButtonColor: '#2589C9',
+            confirmButtonText: 'Yes, reset!'
+        }).then((result) => {
+            if (!result.isConfirmed) return;
+            btn.disabled=true;btn.innerHTML='<i class="fa-solid fa-spinner fa-spin me-1"></i>Resetting...';
+            fetch('/PartnerCommission/ResetPayoutStatuses',{method:'POST',headers:{'Content-Type':'application/json'}})
+            .then(r=>r.json()).then(data=>{
+                if(data.success){
+                    Swal.fire('Success!', data.message, 'success').then(() => location.reload());
+                } else {
+                    Swal.fire('Error', data.message, 'error');
+                }
+            })
+            .finally(()=>{btn.disabled=false;btn.innerHTML='<i class="fa-solid fa-refresh me-1"></i>Reset Statuses';});
+        });
+    }
+
+    function processPayments(){
+        const btn=event.target;
+        Swal.fire({
+            title: 'Process Payments',
+            text: 'This will calculate commissions for all confirmed partner bookings. Continue?',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#2589C9',
+            confirmButtonText: 'Yes, process!'
+        }).then((result) => {
+            if (!result.isConfirmed) return;
+            btn.disabled=true;btn.innerHTML='<i class="fa-solid fa-spinner fa-spin me-1"></i>Processing...';
+            fetch('/PartnerCommission/ProcessPayments',{method:'POST',headers:{'Content-Type':'application/json'}})
+            .then(r=>r.json()).then(data=>{
+                if(data.success){
+                    Swal.fire('Complete!', data.processedCount>0 ? data.message + '. All payouts are now in PENDING status. Please review and approve.' : data.message, 'success').then(() => location.reload());
+                } else {
+                    Swal.fire('Error', data.message, 'error');
+                }
+            }).finally(()=>{btn.disabled=false;btn.innerHTML='<i class="fa-solid fa-cogs me-1"></i>Process Payments';});
+        });
+    }
+
+    function filterByMonthYear(){
+        const m=document.getElementById('month').value;
+        const y=document.getElementById('year').value;
+        const s=document.getElementById('statusFilter').value;
+        const params=new URLSearchParams();
+        if(m)params.append('month',m);if(y)params.append('year',y);if(s)params.append('status',s);
+        window.location.href='/PartnerCommission/Index?'+params.toString();
+    }
+    function filterByStatus(){filterByMonthYear();}
+
+    function filterBySearch(){
+        const searchText=document.getElementById('search').value.toLowerCase();
+        const status=document.getElementById('statusFilter').value.toLowerCase();
+        const month=document.getElementById('month').value;
+        const year=document.getElementById('year').value;
+        document.querySelectorAll('.payout-card').forEach(card=>{
+            const name=card.querySelector('.pp-co-name')?.textContent?.toLowerCase()||'';
+            const cardStatus=card.querySelector('.status-badge')?.textContent?.trim()?.toLowerCase()||'';
+            const periodEl=card.querySelector('.pp-period');
+            const periodText=periodEl?periodEl.textContent.trim():'';
+            const parts=periodText.split(' ');
+            const cardMonth=parts[0]||'';const cardYear=parts[1]||'';
+            const sm=!searchText||name.includes(searchText);
+            const ss=!status||cardStatus===status;
+            const mok=!month||cardMonth===month;
+            const yok=!year||cardYear===year;
+            card.style.display=(sm&&ss&&mok&&yok)?'block':'none';
+        });
+    }
+
+    function viewCalculation(payoutId){
+        const modal=new bootstrap.Modal(document.getElementById('calculationModal'));modal.show();
+        fetch(`/PartnerCommission/GetCalculationDetails?payoutId=${payoutId}`)
+        .then(r=>r.json()).then(data=>{
+            if(data.success)displayCalculationDetails(data.payout,data.bookingDetails);
+            else document.getElementById('calculationContent').innerHTML='<div class="alert alert-danger">Error: '+data.message+'</div>';
+        }).catch(err=>{
+            document.getElementById('calculationContent').innerHTML='<div class="alert alert-danger">Network error: '+err.message+'</div>';
+        });
+    }
+
+    function displayCalculationDetails(payout,bookingDetails){
+        const totalCommission=payout.totalCommission||payout.TotalCommission||0;
+        const totalSales=payout.totalSales||payout.TotalSales||0;
+        const commissionRate=payout.fixedCommissionPerSale||payout.FixedCommissionPerSale||0;
+        const partnerName=payout.partnerName||payout.PartnerName||'Unknown Partner';
+        const month=payout.month||payout.Month||'';
+        const year=payout.year||payout.Year||'';
+        let html=`<div class="pp-calc-sum">
+            <div class="row align-items-center">
+                <div class="col-7"><h5>${partnerName}</h5><p>${month} ${year} &nbsp;|&nbsp; ${totalSales} Sales at ${commissionRate}%</p></div>
+                <div class="col-5 text-end"><h4>₹${totalCommission.toLocaleString()}</h4><p>Total Commission</p></div>
+            </div>
+        </div>
+        <div style="font-size:.72rem;font-weight:700;color:var(--pp-b);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;">Booking Details</div>
+        <div class="table-responsive">
+        <table class="pp-calc-tbl">
+            <thead><tr><th>Booking #</th><th>Date</th><th class="text-end">Booking Amount</th><th class="text-end">Commission</th></tr></thead>
+            <tbody>`;
+        if(bookingDetails&&bookingDetails.length>0){
+            bookingDetails.forEach(b=>{
+                const ba=b.bookingAmount||b.BookingAmount||0;
+                const ca=b.commissionAmount||b.CommissionAmount||0;
+                html+=`<tr>
+                    <td>${b.bookingNumber||b.BookingNumber||'N/A'}</td>
+                    <td>${b.bookingDate||b.BookingDate||'N/A'}</td>
+                    <td class="text-end">₹${ba.toLocaleString()}</td>
+                    <td class="text-end" style="color:var(--pp-green);font-weight:700;">₹${ca.toLocaleString()}</td>
+                </tr>`;
+            });
+        }else{html+='<tr><td colspan="4" class="text-center" style="padding:10px;">No booking details found</td></tr>';}
+        html+=`</tbody><tfoot><tr><th colspan="3">Total Commission</th><th class="text-end">₹${totalCommission.toLocaleString()}</th></tr></tfoot></table></div>`;
+        document.getElementById('calculationContent').innerHTML=html;
+        const payoutId=payout.payoutId||payout.PayoutId;
+        const status=payout.status||payout.Status;
+        let actions='';
+        if(status==='Pending'){actions=`<button type="button" class="pp-maction pp-maction-approve" onclick="approvePayout(${payoutId});bootstrap.Modal.getInstance(document.getElementById('calculationModal')).hide();"><i class="fa-solid fa-check me-1"></i>Approve Payment</button>`;}
+        else if(status==='Approved'){actions=`<button type="button" class="pp-maction pp-maction-paid" onclick="markAsPaid(${payoutId});bootstrap.Modal.getInstance(document.getElementById('calculationModal')).hide();"><i class="fa-solid fa-money-bill me-1"></i>Mark as Paid</button>`;}
+        document.getElementById('calculationActions').innerHTML=actions;
+    }
+
+    function approvePayout(payoutId){
+        Swal.fire({
+            title: 'Approve Payout',
+            text: 'Approve this payout for payment?',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#16A34A',
+            confirmButtonText: 'Yes, approve'
+        }).then((result) => {
+            if (!result.isConfirmed) return;
+            fetch('/PartnerCommission/ApprovePayout',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({payoutId})})
+            .then(r=>r.json()).then(data=>{
+                if(data.success){
+                    Swal.fire('Approved!', 'Payout approved! Mark as paid once payment is processed.', 'success').then(() => location.reload());
+                } else {
+                    Swal.fire('Error', data.message, 'error');
+                }
+            });
+        });
+    }
+    function markAsPaid(payoutId){
+        Swal.fire({
+            title: 'Mark as Paid',
+            text: 'Confirm payment is processed and mark this payout as paid?',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#1A6FA8',
+            confirmButtonText: 'Yes, mark as paid'
+        }).then((result) => {
+            if (!result.isConfirmed) return;
+            fetch('/PartnerCommission/MarkAsPaid',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({payoutId})})
+            .then(r=>r.json()).then(data=>{
+                if(data.success){
+                    Swal.fire('Paid!', 'Payout marked as paid!', 'success').then(() => location.reload());
+                } else {
+                    Swal.fire('Error', data.message, 'error');
+                }
+            });
+        });
+    }
+</script>

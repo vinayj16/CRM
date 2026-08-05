@@ -1,0 +1,173 @@
+<!-- Revenue Modal -->
+<div class="modal fade" id="revenueModal" tabindex="-1" aria-labelledby="revenueModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" style="width: 50%; max-width: 50%;">
+        <div class="modal-content" style="border: none; border-radius: 15px; box-shadow: 0 10px 40px rgba(0,0,0,0.15);">
+            <div class="modal-header" style="padding: 1.5rem; border-bottom: 3px solid #DC2626; border-radius: 15px 15px 0 0;">
+                <h5 class="modal-title" id="revenueModalLabel" style="margin: 0; font-weight: 600; color: #DC2626 !important; -webkit-text-fill-color: #DC2626 !important;"><i class="fa-solid fa-coins me-2"></i>Add Revenue</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="revenueForm" novalidate>
+                <div class="modal-body" style="padding: 2rem;">
+                    <input type="hidden" id="revenueId" name="RevenueId" value="0" />
+                    
+                    <div class="mb-3">
+                        <label class="form-label" style="font-weight: 600; color: #2A3A4A;">Type <span class="text-danger">*</span></label>
+                        <select id="revenueType" name="Type" class="form-select" style="border-radius: 8px; border: 1px solid #E2E8F0; padding: 0.75rem;" required>
+                            <option value="Sale">Sale price of property/unit</option>
+                            <option value="Booking">Booking/Advance amount</option>
+                            <option value="Rental">Rental income</option>
+                            <option value="Service">Other service charges</option>
+                            <option value="Other">Other</option>
+                        </select>
+                        <div class="invalid-feedback">Please select a type.</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label" style="font-weight: 600; color: #2A3A4A;">Description <span class="text-danger">*</span></label>
+                        <input id="revenueDescription" name="Description" class="form-control" style="border-radius: 8px; border: 1px solid #E2E8F0; padding: 0.75rem;" required />
+                        <div class="invalid-feedback">Please enter a description.</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label" style="font-weight: 600; color: #2A3A4A;">Amount <span class="text-danger">*</span></label>
+                        <input id="revenueAmount" name="Amount" class="form-control" type="number" step="0.01" min="0" style="border-radius: 8px; border: 1px solid #E2E8F0; padding: 0.75rem;" required />
+                        <div class="invalid-feedback">Please enter a valid amount.</div>
+                    </div>
+                </div>
+                <div class="modal-footer" style="border-top: 1px solid #E8EDF2; padding: 1.5rem; gap: 10px;">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal" style="border-radius: 8px; padding: 0.75rem 1.5rem; font-weight: 500;">Cancel</button>
+                    <button type="submit" class="btn" style="background: linear-gradient(135deg, #1A6FA8 0%, #125082 100%); color: white; border: none; border-radius: 8px; padding: 0.75rem 1.5rem; font-weight: 500;">Save Revenue</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<style>
+/* Hide validation feedback until form is validated */
+.invalid-feedback {
+    display: none;
+}
+
+.was-validated .form-control:invalid ~ .invalid-feedback,
+.was-validated .form-select:invalid ~ .invalid-feedback,
+.form-control.is-invalid ~ .invalid-feedback,
+.form-select.is-invalid ~ .invalid-feedback {
+    display: block;
+}
+
+@@media (max-width: 768px) {
+    #revenueModal .modal-dialog {
+        width: 95% !important;
+        max-width: 95% !important;
+        margin: 0.5rem !important;
+        max-height: calc(100vh - 1rem) !important;
+    }
+    
+    #revenueModal .modal-content {
+        max-height: calc(100vh - 1rem) !important;
+    }
+    
+    #revenueModal .modal-body {
+        padding: 1rem !important;
+        max-height: calc(100vh - 200px) !important;
+        overflow-y: auto !important;
+    }
+    
+    #revenueModal .modal-header {
+        padding: 1rem !important;
+    }
+    
+    #revenueModal .modal-footer {
+        padding: 1rem !important;
+        flex-direction: row !important;
+        gap: 0.5rem !important;
+    }
+    
+    #revenueModal .modal-footer .btn {
+        flex: 1 !important;
+        margin: 0 !important;
+    }
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const revenueModal = document.getElementById('revenueModal');
+    const revenueForm = document.getElementById('revenueForm');
+    
+    // Handle form submission
+    revenueForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        // Validate form
+        if (!revenueForm.checkValidity()) {
+            revenueForm.classList.add('was-validated');
+            return;
+        }
+        
+        const formData = new FormData(revenueForm);
+        const revenueId = document.getElementById('revenueId').value;
+        const url = revenueId === '0' ? '/Revenue/CreateModal' : '/Revenue/EditModal';
+        
+        fetch(url, {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                bootstrap.Modal.getInstance(revenueModal).hide();
+                location.reload(); // Refresh the page to show updated data
+            } else {
+                Swal.fire({ icon: 'error', title: 'Error', text: data.message || 'Failed to save revenue' });
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            Swal.fire({ icon: 'error', title: 'Error', text: 'An error occurred while saving revenue' });
+        });
+    });
+    
+    // Reset form when modal is hidden
+    revenueModal.addEventListener('hidden.bs.modal', function() {
+        revenueForm.reset();
+        revenueForm.classList.remove('was-validated');
+        document.getElementById('revenueId').value = '0';
+        document.getElementById('revenueModalLabel').textContent = 'Add Revenue';
+    });
+});
+
+// Function to open modal for creating new revenue
+function openRevenueModal() {
+    document.getElementById('revenueModalLabel').textContent = 'Add Revenue';
+    document.getElementById('revenueId').value = '0';
+    document.getElementById('revenueForm').reset();
+    document.getElementById('revenueForm').classList.remove('was-validated');
+    new bootstrap.Modal(document.getElementById('revenueModal')).show();
+}
+
+// Function to open modal for editing existing revenue
+function editRevenue(revenueId) {
+    fetch(`/Revenue/GetRevenue/${revenueId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                document.getElementById('revenueModalLabel').textContent = 'Edit Revenue';
+                document.getElementById('revenueId').value = data.data.revenueId;
+                document.getElementById('revenueType').value = data.data.type;
+                document.getElementById('revenueDescription').value = data.data.description;
+                document.getElementById('revenueAmount').value = data.data.amount;
+                new bootstrap.Modal(document.getElementById('revenueModal')).show();
+            } else {
+                Swal.fire({ icon: 'error', title: 'Error', text: data.message || 'Failed to load revenue data' });
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            Swal.fire({ icon: 'error', title: 'Error', text: 'An error occurred while loading revenue data' });
+        });
+}
+</script>
+
+

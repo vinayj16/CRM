@@ -1,0 +1,332 @@
+@model CRM.Models.PartnerPayoutModel
+@{
+    ViewData["Title"] = "Channel Partner Payout Details";
+    var commissionLogs = ViewBag.CommissionLogs as List<CRM.Models.ChannelPartnerCommissionLogModel> ?? new List<CRM.Models.ChannelPartnerCommissionLogModel>();
+    var partnerLeads = ViewBag.PartnerLeads as List<CRM.Models.PartnerLeadModel> ?? new List<CRM.Models.PartnerLeadModel>();
+}
+
+<style>
+    .details-header {
+        background: linear-gradient(135deg, #F59E0B 0%, #DC2626 100%);
+        color: white;
+        padding: 2rem;
+        border-radius: 12px;
+        margin-bottom: 2rem;
+    }
+
+    .detail-card {
+        background: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    }
+
+    .breakdown-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.75rem 0;
+        border-bottom: 1px solid #F0F4F8;
+    }
+
+    .breakdown-item:last-child {
+        border-bottom: none;
+        font-weight: 600;
+        font-size: 1.1rem;
+        color: #F59E0B;
+    }
+
+    .commission-table {
+        background: white;
+        border-radius: 8px;
+        overflow: hidden;
+    }
+
+    .commission-table th {
+        background: #F0F4F8;
+        font-weight: 600;
+        border: none;
+    }
+
+    .summary-box {
+        background: linear-gradient(135deg, #F0F4F8 0%, #E8EDF2 100%);
+        border-radius: 10px;
+        padding: 1.5rem;
+        text-align: center;
+    }
+
+    .summary-number {
+        font-size: 2.5rem;
+        font-weight: 700;
+        color: #F59E0B;
+        margin-bottom: 0.5rem;
+    }
+
+    .lead-status-badge {
+        padding: 0.25rem 0.5rem;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+
+    .status-converted { background-color: #E2E8F0; color: #121F2E; }
+    .status-pending { background-color: #FEF3C7; color: #B45309; }
+    .status-lost { background-color: #FEE2E2; color: #991B1B; }
+</style>
+
+<div class="content">
+    <!-- Breadcrumb -->
+    <nav class="mb-3" aria-label="breadcrumb">
+        <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item"><a href="/Home">Home</a></li>
+            <li class="breadcrumb-item"><a href="/ChannelPartnerPayout/Index">Partner Payouts</a></li>
+            <li class="breadcrumb-item active">@Model.Partner?.CompanyName Details</li>
+        </ol>
+    </nav>
+
+    <!-- Header -->
+    <div class="details-header">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <h2 class="mb-0">
+                    <i class="fa-solid fa-building me-2"></i>
+                    @Model.Partner?.CompanyName - Payout Details
+                </h2>
+                <p class="mb-0 mt-2 opacity-75">@ViewBag.Month @ViewBag.Year | Contact: @Model.Partner?.ContactPerson</p>
+            </div>
+            <div class="col-md-4 text-md-end">
+                <div class="summary-box">
+                    <div class="summary-number">₹@Model.TotalCommission.ToString("N0")</div>
+                    <div>Total Commission</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Commission Breakdown -->
+        <div class="col-md-6">
+            <div class="detail-card">
+                <h5 class="mb-3">
+                    <i class="fa-solid fa-calculator text-primary me-2"></i>
+                    Commission Breakdown
+                </h5>
+                
+                <div class="breakdown-item">
+                    <span>Fixed Commission per Sale</span>
+                    <span class="text-info">₹@Model.FixedCommissionPerSale.ToString("N0")</span>
+                </div>
+                
+                <div class="breakdown-item">
+                    <span>Total Sales</span>
+                    <span class="text-success">@Model.TotalSales</span>
+                </div>
+                
+                <div class="breakdown-item">
+                    <span><strong>Total Commission</strong></span>
+                    <span class="text-success"><strong>₹@Model.TotalCommission.ToString("N0")</strong></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Performance Summary -->
+        <div class="col-md-6">
+            <div class="detail-card">
+                <h5 class="mb-3">
+                    <i class="fa-solid fa-chart-pie text-primary me-2"></i>
+                    Performance Summary
+                </h5>
+                
+                <div class="row text-center mb-3">
+                    <div class="col-4">
+                        <div class="text-info">
+                            <h4>@Model.TotalLeads</h4>
+                            <small>Total Leads</small>
+                        </div>
+                    </div>
+                    <div class="col-4">
+                        <div class="text-success">
+                            <h4>@Model.ConvertedLeads</h4>
+                            <small>Converted</small>
+                        </div>
+                    </div>
+                    <div class="col-4">
+                        <div class="text-warning">
+                            <h4>@(Model.TotalLeads > 0 ? Math.Round((decimal)Model.ConvertedLeads / Model.TotalLeads * 100, 1) : 0)%</h4>
+                            <small>Conversion Rate</small>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="progress mb-2" style="height: 8px;">
+                    <div class="progress-bar bg-success" role="progressbar" 
+                         style="width: @(Model.TotalLeads > 0 ? (Model.ConvertedLeads * 100 / Model.TotalLeads) : 0)%"></div>
+                </div>
+                <small class="text-muted">Lead Conversion Performance</small>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sales & Commission Details -->
+    @if (commissionLogs.Any())
+    {
+        <div class="detail-card">
+            <h5 class="mb-3">
+                <i class="fa-solid fa-handshake text-primary me-2"></i>
+                Sales & Commission Details (@commissionLogs.Count Sales)
+            </h5>
+            
+            <div class="table-responsive">
+                <table class="table commission-table">
+                    <thead>
+                        <tr>
+                            <th>Sale Date</th>
+                            <th>Customer</th>
+                            <th>Property</th>
+                            <th>Flat</th>
+                            <th>Commission</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var log in commissionLogs)
+                        {
+                            <tr>
+                                <td>@log.SaleDate.ToString("MMM dd, yyyy")</td>
+                                <td>@log.Booking?.Lead?.Name</td>
+                                <td>@log.Booking?.Property?.PropertyName</td>
+                                <td>@log.Booking?.Flat?.FlatName</td>
+                                <td class="text-success">₹@log.FixedCommissionAmount.ToString("N0")</td>
+                            </tr>
+                        }
+                    </tbody>
+                    <tfoot>
+                        <tr class="table-warning">
+                            <th colspan="4">Total Commission</th>
+                            <th>₹@commissionLogs.Sum(c => c.FixedCommissionAmount).ToString("N0")</th>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+    }
+
+    <!-- Leads Summary -->
+    @if (partnerLeads.Any())
+    {
+        <div class="detail-card">
+            <h5 class="mb-3">
+                <i class="fa-solid fa-users text-primary me-2"></i>
+                All Leads from Partner (@partnerLeads.Count Total)
+            </h5>
+            
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Lead Name</th>
+                            <th>Contact</th>
+                            <th>Status</th>
+                            <th>Stage</th>
+                            <th>Created Date</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var partnerLead in partnerLeads.Take(10))
+                        {
+                            var statusClass = partnerLead.Status?.ToLower() switch
+                            {
+                                "converted" => "status-converted",
+                                "lost" => "status-lost",
+                                _ => "status-pending"
+                            };
+                            
+                            <tr>
+                                <td>@partnerLead.LeadName</td>
+                                <td>@partnerLead.Contact</td>
+                                <td>
+                                    <span class="lead-status-badge @statusClass">
+                                        @partnerLead.Status
+                                    </span>
+                                </td>
+                                <td>@partnerLead.Stage</td>
+                                <td>@partnerLead.CreatedOn.ToString("MMM dd, yyyy")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+            
+            @if (partnerLeads.Count > 10)
+            {
+                <p class="text-muted text-center mt-3">
+                    Showing 10 of @partnerLeads.Count leads. 
+                    <a href="/PartnerLead/Index?partnerId=@Model.PartnerId">View all leads</a>
+                </p>
+            }
+        </div>
+    }
+
+    @if (!commissionLogs.Any())
+    {
+        <div class="detail-card text-center">
+            <i class="fa-solid fa-handshake text-muted" style="font-size: 3rem;"></i>
+            <h5 class="mt-3">No Sales This Month</h5>
+            <p class="text-muted">This partner had no converted sales in @ViewBag.Month @ViewBag.Year</p>
+        </div>
+    }
+
+    <!-- Action Buttons -->
+    <div class="text-center mt-4">
+        <a href="/ChannelPartnerPayout/Index?month=@ViewBag.Month&year=@ViewBag.Year" class="btn btn-secondary me-2">
+            <i class="fa-solid fa-arrow-left me-2"></i>Back to Payouts
+        </a>
+        
+        @if (Model.Status != "Paid")
+        {
+            <button class="btn btn-warning" onclick="updateStatus(@Model.PayoutId, 'Paid')">
+                <i class="fa-solid fa-check me-2"></i>Mark as Paid
+            </button>
+        }
+    </div>
+</div>
+
+<script>
+    function updateStatus(payoutId, status) {
+        Swal.fire({
+            title: 'Are you sure?',
+            text: `Mark this payout as ${status}?`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#F59E0B',
+            cancelButtonColor: '#6B7B8D',
+            confirmButtonText: 'Yes, update!'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                $.ajax({
+                    url: '/ChannelPartnerPayout/UpdateStatus',
+                    type: 'POST',
+                    data: { payoutId, status },
+                    success: function (response) {
+                        if (response.success) {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Success!',
+                                text: response.message,
+                                timer: 2000,
+                                showConfirmButton: false
+                            }).then(() => location.reload());
+                        } else {
+                            Swal.fire('Error', response.message, 'error');
+                        }
+                    },
+                    error: function () {
+                        Swal.fire('Error', 'Failed to update status', 'error');
+                    }
+                });
+            }
+        });
+    }
+</script>
+
+

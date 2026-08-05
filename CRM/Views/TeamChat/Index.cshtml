@@ -1,0 +1,683 @@
+@{
+    ViewData["Title"] = "Team Chat";
+    var currentUserId = User.FindFirst("UserId")?.Value ?? User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+    var currentUserName = User.FindFirst(System.Security.Claims.ClaimTypes.Name)?.Value ?? User.FindFirst("name")?.Value ?? "User";
+    var currentUserRole = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value ?? "User";
+}
+
+<style>
+    .team-chat-container {
+        display: flex;
+        height: calc(100vh - 120px);
+        background: white;
+        border-radius: 16px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        border: 1px solid rgba(0,0,0,0.05);
+        overflow: hidden;
+    }
+
+    .team-chat-sidebar {
+        width: 280px;
+        background: #F0F4F8;
+        border-right: 1px solid #E2E8F0;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .team-chat-sidebar-header {
+        padding: 20px;
+        background: linear-gradient(135deg, #1A6FA8 0%, #125082 100%);
+        color: white;
+    }
+
+    .team-chat-sidebar-header h3 {
+        margin: 0;
+        font-size: 1.1rem;
+        font-weight: 600;
+    }
+
+    .team-chat-sidebar-header p {
+        margin: 4px 0 0 0;
+        font-size: 0.8rem;
+        opacity: 0.9;
+    }
+
+    .team-chat-members {
+        flex: 1;
+        overflow-y: auto;
+        padding: 10px;
+    }
+
+    .team-chat-member {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .team-chat-member:hover {
+        background: rgba(26,111,168, 0.08);
+    }
+
+    .team-chat-member-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #1A6FA8, #125082);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 600;
+        font-size: 14px;
+        flex-shrink: 0;
+        position: relative;
+    }
+
+    .team-chat-member-status {
+        position: absolute;
+        bottom: 0;
+        right: 0;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        border: 2px solid #F0F4F8;
+    }
+
+    .team-chat-member-status.online {
+        background: #16A34A;
+    }
+
+    .team-chat-member-status.offline {
+        background: #8FA3B8;
+    }
+
+    .team-chat-member-info {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .team-chat-member-name {
+        font-weight: 600;
+        font-size: 0.9rem;
+        color: #1A2332;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .team-chat-member-role {
+        font-size: 0.75rem;
+        color: #6B7B8D;
+    }
+
+    .team-chat-main {
+        flex: 1;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        background: white;
+    }
+
+    .team-chat-header {
+        padding: 16px 20px;
+        border-bottom: 1px solid #E2E8F0;
+        background: white;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .team-chat-header h4 {
+        margin: 0;
+        font-size: 1rem;
+        font-weight: 600;
+    }
+
+    .team-chat-header span {
+        font-size: 0.8rem;
+        color: #6B7B8D;
+    }
+
+    .team-chat-messages {
+        flex: 1;
+        overflow-y: auto;
+        padding: 20px;
+        background: #F0F4F8;
+    }
+
+    .team-chat-message {
+        display: flex;
+        gap: 12px;
+        margin-bottom: 16px;
+        animation: fadeInUp 0.3s ease-out;
+    }
+
+    .team-chat-message.own-message {
+        flex-direction: row-reverse;
+    }
+
+    .team-chat-message-avatar {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #1A6FA8, #125082);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 600;
+        font-size: 13px;
+        flex-shrink: 0;
+    }
+
+    .team-chat-message-content {
+        max-width: 70%;
+        min-width: 80px;
+    }
+
+    .team-chat-message-bubble {
+        padding: 12px 16px;
+        border-radius: 18px;
+        font-size: 0.9rem;
+        line-height: 1.5;
+        word-wrap: break-word;
+        white-space: pre-wrap;
+        overflow-wrap: break-word;
+    }
+
+    .team-chat-message:not(.own-message) .team-chat-message-bubble {
+        background: white;
+        color: #2A3A4A;
+        border: 1px solid #E2E8F0;
+        border-bottom-left-radius: 4px;
+    }
+
+    .team-chat-message.own-message .team-chat-message-bubble {
+        background: linear-gradient(135deg, #1A6FA8 0%, #125082 100%);
+        color: white;
+        border-bottom-right-radius: 4px;
+    }
+
+    .team-chat-message-image {
+        max-width: 250px;
+        max-height: 200px;
+        border-radius: 8px;
+        margin-top: 8px;
+        cursor: pointer;
+        transition: transform 0.2s ease;
+    }
+
+    .team-chat-message-image:hover {
+        transform: scale(1.02);
+    }
+
+    .team-chat-message-file {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 14px;
+        background: rgba(26,111,168, 0.08);
+        border-radius: 10px;
+        margin-top: 8px;
+        text-decoration: none;
+        color: #1A6FA8;
+        font-weight: 500;
+        font-size: 0.85rem;
+    }
+
+    .team-chat-message.own-message .team-chat-message-file {
+        background: rgba(255, 255, 255, 0.2);
+        color: white;
+    }
+
+    .team-chat-message-time {
+        font-size: 0.7rem;
+        color: #6B7B8D;
+        margin-top: 4px;
+    }
+
+    .team-chat-message.own-message .team-chat-message-time {
+        text-align: right;
+    }
+
+    .team-chat-input-area {
+        padding: 16px 20px;
+        background: white;
+        border-top: 1px solid #E2E8F0;
+    }
+
+    .team-chat-input-wrapper {
+        display: flex;
+        gap: 10px;
+        align-items: flex-end;
+    }
+
+    .team-chat-input {
+        flex: 1;
+        min-width: 0;
+        padding: 12px 16px;
+        border: 1px solid #E2E8F0;
+        border-radius: 24px;
+        font-size: 0.9rem;
+        outline: none;
+        resize: none;
+        max-height: 120px;
+        font-family: inherit;
+    }
+
+    .team-chat-input:focus {
+        border-color: #1A6FA8;
+        box-shadow: 0 0 0 3px rgba(26,111,168, 0.12);
+    }
+
+    .team-chat-btn {
+        width: 42px;
+        height: 42px;
+        border-radius: 50%;
+        border: none;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s;
+        flex-shrink: 0;
+    }
+
+    .team-chat-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+
+    .team-chat-send-btn {
+        background: linear-gradient(135deg, #1A6FA8 0%, #125082 100%);
+        color: white;
+    }
+
+    .team-chat-image-btn {
+        background: #F0F4F8;
+        color: #1A6FA8;
+    }
+
+    .team-chat-file-btn {
+        background: #F0F4F8;
+        color: #1A6FA8;
+    }
+
+    .team-chat-preview {
+        display: none;
+        padding: 10px 20px;
+        background: #F0F4F8;
+        border-top: 1px solid #E2E8F0;
+    }
+
+    .team-chat-preview.show {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .team-chat-preview img {
+        max-width: 100px;
+        max-height: 80px;
+        border-radius: 8px;
+    }
+
+    .team-chat-preview-file {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 12px;
+        background: white;
+        border-radius: 8px;
+        border: 1px solid #E2E8F0;
+    }
+
+    .team-chat-remove {
+        background: #DC2626;
+        color: white;
+        border: none;
+        border-radius: 50%;
+        width: 24px;
+        height: 24px;
+        cursor: pointer;
+        font-size: 14px;
+        line-height: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .team-chat-typing {
+        padding: 8px 20px;
+        font-size: 0.8rem;
+        color: #6B7B8D;
+        font-style: italic;
+    }
+
+    .team-chat-date-divider {
+        text-align: center;
+        margin: 20px 0;
+        position: relative;
+    }
+
+    .team-chat-date-divider span {
+        background: #E2E8F0;
+        padding: 4px 12px;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        color: #6B7B8D;
+        font-weight: 500;
+    }
+
+    .empty-chat {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 100%;
+        color: #6B7B8D;
+    }
+
+    .empty-chat i {
+        font-size: 3rem;
+        margin-bottom: 16px;
+        opacity: 0.5;
+    }
+
+    .empty-chat p {
+        font-size: 1rem;
+    }
+
+    @@keyframes fadeInUp {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    @@media (max-width: 768px) {
+        .team-chat-sidebar {
+            display: none;
+        }
+    }
+</style>
+
+<div class="team-chat-container">
+    <div class="team-chat-sidebar">
+        <div class="team-chat-sidebar-header">
+            <h3><i class="fa-solid fa-comments me-2"></i>Team Chat</h3>
+            <p>Share messages, images & files with your team</p>
+        </div>
+        <div class="team-chat-members" id="teamMembers">
+            <div class="text-center text-muted py-4">
+                <i class="fa-solid fa-spinner fa-spin"></i>
+                <p class="mb-0 mt-2">Loading members...</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="team-chat-main">
+        <div class="team-chat-header">
+            <div class="team-chat-member-avatar" style="width:42px;height:42px;font-size:16px;">
+                <i class="fa-solid fa-users"></i>
+            </div>
+            <div>
+                <h4>Company Team</h4>
+                <span id="onlineCount">Loading...</span>
+            </div>
+        </div>
+
+        <div class="team-chat-messages" id="teamChatMessages">
+            <div class="empty-chat" id="emptyChatState">
+                <i class="fa-solid fa-comments"></i>
+                <p>No messages yet. Start the conversation!</p>
+            </div>
+        </div>
+
+        <div class="team-chat-typing" id="typingIndicator" style="display: none;">
+            Someone is typing...
+        </div>
+
+        <div class="team-chat-preview" id="imagePreview">
+            <img id="previewImg" src="" alt="Preview" style="display:none;" />
+            <div class="team-chat-preview-file" id="previewFile" style="display:none;">
+                <i class="fa-solid fa-file"></i>
+                <span id="previewFileName"></span>
+            </div>
+            <button class="team-chat-remove" onclick="removePreview()">&times;</button>
+        </div>
+
+        <div class="team-chat-input-area">
+            <div class="team-chat-input-wrapper">
+                <input type="file" id="fileInput" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt" style="display:none;" />
+                <input type="file" id="imageInput" accept="image/*" style="display:none;" />
+                <button class="team-chat-btn team-chat-image-btn" onclick="document.getElementById('imageInput').click()" title="Upload Image">
+                    <i class="fa-solid fa-image"></i>
+                </button>
+                <button class="team-chat-btn team-chat-file-btn" onclick="document.getElementById('fileInput').click()" title="Attach File">
+                    <i class="fa-solid fa-paperclip"></i>
+                </button>
+                <textarea class="team-chat-input" id="messageInput" placeholder="Type your message..." rows="1" onkeypress="handleKeyPress(event)"></textarea>
+                <button class="team-chat-btn team-chat-send-btn" onclick="sendMessage()" title="Send">
+                    <i class="fa-solid fa-paper-plane"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/7.0.5/signalr.min.js"></script>
+<script>
+    const currentUserId = '@currentUserId';
+    const currentUserName = '@currentUserName';
+    const currentUserRole = '@currentUserRole';
+    let connection = null;
+    let selectedImage = null;
+    let selectedFile = null;
+
+    function initSignalR() {
+        connection = new signalR.HubConnectionBuilder()
+            .withUrl("/chatHub")
+            .withAutomaticReconnect([0, 2000, 5000, 10000, 30000])
+            .configureLogging(signalR.LogLevel.Information)
+            .build();
+
+        connection.on("ReceiveTeamMessage", function(data) {
+            addMessageToUI(data);
+        });
+
+        connection.onreconnected(function() {
+            console.log("Team chat reconnected");
+        });
+
+        connection.start().catch(function(err) {
+            console.error("SignalR connection error:", err);
+            setTimeout(initSignalR, 3000);
+        });
+    }
+
+    function handleKeyPress(event) {
+        if (event.key === 'Enter' && !event.shiftKey) {
+            event.preventDefault();
+            sendMessage();
+        }
+    }
+
+    document.getElementById('imageInput').addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function(ev) {
+            selectedImage = ev.target.result;
+            const preview = document.getElementById('imagePreview');
+            const img = document.getElementById('previewImg');
+            const fileDiv = document.getElementById('previewFile');
+            img.src = selectedImage;
+            img.style.display = 'block';
+            fileDiv.style.display = 'none';
+            preview.classList.add('show');
+        };
+        reader.readAsDataURL(file);
+    });
+
+    document.getElementById('fileInput').addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function(ev) {
+            selectedFile = { data: ev.target.result, name: file.name };
+            const preview = document.getElementById('imagePreview');
+            const img = document.getElementById('previewImg');
+            const fileDiv = document.getElementById('previewFile');
+            const fileName = document.getElementById('previewFileName');
+            img.style.display = 'none';
+            fileDiv.style.display = 'flex';
+            fileName.textContent = file.name;
+            preview.classList.add('show');
+        };
+        reader.readAsDataURL(file);
+    });
+
+    function removePreview() {
+        selectedImage = null;
+        selectedFile = null;
+        document.getElementById('imagePreview').classList.remove('show');
+        document.getElementById('imageInput').value = '';
+        document.getElementById('fileInput').value = '';
+    }
+
+    async function sendMessage() {
+        const input = document.getElementById('messageInput');
+        const message = input.value.trim();
+
+        if (!message && !selectedImage && !selectedFile) return;
+
+        try {
+            let imageData = null;
+            let fileName = null;
+
+            if (selectedImage) {
+                imageData = selectedImage;
+            } else if (selectedFile) {
+                imageData = selectedFile.data;
+                fileName = selectedFile.name;
+            }
+
+            const response = await fetch('/TeamChat/SendMessage', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message: message, imageData: imageData, fileName: fileName })
+            });
+
+            const data = await response.json();
+            if (data.success) {
+                input.value = '';
+                removePreview();
+            } else {
+                alert('Failed to send: ' + data.error);
+            }
+        } catch (err) {
+            console.error('Error sending message:', err);
+            alert('Failed to send message');
+        }
+    }
+
+    function addMessageToUI(data) {
+        const container = document.getElementById('teamChatMessages');
+        const emptyState = document.getElementById('emptyChatState');
+        if (emptyState) emptyState.style.display = 'none';
+
+        const isOwn = data.senderId.toString() === currentUserId.toString();
+        const initials = data.senderName.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
+
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `team-chat-message ${isOwn ? 'own-message' : ''}`;
+
+        let contentHtml = '';
+
+        if (data.message && data.message.trim()) {
+            contentHtml += `<div class="team-chat-message-bubble">${escapeHtml(data.message)}</div>`;
+        }
+
+        if (data.imageData) {
+            if (data.imageData.startsWith('data:image')) {
+                contentHtml += `<img src="${data.imageData}" class="team-chat-message-image" onclick="window.open(this.src)" />`;
+            } else {
+                contentHtml += `<a href="${data.imageData}" download="${data.fileName || 'file'}" class="team-chat-message-file" target="_blank"><i class="fa-solid fa-file me-2"></i>${escapeHtml(data.fileName || 'Download File')}</a>`;
+            }
+        }
+
+        const time = new Date(data.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+        messageDiv.innerHTML = `
+            <div class="team-chat-message-avatar">${initials}</div>
+            <div class="team-chat-message-content">
+                <div style="font-size:0.75rem;font-weight:600;color:#1A6FA8;margin-bottom:2px;">${escapeHtml(data.senderName)} ${data.senderRole ? `<span style="font-weight:400;color:#6B7B8D;">(${escapeHtml(data.senderRole)})</span>` : ''}</div>
+                ${contentHtml}
+                <div class="team-chat-message-time">${time}</div>
+            </div>
+        `;
+
+        container.appendChild(messageDiv);
+        container.scrollTop = container.scrollHeight;
+    }
+
+    function escapeHtml(text) {
+        if (!text) return '';
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    async function loadMessages() {
+        try {
+            const response = await fetch('/TeamChat/GetMessages?take=50');
+            const data = await response.json();
+            if (data.success && data.messages.length > 0) {
+                const container = document.getElementById('teamChatMessages');
+                const emptyState = document.getElementById('emptyChatState');
+                if (emptyState) emptyState.style.display = 'none';
+                data.messages.forEach(msg => addMessageToUI(msg));
+            }
+        } catch (err) {
+            console.error('Error loading messages:', err);
+        }
+    }
+
+    async function loadMembers() {
+        try {
+            const response = await fetch('/TeamChat/GetMembers');
+            const data = await response.json();
+            if (data.success) {
+                const container = document.getElementById('teamMembers');
+                container.innerHTML = data.members.map(m => {
+                    const initials = m.name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
+                    const statusClass = m.isOnline ? 'online' : 'offline';
+                    return `
+                        <div class="team-chat-member">
+                            <div class="team-chat-member-avatar">
+                                ${initials}
+                                <span class="team-chat-member-status ${statusClass}"></span>
+                            </div>
+                            <div class="team-chat-member-info">
+                                <div class="team-chat-member-name">${escapeHtml(m.name)}</div>
+                                <div class="team-chat-member-role">${escapeHtml(m.role)} ${m.isOnline ? '<span style="color:#16A34A;font-size:0.7rem;">● Online</span>' : '<span style="color:#8FA3B8;font-size:0.7rem;">○ Offline</span>'}</div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+                document.getElementById('onlineCount').textContent = data.members.length + ' members';
+            }
+        } catch (err) {
+            console.error('Error loading members:', err);
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        initSignalR();
+        loadMessages();
+        loadMembers();
+    });
+</script>

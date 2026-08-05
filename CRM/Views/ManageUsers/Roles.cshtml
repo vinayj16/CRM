@@ -1,0 +1,1432 @@
+@model IEnumerable<CRM.Models.RolePermission>
+@inject CRM.MasterDb.MasterDbContext _mastercontext
+
+@{
+    ViewData["Title"] = "Roles & Permissions";
+    var rolesList = Model?.ToList() ?? new List<CRM.Models.RolePermission>();
+    var totalRoles = rolesList.Count;
+
+    // Declared here so it's accessible by BOTH the Add and Edit modals lower down
+    var systemModules = new[] {
+        "Dashboard", "Leads & Properties", "Sales", "Finance",
+        "Team Management", "Attendance", "Payouts", "User Management",
+        "Settings", "Subscriptions", "Financial Settings", "Testimonials", "Integrations"
+    };
+
+    // Check if tenant's plan has Partner feature
+    bool hasPartnerFeature = false;
+    var tenantIdClaim = Context.User.FindFirst("TenantId")?.Value;
+    if (!string.IsNullOrEmpty(tenantIdClaim) && int.TryParse(tenantIdClaim, out int tid))
+    {
+        var maxPartners = _mastercontext.TenantSubscriptions
+            .Where(s => s.TenantId == tid && (s.Status == "Active" || s.Status == "Trial"))
+            .OrderByDescending(s => s.StartDate)
+            .Select(s => s.Plan != null ? s.Plan.MaxPartners : 0)
+            .FirstOrDefault();
+
+        hasPartnerFeature = maxPartners > 0;
+    }
+}
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@600&display=swap">
+
+<style>
+    /* ── Base ── */
+    .content {
+        font-size: 13px;
+    }
+
+    .header-subtitle {
+        font-size: 1rem !important;
+        margin-bottom: 0.5px !important;
+    }
+
+    .header-title {
+        font-size: 1.5rem !important;
+        font-weight: 700 !important;
+        word-wrap: break-word !important;
+    }
+
+    .header-content {
+        padding: 8px !important;
+        max-width: 100% !important;
+    }
+
+    /* ── Header ── */
+    .modern-header {
+        background: linear-gradient(120deg, #1A6FA8 0%, #0F4C75 58%, #0F4C75 100%);
+        border-radius: 10px;
+        margin-bottom: .55rem;
+        position: relative;
+        overflow: hidden;
+    }
+
+        .modern-header::before {
+            content: '';
+            position: absolute;
+            right: -20px;
+            top: -20px;
+            width: 140px;
+            height: 140px;
+            border-radius: 50%;
+            background: rgba(212,164,90,.12);
+            pointer-events: none;
+        }
+
+        .modern-header::after {
+            content: '';
+            position: absolute;
+            left: -25px;
+            bottom: -35px;
+            width: 110px;
+            height: 110px;
+            border-radius: 50%;
+            background: rgba(212,164,90,.07);
+            pointer-events: none;
+        }
+
+    .header-content {
+        position: relative;
+        z-index: 2;
+        padding: .75rem 1rem !important;
+        color: white;
+    }
+
+    .header-title {
+        font-family: 'Playfair Display', serif;
+        font-size: 17px !important;
+        font-weight: 600 !important;
+        margin-bottom: 1px !important;
+        color: #FFFFFF;
+    }
+
+    .header-subtitle {
+        font-size: 10px !important;
+        color: rgba(255,255,255,.5);
+        margin-bottom: 0 !important;
+        font-weight: 400;
+    }
+
+    .stats-grid {
+        display: grid !important;
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)) !important;
+        gap: 6px !important;
+        margin-top: .55rem !important;
+        width: 100% !important;
+    }
+
+    .stats-card {
+        background: rgba(255,255,255,.09);
+        border: 1px solid rgba(212,164,90,.2);
+        border-radius: 7px;
+        padding: 6px 8px;
+        text-align: center;
+        transition: background .2s;
+    }
+
+        .stats-card:hover {
+            background: rgba(255,255,255,.16);
+        }
+
+    .stats-number {
+        font-size: 14px;
+        font-weight: 700;
+        color: #D4A45A;
+        line-height: 1.2;
+        margin-bottom: 1px;
+    }
+
+    .stats-label {
+        font-size: 8.5px;
+        color: rgba(255,255,255,.5);
+        text-transform: uppercase;
+        letter-spacing: .5px;
+        font-weight: 500;
+    }
+
+    .action-btn {
+        background: #D4A45A;
+        border: none;
+        color: #162436;
+        padding: 5px 12px;
+        border-radius: 5px;
+        font-weight: 700;
+        font-size: 11px;
+        transition: opacity .2s, transform .15s;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        cursor: pointer;
+        line-height: 1.4;
+    }
+
+        .action-btn:hover {
+            opacity: .87;
+            transform: translateY(-1px);
+            color: #162436;
+            text-decoration: none;
+        }
+
+    /* ── Filter ── */
+    .filter-section {
+        background: #FFFFFF;
+        border: .5px solid #E2E8F0;
+        border-radius: 8px;
+        padding: .5rem .8rem;
+        margin: .5rem 0;
+    }
+
+    .dark-mode .filter-section {
+        background: #1A2332 !important;
+        border-color: #2A3A4A !important;
+    }
+
+    .filter-label {
+        font-size: 9.5px;
+        font-weight: 700;
+        color: #1A6FA8;
+        margin-bottom: .35rem;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        text-transform: uppercase;
+        letter-spacing: .5px;
+    }
+
+    .dark-mode .filter-label {
+        color: #8FA3B8 !important;
+    }
+
+    .filter-row {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .filter-section .form-control {
+        font-size: 11.5px !important;
+        height: 28px !important;
+        padding: 3px 9px !important;
+        border: .5px solid #E2E8F0 !important;
+        border-radius: 5px !important;
+        background: #F0F4F8 !important;
+        font-family: 'DM Sans', sans-serif !important;
+        color: #1E2A3A !important;
+        flex: 1;
+    }
+
+    .dark-mode .filter-section .form-control {
+        background: #1E2A3A !important;
+        border-color: #2A3A4A !important;
+        color: #E2E8F0 !important;
+    }
+
+    .filter-section .form-control:focus {
+        border-color: #1A6FA8 !important;
+        box-shadow: 0 0 0 2px rgba(26,111,168,.1) !important;
+        outline: none !important;
+    }
+
+    #clearFilters {
+        font-size: 10.5px !important;
+        padding: 3px 9px !important;
+        border-radius: 5px !important;
+        border: .5px solid #E2E8F0 !important;
+        color: #6B7B8D !important;
+        background: #F0F4F8 !important;
+        height: 28px !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        gap: 3px !important;
+        white-space: nowrap;
+        cursor: pointer;
+    }
+
+        #clearFilters:hover {
+            border-color: #1A6FA8 !important;
+            color: #1A6FA8 !important;
+            background: #F0F4F8 !important;
+        }
+
+    /* ── Section label ── */
+    .section-label {
+        font-size: 9.5px;
+        font-weight: 700;
+        color: #B8C8D8;
+        text-transform: uppercase;
+        letter-spacing: .6px;
+        margin-bottom: .35rem;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+        .section-label::after {
+            content: '';
+            flex: 1;
+            height: .5px;
+            background: #E8EDF2;
+            display: block;
+        }
+
+    .dark-mode .section-label {
+        color: #2A3A4A !important;
+    }
+
+        .dark-mode .section-label::after {
+            background: #2A3A4A !important;
+        }
+
+    /* ── Role card ── */
+    .role-card {
+        background: #FFFFFF !important;
+        border: .5px solid #E2E8F0 !important;
+        border-left: 3px solid #D4A45A !important;
+        border-radius: 8px !important;
+        padding: 0 !important;
+        margin-bottom: .35rem !important;
+        box-shadow: none !important;
+        transition: box-shadow .18s, transform .15s !important;
+        position: relative;
+        overflow: visible !important;
+        z-index: 1;
+    }
+
+        .role-card:hover {
+            box-shadow: 0 2px 12px rgba(26,111,168,.1) !important;
+            transform: translateY(-1px) !important;
+            border-color: rgba(26,111,168,.2) !important;
+        }
+
+    .dark-mode .role-card {
+        background: #1A2332 !important;
+        border-color: #2A3A4A !important;
+        border-left-color: #D4A45A !important;
+    }
+
+    .role-card-inner {
+        display: flex;
+        align-items: center;
+        padding: .5rem .75rem;
+        gap: .5rem;
+    }
+
+    /* ── Role info columns ── */
+    .rc-name-col {
+        flex: 0 0 28%;
+        min-width: 0;
+    }
+
+    .rc-perm-col {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .rc-action-col {
+        flex: 0 0 36px;
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+    }
+
+    .role-name {
+        font-size: 12px !important;
+        font-weight: 700 !important;
+        color: #1A6FA8 !important;
+        margin-bottom: 2px !important;
+        display: flex !important;
+        align-items: center !important;
+        gap: 4px !important;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .dark-mode .role-name {
+        color: #8FA3B8 !important;
+    }
+
+    .role-name i {
+        color: #D4A45A !important;
+        font-size: 10px !important;
+        flex-shrink: 0;
+    }
+
+    .role-meta {
+        font-size: 10px;
+        color: #8FA3B8;
+        display: flex;
+        align-items: center;
+        gap: 3px;
+        margin-bottom: 0;
+    }
+
+    .dark-mode .role-meta {
+        color: #6B7B8D !important;
+    }
+
+    .perm-label {
+        font-size: 10px;
+        color: #6B7B8D;
+        margin-bottom: 3px;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+    }
+
+    .dark-mode .perm-label {
+        color: #6B7B8D !important;
+    }
+
+    .permission-badge {
+        background: rgba(26,111,168,.08);
+        color: #1A6FA8;
+        padding: 2px 8px;
+        border-radius: 9px;
+        font-size: 9.5px;
+        font-weight: 700;
+        display: inline-flex;
+        align-items: center;
+        gap: 3px;
+        margin-right: 2px;
+        margin-bottom: 2px;
+    }
+
+    .dark-mode .permission-badge {
+        background: rgba(143,163,184,.12) !important;
+        color: #8FA3B8 !important;
+    }
+
+    /* ── Dropdown ── */
+    .role-card .dropdown {
+        position: static !important;
+    }
+
+    .role-card .dd-trigger {
+        background: #F0F4F8 !important;
+        border: .5px solid #E2E8F0 !important;
+        border-radius: 5px !important;
+        width: 28px !important;
+        height: 28px !important;
+        padding: 0 !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        color: #6B7B8D !important;
+        font-size: 13px !important;
+        cursor: pointer;
+    }
+
+        .role-card .dd-trigger:hover {
+            background: #1A6FA8 !important;
+            color: #FFFFFF !important;
+            border-color: #1A6FA8 !important;
+        }
+
+    .dark-mode .role-card .dd-trigger {
+        background: #1E2A3A !important;
+        border-color: #2A3A4A !important;
+        color: #8FA3B8 !important;
+    }
+
+    .role-card .dropdown-menu {
+        z-index: 99999 !important;
+        position: absolute !important;
+        font-size: 11.5px !important;
+        min-width: 155px !important;
+        padding: 3px 0 !important;
+        border: .5px solid #E2E8F0 !important;
+        border-radius: 7px !important;
+        box-shadow: 0 4px 18px rgba(0,0,0,.13) !important;
+    }
+
+    .dark-mode .role-card .dropdown-menu {
+        background: #1E2A3A !important;
+        border-color: #2A3A4A !important;
+    }
+
+    .role-card .dropdown-menu .dropdown-item {
+        font-size: 11.5px !important;
+        padding: 5px 12px !important;
+        display: flex !important;
+        align-items: center !important;
+        gap: 6px !important;
+        background: transparent !important;
+        border: none !important;
+        width: 100% !important;
+        cursor: pointer !important;
+        color: #2A3A4A;
+    }
+
+        .role-card .dropdown-menu .dropdown-item:hover {
+            background: rgba(26,111,168,.07) !important;
+            color: #1A6FA8 !important;
+        }
+
+    .dark-mode .role-card .dropdown-menu .dropdown-item {
+        color: #E2E8F0 !important;
+    }
+
+        .dark-mode .role-card .dropdown-menu .dropdown-item:hover {
+            background: #2A3A4A !important;
+            color: #8FA3B8 !important;
+        }
+
+    .role-card .dropdown-menu .dropdown-item.text-danger {
+        color: #DC2626 !important;
+    }
+
+        .role-card .dropdown-menu .dropdown-item.text-danger:hover {
+            background: #FEE2E2 !important;
+            color: #DC2626 !important;
+        }
+
+    .role-card .dropdown-menu .dropdown-divider {
+        margin: 2px 0 !important;
+        border-color: #E8EDF2 !important;
+    }
+
+    .dark-mode .role-card .dropdown-menu .dropdown-divider {
+        border-color: #2A3A4A !important;
+    }
+
+    /* ── Empty state ── */
+    .rp-empty {
+        text-align: center;
+        padding: 2.5rem 1.5rem;
+        background: #FFFFFF;
+        border: .5px solid #E2E8F0;
+        border-radius: 9px;
+    }
+
+    .dark-mode .rp-empty {
+        background: #1A2332 !important;
+        border-color: #2A3A4A !important;
+    }
+
+    .rp-empty i {
+        font-size: 38px;
+        color: #E2E8F0;
+        display: block;
+        margin-bottom: .6rem;
+    }
+
+    .dark-mode .rp-empty i {
+        color: #2A3A4A !important;
+    }
+
+    .rp-empty h3 {
+        font-size: 14px;
+        font-weight: 600;
+        color: #2A3A4A;
+        margin-bottom: .3rem;
+    }
+
+    .rp-empty p {
+        font-size: 11.5px;
+        color: #8FA3B8;
+    }
+
+    .dark-mode .rp-empty h3 {
+        color: #B8C8D8 !important;
+    }
+
+    .dark-mode .rp-empty p {
+        color: #6B7B8D !important;
+    }
+
+    /* ── Pagination ── */
+    .pagination-container {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: .4rem;
+        padding: .45rem .75rem;
+        background: #FFFFFF;
+        border: .5px solid #E2E8F0;
+        border-radius: 7px;
+    }
+
+    .dark-mode .pagination-container {
+        background: #1A2332 !important;
+        border-color: #2A3A4A !important;
+    }
+
+    .pagination-info {
+        color: #8FA3B8;
+        font-size: 11px;
+    }
+
+    .dark-mode .pagination-info {
+        color: #6B7B8D !important;
+    }
+
+    .pagination-controls {
+        display: flex;
+        gap: 3px;
+        align-items: center;
+    }
+
+    .pagination-btn {
+        padding: 3px 8px !important;
+        border: .5px solid #E2E8F0 !important;
+        background: #F0F4F8 !important;
+        color: #6B7B8D !important;
+        border-radius: 4px !important;
+        cursor: pointer;
+        transition: all .15s;
+        font-size: 11px !important;
+        line-height: 1.5 !important;
+        font-family: 'DM Sans', sans-serif !important;
+    }
+
+        .pagination-btn:hover:not(:disabled) {
+            border-color: #D4A45A !important;
+            color: #D4A45A !important;
+        }
+
+        .pagination-btn:disabled {
+            opacity: .35;
+            cursor: not-allowed;
+        }
+
+        .pagination-btn.active {
+            background: #1A6FA8 !important;
+            border-color: #1A6FA8 !important;
+            color: #FFFFFF !important;
+        }
+
+    .dark-mode .pagination-btn {
+        background: #1E2A3A !important;
+        border-color: #2A3A4A !important;
+        color: #8FA3B8 !important;
+    }
+
+        .dark-mode .pagination-btn.active {
+            background: #1A6FA8 !important;
+            border-color: #1A6FA8 !important;
+            color: #FFFFFF !important;
+        }
+
+    /* ── Modal Layout Fixes ── */
+    .modal-dialog {
+        max-width: 440px !important;
+        margin: 1rem auto !important;
+    }
+
+    .modal-content {
+        border-radius: 10px !important;
+        border: none !important;
+        box-shadow: 0 8px 32px rgba(0,0,0,.18) !important;
+        overflow: hidden;
+    }
+
+    .dark-mode .modal-content {
+        background: #1A2332 !important;
+    }
+
+    .modal-header {
+        background: linear-gradient(120deg, #1A6FA8 0%, #0F4C75 100%) !important;
+        padding: .55rem .9rem !important;
+        border-bottom: none !important;
+    }
+
+    .modal-title {
+        font-size: 12.5px !important;
+        font-weight: 700 !important;
+        color: #FFFFFF !important;
+        display: flex !important;
+        align-items: center !important;
+        gap: 6px !important;
+    }
+
+        .modal-title i {
+            color: #D4A45A !important;
+            font-size: 11px !important;
+        }
+
+    .modal-header .btn-close {
+        filter: invert(1) !important;
+        opacity: .7 !important;
+        width: 16px !important;
+        height: 16px !important;
+        padding: 0 !important;
+    }
+
+    .modal-body {
+        padding: .65rem .85rem !important;
+    }
+
+    .dark-mode .modal-body {
+        background: #1A2332 !important;
+    }
+
+    .modal-body .form-label {
+        font-size: 9.5px !important;
+        font-weight: 700 !important;
+        color: #6B7B8D !important;
+        text-transform: uppercase !important;
+        letter-spacing: .4px !important;
+        margin-bottom: 3px !important;
+        display: block;
+    }
+
+    .dark-mode .modal-body .form-label {
+        color: #6B7B8D !important;
+    }
+
+    .modal-body .form-select, .modal-body .form-control {
+        font-size: 12px !important;
+        height: 31px !important;
+        padding: 4px 9px !important;
+        border: .5px solid #E2E8F0 !important;
+        border-radius: 5px !important;
+        background: #F0F4F8 !important;
+        font-family: 'DM Sans', sans-serif !important;
+        color: #1E2A3A !important;
+        width: 100%;
+    }
+
+    .dark-mode .modal-body .form-select, .dark-mode .modal-body .form-control {
+        background: #1E2A3A !important;
+        border-color: #2A3A4A !important;
+        color: #E2E8F0 !important;
+    }
+
+    .modal-body .alert-info {
+        background: #F0F4F8 !important;
+        border: .5px solid #E2E8F0 !important;
+        border-radius: 6px !important;
+        padding: .4rem .65rem !important;
+        font-size: 11px !important;
+        color: #1A6FA8 !important;
+        margin: 0 !important;
+        display: flex;
+        align-items: flex-start;
+        gap: 5px;
+    }
+
+    .dark-mode .modal-body .alert-info {
+        background: #1E2A3A !important;
+        border-color: #2A3A4A !important;
+        color: #8FA3B8 !important;
+    }
+
+    .modal-footer {
+        padding: .45rem .85rem !important;
+        border-top: .5px solid #E8EDF2 !important;
+        gap: 6px !important;
+        background: #FFFFFF !important;
+    }
+
+    .dark-mode .modal-footer {
+        background: #1A2332 !important;
+        border-top-color: #2A3A4A !important;
+    }
+
+    .modal-footer .btn-secondary {
+        background: #F0F4F8 !important;
+        border: .5px solid #E2E8F0 !important;
+        color: #6B7B8D !important;
+        border-radius: 5px !important;
+        font-size: 11.5px !important;
+        font-weight: 600 !important;
+        padding: 4px 13px !important;
+    }
+
+    .dark-mode .modal-footer .btn-secondary {
+        background: #1E2A3A !important;
+        border-color: #2A3A4A !important;
+        color: #8FA3B8 !important;
+    }
+
+    .modal-footer .btn-primary, .modal-footer .btn-success {
+        background: #1A6FA8 !important;
+        border: none !important;
+        color: #FFFFFF !important;
+        border-radius: 5px !important;
+        font-size: 11.5px !important;
+        font-weight: 700 !important;
+        padding: 4px 15px !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        gap: 5px !important;
+    }
+
+    /* Validation System styling */
+    .modal-body .form-select.is-valid, .modal-body .form-control.is-valid {
+        border-color: #16A34A !important;
+        background-color: #F0F4F8 !important;
+    }
+
+    .modal-body .form-select.is-invalid, .modal-body .form-control.is-invalid {
+        border-color: #DC2626 !important;
+        background-color: #F0F4F8 !important;
+    }
+
+    .modal-body .valid-feedback, .modal-body .invalid-feedback {
+        font-size: 10px !important;
+        display: none !important;
+        align-items: center !important;
+        gap: 3px !important;
+        margin-top: 3px !important;
+    }
+
+    .modal-body .valid-feedback {
+        color: #16A34A !important;
+    }
+
+    .modal-body .invalid-feedback {
+        color: #DC2626 !important;
+    }
+
+    .modal-body .show-valid .valid-feedback {
+        display: flex !important;
+    }
+
+    .modal-body .show-invalid .invalid-feedback {
+        display: flex !important;
+    }
+
+    /* ── Mobile Layout ── */
+    .desktop-layout {
+        display: block;
+    }
+
+    .mobile-layout {
+        display: none;
+    }
+
+    @@media (max-width: 768px) {
+        .desktop-layout {
+            display: none;
+        }
+
+        .mobile-layout {
+            display: block;
+        }
+
+        .rc-name-col {
+            flex: 0 0 45%;
+        }
+
+        .rc-perm-col {
+            flex: 1;
+        }
+
+        .pagination-container {
+            flex-direction: column !important;
+            gap: .5rem !important;
+            text-align: center !important;
+        }
+
+        .modal-dialog {
+            max-width: 94vw !important;
+            margin: .5rem auto !important;
+        }
+
+        .stats-grid {
+            grid-template-columns: repeat(3, 1fr) !important;
+        }
+    }
+    @@media (max-width: 480px) {
+        .stats-grid {
+            grid-template-columns: 1fr !important;
+        }
+    }
+</style>
+
+<div class="content">
+    <nav class="mb-2" aria-label="breadcrumb">
+        <ol class="breadcrumb mb-0" style="font-size:11.5px;">
+            <li class="breadcrumb-item"><a href="/Home">Home</a></li>
+            <li class="breadcrumb-item"><a href="/manageusers">Manage Users</a></li>
+            <li class="breadcrumb-item active">Roles &amp; Permissions</li>
+        </ol>
+    </nav>
+
+    <div class="modern-header">
+        <div class="header-content">
+            <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.4rem;">
+                <div style="display:flex;align-items:center;gap:9px;">
+                    <i class="fa-solid fa-shield-halved" style="font-size:20px;color:#D4A45A;flex-shrink:0;"></i>
+                    <div>
+                        <div class="header-title">Roles &amp; Permissions</div>
+                        <div class="header-subtitle">Define and manage user roles with custom permissions</div>
+                    </div>
+                </div>
+                <div class="btn-wrap">
+                    <button type="button" class="action-btn" data-bs-toggle="modal" data-bs-target="#addRoleModal">
+                        <i class="fa-solid fa-plus" style="font-size:9px;"></i> Add Role
+                    </button>
+                </div>
+            </div>
+            <div class="stats-grid">
+                <div class="stats-card">
+                    <div class="stats-number">@totalRoles</div>
+                    <div class="stats-label">Total Roles</div>
+                </div>
+                <div class="stats-card">
+                    <div class="stats-number">@rolesList.Count(r => r.RoleName == "Admin")</div>
+                    <div class="stats-label">Admin Roles</div>
+                </div>
+                <div class="stats-card">
+                    <div class="stats-number">@rolesList.Count(r => r.RoleName != "Admin" && r.RoleName != "Partner" && r.RoleName != "Agent")</div>
+                    <div class="stats-label">Custom Roles</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="filter-section">
+        <div class="filter-label">
+            <i class="fa-solid fa-filter" style="font-size:9px;"></i> Filter &amp; Search
+        </div>
+        <div class="filter-row">
+            <input type="text" class="form-control" id="searchBox" placeholder="Search by role name…">
+            <button type="button" class="btn" id="clearFilters">
+                <i class="fa-solid fa-rotate-right" style="font-size:8.5px;"></i> Clear
+            </button>
+        </div>
+    </div>
+
+    <div id="rolesContainer">
+        @if (rolesList.Any())
+        {
+            <div class="section-label">All Roles</div>
+
+            foreach (var role in rolesList)
+            {
+                var standardRolesList = new[] { "Admin", "Partner", "Agent" };
+                var isCustomRole = !standardRolesList.Contains(role.RoleName);
+
+                <div class="role-card paginated-item">
+                    <div class="desktop-layout">
+                        <div class="role-card-inner">
+                            <div class="rc-name-col">
+                                <div class="role-name">
+                                    <i class="fa-solid fa-user-tag"></i>
+                                    <span>@role.RoleName</span>
+                                </div>
+                                <div class="role-meta">
+                                    <i class="fa-solid fa-calendar" style="font-size:9px;"></i>
+                                    @role.CreatedAt.ToString("MMM dd, yyyy")
+                                </div>
+                            </div>
+
+                            <div class="rc-perm-col">
+                                @if (isCustomRole && !string.IsNullOrEmpty(role.AllowedModules))
+                                {
+                                    <div class="perm-label">
+                                        <i class="fa-solid fa-cubes" style="font-size:9px;"></i>
+                                        <span>Module-Based Access Matrix</span>
+                                    </div>
+                                    @foreach (var mod in role.AllowedModules.Split(',', StringSplitOptions.RemoveEmptyEntries))
+                                    {
+                                        <span class="permission-badge">@mod.Trim()</span>
+                                    }
+                                }
+                                else
+                                {
+                                    <div class="perm-label">
+                                        <i class="fa-solid fa-key" style="font-size:9px;"></i>
+                                        <span>Page-Specific Access Rules</span>
+                                    </div>
+                                    <span class="permission-badge">
+                                        <i class="fa-solid fa-check" style="font-size:8.5px;"></i> Configured per page
+                                    </span>
+                                }
+                            </div>
+
+                            <div class="rc-action-col">
+                                <div class="dropdown">
+                                    <button class="dd-trigger btn" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                        <i class="fa-solid fa-ellipsis-vertical"></i>
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-end">
+                                        @if (!isCustomRole)
+                                        {
+                                            <li>
+                                                <a class="dropdown-item" href="/ManageUsers/RolePermissions?roleName=@role.RoleName">
+                                                    <i class="fa-solid fa-shield-halved"></i>Manage Permissions
+                                                </a>
+                                            </li>
+                                        }
+                                        <li>
+                                            <button class="dropdown-item edit-role-btn" type="button" data-role-id="@role.Id">
+                                                <i class="fa-solid fa-pencil"></i>Edit Role
+                                            </button>
+                                        </li>
+                                        <li><hr class="dropdown-divider"></li>
+                                        <li>
+                                            <a class="dropdown-item text-danger" href="/ManageUsers/DeleteRoles/@role.Id" onclick="return confirm('Delete this role?')">
+                                                <i class="fa-solid fa-trash"></i>Delete
+                                            </a>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mobile-layout" style="padding: .5rem .75rem;">
+                        <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                            <div>
+                                <div class="role-name" style="font-size:12px; margin-bottom:2px;">
+                                    <i class="fa-solid fa-user-tag"></i> <span>@role.RoleName</span>
+                                </div>
+                                <div class="role-meta" style="margin-bottom:4px;">
+                                    <i class="fa-solid fa-calendar" style="font-size:9px;"></i> @role.CreatedAt.ToString("MMM dd, yyyy")
+                                </div>
+                                <div>
+                                    @if (isCustomRole && !string.IsNullOrEmpty(role.AllowedModules))
+                                    {
+                                        <span class="permission-badge" style="background:rgba(22,163,74,.1); color:#16A34A;">Module-Based Access Matrix</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="permission-badge">Page-Specific Rules</span>
+                                    }
+                                </div>
+                            </div>
+                            <div class="dropdown">
+                                <button class="dd-trigger btn" type="button" data-bs-toggle="dropdown">
+                                    <i class="fa-solid fa-ellipsis-vertical"></i>
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end">
+                                    @if (!isCustomRole)
+                                    {
+                                        <li>
+                                            <a class="dropdown-item" href="/ManageUsers/RolePermissions?roleName=@role.RoleName">
+                                                <i class="fa-solid fa-shield-halved"></i>Manage Permissions
+                                            </a>
+                                        </li>
+                                    }
+                                    <li>
+                                        <button class="dropdown-item edit-role-btn" type="button" data-role-id="@role.Id">
+                                            <i class="fa-solid fa-pencil"></i>Edit Role
+                                        </button>
+                                    </li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li>
+                                        <a class="dropdown-item text-danger" href="/ManageUsers/DeleteRoles/@role.Id" onclick="return confirm('Delete this role?')">
+                                            <i class="fa-solid fa-trash"></i>Delete
+                                        </a>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        }
+        else
+        {
+            <div class="rp-empty">
+                <i class="fa-solid fa-shield-halved"></i>
+                <h3>No Roles Found</h3>
+                <p>Start by adding your first role above.</p>
+            </div>
+        }
+
+        <div class="pagination-container" id="paginationContainer" style="display:none;">
+            <div class="pagination-info">
+                <span id="paginationInfo">Showing 1–10 of 0 roles</span>
+            </div>
+            <div class="pagination-controls">
+                <button class="pagination-btn" id="prevBtn" onclick="changePage(-1)">
+                    <i class="fa-solid fa-chevron-left"></i> Prev
+                </button>
+                <div id="pageNumbers" style="display:flex;gap:3px;"></div>
+                <button class="pagination-btn" id="nextBtn" onclick="changePage(1)">
+                    Next <i class="fa-solid fa-chevron-right"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="addRoleModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form id="addRoleForm" method="post" action="/ManageUsers/AddRoles" novalidate>
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="AllowedModules" id="addAllowedModules" />
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fa-solid fa-plus"></i>Add New Role
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-2" id="addSelectWrapper">
+                        <label class="form-label">Role Definition Tier <span style="color:#DC2626;">*</span></label>
+                        <select name="RoleName" class="form-select" id="addRoleSelect" required>
+                            <option value="">Choose role…</option>
+                            <option value="Admin">Admin</option>
+                            @if (hasPartnerFeature)
+                            {
+                                <option value="Partner">Partner</option>
+                            }
+                            <option value="Agent">Agent</option>
+                            <option value="Other">Other (Custom Feature Tier)</option>
+                        </select>
+                        <div class="valid-feedback"><i class="fa-solid fa-check"></i> Tier selected</div>
+                        <div class="invalid-feedback"><i class="fa-solid fa-circle-exclamation"></i> Selection required</div>
+                    </div>
+
+                    <div class="mb-2" id="addCustomRoleSection" style="display:none;">
+                        <label class="form-label">Custom Role Label <span style="color:#DC2626;">*</span></label>
+                        <input type="text" class="form-control" id="addCustomRoleName" placeholder="E.g., Manager, Sales Agent">
+                    </div>
+
+                    <div class="mb-2" id="addModulesSection" style="display:none;">
+                        <label class="form-label" style="color:#1A6FA8;">Module Access Configuration Matrix</label>
+                        <div class="row g-1 style-matrix-box" style="background:#FFFFFF; padding:6px; border:1px dashed #E2E8F0; border-radius:6px;">
+                            @for (int i = 0; i < systemModules.Length; i++)
+                            {
+                                <div class="col-6">
+                                    <div class="form-check" style="min-height:auto; margin-bottom:2px;">
+                                        <input class="form-check-input add-module-cb" type="checkbox" value="@systemModules[i]" id="addMod@i">
+                                        <label class="form-check-label" for="addMod@i" style="font-size:11px; cursor:pointer;">@systemModules[i]</label>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+
+                    <div class="mt-2">
+                        <div class="alert alert-info">
+                            <i class="fa-solid fa-circle-info" style="font-size:11px; flex-shrink:0; margin-top:1px;"></i>
+                            <span>Custom security models bypass explicit row configuration grids automatically.</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="addSubmitBtn">Create Role</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="editRoleModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form id="editRoleForm" method="post" action="/ManageUsers/AddRoles" novalidate>
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="Id" id="editRoleId" />
+                <input type="hidden" name="AllowedModules" id="editAllowedModules" />
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fa-solid fa-pencil"></i>Edit System Tier
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-2" id="editSelectWrapper">
+                        <label class="form-label">Role Definition Tier <span style="color:#DC2626;">*</span></label>
+                        <select name="RoleName" id="editRoleSelect" class="form-select" required>
+                            <option value="">Choose role…</option>
+                            <option value="Admin">Admin</option>
+                            @if (hasPartnerFeature)
+                            {
+                                <option value="Partner">Partner</option>
+                            }
+                            <option value="Agent">Agent</option>
+                            <option value="Other">Other (Custom Feature Tier)</option>
+                        </select>
+                        <div class="valid-feedback"><i class="fa-solid fa-check"></i> Tier loaded</div>
+                        <div class="invalid-feedback"><i class="fa-solid fa-circle-exclamation"></i> Selection required</div>
+                    </div>
+
+                    <div class="mb-2" id="editCustomRoleSection" style="display:none;">
+                        <label class="form-label">Custom Role Label <span style="color:#DC2626;">*</span></label>
+                        <input type="text" class="form-control" id="editCustomRoleName" placeholder="Enter name">
+                    </div>
+
+                    <div class="mb-2" id="editModulesSection" style="display:none;">
+                        <label class="form-label" style="color:#1A6FA8;">Module Access Configuration Matrix</label>
+                        <div class="row g-1 style-matrix-box" style="background:#FFFFFF; padding:6px; border:1px dashed #E2E8F0; border-radius:6px;">
+                            @for (int i = 0; i < systemModules.Length; i++)
+                            {
+                                <div class="col-6">
+                                    <div class="form-check" style="min-height:auto; margin-bottom:2px;">
+                                        <input class="form-check-input edit-module-cb" type="checkbox" value="@systemModules[i]" id="editMod@i">
+                                        <label class="form-check-label" for="editMod@i" style="font-size:11px; cursor:pointer;">@systemModules[i]</label>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+
+                    <div class="mt-2">
+                        <div class="alert alert-info">
+                            <i class="fa-solid fa-circle-info" style="font-size:11px; flex-shrink:0; margin-top:1px;"></i>
+                            <span>Row properties persist automatically upon save optimization loops.</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success" id="editSubmitBtn">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        /* ── UI Feedback Helper Engine ── */
+        function validateSelect(selectEl) {
+            var wrapper = selectEl.closest('.mb-2') || selectEl.closest('.mb-3');
+            if (!wrapper) return true;
+            var ok = selectEl.value !== '';
+            selectEl.classList.toggle('is-valid', ok);
+            selectEl.classList.toggle('is-invalid', !ok);
+            wrapper.classList.toggle('show-valid', ok);
+            wrapper.classList.toggle('show-invalid', !ok);
+            return ok;
+        }
+
+        function resetSelect(selectEl) {
+            var wrapper = selectEl.closest('.mb-2') || selectEl.closest('.mb-3');
+            selectEl.classList.remove('is-valid', 'is-invalid');
+            if (wrapper) wrapper.classList.remove('show-valid', 'show-invalid');
+            selectEl.value = '';
+        }
+
+        /* Live events hook mapping */
+        ['addRoleSelect', 'editRoleSelect'].forEach(function (id) {
+            var el = document.getElementById(id);
+            if (el) el.addEventListener('change', function () { validateSelect(this); });
+        });
+
+        document.getElementById('addRoleModal').addEventListener('show.bs.modal', function () {
+            resetSelect(document.getElementById('addRoleSelect'));
+            $('#addCustomRoleSection').hide();
+            $('#addModulesSection').hide();
+            $('.add-module-cb').prop('checked', false);
+        });
+
+        /* ── Pagination Processing Core ── */
+        var currentPage = 1;
+        var pageSize = 10;
+        var filteredRoles = [];
+
+        function initializePagination() {
+            filteredRoles = Array.from(document.querySelectorAll('.role-card'));
+            if (filteredRoles.length > 0) {
+                document.getElementById('paginationContainer').style.display = 'flex';
+                updatePagination();
+            }
+        }
+
+        function updatePagination() {
+            var totalPages = Math.ceil(filteredRoles.length / pageSize);
+            var startIndex = (currentPage - 1) * pageSize;
+            var endIndex = Math.min(startIndex + pageSize, filteredRoles.length);
+
+            document.querySelectorAll('.role-card').forEach(function (c) { c.style.display = 'none'; });
+            for (var i = startIndex; i < endIndex; i++) {
+                if (filteredRoles[i]) filteredRoles[i].style.display = 'block';
+            }
+
+            var start = filteredRoles.length > 0 ? startIndex + 1 : 0;
+            document.getElementById('paginationInfo').textContent =
+                'Showing ' + start + '–' + endIndex + ' of ' + filteredRoles.length + ' roles';
+
+            updatePageNumbers(totalPages);
+            document.getElementById('prevBtn').disabled = currentPage === 1;
+            document.getElementById('nextBtn').disabled = currentPage === totalPages || totalPages === 0;
+        }
+
+        function updatePageNumbers(totalPages) {
+            var pg = document.getElementById('pageNumbers');
+            pg.innerHTML = '';
+            if (totalPages <= 1) return;
+            var max = 5;
+            var sp = Math.max(1, currentPage - Math.floor(max / 2));
+            var ep = Math.min(totalPages, sp + max - 1);
+            if (ep - sp + 1 < max) sp = Math.max(1, ep - max + 1);
+            for (var i = sp; i <= ep; i++) {
+                (function (p) {
+                    var btn = document.createElement('button');
+                    btn.className = 'pagination-btn' + (p === currentPage ? ' active' : '');
+                    btn.textContent = p;
+                    btn.onclick = function () { goToPage(p); };
+                    pg.appendChild(btn);
+                })(i);
+            }
+        }
+
+        function changePage(dir) {
+            var tp = Math.ceil(filteredRoles.length / pageSize);
+            var np = currentPage + dir;
+            if (np >= 1 && np <= tp) { currentPage = np; updatePagination(); }
+        }
+        function goToPage(p) { currentPage = p; updatePagination(); }
+
+        /* ── Execution Context Initialization ── */
+        $(document).ready(function () {
+            initializePagination();
+
+            $('.role-card .dropdown').on('show.bs.dropdown', function () {
+                $('.role-card').css('z-index', '1');
+                $(this).closest('.role-card').css('z-index', '99999');
+            });
+            $('.role-card .dropdown').on('hide.bs.dropdown', function () {
+                $(this).closest('.role-card').css('z-index', '1');
+            });
+
+            function applyFilters() {
+                var search = $('#searchBox').val().toLowerCase();
+                filteredRoles = [];
+                $('.role-card').each(function () {
+                    if (!search || $(this).text().toLowerCase().includes(search)) {
+                        filteredRoles.push(this);
+                    }
+                });
+                currentPage = 1;
+                updatePagination();
+            }
+            $('#searchBox').on('input', applyFilters);
+            $('#clearFilters').on('click', function () { $('#searchBox').val(''); applyFilters(); });
+
+            /* Conditional Switch Toggles */
+            $('#addRoleSelect').on('change', function() {
+                if ($(this).val() === 'Other') {
+                    $('#addCustomRoleSection').show();
+                    $('#addModulesSection').show();
+                } else {
+                    $('#addCustomRoleSection').hide();
+                    $('#addModulesSection').hide();
+                }
+            });
+
+            $('#editRoleSelect').on('change', function() {
+                if ($(this).val() === 'Other') {
+                    $('#editCustomRoleSection').show();
+                    $('#editModulesSection').show();
+                } else {
+                    $('#editCustomRoleSection').hide();
+                    $('#editModulesSection').hide();
+                }
+            });
+
+            /* Form Submissions Processing Engine */
+            $('#addRoleForm').on('submit', function (e) {
+                e.preventDefault();
+                var sel = document.getElementById('addRoleSelect');
+                if (!validateSelect(sel)) return;
+
+                var selectVal = $('#addRoleSelect').val();
+                if (selectVal === 'Other') {
+                    var customName = $('#addCustomRoleName').val().trim();
+                    if (!customName) { showToast('Please enter a custom role name', 'warning'); return; }
+
+                    $('#addRoleSelect').append('<option value="' + customName + '" selected>' + customName + '</option>');
+                    $('#addRoleSelect').val(customName);
+
+                    var modules = [];
+                    $('.add-module-cb:checked').each(function () { modules.push($(this).val()); });
+                    $('#addAllowedModules').val(modules.join(','));
+                }
+
+                var btn = $('#addSubmitBtn');
+                var orig = btn.html();
+                btn.prop('disabled', true).html('<i class="fa-solid fa-spinner fa-spin"></i> Creating…');
+
+                $.ajax({
+                    url: $(this).attr('action'),
+                    type: 'POST',
+                    data: $(this).serialize(),
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                    success: function (r) {
+                        if (r.success) { $('#addRoleModal').modal('hide'); location.reload(); }
+                        else Swal.fire({ icon: 'error', title: 'Error', text: r.message || 'Error creating role' });
+                    },
+                    error: function (xhr) { Swal.fire({ icon: 'error', title: 'Error', text: xhr.responseText || 'Error creating role' }); },
+                    complete: function () { btn.prop('disabled', false).html(orig); }
+                });
+            });
+
+            /* Edit Data Fetcher Engine */
+            $('.edit-role-btn').on('click', function () {
+                var id = $(this).data('role-id');
+                $.getJSON('/ManageUsers/GetRole?id=' + id, function (r) {
+                    if (r.success) {
+                        $('#editRoleId').val(r.id);
+                        var roleName = r.roleName;
+                        var standardRoles = ['Admin', 'Partner', 'Agent'];
+
+                        $('.edit-module-cb').prop('checked', false);
+                        $('#editAllowedModules').val('');
+
+                        if (standardRoles.includes(roleName)) {
+                            $('#editRoleSelect').val(roleName);
+                            $('#editCustomRoleName').val('');
+                            $('#editCustomRoleSection').hide();
+                            $('#editModulesSection').hide();
+                        } else {
+                            $('#editRoleSelect').val('Other');
+                            $('#editCustomRoleName').val(roleName);
+                            $('#editCustomRoleSection').show();
+                            $('#editModulesSection').show();
+
+                            if (r.allowedModules) {
+                                var mods = r.allowedModules.split(',');
+                                mods.forEach(function (m) {
+                                    $('.edit-module-cb[value="' + m.trim() + '"]').prop('checked', true);
+                                });
+                            }
+                        }
+                        validateSelect(document.getElementById('editRoleSelect'));
+                        $('#editRoleModal').modal('show');
+                    } else Swal.fire({ icon: 'error', title: 'Error', text: r.message || 'Role not found' });
+                }).fail(function () { Swal.fire({ icon: 'error', title: 'Error', text: 'Error loading role data' }); });
+            });
+
+            $('#editRoleForm').on('submit', function (e) {
+                e.preventDefault();
+                var sel = document.getElementById('editRoleSelect');
+                if (!validateSelect(sel)) return;
+
+                var selectVal = $('#editRoleSelect').val();
+                if (selectVal === 'Other') {
+                    var customName = $('#editCustomRoleName').val().trim();
+                    if (!customName) { showToast('Please enter a custom role name', 'warning'); return; }
+
+                    $('#editRoleSelect').append('<option value="' + customName + '" selected>' + customName + '</option>');
+                    $('#editRoleSelect').val(customName);
+
+                    var modules = [];
+                    $('.edit-module-cb:checked').each(function() { modules.push($(this).val()); });
+                    $('#editAllowedModules').val(modules.join(','));
+                } else {
+                    $('#editAllowedModules').val('');
+                }
+
+                var btn = $('#editSubmitBtn');
+                var orig = btn.html();
+                btn.prop('disabled', true).html('<i class="fa-solid fa-spinner fa-spin"></i> Saving…');
+
+                $.ajax({
+                    url: $(this).attr('action'),
+                    type: 'POST',
+                    data: $(this).serialize(),
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                    success: function (r) {
+                        if (r.success) { $('#editRoleModal').modal('hide'); location.reload(); }
+                        else Swal.fire({ icon: 'error', title: 'Error', text: r.message || 'Error updating role' });
+                    },
+                    error: function (xhr) { Swal.fire({ icon: 'error', title: 'Error', text: 'Error updating role' }); },
+                    complete: function () { btn.prop('disabled', false).html(orig); }
+                });
+            });
+        });
+    </script>
+}

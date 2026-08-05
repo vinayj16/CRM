@@ -1,0 +1,1109 @@
+@model IEnumerable<CRM.Models.ChannelPartnerModel>
+@{
+    ViewData["Title"] = "Partner Approval";
+}
+
+<style>
+/* ============================================================
+   SCOPE: .pa-wrap — zero leakage to sidebar/global layout
+   Colors: --g=#D4A45A (gold)  --b=#1A6FA8 (blue)
+   ============================================================ */
+
+.pa-wrap {
+    --g:  #D4A45A; --gd: #B8883E; --gp: #F0F4F8; --gl: #FEF3C7;
+    --b:  #1A6FA8; --bd: #0F4C75; --bp: #F0F4F8; --bl: #E2E8F0;
+    --tx: #1A2332; --mu: #6B7B8D; --su: #FFFFFF; --br: #E2E8F0;
+    --ok: #16A34A; --okp: #DCFCE7; --okb: #DCFCE7;
+    --wa: #991B1B; --wap: #F0F4F8; --wab: #FEE2E2;
+    --pn: #F59E0B; --pnp: #F0F4F8; --pnb: #E8C27E;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+}
+
+/* ── header ── */
+.pa-hdr {
+    background: linear-gradient(118deg, #0F4C75 0%, var(--b) 58%, #2589C9 100%);
+    border-radius: 10px; padding: .85rem 1.1rem;
+    margin-bottom: .55rem; position: relative; overflow: hidden;
+    display: flex; align-items: center; justify-content: space-between; gap: .75rem;
+}
+.pa-hdr::before {
+    content:''; position:absolute; top:-30px; right:-30px;
+    width:120px; height:120px; border-radius:50%;
+    background:rgba(212,164,90,.16); pointer-events:none;
+}
+.pa-hdr::after {
+    content:''; position:absolute; bottom:-20px; left:30px;
+    width:80px; height:80px; border-radius:50%;
+    background:rgba(212,164,90,.09); pointer-events:none;
+}
+.pa-hdr-left { position:relative; z-index:1; }
+.pa-hdr-title { font-size:1.05rem; font-weight:700; color:#FFFFFF; margin:0;
+    display:flex; align-items:center; gap:7px; }
+.pa-hdr-title i { color:var(--g); }
+.pa-hdr-sub { font-size:.72rem; color:rgba(255,255,255,.62); margin:.1rem 0 0; }
+.pa-create-btn {
+    position:relative; z-index:1;
+    background:var(--g); border:none; color:#FFFFFF;
+    padding:.4rem .95rem; border-radius:6px;
+    font-size:.76rem; font-weight:700;
+    display:inline-flex; align-items:center; gap:5px;
+    white-space:nowrap; cursor:pointer;
+    box-shadow:0 2px 9px rgba(212,164,90,.38);
+    transition:background .18s, transform .14s;
+    text-decoration:none;
+}
+.pa-create-btn:hover { background:var(--gd); color:#FFFFFF; transform:translateY(-1px); }
+
+/* ── stat strip ── */
+.pa-stats {
+    display:grid; grid-template-columns:repeat(4,1fr);
+    gap:.45rem; margin-bottom:.55rem;
+}
+.pa-sc {
+    background:var(--su); border:1px solid var(--br);
+    border-radius:8px; padding:.55rem .8rem;
+    display:flex; align-items:center; gap:.6rem;
+    transition:box-shadow .18s;
+}
+.pa-sc:hover { box-shadow:0 3px 12px rgba(26,111,168,.08); }
+.pa-sc-ico {
+    width:33px; height:33px; border-radius:6px; flex-shrink:0;
+    display:flex; align-items:center; justify-content:center; font-size:.9rem;
+}
+.ico-b  { background:var(--bp); color:var(--b); }
+.ico-pn { background:var(--pnp); color:var(--pn); }
+.ico-ok { background:var(--okp); color:var(--ok); }
+.ico-wa { background:var(--wap); color:var(--wa); }
+.pa-sc-num { font-size:1.1rem; font-weight:700; color:var(--tx); line-height:1; margin-bottom:1px; }
+.pa-sc-lbl { font-size:.67rem; color:var(--mu); font-weight:500; }
+
+/* ── filter bar ── */
+.pa-fbar {
+    background:var(--su); border:1px solid var(--br);
+    border-radius:8px; padding:.55rem .8rem;
+    margin-bottom:.55rem;
+}
+.pa-fbar-head {
+    display:flex; align-items:center; justify-content:space-between;
+    margin-bottom:.45rem;
+}
+.pa-fbar-title {
+    font-size:.72rem; font-weight:700; color:var(--mu);
+    text-transform:uppercase; letter-spacing:.06em;
+    display:flex; align-items:center; gap:5px;
+}
+.pa-fbar-actions { display:flex; gap:.35rem; }
+.pa-grid4 {
+    display:grid; grid-template-columns:1.8fr .8fr 1fr 1fr;
+    gap:.45rem; align-items:end;
+}
+.pa-fl { font-size:.68rem; font-weight:600; color:var(--mu); margin-bottom:3px; display:block; }
+.pa-fi {
+    width:100%; border:1px solid var(--br); border-radius:5px;
+    font-size:.77rem; padding:.28rem .55rem; height:29px;
+    color:var(--tx); outline:none; background:var(--su);
+    transition:border-color .15s, box-shadow .15s;
+}
+.pa-fi:focus { border-color:var(--b); box-shadow:0 0 0 2px rgba(26,111,168,.12); }
+.pa-fi-sel { appearance:none; cursor:pointer; }
+/* flatpickr input override */
+.pa-fi.flatpickr-input { cursor:pointer; }
+.pa-btn-sm {
+    height:29px; padding:0 .7rem; border-radius:5px;
+    font-size:.72rem; font-weight:700; border:none; cursor:pointer;
+    display:inline-flex; align-items:center; gap:4px; white-space:nowrap;
+    transition:all .15s;
+}
+.pa-btn-blue  { background:var(--b); color:#FFFFFF; }
+.pa-btn-blue:hover  { background:var(--bd); }
+.pa-btn-clear { background:var(--su); color:var(--mu); border:1px solid var(--br); }
+.pa-btn-clear:hover { border-color:var(--b); color:var(--b); background:var(--bp); }
+.pa-btn-excel { background:#16A34A; color:#FFFFFF; }
+.pa-btn-excel:hover { background:#15803D; }
+.pa-btn-csv   { background:#2589C9; color:#FFFFFF; }
+.pa-btn-csv:hover { background:#1A6FA8; }
+
+/* ── partner row ── */
+.pa-row {
+    background:var(--su); border:1px solid var(--br);
+    border-radius:8px; margin-bottom:.3rem; padding:.6rem .8rem;
+    display:grid;
+    grid-template-columns: 2.2fr 1.6fr 1fr 110px 90px;
+    align-items:center; gap:.5rem;
+    transition:border-color .15s, box-shadow .15s;
+}
+.pa-row:hover { border-color:var(--bl); box-shadow:0 2px 9px rgba(26,111,168,.07); }
+
+/* col 1 — company */
+.pa-company {
+    font-size:.82rem; font-weight:700; color:var(--b);
+    text-decoration:none; display:block; margin-bottom:1px;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.pa-company:hover { color:var(--bd); text-decoration:underline; }
+.pa-contact { font-size:.74rem; font-weight:600; color:var(--tx); margin-bottom:1px; }
+.pa-email   { font-size:.69rem; color:var(--mu); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+
+/* col 2 — contact info */
+.pa-info-line { font-size:.72rem; color:var(--mu); display:flex; align-items:center; gap:5px; margin-bottom:2px; }
+.pa-info-line i { width:12px; font-size:.65rem; color:var(--b); opacity:.7; }
+
+/* col 3 — commission + docs */
+.pa-comm { font-size:.72rem; color:var(--tx); font-weight:600; margin-bottom:2px; }
+.pa-docs { font-size:.67rem; color:var(--mu); }
+
+/* col 4 — status badge */
+.pa-sbadge {
+    font-size:.6rem; font-weight:700; padding:.22rem .55rem;
+    border-radius:20px; letter-spacing:.03em; text-transform:uppercase; white-space:nowrap;
+    display:inline-block;
+}
+.sb-pending  { background:var(--pnp); color:var(--pn); border:1px solid var(--pnb); }
+.sb-approved { background:var(--okp); color:var(--ok); border:1px solid var(--okb); }
+.sb-rejected { background:var(--wap); color:var(--wa); border:1px solid var(--wab); }
+
+/* col 5 — actions */
+.pa-acts { display:flex; gap:4px; justify-content:flex-end; align-items:center; flex-wrap:wrap; }
+.pa-ab {
+    width:27px; height:27px; border:none; border-radius:5px;
+    display:flex; align-items:center; justify-content:center;
+    font-size:.7rem; cursor:pointer; transition:all .15s; flex-shrink:0;
+}
+.pa-ab-edit   { background:#F0F4F8; color:#2589C9; }
+.pa-ab-edit:hover { background:#2589C9; color:#FFFFFF; }
+.pa-ab-del    { background:var(--wap); color:var(--wa); }
+.pa-ab-del:hover { background:var(--wa); color:#FFFFFF; }
+.pa-ab-ok     { background:var(--okp); color:var(--ok); }
+.pa-ab-ok:hover { background:var(--ok); color:#FFFFFF; }
+.pa-ab-rej    { background:var(--wap); color:var(--wa); }
+.pa-ab-rej:hover { background:var(--wa); color:#FFFFFF; }
+
+/* column headers */
+.pa-thead {
+    display:grid;
+    grid-template-columns: 2.2fr 1.6fr 1fr 110px 90px;
+    gap:.5rem; padding:.22rem .8rem; margin-bottom:.18rem;
+}
+.pa-th { font-size:.61rem; font-weight:700; color:var(--mu); text-transform:uppercase; letter-spacing:.06em; }
+.pa-th.r { text-align:right; }
+
+/* ── pagination ── */
+.pa-pag {
+    display:flex; justify-content:space-between; align-items:center;
+    margin-top:.45rem; padding:.45rem .7rem;
+    background:var(--su); border:1px solid var(--br); border-radius:8px;
+}
+.pa-pag-info { font-size:.7rem; color:var(--mu); }
+.pa-pag-ctrl { display:flex; gap:3px; }
+.pa-pb {
+    padding:.24rem .5rem; border:1px solid var(--br);
+    background:var(--su); color:var(--mu); border-radius:4px;
+    font-size:.7rem; cursor:pointer; line-height:1.5; transition:all .15s;
+}
+.pa-pb:hover:not(.disabled):not(.active) { border-color:var(--b); color:var(--b); background:var(--bp); }
+.pa-pb.disabled { opacity:.4; cursor:not-allowed; pointer-events:none; }
+.pa-pb.active { background:var(--b); border-color:var(--b); color:#FFFFFF; font-weight:700; }
+
+/* ── empty state ── */
+.pa-empty {
+    text-align:center; padding:2.5rem 1.5rem;
+    background:var(--su); border:1px solid var(--br); border-radius:10px;
+}
+.pa-empty-ico {
+    width:48px; height:48px; border-radius:50%;
+    background:var(--bp); color:var(--b);
+    display:inline-flex; align-items:center; justify-content:center;
+    font-size:1.2rem; margin-bottom:.65rem;
+}
+.pa-empty h5 { font-size:.9rem; font-weight:600; color:var(--tx); margin-bottom:.25rem; }
+.pa-empty p  { font-size:.75rem; color:var(--mu); margin-bottom:.65rem; }
+
+/* ── modal tweaks ── */
+.pa-modal .modal-header { padding:.7rem 1rem; border-bottom:1px solid var(--br); }
+.pa-modal .modal-title  { font-size:.9rem; font-weight:700; color:var(--tx); }
+.pa-modal .modal-body   { padding:.8rem 1rem; }
+.pa-modal .modal-footer { padding:.55rem 1rem; border-top:1px solid var(--br); }
+.pa-modal .form-label   { font-size:.73rem; font-weight:600; color:var(--mu); margin-bottom:3px; }
+.pa-modal .form-control,
+.pa-modal .form-select  {
+    font-size:.78rem; padding:.3rem .55rem; height:30px;
+    border-color:var(--br); border-radius:5px; color:var(--tx);
+    transition:border-color .15s, box-shadow .15s;
+}
+.pa-modal .form-control:focus,
+.pa-modal .form-select:focus {
+    border-color:var(--b); box-shadow:0 0 0 2px rgba(26,111,168,.12);
+}
+.pa-modal .invalid-feedback { font-size:.68rem; }
+.pa-modal .row.g-3 { --bs-gutter-x:.65rem; --bs-gutter-y:.5rem; }
+.pa-modal .btn-primary { background:var(--b); border-color:var(--b); font-size:.8rem; }
+.pa-modal .btn-primary:hover { background:var(--bd); border-color:var(--bd); }
+.pa-modal .btn-secondary { font-size:.8rem; }
+.pa-modal .btn-outline-primary { font-size:.78rem; border-color:var(--b); color:var(--b); }
+.pa-modal .btn-outline-primary:hover { background:var(--b); color:#FFFFFF; }
+
+/* trial info box */
+.pa-trial-box {
+    background: linear-gradient(135deg, rgba(26,111,168,.06), rgba(212,164,90,.06));
+    border-radius:7px; padding:.65rem .8rem;
+    border-left:3px solid var(--b);
+    font-size:.73rem;
+}
+.pa-trial-box strong { color:var(--b); }
+.pa-trial-row { display:flex; align-items:center; gap:6px; margin-bottom:3px; color:var(--mu); }
+.pa-trial-row i { color:var(--ok); width:13px; font-size:.68rem; }
+
+/* flatpickr skin adjustments */
+.flatpickr-calendar { font-size:.78rem !important; border-radius:8px !important; box-shadow:0 6px 22px rgba(0,0,0,.12) !important; }
+.flatpickr-day.selected, .flatpickr-day.selected:hover {
+    background:var(--b) !important; border-color:var(--b) !important;
+}
+.flatpickr-day:hover { background:var(--bp) !important; }
+.flatpickr-months .flatpickr-month { background:var(--b) !important; color:#FFFFFF !important; }
+.flatpickr-current-month .flatpickr-monthDropdown-months { background:var(--b) !important; color:#FFFFFF !important; }
+.flatpickr-weekday { color:var(--b) !important; font-weight:700 !important; }
+.flatpickr-prev-month:hover svg, .flatpickr-next-month:hover svg { fill:var(--g) !important; }
+
+/* ── dark mode ── */
+.dark-mode .pa-wrap, html.dark-mode .pa-wrap {
+    --su:#1A2332; --br:#1E2A3A; --tx:#E2E8F0; --mu:#6B7B8D;
+    --bp:#1A2332; --bl:#2A3A4A; --gp:#111827; --gl:#1A2332;
+    --okp:#0D1A24; --okb:#1E2A3A; --wap:#111827; --wab:#1A2332;
+    --pnp:#0D1724; --pnb:#1A2332;
+}
+html.dark-mode .pa-sc,
+.dark-mode .pa-sc     { background:#1A2332 !important; border-color:#1E2A3A !important; }
+html.dark-mode .pa-row,
+.dark-mode .pa-row    { background:#1A2332 !important; border-color:#1E2A3A !important; }
+html.dark-mode .pa-row:hover,
+.dark-mode .pa-row:hover { border-color:#2A3A4A !important; }
+html.dark-mode .pa-fbar,
+.dark-mode .pa-fbar   { background:#1A2332 !important; border-color:#1E2A3A !important; }
+html.dark-mode .pa-fi,
+.dark-mode .pa-fi     { background:#1E2A3A !important; border-color:#2A3A4A !important; color:#E2E8F0 !important; }
+html.dark-mode .pa-pag,
+.dark-mode .pa-pag    { background:#1A2332 !important; border-color:#1E2A3A !important; }
+html.dark-mode .pa-pb,
+.dark-mode .pa-pb     { background:#1E2A3A !important; border-color:#2A3A4A !important; color:#6B7B8D !important; }
+html.dark-mode .pa-pb.active,
+.dark-mode .pa-pb.active { background:var(--b) !important; border-color:var(--b) !important; color:#FFFFFF !important; }
+html.dark-mode .pa-empty,
+.dark-mode .pa-empty  { background:#1A2332 !important; border-color:#1E2A3A !important; }
+html.dark-mode .pa-btn-clear,
+.dark-mode .pa-btn-clear { background:#1E2A3A !important; border-color:#2A3A4A !important; color:#6B7B8D !important; }
+html.dark-mode .pa-ab-edit,
+.dark-mode .pa-ab-edit { background:#1E2A3A !important; }
+html.dark-mode .pa-modal .modal-content,
+.dark-mode .pa-modal .modal-content { background:#1A2332 !important; border-color:#1E2A3A !important; }
+html.dark-mode .pa-modal .form-control,
+html.dark-mode .pa-modal .form-select,
+.dark-mode .pa-modal .form-control,
+.dark-mode .pa-modal .form-select { background:#1E2A3A !important; border-color:#2A3A4A !important; color:#E2E8F0 !important; }
+html.dark-mode .pa-trial-box,
+.dark-mode .pa-trial-box { background:rgba(26,111,168,.1) !important; }
+html.dark-mode .pa-modal .modal-header,
+html.dark-mode .pa-modal .modal-footer,
+.dark-mode .pa-modal .modal-header,
+.dark-mode .pa-modal .modal-footer { border-color:#1E2A3A !important; }
+html.dark-mode .pa-modal .modal-title,
+.dark-mode .pa-modal .modal-title { color:#E2E8F0 !important; }
+html.dark-mode .pa-modal .form-label,
+.dark-mode .pa-modal .form-label { color:#6B7B8D !important; }
+
+/* ── validation ── */
+.pa-modal .invalid-feedback { display:none; }
+.pa-modal .was-validated .form-control:invalid ~ .invalid-feedback,
+.pa-modal .was-validated .form-select:invalid ~ .invalid-feedback,
+.pa-modal .form-control.is-invalid ~ .invalid-feedback,
+.pa-modal .form-select.is-invalid ~ .invalid-feedback { display:block; }
+.pa-modal .was-validated #planValidationError,
+.pa-modal #planValidationError.d-block { display:block !important; }
+
+/* ── responsive ── */
+@@media (max-width:900px) {
+    .pa-thead { grid-template-columns:2fr 1.4fr 1fr 100px 80px; }
+    .pa-row   { grid-template-columns:2fr 1.4fr 1fr 100px 80px; }
+}
+@@media (max-width:700px) {
+    .pa-stats { grid-template-columns:1fr 1fr; }
+    .pa-hdr   { flex-direction:column; align-items:flex-start; gap:.45rem; padding:.75rem .9rem; }
+    .pa-grid4 { grid-template-columns:1fr 1fr; }
+    .pa-thead { display:none; }
+    .pa-row   {
+        grid-template-columns:1fr !important;
+        padding:.7rem .8rem; gap:.4rem;
+    }
+    .pa-row > *:not(.pa-mob) { display:none !important; }
+    .pa-row > .pa-mob { display:block !important; }
+    .pa-pag  { flex-direction:column; gap:.4rem; text-align:center; }
+    .pa-pag-ctrl { flex-wrap:wrap; justify-content:center; }
+    .pa-fbar-actions { flex-wrap:wrap; gap:.3rem; }
+}
+@@media (max-width:500px) {
+    .pa-grid4 { grid-template-columns:1fr; }
+}
+@@media (min-width:701px) { .pa-mob { display:none !important; } }
+
+/* mobile card */
+.pa-mob-top { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:.4rem; }
+.pa-mob-co  { font-size:.82rem; font-weight:700; color:var(--b); text-decoration:none; }
+.pa-mob-co:hover { color:var(--bd); text-decoration:underline; }
+.pa-mob-ct  { font-size:.74rem; font-weight:600; color:var(--tx); margin-bottom:1px; }
+.pa-mob-em  { font-size:.68rem; color:var(--mu); }
+.pa-mob-grid { display:grid; grid-template-columns:1fr 1fr; gap:.35rem; margin:.4rem 0; }
+.pa-mob-lbl { font-size:.6rem; color:var(--mu); font-weight:700; text-transform:uppercase; letter-spacing:.04em; margin-bottom:1px; }
+.pa-mob-val { font-size:.73rem; font-weight:600; color:var(--tx); }
+.pa-mob-foot { display:flex; justify-content:space-between; align-items:center;
+    padding-top:.38rem; margin-top:.1rem; border-top:1px solid var(--br); }
+</style>
+
+<!-- flatpickr CSS -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+
+<div class="pa-wrap">
+
+    <!-- breadcrumb -->
+    <nav class="mb-2" aria-label="breadcrumb">
+        <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item"><a href="/Home">Home</a></li>
+            <li class="breadcrumb-item"><a href="/manageusers">Manage Users</a></li>
+            <li class="breadcrumb-item active">Partner Approval</li>
+        </ol>
+    </nav>
+
+    <!-- ── HEADER ── -->
+    <div class="pa-hdr">
+        <div class="pa-hdr-left">
+            <div class="pa-hdr-title">
+                <i class="fa-solid fa-handshake"></i>Partner Approval
+            </div>
+            <p class="pa-hdr-sub">Manage and approve channel partner requests</p>
+        </div>
+        <button type="button" class="pa-create-btn" data-bs-toggle="modal" data-bs-target="#createPartnerModal">
+            <i class="fa-solid fa-plus"></i>Create Partner
+        </button>
+    </div>
+
+    <!-- ── STATS ── -->
+    <div class="pa-stats">
+        <div class="pa-sc">
+            <div class="pa-sc-ico ico-b"><i class="fa-solid fa-handshake"></i></div>
+            <div><div class="pa-sc-num" id="totalPartners">@Model.Count()</div><div class="pa-sc-lbl">Total Partners</div></div>
+        </div>
+        <div class="pa-sc">
+            <div class="pa-sc-ico ico-pn"><i class="fa-solid fa-clock"></i></div>
+            <div><div class="pa-sc-num" id="pendingPartners">@Model.Count(p => p.Status == "Pending")</div><div class="pa-sc-lbl">Pending</div></div>
+        </div>
+        <div class="pa-sc">
+            <div class="pa-sc-ico ico-ok"><i class="fa-solid fa-circle-check"></i></div>
+            <div><div class="pa-sc-num" id="approvedPartners">@Model.Count(p => p.Status == "Approved")</div><div class="pa-sc-lbl">Approved</div></div>
+        </div>
+        <div class="pa-sc">
+            <div class="pa-sc-ico ico-wa"><i class="fa-solid fa-circle-xmark"></i></div>
+            <div><div class="pa-sc-num" id="rejectedPartners">@Model.Count(p => p.Status == "Rejected")</div><div class="pa-sc-lbl">Rejected</div></div>
+        </div>
+    </div>
+
+    <!-- ── FILTER BAR ── -->
+    <div class="pa-fbar">
+        <div class="pa-fbar-head">
+            <div class="pa-fbar-title"><i class="fa-solid fa-filter"></i>Filter &amp; Search</div>
+            <div class="pa-fbar-actions">
+                <button class="pa-btn-sm pa-btn-clear" id="clearFilters" type="button">
+                    <i class="fa-solid fa-rotate-left"></i>Clear
+                </button>
+                <button class="pa-btn-sm pa-btn-excel" id="exportExcel" type="button">
+                    <i class="fa-solid fa-file-excel"></i>Excel
+                </button>
+                <button class="pa-btn-sm pa-btn-csv" id="exportCSV" type="button">
+                    <i class="fa-solid fa-file-csv"></i>CSV
+                </button>
+            </div>
+        </div>
+        <div class="pa-grid4">
+            <div>
+                <label class="pa-fl">Search</label>
+                <input type="text" class="pa-fi" id="searchBox" placeholder="Company, contact, email…">
+            </div>
+            <div>
+                <label class="pa-fl">Status</label>
+                <select class="pa-fi pa-fi-sel" id="filterStatus">
+                    <option value="">All Status</option>
+                    <option value="Pending">Pending</option>
+                    <option value="Approved">Approved</option>
+                    <option value="Rejected">Rejected</option>
+                </select>
+            </div>
+            <div>
+                <label class="pa-fl">From Date</label>
+                <input type="text" class="pa-fi" id="filterFromDate" placeholder="Pick date" readonly>
+            </div>
+            <div>
+                <label class="pa-fl">To Date</label>
+                <input type="text" class="pa-fi" id="filterToDate" placeholder="Pick date" readonly>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── COLUMN HEADERS (desktop) ── -->
+    <div class="pa-thead">
+        <span class="pa-th">Company / Contact</span>
+        <span class="pa-th">Contact Info</span>
+        <span class="pa-th">Commission</span>
+        <span class="pa-th">Status</span>
+        <span class="pa-th r">Actions</span>
+    </div>
+
+    <!-- ── PARTNERS CONTAINER ── -->
+    <div id="partnersContainer"></div>
+
+    <!-- ── PAGINATION ── -->
+    <div class="pa-pag" id="paginationWrapper" style="display:none;">
+        <div class="pa-pag-info">
+            Showing <span id="showingStart">0</span>–<span id="showingEnd">0</span>
+            of <span id="totalRecords">0</span> partners
+        </div>
+        <div class="pa-pag-ctrl" id="pagination"></div>
+    </div>
+
+</div><!-- /pa-wrap -->
+
+
+<!-- ── CREATE / EDIT PARTNER MODAL ── -->
+<div class="modal fade pa-modal" id="createPartnerModal" tabindex="-1"
+     aria-labelledby="createPartnerModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable"
+         style="max-width:860px;width:min(860px,96vw);">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="createPartnerModalLabel">
+                    <i class="fa-solid fa-handshake me-2" style="color:var(--b);"></i>Create Channel Partner
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="createPartnerForm" method="post"
+                      action="/ManageUsers/CreatePartner"
+                      enctype="multipart/form-data" novalidate>
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label">Company Name <span class="text-danger">*</span></label>
+                            <input name="CompanyName" class="form-control" required />
+                            <div class="invalid-feedback">Please enter company name</div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Contact Person <span class="text-danger">*</span></label>
+                            <input name="ContactPerson" class="form-control" required
+                                   oninput="this.value=this.value.replace(/[^A-Za-z ]/g,'')" />
+                            <div class="invalid-feedback">Please enter contact person name</div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Email <span class="text-danger">*</span></label>
+                            <input name="Email" id="partnerEmailInput" class="form-control"
+                                   required type="email" />
+                            <div id="partnerEmailError" class="text-danger" style="display:none;font-size:.68rem;"></div>
+                            <div class="invalid-feedback">Please enter valid email</div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Phone <span class="text-danger">*</span></label>
+                            <input name="Phone" class="form-control" required
+                                   maxlength="10" pattern="[0-9]{10}"
+                                   oninput="this.value=this.value.replace(/[^0-9]/g,'').slice(0,10)" />
+                            <div class="invalid-feedback">Please enter valid 10-digit phone</div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Commission Scheme <span class="text-danger">*</span></label>
+                            <select name="CommissionScheme" id="commissionScheme"
+                                    class="form-select" onchange="toggleCustomPercentage()" required>
+                                <option value="">Select Scheme</option>
+                                <option value="0% of sale">0% of sale</option>
+                                <option value="0.5% of sale">0.5% of sale</option>
+                                <option value="1% of sale">1% of sale</option>
+                                <option value="1.5% of sale">1.5% of sale</option>
+                                <option value="2% of sale">2% of sale</option>
+                                <option value="3% of sale">3% of sale</option>
+                                <option value="5% of sale">5% of sale</option>
+                                <option value="Custom">Custom</option>
+                            </select>
+                            <div class="invalid-feedback">Please select commission scheme</div>
+                        </div>
+                        <div class="col-md-4" id="customPercentageDiv" style="display:none;">
+                            <label class="form-label">Commission Percentage</label>
+                            <div class="input-group">
+                                <input name="CommissionPercentage" id="commissionPercentage"
+                                       class="form-control" type="number"
+                                       step="0.01" min="0" max="100" placeholder="5.00" />
+                                <span class="input-group-text" style="font-size:.78rem;height:30px;padding:.3rem .55rem;">%</span>
+                            </div>
+                        </div>
+                        <div class="col-md-8">
+                            <label class="form-label">Address</label>
+                            <input name="Address" class="form-control" placeholder="Enter address" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Pricing Plan <span class="text-danger">*</span></label>
+                            <button type="button" class="btn btn-outline-primary w-100"
+                                    style="height:30px;font-size:.76rem;padding:0 .6rem;"
+                                    onclick="openPricingModal()">
+                                <i class="fa-solid fa-layer-group me-2"></i>
+                                <span id="selectedPlanText">Select Pricing Plan</span>
+                            </button>
+                            <input type="hidden" name="SelectedPlanId" id="selectedPlanId" required />
+                            <div class="invalid-feedback d-block" id="planValidationError"
+                                 style="display:none !important;">Please select a pricing plan</div>
+                        </div>
+                        <div class="col-12" id="trialPlanInfoWrap" style="display:none;">
+                            <div class="pa-trial-box">
+                                <div class="pa-trial-row" style="margin-bottom:5px;">
+                                    <i class="fa-solid fa-gift" style="color:var(--b);width:auto !important;font-size:.82rem !important;"></i>
+                                    <strong>7-Day Free Trial Included!</strong>
+                                </div>
+                                <div class="pa-trial-row"><i class="fa-solid fa-check-circle"></i>Plan: <strong id="trialPlanName">—</strong></div>
+                                <div class="pa-trial-row"><i class="fa-solid fa-calendar-alt"></i>Trial: 7 Days &nbsp;|&nbsp; Cost: <strong style="color:var(--ok);">FREE</strong></div>
+                                <div class="pa-trial-row"><i class="fa-solid fa-info-circle" style="color:var(--pn) !important;"></i>Expires: <strong id="trialExpiry">—</strong></div>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Upload Documents (Optional)</label>
+                            <div class="border rounded p-2" style="background:#F0F4F8;font-size:.76rem;">
+                                <div id="selectedDocuments" class="mb-2"></div>
+                                <input type="file" id="documentInput" name="DocumentFiles"
+                                       multiple accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                                       style="display:none;" data-optional="true">
+                                <input type="file" id="addMoreInput" multiple
+                                       accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                                       style="display:none;" data-optional="true">
+                                <button type="button" class="btn btn-outline-primary btn-sm me-2"
+                                        onclick="document.getElementById('documentInput').click()">
+                                    <i class="fa-solid fa-upload me-1"></i>Choose Files
+                                </button>
+                                <button type="button" class="btn btn-outline-success btn-sm"
+                                        onclick="document.getElementById('addMoreInput').click()">
+                                    <i class="fa-solid fa-plus me-1"></i>Add More
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <div class="d-flex gap-2 w-100">
+                    <button type="button" class="btn btn-secondary flex-fill"
+                            data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" form="createPartnerForm"
+                            id="partnerSubmitBtn" class="btn btn-primary flex-fill">Create</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ── PRICING PLAN MODAL ── -->
+<div class="modal fade pa-modal" id="pricingPlanModal" tabindex="-1"
+     aria-labelledby="pricingPlanModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered"
+         style="max-width:fit-content;min-width:300px;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="pricingPlanModalLabel">Select Pricing Plan</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="pricingPlansContainer"
+                     style="display:flex;flex-wrap:wrap;gap:1rem;justify-content:center;min-height:80px;">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @if (TempData["Success"] != null)
+    {
+        <script>setTimeout(function(){ showToast('@TempData["Success"]','success'); },500);</script>
+    }
+    @if (TempData["Error"] != null)
+    {
+        <script>setTimeout(function(){ showToast('@TempData["Error"]','error'); },500);</script>
+    }
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+
+    <script>
+    // ── data from server ──
+    // let allPartners     = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model));
+        let allPartners = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model));
+        const _enc = {@foreach(var l in Model){
+        @Html.Raw($"'{l.PartnerId}': '{IdObfuscator.Encode(l.PartnerId)}',")
+    }
+    };
+    allPartners.forEach(l => l.EncodedId = _enc[l.PartnerId]);
+    let filteredPartners = [...allPartners];
+    let currentPage  = 1;
+    const pageSize   = 10;
+    let partnerEmailValid = false;
+    let partnerDocFiles   = [];
+
+    document.addEventListener('DOMContentLoaded', function () {
+
+        // flatpickr date pickers
+        flatpickr('#filterFromDate', {
+            dateFormat:'d M Y', allowInput:false,
+            onChange: function(){ applyFilters(); }
+        });
+        flatpickr('#filterToDate', {
+            dateFormat:'d M Y', allowInput:false,
+            onChange: function(){ applyFilters(); }
+        });
+
+        renderTable();
+        attachEventListeners();
+        setupPartnerEmailValidation();
+
+        // file inputs
+        document.getElementById('documentInput').addEventListener('change', function(){
+            for(var i=0;i<this.files.length;i++) partnerDocFiles.push(this.files[i]);
+            renderPartnerDocs(); updateDocumentInput();
+        });
+        document.getElementById('addMoreInput').addEventListener('change', function(){
+            for(var i=0;i<this.files.length;i++) partnerDocFiles.push(this.files[i]);
+            renderPartnerDocs(); updateDocumentInput(); this.value='';
+        });
+
+        // form submit
+        var form = document.getElementById('createPartnerForm');
+        if(form) {
+            form.addEventListener('submit', function(e){
+                e.preventDefault();
+                var emailEl = document.getElementById('partnerEmailInput');
+                if(emailEl && emailEl.classList.contains('is-invalid')){
+                    showToast('Please use a unique email address','error'); return;
+                }
+                var planInput = document.querySelector('input[name="SelectedPlanId"]');
+                if(planInput && !planInput.value){
+                    showToast('Please select a pricing plan','error'); return;
+                }
+                if(!form.checkValidity()){
+                    form.classList.add('was-validated');
+                    showToast('Please fill in all required fields','error'); return;
+                }
+                var fd = new FormData(form);
+                var btn = document.getElementById('partnerSubmitBtn');
+                var orig = btn.textContent;
+                btn.disabled=true;
+                btn.innerHTML='<i class="fas fa-spinner fa-spin me-1"></i>Saving…';
+                fetch(form.action,{method:'POST',headers:{'X-Requested-With':'XMLHttpRequest'},body:fd})
+                    .then(function(r){return r.json();})
+                    .then(function(d){
+                        btn.disabled=false; btn.textContent=orig;
+                        if(d.success){
+                            bootstrap.Modal.getInstance(document.getElementById('createPartnerModal')).hide();
+                            setTimeout(function(){showToast(d.message||'Partner saved!','success');},500);
+                            setTimeout(function(){location.reload();},2500);
+                        } else {
+                            var msg=d.message||'Error creating partner';
+                            if(d.errors) msg=d.errors.join(', ');
+                            showToast(msg,'error');
+                        }
+                    })
+                    .catch(function(){btn.disabled=false;btn.textContent=orig;showToast('An error occurred','error');});
+            });
+        }
+
+        // reset modal on hide
+        var cModal = document.getElementById('createPartnerModal');
+        if(cModal){
+            cModal.addEventListener('hidden.bs.modal', function(){
+                var f=document.getElementById('createPartnerForm');
+                if(f){f.reset();f.classList.remove('was-validated');f.action='/ManageUsers/CreatePartner';}
+                document.getElementById('createPartnerModalLabel').innerHTML='<i class="fa-solid fa-handshake me-2" style="color:var(--b);"></i>Create Channel Partner';
+                var sb=document.getElementById('partnerSubmitBtn'); if(sb) sb.textContent='Create';
+                partnerDocFiles=[];
+                document.getElementById('selectedDocuments').innerHTML='';
+                document.getElementById('trialPlanInfoWrap').style.display='none';
+                document.getElementById('selectedPlanText').textContent='Select Pricing Plan';
+                document.getElementById('selectedPlanId').value='';
+                document.getElementById('customPercentageDiv').style.display='none';
+            });
+        }
+
+        // pricing modal auto-load
+        var pModal=document.getElementById('pricingPlanModal');
+        if(pModal) pModal.addEventListener('show.bs.modal', function(){loadPricingPlans();});
+    });
+
+    function setupPartnerEmailValidation(){
+        var ei=document.getElementById('partnerEmailInput');
+        var ed=document.getElementById('partnerEmailError');
+        var sb=document.getElementById('partnerSubmitBtn');
+        ei.addEventListener('blur',function(){
+            var email=this.value.trim();
+            if(!email){ed.style.display='none';partnerEmailValid=false;sb.disabled=false;return;}
+            fetch('/Agent/CheckEmailExists?email='+encodeURIComponent(email))
+                .then(function(r){return r.json();})
+                .then(function(d){
+                    if(d.exists){
+                        ed.textContent='This email is already registered';
+                        ed.style.display='block';partnerEmailValid=false;sb.disabled=true;
+                        ei.classList.add('is-invalid');
+                    } else {
+                        ed.style.display='none';partnerEmailValid=true;sb.disabled=false;
+                        ei.classList.remove('is-invalid');
+                    }
+                })
+                .catch(function(){
+                    ed.textContent='Error checking email availability';
+                    ed.style.display='block';partnerEmailValid=false;sb.disabled=true;
+                });
+        });
+    }
+
+    function attachEventListeners(){
+        document.getElementById('searchBox').addEventListener('input', applyFilters);
+        document.getElementById('filterStatus').addEventListener('change', applyFilters);
+        document.getElementById('clearFilters').addEventListener('click', clearFilters);
+        document.getElementById('exportExcel').addEventListener('click', exportToExcel);
+        document.getElementById('exportCSV').addEventListener('click', exportToCSV);
+    }
+
+    function applyFilters(){
+        var search = document.getElementById('searchBox').value.toLowerCase();
+        var status = document.getElementById('filterStatus').value;
+        var fpFrom = document.getElementById('filterFromDate')._flatpickr;
+        var fpTo   = document.getElementById('filterToDate')._flatpickr;
+        var fromDate = fpFrom && fpFrom.selectedDates.length ? fpFrom.selectedDates[0] : null;
+        var toDate   = fpTo   && fpTo.selectedDates.length   ? fpTo.selectedDates[0]   : null;
+
+        filteredPartners = allPartners.filter(function(p){
+            var ms = !search ||
+                (p.CompanyName    && p.CompanyName.toLowerCase().includes(search)) ||
+                (p.ContactPerson  && p.ContactPerson.toLowerCase().includes(search)) ||
+                (p.Email          && p.Email.toLowerCase().includes(search)) ||
+                (p.Phone          && p.Phone.includes(search));
+            var mst = !status || p.Status === status;
+            var md  = true;
+            if(fromDate || toDate){
+                var pd = new Date(p.CreatedOn || new Date());
+                if(fromDate) md = md && pd >= fromDate;
+                if(toDate)   md = md && pd <= new Date(toDate.getTime()+86399999);
+            }
+            return ms && mst && md;
+        });
+        currentPage = 1;
+        renderTable();
+    }
+
+    function clearFilters(){
+        document.getElementById('searchBox').value='';
+        document.getElementById('filterStatus').value='';
+        var fpFrom=document.getElementById('filterFromDate')._flatpickr;
+        var fpTo  =document.getElementById('filterToDate')._flatpickr;
+        if(fpFrom) fpFrom.clear();
+        if(fpTo)   fpTo.clear();
+        filteredPartners=[...allPartners];
+        currentPage=1;
+        renderTable();
+    }
+
+    function renderTable(){
+        var container = document.getElementById('partnersContainer');
+        var start = (currentPage-1)*pageSize;
+        var slice = filteredPartners.slice(start, start+pageSize);
+        container.innerHTML='';
+
+        if(slice.length===0){
+            container.innerHTML='<div class="pa-empty"><div class="pa-empty-ico"><i class="fa-solid fa-handshake"></i></div><h5>No Partners Found</h5><p>Adjust filters or create a new partner</p><button class="pa-create-btn" data-bs-toggle="modal" data-bs-target="#createPartnerModal"><i class="fa-solid fa-plus"></i>Create Partner</button></div>';
+            document.getElementById('paginationWrapper').style.display='none';
+        } else {
+            slice.forEach(function(p){
+                var status = (p.Status||'Pending');
+                var sbCls  = 'sb-'+(status.toLowerCase());
+                var isPending = (status==='Pending'||!p.Status);
+
+                var approveReject = isPending
+                    ? '<button class="pa-ab pa-ab-ok"  onclick="approvePartner('+p.PartnerId+')" title="Approve"><i class="fa-solid fa-check"></i></button>'
+                    + '<button class="pa-ab pa-ab-rej" onclick="rejectPartner('+p.PartnerId+')"  title="Reject"><i class="fa-solid fa-times"></i></button>'
+                    : '<span style="font-size:.68rem;color:var(--mu);"></span>';
+
+                var card = document.createElement('div');
+                card.className='pa-row';
+                card.innerHTML=
+                  // col 1
+                  '<div>'
+    +'<a class="pa-company" href="/PartnerDetails/'+p.EncodedId+'">'+(p.CompanyName||'Unnamed')+'</a>'
+                    +'<div class="pa-contact">'+(p.ContactPerson||'—')+'</div>'
+                    +'<div class="pa-email">'+(p.Email||'—')+'</div>'
+                  +'</div>'
+                  // col 2
+                  +'<div>'
+                    +'<div class="pa-info-line"><i class="fa-solid fa-phone"></i>'+(p.Phone||'—')+'</div>'
+                    +'<div class="pa-info-line"><i class="fa-solid fa-map-marker-alt"></i>'+(p.Address||'—')+'</div>'
+                  +'</div>'
+                  // col 3
+                  +'<div>'
+                    +'<div class="pa-comm">'+(p.CommissionScheme||'—')+'</div>'
+                    +'<div class="pa-docs">'+(p.Documents||'No docs')+'</div>'
+                  +'</div>'
+                  // col 4
+                  +'<div><span class="pa-sbadge '+sbCls+'">'+status+'</span></div>'
+                  // col 5
+                  +'<div class="pa-acts">'
+                    +'<button class="pa-ab pa-ab-edit" onclick="editPartner('+p.PartnerId+')" title="Edit"><i class="fa-solid fa-edit"></i></button>'
+                    +'<button class="pa-ab pa-ab-del"  onclick="deletePartner('+p.PartnerId+')" title="Delete"><i class="fa-solid fa-trash"></i></button>'
+                    +approveReject
+                  +'</div>'
+                  // mobile card
+                  +'<div class="pa-mob">'
+                    +'<div class="pa-mob-top">'
+                      +'<div>'
+        +'<a class="pa-mob-co" href="/PartnerDetails/'+p.EncodedId+'">'+(p.CompanyName||'Unnamed')+'</a>'
+                        +'<div class="pa-mob-ct">'+(p.ContactPerson||'—')+'</div>'
+                        +'<div class="pa-mob-em">'+(p.Email||'—')+'</div>'
+                      +'</div>'
+                      +'<span class="pa-sbadge '+sbCls+'">'+status+'</span>'
+                    +'</div>'
+                    +'<div class="pa-mob-grid">'
+                      +'<div><div class="pa-mob-lbl">Phone</div><div class="pa-mob-val">'+(p.Phone||'—')+'</div></div>'
+                      +'<div><div class="pa-mob-lbl">Commission</div><div class="pa-mob-val">'+(p.CommissionScheme||'—')+'</div></div>'
+                      +'<div><div class="pa-mob-lbl">Address</div><div class="pa-mob-val">'+(p.Address||'—')+'</div></div>'
+                      +'<div><div class="pa-mob-lbl">Documents</div><div class="pa-mob-val">'+(p.Documents||'None')+'</div></div>'
+                    +'</div>'
+                    +'<div class="pa-mob-foot">'
+                      +'<div class="pa-acts">'
+                        +'<button class="pa-ab pa-ab-edit" onclick="editPartner('+p.PartnerId+')" title="Edit"><i class="fa-solid fa-edit"></i></button>'
+                        +'<button class="pa-ab pa-ab-del"  onclick="deletePartner('+p.PartnerId+')" title="Delete"><i class="fa-solid fa-trash"></i></button>'
+                        +approveReject
+                      +'</div>'
+                    +'</div>'
+                  +'</div>';
+                container.appendChild(card);
+            });
+            document.getElementById('paginationWrapper').style.display='flex';
+        }
+        updatePaginationInfo();
+        renderPagination();
+        updateStats();
+    }
+
+    function updateStats(){
+        document.getElementById('totalPartners').textContent    = filteredPartners.length;
+        document.getElementById('pendingPartners').textContent  = filteredPartners.filter(function(p){return p.Status==='Pending'||!p.Status;}).length;
+        document.getElementById('approvedPartners').textContent = filteredPartners.filter(function(p){return p.Status==='Approved';}).length;
+        document.getElementById('rejectedPartners').textContent = filteredPartners.filter(function(p){return p.Status==='Rejected';}).length;
+    }
+
+    function updatePaginationInfo(){
+        var total=filteredPartners.length;
+        var s=total===0?0:(currentPage-1)*pageSize+1;
+        var e=Math.min(currentPage*pageSize,total);
+        document.getElementById('showingStart').textContent=s;
+        document.getElementById('showingEnd').textContent=e;
+        document.getElementById('totalRecords').textContent=total;
+    }
+
+    function renderPagination(){
+        var pg=document.getElementById('pagination');
+        var total=Math.ceil(filteredPartners.length/pageSize);
+        pg.innerHTML='';
+        if(total<=1){ return; }
+
+        var prevBtn=document.createElement('button');
+        prevBtn.className='pa-pb'+(currentPage===1?' disabled':'');
+        prevBtn.innerHTML='&#991B1B99; Prev';
+        if(currentPage>1) prevBtn.onclick=function(){changePage(currentPage-1);};
+        pg.appendChild(prevBtn);
+
+        var start=Math.max(1,currentPage-2), end=Math.min(total,start+4);
+        if(end-start<4) start=Math.max(1,end-4);
+        for(var i=start;i<=end;i++){
+            (function(p){
+                var b=document.createElement('button');
+                b.className='pa-pb'+(p===currentPage?' active':'');
+                b.textContent=p;
+                b.onclick=function(){changePage(p);};
+                pg.appendChild(b);
+            })(i);
+        }
+
+        var nextBtn=document.createElement('button');
+        nextBtn.className='pa-pb'+(currentPage===total?' disabled':'');
+        nextBtn.innerHTML='Next &#991B1B00;';
+        if(currentPage<total) nextBtn.onclick=function(){changePage(currentPage+1);};
+        pg.appendChild(nextBtn);
+    }
+
+    function changePage(p){
+        var total=Math.ceil(filteredPartners.length/pageSize);
+        if(p<1||p>total) return;
+        currentPage=p; renderTable();
+        window.scrollTo({top:0,behavior:'smooth'});
+    }
+
+    // ── CRUD actions — completely unchanged ──
+    function approvePartner(id){
+        Swal.fire({title:'Documents Verified',text:'Do you want to proceed with approving this partner?',icon:'question',showCancelButton:true,confirmButtonColor:'#16A34A',cancelButtonColor:'#6B7B8D',confirmButtonText:'OK',cancelButtonText:'Cancel'}).then(function(r){
+            if(r.isConfirmed){
+                var f=document.createElement('form');f.method='POST';f.action='/ManageUsers/ApprovePartner';
+                var inp=document.createElement('input');inp.type='hidden';inp.name='partnerId';inp.value=id;
+                f.appendChild(inp);document.body.appendChild(f);f.submit();
+            }
+        });
+    }
+
+    function rejectPartner(id){
+        Swal.fire({title:'Reject Partner?',text:'Are you sure you want to reject this partner?',icon:'warning',showCancelButton:true,confirmButtonColor:'#DC2626',cancelButtonColor:'#6B7B8D',confirmButtonText:'Yes, reject!',cancelButtonText:'Cancel'}).then(function(r){
+            if(r.isConfirmed){
+                var f=document.createElement('form');f.method='POST';f.action='/ManageUsers/RejectPartner';
+                var inp=document.createElement('input');inp.type='hidden';inp.name='partnerId';inp.value=id;
+                f.appendChild(inp);document.body.appendChild(f);f.submit();
+            }
+        });
+    }
+
+    function deletePartner(id){
+        Swal.fire({title:'Are you sure?',text:'This partner will be marked as deleted. This action cannot be undone.',icon:'warning',showCancelButton:true,confirmButtonColor:'#DC2626',cancelButtonColor:'#2589C9',confirmButtonText:'Yes, delete it!',cancelButtonText:'Cancel'}).then(function(r){
+            if(r.isConfirmed){
+                fetch('/ManageUsers/DeletePartner',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded','X-Requested-With':'XMLHttpRequest'},body:'partnerId='+id})
+                    .then(function(res){return res.json();})
+                    .then(function(d){
+                        if(d.success){Swal.fire({title:'Deleted!',text:d.message,icon:'success',confirmButtonText:'OK'}).then(function(){location.reload();});}
+                        else{Swal.fire({title:'Error!',text:d.message||'Failed to delete partner',icon:'error',confirmButtonText:'OK'});}
+                    })
+                    .catch(function(){Swal.fire({title:'Error!',text:'An error occurred while deleting the partner',icon:'error',confirmButtonText:'OK'});});
+            }
+        });
+    }
+
+    function editPartner(id){
+        fetch('/ManageUsers/GetPartner?id='+id)
+            .then(function(r){return r.json();})
+            .then(function(d){
+                if(d.success){
+                    document.getElementById('createPartnerModalLabel').innerHTML='<i class="fa-solid fa-handshake me-2" style="color:var(--b);"></i>Edit Channel Partner';
+                    document.querySelector('input[name="CompanyName"]').value=d.companyName||'';
+                    document.querySelector('input[name="ContactPerson"]').value=d.contactPerson||'';
+                    document.getElementById('partnerEmailInput').value=d.email||'';
+                    document.querySelector('input[name="Phone"]').value=d.phone||'';
+                    document.querySelector('[name="Address"]').value=d.address||'';
+                    document.getElementById('commissionScheme').value=d.commissionScheme||'';
+                    document.getElementById('createPartnerForm').action='/ManageUsers/UpdatePartner?id='+id;
+                    document.getElementById('partnerSubmitBtn').textContent='Update';
+                    if(d.planName){
+                        document.getElementById('selectedPlanText').textContent=d.planName;
+                        document.getElementById('selectedPlanId').value=d.planId;
+                        document.getElementById('trialPlanInfoWrap').style.display='block';
+                        document.getElementById('trialPlanName').textContent=d.planName;
+                        if(d.endDate) document.getElementById('trialExpiry').textContent=new Date(d.endDate).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'});
+                    }
+                    new bootstrap.Modal(document.getElementById('createPartnerModal')).show();
+                } else { showToast(d.message||'Failed to load partner data','error'); }
+            })
+            .catch(function(){showToast('Error loading partner data','error');});
+    }
+
+    // ── export ──
+    function exportToExcel(){
+        var rows=[['Company Name','Contact Person','Email','Phone','Address','Commission Scheme','Documents','Status']];
+        filteredPartners.forEach(function(p){rows.push([p.CompanyName||'',p.ContactPerson||'',p.Email||'',p.Phone||'',p.Address||'',p.CommissionScheme||'',p.Documents||'',p.Status||'Pending']);});
+        var wb=XLSX.utils.book_new(), ws=XLSX.utils.aoa_to_sheet(rows);
+        ws['!cols']=[{wch:25},{wch:20},{wch:25},{wch:15},{wch:30},{wch:25},{wch:30},{wch:12}];
+        XLSX.utils.book_append_sheet(wb,ws,'Partners');
+        XLSX.writeFile(wb,'Partners_Export_'+new Date().toISOString().split('T')[0]+'.xlsx');
+        showToast('Excel exported successfully!','success');
+    }
+
+    function exportToCSV(){
+        var csv='Company Name,Contact Person,Email,Phone,Address,Commission Scheme,Documents,Status\n';
+        filteredPartners.forEach(function(p){
+            csv+=[p.CompanyName,p.ContactPerson,p.Email,p.Phone,p.Address,p.CommissionScheme,p.Documents,p.Status||'Pending'].map(function(v){
+                if(!v) return '';
+                v=v.toString();
+                return (v.includes(',')||v.includes('"')||v.includes('\n'))?'"'+v.replace(/"/g,'""')+'"':v;
+            }).join(',')+'\n';
+        });
+        var a=document.createElement('a');
+        a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
+        a.download='Partners_Export_'+new Date().toISOString().split('T')[0]+'.csv';
+        a.click();
+        showToast('CSV exported successfully!','success');
+    }
+
+    // ── helpers ──
+    function toggleCustomPercentage(){
+        var s=document.querySelector('select[name="CommissionScheme"]');
+        var d=document.getElementById('customPercentageDiv');
+        if(s&&d) d.style.display=s.value==='Custom'?'block':'none';
+    }
+
+    function renderPartnerDocs(){
+        var c=document.getElementById('selectedDocuments'); c.innerHTML='';
+        partnerDocFiles.forEach(function(f,i){
+            var d=document.createElement('div');
+            d.className='d-flex align-items-center gap-2 mb-1';
+            d.innerHTML='<i class="fa-solid fa-file text-primary" style="font-size:.75rem;"></i>'
+                +'<small style="font-size:.72rem;">'+f.name+' ('+(f.size/1024).toFixed(1)+' KB)</small>';
+            c.appendChild(d);
+        });
+    }
+
+    function updateDocumentInput(){
+        var dt=new DataTransfer();
+        partnerDocFiles.forEach(function(f){dt.items.add(f);});
+        document.getElementById('documentInput').files=dt.files;
+    }
+
+    window.openPricingModal = function(){
+        loadPricingPlans();
+        new bootstrap.Modal(document.getElementById('pricingPlanModal')).show();
+    };
+
+    window.loadPricingPlans = function(){
+        var c=document.getElementById('pricingPlansContainer');
+        c.innerHTML='<div style="color:var(--mu);font-size:.78rem;padding:1rem;">Loading plans…</div>';
+        fetch('/Subscription/GetPlans')
+            .then(function(r){return r.json();})
+            .then(function(data){
+                c.innerHTML='';
+                if(data&&data.length>0){
+                    data.forEach(function(plan){
+                        var card=document.createElement('div');
+                        card.style.cssText='width:220px;flex:0 0 auto;';
+                        card.innerHTML='<div class="card h-100 border" style="cursor:pointer;border-radius:8px;transition:all .2s;font-size:.78rem;" '
+                            +'onmouseover="this.style.borderColor=\'#1A6FA8\';this.style.transform=\'translateY(-2px)\';this.style.boxShadow=\'0 6px 18px rgba(26,111,168,.15)\'" '
+                            +'onmouseout="this.style.borderColor=\'#E2E8F0\';this.style.transform=\'none\';this.style.boxShadow=\'none\'" '
+                            +'onclick="selectPlan('+(plan.planId||plan.PlanId)+',\''+(plan.planName||plan.PlanName||'Plan').replace(/'/g,"\\'")+'\')"> '
+                            +'<div class="card-body text-center p-3">'
+                            +'<h6 class="fw-bold mb-2" style="color:#1A6FA8;">'+(plan.planName||plan.PlanName||'Plan')+'</h6>'
+                            +'<div class="mb-2"><span style="font-size:1.4rem;font-weight:800;color:#1A2332;">₹'+(plan.monthlyPrice||plan.MonthlyPrice||0).toLocaleString()+'</span><span class="text-muted">/mo</span></div>'
+                            +'<div class="text-muted mb-2" style="font-size:.7rem;">₹'+(plan.yearlyPrice||plan.YearlyPrice||0).toLocaleString()+'/year</div><hr class="my-2">'
+                            +'<ul class="list-unstyled text-start mb-2">'
+                            +'<li class="mb-1"><i class="fa-solid fa-users text-primary me-1" style="font-size:.65rem;"></i><strong>'+(plan.maxAgents||plan.MaxAgents||'∞')+'</strong> Agents</li>'
+                            +'<li class="mb-1"><i class="fa-solid fa-chart-line text-success me-1" style="font-size:.65rem;"></i><strong>'+(plan.maxLeadsPerMonth||plan.MaxLeadsPerMonth||'∞')+'</strong> Leads/mo</li>'
+                            +'<li><i class="fa-solid fa-database text-info me-1" style="font-size:.65rem;"></i><strong>'+(plan.maxStorageGB||plan.MaxStorageGB||'∞')+' GB</strong> Storage</li>'
+                            +'</ul>'
+                            +'<button class="btn btn-outline-primary btn-sm w-100" style="font-size:.72rem;height:26px;padding:0;"><i class="fa-solid fa-check me-1"></i>Select</button>'
+                            +'</div></div>';
+                        c.appendChild(card);
+                    });
+                } else {
+                    c.innerHTML='<div class="text-center py-3"><i class="fa-solid fa-box-open fa-2x text-muted mb-2"></i><p class="text-muted" style="font-size:.78rem;">No plans available</p></div>';
+                }
+            })
+            .catch(function(){c.innerHTML='<div class="text-center py-3"><p class="text-danger" style="font-size:.78rem;">Failed to load plans</p></div>';});
+    };
+
+    window.selectPlan = function(planId, planName){
+        document.getElementById('selectedPlanId').value=planId;
+        document.getElementById('selectedPlanText').textContent=planName;
+        document.getElementById('trialPlanInfoWrap').style.display='block';
+        document.getElementById('trialPlanName').textContent=planName;
+        var d=new Date(); d.setDate(d.getDate()+7);
+        document.getElementById('trialExpiry').textContent=d.toLocaleDateString('en-IN',{day:'numeric',month:'short',year:+
+        'numeric'});
+        var m=bootstrap.Modal.getInstance(document.getElementById('pricingPlanModal'));
+        if(m) m.hide();
+        showToast('Plan "'+planName+'" selected','success');
+    };
+    </script>
+}

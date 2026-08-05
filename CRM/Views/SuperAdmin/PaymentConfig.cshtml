@@ -1,0 +1,672 @@
+@model CRM.MasterDb.Models.SaasPaymentConfigModel
+@{
+    ViewData["Title"] = "Payment Configuration";
+}
+
+<style>
+    @@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500;600&display=swap');
+
+    :root {
+        --gold: #D4A45A;
+        --gold-light: #E8C27E;
+        --gold-dark: #B8883E;
+        --blue: #1A6FA8;
+        --blue-dark: #125082;
+        --gold-alpha: rgba(212,164,90, 0.10);
+        --blue-alpha: rgba(26,111,168, 0.09);
+        --surface: #F0F4F8;
+        --card-bg: #FFFFFF;
+        --border: #FEE2E2;
+        --text-primary: #111827;
+        --text-secondary: #6B7B8D;
+        --text-muted: #8FA3B8;
+        --valid-green: #15803D;
+        --valid-green-bg: rgba(21,128,61,0.08);
+        --valid-green-border: rgba(21,128,61,0.40);
+        --invalid-red: #DC2626;
+        --invalid-red-bg: rgba(220,38,38,0.07);
+        --invalid-red-border: rgba(220,38,38,0.40);
+        --radius: 10px;
+        --radius-sm: 6px;
+        --shadow-card: 0 1px 4px rgba(26,111,168,0.06), 0 4px 20px rgba(212,164,90,0.07);
+        --shadow-hover: 0 4px 24px rgba(26,111,168,0.13), 0 2px 8px rgba(212,164,90,0.10);
+    }
+
+    html.dark-mode {
+        --surface: #0D1724;
+        --card-bg: #111827;
+        --border: #1A2332;
+        --text-primary: #E8EDF2;
+        --text-secondary: #8FA3B8;
+        --text-muted: #6B7B8D;
+    }
+    .pay-page h1, .pay-page .h1 {
+    font-size: 1.5rem !important;
+    font-weight: 700 !important;
+    margin-bottom:0px !important;
+}
+.pay-page p {
+    font-size: 0.95rem !important;
+    line-height: 1.6 !important;
+    margin-bottom: 0px !important;
+}
+    .pay-page {
+        font-family: 'DM Sans', sans-serif;
+        max-width: 740px;
+        margin: 0 auto;
+        padding: 0 1rem 2rem;
+    }
+
+    /* Breadcrumb */
+    .breadcrumb {
+        font-size: 0.76rem;
+        color: var(--text-muted);
+        margin-bottom: 0.6rem;
+        padding: 0;
+        background: none;
+    }
+    .breadcrumb-item + .breadcrumb-item::before { color: var(--text-muted); }
+    .breadcrumb a { color: var(--blue); text-decoration: none; }
+    .breadcrumb a:hover { color: var(--gold); }
+
+    /* Hero */
+    .pay-hero {
+        background: linear-gradient(105deg, var(--blue) 0%, var(--blue-dark) 55%, #0F4C75 100%);
+        border-radius: var(--radius);
+        padding: 0.9rem 1.2rem;
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.85rem;
+        position: relative;
+        overflow: hidden;
+        box-shadow: 0 4px 18px rgba(26,111,168,0.20);
+    }
+    .pay-hero::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: repeating-linear-gradient(45deg,transparent,transparent 18px,rgba(212,164,90,0.055) 18px,rgba(212,164,90,0.055) 19px);
+    }
+    .pay-hero::after {
+        content: '';
+        position: absolute;
+        bottom: 0; left: 0; right: 0;
+        height: 2px;
+        background: linear-gradient(90deg, var(--gold), var(--gold-light), transparent);
+    }
+    .pay-hero-icon {
+        width: 40px; height: 40px;
+        border-radius: 9px;
+        background: rgba(212,164,90,0.18);
+        border: 1px solid rgba(212,164,90,0.32);
+        display: flex; align-items: center; justify-content: center;
+        color: var(--gold-light);
+        font-size: 1.1rem;
+        flex-shrink: 0;
+        position: relative; z-index: 1;
+    }
+    .pay-hero-text { position: relative; z-index: 1; }
+    .pay-hero-text h1 {
+        font-family: 'Playfair Display', serif;
+        font-size: 1.15rem;
+        font-weight: 700;
+        color: #FFFFFF;
+        margin: 0 0 1px;
+        letter-spacing: -0.01em;
+    }
+    .pay-hero-text p {
+        font-size: 0.75rem;
+        color: rgba(255,255,255,0.65);
+        margin: 0;
+    }
+
+    /* Card */
+    .s-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow-card);
+        overflow: hidden;
+        transition: box-shadow 0.25s;
+    }
+    .s-card:hover { box-shadow: var(--shadow-hover); }
+
+    .s-card-header {
+        display: flex;
+        align-items: center;
+        gap: 0.65rem;
+        padding: 0.65rem 1.1rem;
+        background: var(--gold-alpha);
+        border-bottom: 1.5px solid var(--border);
+    }
+    .s-card-header-icon {
+        width: 28px; height: 28px;
+        border-radius: 6px;
+        background: linear-gradient(135deg, var(--gold), var(--gold-dark));
+        display: flex; align-items: center; justify-content: center;
+        color: #FFFFFF; font-size: 0.75rem; flex-shrink: 0;
+    }
+    .s-card-header span {
+        font-size: 0.82rem;
+        font-weight: 600;
+        color: var(--text-primary);
+        letter-spacing: 0.01em;
+    }
+
+    .s-card-body { padding: 0.9rem 1.1rem; }
+
+    /* Grid */
+    .s-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.75rem;
+    }
+    .s-field { display: flex; flex-direction: column; gap: 0; }
+
+    /* Label */
+    .form-label {
+        font-size: 0.72rem;
+        font-weight: 600;
+        color: var(--text-secondary);
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        margin: 0 0 0.28rem;
+        display: flex;
+        align-items: center;
+        gap: 0.3rem;
+    }
+    .form-label .req { color: #DC2626; font-size: 0.78rem; }
+    .form-label .opt-tag {
+        font-size: 0.64rem;
+        font-weight: 400;
+        text-transform: none;
+        letter-spacing: 0;
+        color: var(--text-muted);
+        background: var(--gold-alpha);
+        border: 1px solid rgba(212,164,90,0.20);
+        border-radius: 10px;
+        padding: 0.05rem 0.42rem;
+    }
+
+    /* Input wrapper — for icon */
+    .input-wrap {
+        position: relative;
+    }
+    .input-wrap .form-control {
+        padding-right: 2.2rem;
+    }
+    .input-status-icon {
+        position: absolute;
+        right: 0.65rem;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 0.8rem;
+        pointer-events: none;
+        opacity: 0;
+        transition: opacity 0.2s;
+    }
+
+    /* Form control */
+    .form-control {
+        font-family: 'DM Sans', sans-serif;
+        font-size: 0.83rem;
+        color: var(--text-primary);
+        background: var(--surface);
+        border: 1.5px solid var(--border);
+        border-radius: var(--radius-sm);
+        padding: 0.5rem 0.7rem;
+        transition: border-color 0.18s, box-shadow 0.18s, background 0.18s;
+        width: 100%;
+        line-height: 1.4;
+    }
+    .form-control::placeholder { color: var(--text-muted); font-size: 0.8rem; }
+    .form-control:focus {
+        outline: none;
+        border-color: var(--blue);
+        background: var(--card-bg);
+        box-shadow: 0 0 0 3px rgba(26,111,168,0.09);
+    }
+
+    /* Valid state */
+    .form-control.is-valid {
+        border-color: var(--valid-green-border) !important;
+        background: var(--valid-green-bg) !important;
+        box-shadow: 0 0 0 3px rgba(21,128,61,0.08) !important;
+    }
+    .form-control.is-valid:focus {
+        border-color: var(--valid-green) !important;
+        box-shadow: 0 0 0 3px rgba(21,128,61,0.13) !important;
+    }
+    .s-field.field-valid .input-status-icon { opacity: 1; color: var(--valid-green); }
+
+    /* Invalid state */
+    .form-control.is-invalid {
+        border-color: var(--invalid-red-border) !important;
+        background: var(--invalid-red-bg) !important;
+        box-shadow: 0 0 0 3px rgba(220,38,38,0.07) !important;
+    }
+    .form-control.is-invalid:focus {
+        border-color: var(--invalid-red) !important;
+        box-shadow: 0 0 0 3px rgba(220,38,38,0.12) !important;
+    }
+    .s-field.field-invalid .input-status-icon { opacity: 1; color: var(--invalid-red); }
+
+    /* Feedback message */
+    .field-msg {
+        font-size: 0.68rem;
+        margin-top: 0.28rem;
+        min-height: 0.9rem;
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+        opacity: 0;
+        transform: translateY(-3px);
+        transition: opacity 0.18s, transform 0.18s;
+    }
+    .field-msg.show {
+        opacity: 1;
+        transform: translateY(0);
+    }
+    .field-msg.msg-valid { color: var(--valid-green); }
+    .field-msg.msg-invalid { color: var(--invalid-red); }
+    .field-msg i { font-size: 0.65rem; }
+
+    /* Dark mode inputs */
+    html.dark-mode .form-control {
+        background: #0D1724;
+        border-color: #1A2332;
+        color: #E8EDF2;
+    }
+    html.dark-mode .form-control:focus { background: #111827; }
+    html.dark-mode .form-control.is-valid { background: rgba(21,128,61,0.12) !important; }
+    html.dark-mode .form-control.is-invalid { background: rgba(220,38,38,0.10) !important; }
+
+    /* Save row */
+    .save-row {
+        display: flex;
+        justify-content: flex-end;
+        align-items: center;
+        gap: 0.75rem;
+        padding-top: 0.75rem;
+        border-top: 1px solid var(--border);
+        margin-top: 0.75rem;
+    }
+
+    .form-status-summary {
+        font-size: 0.72rem;
+        color: var(--text-muted);
+        display: flex;
+        align-items: center;
+        gap: 0.3rem;
+        opacity: 0;
+        transition: opacity 0.2s;
+    }
+    .form-status-summary.show { opacity: 1; }
+    .form-status-summary.all-good { color: var(--valid-green); }
+    .form-status-summary.has-errors { color: var(--invalid-red); }
+
+    .btn-save {
+        font-family: 'DM Sans', sans-serif;
+        font-size: 0.85rem;
+        font-weight: 600;
+        padding: 0.55rem 1.6rem;
+        border-radius: var(--radius-sm);
+        border: none;
+        background: linear-gradient(135deg, var(--gold) 0%, var(--gold-dark) 60%, #B45309 100%);
+        color: #FFFFFF !important;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.42rem;
+        transition: all 0.22s ease;
+        box-shadow: 0 3px 12px rgba(212,164,90,0.28);
+        letter-spacing: 0.01em;
+        white-space: nowrap;
+    }
+    .btn-save:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(212,164,90,0.40);
+        color: #FFFFFF !important;
+    }
+    .btn-save:disabled {
+        opacity: 0.68;
+        transform: none;
+        cursor: not-allowed;
+        color: #FFFFFF !important;
+    }
+    html.dark-mode .btn-save,
+    html.dark-mode .btn-save:hover,
+    html.dark-mode .btn-save:disabled { color: #FFFFFF !important; }
+
+    /* Responsive */
+    @@media (max-width: 600px) {
+        .s-grid { grid-template-columns: 1fr; }
+        .btn-save { width: 100%; justify-content: center; }
+        .save-row { flex-direction: column; align-items: stretch; }
+        .form-status-summary { justify-content: center; }
+        .pay-hero { padding: 0.75rem 0.9rem; }
+        .pay-hero-text h1 { font-size: 1rem; }
+        .pay-page { padding: 0 0.75rem 1.5rem; }
+    }
+</style>
+
+<div class="content pay-page">
+
+    <!-- Breadcrumb -->
+    <nav class="mb-2" aria-label="breadcrumb">
+        <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item"><a href="/SuperAdmin/Dashboard">SuperAdmin</a></li>
+            <li class="breadcrumb-item active" style="color:var(--text-muted)">Payment Configuration</li>
+        </ol>
+    </nav>
+
+    <!-- Hero -->
+    <div class="pay-hero">
+        <div class="pay-hero-icon"><i class="fa-solid fa-credit-card"></i></div>
+        <div class="pay-hero-text">
+            <h1>Payment Configuration</h1>
+            <p>Configure Razorpay payment gateway for tenant subscriptions</p>
+        </div>
+    </div>
+
+    <!-- Card -->
+    <div class="s-card">
+        <div class="s-card-header">
+            <div class="s-card-header-icon"><i class="fa-solid fa-gear"></i></div>
+            <span>Razorpay Gateway Settings</span>
+        </div>
+        <div class="s-card-body">
+            <form id="paymentConfigForm" method="post" novalidate>
+                @Html.AntiForgeryToken()
+
+                <div class="s-grid">
+
+                    <!-- Razorpay Key ID -->
+                    <div class="s-field" id="field-keyId">
+                        <label class="form-label">
+                            <i class="fa-solid fa-key" style="color:var(--gold);font-size:0.65rem"></i>
+                            Razorpay Key ID <span class="req">*</span>
+                        </label>
+                        <div class="input-wrap">
+                            <input id="inp-keyId"
+                                   name="RazorpayKeyId"
+                                   class="form-control"
+                                   value="@(Model?.RazorpayKeyId)"
+                                   required
+                                   autocomplete="off"
+                                   placeholder="rzp_live_xxxxxxxxxx" />
+                            <span class="input-status-icon">
+                                <i class="fa-solid fa-circle-check icon-valid"></i>
+                                <i class="fa-solid fa-circle-xmark icon-invalid" style="display:none"></i>
+                            </span>
+                        </div>
+                        <div class="field-msg" id="msg-keyId"></div>
+                    </div>
+
+                    <!-- Razorpay Key Secret -->
+                    <div class="s-field" id="field-keySecret">
+                        <label class="form-label">
+                            <i class="fa-solid fa-lock" style="color:var(--gold);font-size:0.65rem"></i>
+                            Razorpay Key Secret <span class="req">*</span>
+                        </label>
+                        <div class="input-wrap">
+                            <input id="inp-keySecret"
+                                   name="RazorpayKeySecret"
+                                   type="password"
+                                   class="form-control"
+                                   value="@(Model?.RazorpayKeySecret)"
+                                   required
+                                   autocomplete="new-password"
+                                   placeholder="Enter key secret" />
+                            <span class="input-status-icon">
+                                <i class="fa-solid fa-circle-check icon-valid"></i>
+                                <i class="fa-solid fa-circle-xmark icon-invalid" style="display:none"></i>
+                            </span>
+                        </div>
+                        <div class="field-msg" id="msg-keySecret"></div>
+                    </div>
+
+                    <!-- Webhook Secret -->
+                    <div class="s-field" id="field-webhook">
+                        <label class="form-label">
+                            <i class="fa-solid fa-link" style="color:var(--gold);font-size:0.65rem"></i>
+                            Webhook Secret <span class="opt-tag">Optional</span>
+                        </label>
+                        <div class="input-wrap">
+                            <input id="inp-webhook"
+                                   name="RazorpayWebhookSecret"
+                                   class="form-control"
+                                   value="@(Model?.RazorpayWebhookSecret)"
+                                   autocomplete="off"
+                                   placeholder="Enter webhook secret" />
+                            <span class="input-status-icon">
+                                <i class="fa-solid fa-circle-check icon-valid"></i>
+                                <i class="fa-solid fa-circle-xmark icon-invalid" style="display:none"></i>
+                            </span>
+                        </div>
+                        <div class="field-msg" id="msg-webhook"></div>
+                    </div>
+
+                </div>
+
+                <div class="save-row">
+                    <div class="form-status-summary" id="formSummary">
+                        <i class="fa-solid fa-circle-check"></i>
+                        <span id="formSummaryText"></span>
+                    </div>
+                    <button type="submit" class="btn-save" id="saveBtn">
+                        <i class="fa-solid fa-save"></i>Save Configuration
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+</div>
+
+@section Scripts {
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+
+    // ── Validation Rules ──────────────────────────────────────────
+    const fields = [
+        {
+            id: 'keyId',
+            required: true,
+            validate(val) {
+                if (!val) return { ok: false, msg: 'Key ID is required' };
+                if (!/^rzp_(live|test)_[A-Za-z0-9]{14,}$/.test(val))
+                    return { ok: false, msg: 'Must start with rzp_live_ or rzp_test_' };
+                return { ok: true, msg: 'Valid Razorpay Key ID' };
+            }
+        },
+        {
+            id: 'keySecret',
+            required: true,
+            validate(val) {
+                if (!val) return { ok: false, msg: 'Key Secret is required' };
+                if (val.length < 20) return { ok: false, msg: 'Secret must be at least 20 characters' };
+                return { ok: true, msg: 'Key Secret looks good' };
+            }
+        },
+        {
+            id: 'webhook',
+            required: false,
+            validate(val) {
+                if (!val) return { ok: null, msg: '' }; // optional — neutral
+                if (val.length < 8) return { ok: false, msg: 'Webhook secret seems too short' };
+                return { ok: true, msg: 'Webhook secret set' };
+            }
+        }
+    ];
+
+    // ── Apply visual state to a field ────────────────────────────
+    function applyState(fieldDef, state) {
+        // state: { ok: true|false|null, msg: '...' }
+        const wrap  = document.getElementById('field-' + fieldDef.id);
+        const inp   = document.getElementById('inp-' + fieldDef.id);
+        const msg   = document.getElementById('msg-' + fieldDef.id);
+        const iconWrap = inp.parentElement.querySelector('.input-status-icon');
+        const iCheck   = iconWrap.querySelector('.icon-valid');
+        const iCross   = iconWrap.querySelector('.icon-invalid');
+
+        // reset
+        inp.classList.remove('is-valid', 'is-invalid');
+        wrap.classList.remove('field-valid', 'field-invalid');
+        msg.className = 'field-msg';
+        msg.innerHTML = '';
+
+        if (state.ok === true) {
+            inp.classList.add('is-valid');
+            wrap.classList.add('field-valid');
+            iCheck.style.display = '';
+            iCross.style.display = 'none';
+            msg.classList.add('msg-valid', 'show');
+            msg.innerHTML = '<i class="fa-solid fa-circle-check"></i>' + state.msg;
+        } else if (state.ok === false) {
+            inp.classList.add('is-invalid');
+            wrap.classList.add('field-invalid');
+            iCheck.style.display = 'none';
+            iCross.style.display = '';
+            msg.classList.add('msg-invalid', 'show');
+            msg.innerHTML = '<i class="fa-solid fa-circle-xmark"></i>' + state.msg;
+        } else {
+            // neutral (optional empty)
+            iCheck.style.display = '';
+            iCross.style.display = 'none';
+        }
+    }
+
+    // ── Update form summary bar ───────────────────────────────────
+    function updateSummary() {
+        const summary = document.getElementById('formSummary');
+        const summaryText = document.getElementById('formSummaryText');
+        const icon = summary.querySelector('i');
+
+        const requiredFields = fields.filter(f => f.required);
+        const invalidCount = requiredFields.filter(f => {
+            const inp = document.getElementById('inp-' + f.id);
+            return inp.classList.contains('is-invalid') || (!inp.value.trim() && f.required);
+        }).length;
+        const validCount = requiredFields.filter(f => {
+            const inp = document.getElementById('inp-' + f.id);
+            return inp.classList.contains('is-valid');
+        }).length;
+
+        summary.classList.add('show');
+
+        if (validCount === requiredFields.length) {
+            summary.className = 'form-status-summary show all-good';
+            icon.className = 'fa-solid fa-circle-check';
+            summaryText.textContent = 'All required fields valid';
+        } else if (invalidCount > 0) {
+            summary.className = 'form-status-summary show has-errors';
+            icon.className = 'fa-solid fa-circle-xmark';
+            summaryText.textContent = invalidCount + ' field' + (invalidCount > 1 ? 's' : '') + ' need attention';
+        } else {
+            summary.className = 'form-status-summary show';
+            icon.className = 'fa-solid fa-circle-half-stroke';
+            summaryText.textContent = 'Fill required fields to continue';
+        }
+    }
+
+    // ── Wire up live validation ───────────────────────────────────
+    fields.forEach(fieldDef => {
+        const inp = document.getElementById('inp-' + fieldDef.id);
+        if (!inp) return;
+
+        let timer;
+
+        // On input: debounce 350ms
+        inp.addEventListener('input', function () {
+            clearTimeout(timer);
+            timer = setTimeout(() => {
+                const state = fieldDef.validate(inp.value.trim());
+                applyState(fieldDef, state);
+                updateSummary();
+            }, 350);
+        });
+
+        // On blur: immediate
+        inp.addEventListener('blur', function () {
+            clearTimeout(timer);
+            if (inp.value.trim() || fieldDef.required) {
+                const state = fieldDef.validate(inp.value.trim());
+                applyState(fieldDef, state);
+                updateSummary();
+            }
+        });
+
+        // On focus: remove invalid highlight temporarily so user can retype
+        inp.addEventListener('focus', function () {
+            if (inp.classList.contains('is-invalid')) {
+                inp.classList.remove('is-invalid');
+                const wrap = document.getElementById('field-' + fieldDef.id);
+                wrap.classList.remove('field-invalid');
+                const iconWrap = inp.parentElement.querySelector('.input-status-icon');
+                iconWrap.querySelector('.icon-valid').style.display = '';
+                iconWrap.querySelector('.icon-invalid').style.display = 'none';
+            }
+        });
+
+        // Pre-validate if the field already has a value (server-side populated)
+        if (inp.value.trim()) {
+            const state = fieldDef.validate(inp.value.trim());
+            applyState(fieldDef, state);
+        }
+    });
+
+    updateSummary();
+
+    // ── Submit handler ────────────────────────────────────────────
+    const form = document.getElementById('paymentConfigForm');
+    if (!form) return;
+
+    form.addEventListener('submit', function (e) {
+        e.preventDefault();
+
+        // Force validate all required fields
+        let allValid = true;
+        fields.forEach(fieldDef => {
+            if (!fieldDef.required) return;
+            const inp = document.getElementById('inp-' + fieldDef.id);
+            const state = fieldDef.validate(inp.value.trim());
+            applyState(fieldDef, state);
+            if (!state.ok) allValid = false;
+        });
+        updateSummary();
+
+        if (!allValid) return;
+
+        const submitButton = document.getElementById('saveBtn');
+        const originalText = submitButton.innerHTML;
+        const formData = new FormData(form);
+
+        submitButton.disabled = true;
+        submitButton.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving...';
+
+        fetch('/SuperAdmin/SavePaymentConfig', {
+            method: 'POST',
+            body: formData,
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                showToast(data.message || 'Configuration saved successfully', 'success');
+            } else {
+                showToast(data.message || 'Error saving configuration', 'error');
+            }
+        })
+        .catch(() => {
+            showToast('Error saving configuration', 'error');
+        })
+        .finally(() => {
+            submitButton.disabled = false;
+            submitButton.innerHTML = originalText;
+        });
+    });
+});
+</script>
+}

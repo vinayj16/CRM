@@ -1,0 +1,3001 @@
+@inject Microsoft.AspNetCore.Http.IHttpContextAccessor HttpContextAccessor
+@inject CRM.AppDbContext _context
+@inject CRM.MasterDb.MasterDbContext _mastercontext
+@inject CRM.Services.PermissionService _permissionService
+@using System.IdentityModel.Tokens.Jwt
+@using System.Security.Claims
+@using Microsoft.EntityFrameworkCore
+@using CRM.Models
+
+@{
+    bool hasImpersonation = false;
+    bool HasCustomAPIAccess = false;
+    bool HasWhatsAppIntegration = false;
+    bool HasFacebookIntegration = false;
+    bool HasEmailIntegration = false;
+    string activePlanName = "No Active Plan";
+    var tIdClaim = Context.User.FindFirst("TenantId")?.Value;
+    if (!string.IsNullOrEmpty(tIdClaim) && int.TryParse(tIdClaim, out int tId))
+    {
+        var sub = _mastercontext.TenantSubscriptions
+            .Where(s => s.TenantId == tId && (s.Status == "Active" || s.Status == "Trial"))
+            .OrderByDescending(s => s.StartDate)
+            .FirstOrDefault();
+        if (sub != null)
+        {
+            var plan = _mastercontext.SaasPlans.FirstOrDefault(p => p.PlanId == sub.PlanId);
+            hasImpersonation = plan?.HasImpersonation ?? false;
+            HasCustomAPIAccess = plan?.HasCustomAPIAccess ?? false;
+            HasWhatsAppIntegration = plan?.HasWhatsAppIntegration ?? false;
+            HasFacebookIntegration = plan?.HasFacebookIntegration ?? false;
+            HasEmailIntegration = plan?.HasEmailIntegration ?? false;
+            activePlanName = plan?.PlanName ?? "No Active Plan";
+        }
+    }
+    bool HasAIChatbot = false;
+    if (!string.IsNullOrEmpty(tIdClaim) && int.TryParse(tIdClaim, out int tId2))
+    {
+        var sub2 = _mastercontext.TenantSubscriptions
+            .Where(s => s.TenantId == tId2 && (s.Status == "Active" || s.Status == "Trial"))
+            .OrderByDescending(s => s.StartDate)
+            .FirstOrDefault();
+        if (sub2 != null)
+        {
+            var plan2 = _mastercontext.SaasPlans.FirstOrDefault(p => p.PlanId == sub2.PlanId);
+            HasAIChatbot = plan2?.HasAIChatbot ?? false;
+        }
+    }
+}
+@{
+    var token = HttpContextAccessor.HttpContext?.Request.Cookies["jwtToken"];
+    var emails = HttpContextAccessor.HttpContext?.Session.GetString("Email")
+        ?? HttpContextAccessor.HttpContext?.Request.Cookies["Email"];
+    string role = Context.User?.FindFirst(ClaimTypes.Role)?.Value ?? "";
+    string username = Context.User?.FindFirst(ClaimTypes.Name)?.Value ?? Context.User?.FindFirst("name")?.Value ?? "";
+    string email = "";
+    string profileImageSrc = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23cbd5e1'%3E%3Cpath d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-4.48S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34 3-3 1.34-3 3 3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z'/%3E%3C/svg%3E";
+    if (!string.IsNullOrEmpty(username) && role != "SuperAdmin")
+    {
+        var userIdClaim = Context.User.FindFirst("UserId")?.Value;
+        if (!string.IsNullOrEmpty(userIdClaim) && int.TryParse(userIdClaim, out int userId))
+        {
+            var userProfile = _context.UserProfiles.FirstOrDefault(u => u.UserId == userId);
+            if (userProfile != null)
+            {
+                if (!string.IsNullOrEmpty(userProfile.ProfileImagePath))
+                {
+                    profileImageSrc = userProfile.ProfileImagePath;
+                }
+                else if (userProfile.ProfileImage != null)
+                {
+                    profileImageSrc = $"data:image/png;base64,{Convert.ToBase64String(userProfile.ProfileImage)}";
+                }
+            }
+        }
+    }
+    else if (role == "SuperAdmin")
+    {
+        var superAdminProfile = _mastercontext.SuperAdmins.FirstOrDefault();
+        if (superAdminProfile != null)
+        {
+            if (!string.IsNullOrEmpty(superAdminProfile.ProfileImagePath))
+            {
+                profileImageSrc = superAdminProfile.ProfileImagePath;
+            }
+            else if (superAdminProfile.ProfileImage != null)
+            {
+                profileImageSrc = $"data:image/png;base64,{Convert.ToBase64String(superAdminProfile.ProfileImage)}";
+            }
+        }
+    }
+    int? subdomainPartnerId = Context.Items["subdomainPartnerId"] as int?;
+    string subdomainPartnerName = Context.Items["subdomainPartnerName"] as string;
+    int? userChannelPartnerId = subdomainPartnerId;
+    bool isPartnerAgent = false;
+    if (!string.IsNullOrEmpty(username) && role != "SuperAdmin")
+    {
+        var userRecord = _context.Users.FirstOrDefault(u => u.Username == username);
+        userChannelPartnerId = userRecord?.ChannelPartnerId;
+        isPartnerAgent = userRecord?.ChannelPartnerId != null && (role == "Sales" || role == "Agent");
+    }
+    bool hasPartnerFeature = false;
+    bool HasAdvancedReports = false;
+    if (role != "SuperAdmin" && !string.IsNullOrEmpty(token))
+    {
+        var tenantIdClaim = Context.User.FindFirst("TenantId")?.Value;
+        if (!string.IsNullOrEmpty(tenantIdClaim) && int.TryParse(tenantIdClaim, out int tid))
+        {
+            var activeSub = _mastercontext.TenantSubscriptions
+                .Where(s => s.TenantId == tid && (s.Status == "Active" || s.Status == "Trial"))
+                .OrderByDescending(s => s.StartDate)
+                .FirstOrDefault();
+            if (activeSub != null)
+            {
+                var activePlan = _mastercontext.SaasPlans.FirstOrDefault(p => p.PlanId == activeSub.PlanId);
+                if (activePlan != null && activePlan.MaxPartners > 0)
+                    hasPartnerFeature = true;
+                HasAdvancedReports = activePlan?.HasAdvancedReports ?? false;
+            }
+        }
+    }
+
+    // SidebarCollapsed preference (set via Settings page)
+    var sidebarCollapsedVal = _context.Settings.FirstOrDefault(s => s.SettingKey == "SidebarCollapsed" && s.ChannelPartnerId == null)?.SettingValue;
+    var sidebarCollapsed = sidebarCollapsedVal == "true";
+    List<string> allowedModules = null;
+    if (!string.IsNullOrEmpty(role) && role != "SuperAdmin")
+    {
+        var rolePermission = _context.RolePermissions.Where(r => r.RoleName == role).OrderByDescending(r => r.CreatedAt).FirstOrDefault();
+        if (rolePermission != null && !string.IsNullOrWhiteSpace(rolePermission.AllowedModules))
+        {
+            var split = rolePermission.AllowedModules.Split(',').Select(m => m.Trim()).Where(m => !string.IsNullOrEmpty(m)).ToList();
+            if (split.Any())
+                allowedModules = split;
+        }
+        // Fallback for standard roles when DB record doesn't have AllowedModules set
+        if (allowedModules == null)
+        {
+            if (role == "Sales")
+            {
+                allowedModules = new List<string> { "Dashboard", "Leads & Properties", "Sales", "Attendance", "Settings" };
+            }
+            else if (role == "Agent")
+            {
+                allowedModules = new List<string> { "Dashboard", "Leads & Properties", "Attendance", "Settings" };
+            }
+        }
+    }
+    bool canAccessModule(string moduleName)
+    {
+        if (allowedModules == null) return true;
+        
+        if (allowedModules.Any(m => m.Equals("All", StringComparison.OrdinalIgnoreCase)))
+            return true;
+        
+        return allowedModules.Any(m => m.Equals(moduleName, StringComparison.OrdinalIgnoreCase));
+    }
+    var roleText = role ?? "User";
+    var roleShort = roleText.Length >= 2 ? roleText.Substring(0, 2).ToUpper() : roleText.ToUpper();
+    var bg = "linear-gradient(135deg,#1A6FA8,#D4A45A)";
+    }
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, shrink-to-fit=no">
+    <meta name="description" content="Responsive Admin & Dashboard Template based on Bootstrap 5">
+    <meta name="author" content="AdminKit">
+    <link rel="preconnect" href="https://fonts.gstatic.com">
+    <link rel="icon" type="image/png" href="~/icons/PropTech_Logo_Favicon.png">
+    <link rel="shortcut icon" href="~/icons/PropTech_Logo_Favicon.png">
+    <title>@ViewData["Title"] - PropTech CRM</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link href="~/css/app.css" rel="stylesheet">
+    <link href="~/css/crm-theme.css" rel="stylesheet">
+    <link href="~/css/responsive-fixes.css" rel="stylesheet">
+    <link href="~/css/site.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
+    <script>
+        if (localStorage.getItem('darkMode') === 'enabled') {
+            document.documentElement.classList.add('dark-mode');
+        }
+    </script>
+    <style>
+        /* =====================================================
+           CSS VARIABLES - THEME TOKENS
+           ===================================================== */
+        :root {
+            --gold: #D4A45A;
+            --gold-light: #E8C27E;
+            --gold-dark: #B8883E;
+            --blue: #1A6FA8;
+            --blue-light: #2589C9;
+            --blue-dark: #125082;
+            --sidebar-bg: #0F1C2E;
+            --sidebar-bg2: #162436;
+            --sidebar-text: #B8C8D8;
+            --sidebar-active-bg: linear-gradient(90deg, #1A6FA8, #D4A45A);
+            --navbar-bg: #FFFFFF;
+            --navbar-height: 54px;
+            --sidebar-width: 248px;
+            --sidebar-collapsed: 50px;
+            --body-bg: #F0F4F8;
+            --card-bg: #FFFFFF;
+            --text-primary: #1A2332;
+            --text-muted: #6B7B8D;
+            --border-color: #E2E8F0;
+            --radius: 10px;
+        }
+
+        /* =====================================================
+           BASE FONT SIZING - Consistent across all pages
+           ===================================================== */
+        body { font-size: 15px !important; line-height: 1.6 !important; }
+        .content, .main, .card, .wrapper { font-size: 15px !important; }
+        .content > * { font-size: 14px !important; }
+        .content h1 { font-size: 1.6rem !important; }
+        .content h2 { font-size: 1.35rem !important; }
+        .content h3 { font-size: 1.15rem !important; }
+        .content h4 { font-size: 1.05rem !important; }
+        .content h5 { font-size: 0.95rem !important; }
+        .content small, .content .text-muted, .content .help-text { font-size: 0.82rem !important; }
+        .content .table { font-size: 0.9rem !important; }
+        .content .form-control, .content .form-select { font-size: 0.9rem !important; }
+        .content .badge { font-size: 0.78rem !important; }
+        .content .btn { font-size: 0.88rem !important; }
+
+        /* Sidebar text sizing */
+        .sidebar-link { font-size: 13px !important; }
+        .sidebar-dropdown .sidebar-link { font-size: 12.5px !important; }
+        .sidebar-header { font-size: 11px !important; letter-spacing: 1.2px !important; }
+        .sidebar-brand span { font-size: 1rem !important; }
+        .sa-profile-info strong { font-size: 12px !important; }
+        .sa-profile-info small { font-size: 10px !important; }
+
+        /* Dashboard stat consistency */
+        .stat-number { font-size: 1.8rem !important; }
+        .stat-label { font-size: 0.82rem !important; }
+
+        html.dark-mode {
+            --navbar-bg: #1A2332;
+            --body-bg: #111827;
+            --card-bg: #1E2A3A;
+            --text-primary: #E8EDF2;
+            --text-muted: #8FA3B8;
+            --border-color: #2A3A4A;
+            --sidebar-bg: #0D1724;
+            --sidebar-bg2: #121F2E;
+        }
+        /* =====================================================
+           BASE RESET
+           ===================================================== */
+        *, *::before, *::after { box-sizing: border-box; }
+        html {
+            overflow-y: auto !important;
+            overflow-x: hidden !important;
+            scrollbar-gutter: auto !important;
+            font-family: 'Inter', sans-serif;
+        }
+        html.dark-mode { background: var(--body-bg) !important; color-scheme: dark; }
+        html.dark-mode body { background: var(--body-bg) !important; }
+        html:not(.ready) * { transition: none !important; animation: none !important; }
+        body { font-family: 'Inter', sans-serif; background: var(--body-bg); color: var(--text-primary); }
+
+        /* =====================================================
+           SIDEBAR CORE
+           ===================================================== */
+        .sidebar {
+            background: var(--sidebar-bg) !important;
+            border-right: 1px solid rgba(212,164,90,0.15);
+            box-shadow: 2px 0 20px rgba(0,0,0,0.25) !important;
+            overflow-y: auto !important;
+            overflow-x: hidden !important;
+            scrollbar-width: thin !important;
+            scrollbar-color: rgba(212,164,90,0.3) transparent !important;
+            display: flex !important;
+            flex-direction: column !important;
+        }
+        .sidebar-content {
+            flex: 1 1 auto !important;
+            min-height: 0 !important;
+            display: flex !important;
+            flex-direction: column !important;
+            overflow-x: hidden !important;
+            max-width: 100% !important;
+        }
+        .sidebar-nav {
+            flex: 1 1 auto !important;
+            min-height: 0 !important;
+            overflow-x: hidden !important;
+            max-width: 100% !important;
+        }
+        .sidebar::-webkit-scrollbar { width: 3px; }
+        .sidebar::-webkit-scrollbar-track { background: transparent; }
+        .sidebar::-webkit-scrollbar-thumb { background: rgba(212,164,90,0.35); border-radius: 2px; }
+        .sidebar::-webkit-scrollbar-thumb:hover { background: var(--gold); }
+
+        /* Sidebar footer - pinned at bottom, distinct color */
+        .sidebar-footer {
+            position: sticky !important;
+            bottom: 0 !important;
+            flex-shrink: 0 !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            padding: 8px 12px !important;
+            background: linear-gradient(135deg, #0F4C75, #162436) !important;
+            border-top: 1px solid rgba(212,164,90,0.35) !important;
+            color: rgba(255,255,255,0.75) !important;
+            font-size: 10.5px !important;
+            line-height: 1.5 !important;
+            text-align: center !important;
+            box-sizing: border-box !important;
+            overflow: hidden !important;
+            white-space: nowrap !important;
+            text-overflow: ellipsis !important;
+            z-index: 6 !important;
+        }
+        .sidebar-footer a { color: var(--gold-light) !important; text-decoration: none !important; }
+        .sidebar.collapsed .sidebar-footer { padding: 6px 0 !important; }
+        .sidebar.collapsed .sidebar-footer span { display: none !important; }
+        .sidebar.collapsed .sidebar-footer i { margin-right: 0 !important; }
+        html.dark-mode .sidebar-footer { background: #0D1724 !important; border-top-color: rgba(212,164,90,0.3) !important; }
+
+        /* Brand area */
+        .sidebar-brand {
+            background: var(--sidebar-bg2) !important;
+            border-bottom: 1px solid rgba(212,164,90,0.2) !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+        }
+        .sidebar-brand .sidebar-logo-full {
+            height: 38px !important; width: 100% !important;
+            max-width: 100% !important; object-fit: contain !important; display: block !important;
+        }
+        .sidebar-brand .sidebar-logo-collapsed {
+            height: 36px !important; width: 36px !important;
+            object-fit: contain !important; display: none !important;
+        }
+        .sidebar-brand span {
+            color: var(--gold) !important;
+            font-size: 1.1rem; font-weight: 700; letter-spacing: 0.5px;
+        }
+
+        /* SIDEBAR SECTION HEADERS */
+        .sidebar-header {
+            font-size: 11px !important;
+            font-weight: 700 !important;
+            letter-spacing: 1.2px !important;
+            color: rgba(212,164,90,0.6) !important;
+            text-transform: uppercase !important;
+            display: block !important;
+            line-height: 1.2 !important;
+            pointer-events: none !important;
+        }
+        .sidebar.collapsed .sidebar-header {
+            opacity: 0 !important; height: 0 !important;
+            padding: 0 !important; overflow: hidden !important;
+        }
+
+        /* Sidebar Links - consistent box sizing */
+        .sidebar-link {
+            color: var(--sidebar-text) !important;
+            font-weight: 500 !important;
+            font-size: 13px !important;
+            border-radius: 8px !important;
+            gap: 10px !important;
+            transition: all 0.18s ease !important;
+            text-decoration: none !important;
+        }
+        .sidebar-link:hover {
+            color: #FFFFFF !important;
+            background: rgba(26,111,168,0.25) !important;
+        }
+        .sidebar-link .feather, .sidebar-link svg:not(.sidebar-chevron) {
+            stroke: rgba(184,200,216,0.7) !important;
+            transition: stroke 0.18s ease !important;
+        }
+        .sidebar-link:hover .feather, .sidebar-link:hover svg { stroke: #FFFFFF !important; }
+        .sidebar-link span.align-middle { transition: opacity 0.2s ease; }
+
+        /* Active state */
+        .sidebar-item.active > .sidebar-link,
+        .sidebar-dropdown .sidebar-item.active > .sidebar-link {
+            background: linear-gradient(90deg, #1A6FA8, #B8883E) !important;
+            color: #FFFFFF !important;
+            font-weight: 600 !important;
+            box-shadow: 0 3px 10px rgba(26,111,168,0.4) !important;
+        }
+        .sidebar-item.active > .sidebar-link .feather,
+        .sidebar-item.active > .sidebar-link svg,
+        .sidebar-dropdown .sidebar-item.active > .sidebar-link .feather,
+        .sidebar-dropdown .sidebar-item.active > .sidebar-link svg { stroke: #FFFFFF !important; }
+        .sidebar-item.active > .sidebar-link span.align-middle,
+        .sidebar-dropdown .sidebar-item.active > .sidebar-link span.align-middle { color: #FFFFFF !important; }
+
+        
+        /* Sidebar Chevron removed */
+        .sidebar-chevron { transition: transform 0.2s ease; opacity: 0.6; }
+        .sidebar-chevron.open { transform: rotate(180deg); opacity: 1; }
+        .sidebar.collapsed .sidebar-chevron { display: none !important; }
+        body.superadmin-layout .sidebar .sidebar-chevron { display: none !important; }
+
+        /* =====================================================
+           SA PROFILE CARD
+           ===================================================== */
+        .sa-profile-card {
+            display: flex; align-items: center; gap: 10px;
+            padding: 10px 14px; margin: 0 10px; border-radius: 10px;
+            background: linear-gradient(135deg, #1A6FA8, #D4A45A);
+            color: #FFFFFF; box-shadow: 0 4px 14px rgba(0,0,0,0.3);
+            white-space: nowrap; overflow: hidden;
+            width: 100%; max-width: 100%; box-sizing: border-box;
+        }
+        .sa-profile-avatar {
+            width: 30px; height: 30px; border-radius: 50%;
+            background: rgba(255,255,255,0.2);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 14px; flex-shrink: 0; font-weight: 700;
+        }
+        .sa-profile-info { display: flex; flex-direction: column; line-height: 1.3; min-width: 0; }
+        .sa-profile-info small { font-size: 9.5px; opacity: 0.8; color: #FFFFFF !important; }
+        .sa-profile-info strong { font-size: 12px; color: #FFFFFF !important; }
+        .sa-profile-card-collapsed {
+            width: 40px; height: 40px; border-radius: 10px;
+            background: linear-gradient(135deg, #1A6FA8, #D4A45A);
+            color: #FFFFFF; display: flex; align-items: center; justify-content: center;
+            font-size: 16px; margin: 6px auto; font-weight: 700;
+        }
+        .superadmin-layout .sidebar.collapsed .sa-profile-card { display: none !important; }
+        .superadmin-layout .sidebar:not(.collapsed) .sa-profile-card-collapsed { display: none !important; }
+
+        /* =====================================================
+           SA BADGES
+           ===================================================== */
+        .sa-badge {
+            display: inline-flex !important; align-items: center !important;
+            justify-content: center !important; min-width: 18px; height: 18px;
+            padding: 0 5px; border-radius: 9px; font-size: 10px; font-weight: 700;
+            line-height: 1; margin-left: auto; flex-shrink: 0;
+            color: #FFFFFF !important; filter: none !important;
+        }
+        .sa-badge-teal   { background: #125082 !important; }
+        .sa-badge-red    { background: #DC2626 !important; }
+        .sa-badge-blue   { background: #2589C9 !important; }
+        .sa-badge-amber  { background: var(--gold) !important; }
+        .sa-badge-purple { background: #8FA3B8 !important; }
+        html.dark-mode .sa-badge { color: #FFFFFF !important; filter: none !important; }
+
+        /* Ensure consistent spacing and no extra gaps */
+        .sidebar-nav li:last-child {
+            margin-bottom: 0 !important;
+        }
+        .sidebar-item {
+            margin-bottom: 2px !important;
+        }
+        .sidebar.collapsed .sidebar-item {
+            margin-bottom: 2px !important;
+        }
+
+        /* =====================================================
+           NAVBAR - CRITICAL MOBILE FIX
+           ===================================================== */
+        /* Force navbar-collapse to display as horizontal flex row */
+        .navbar-collapse { display: flex !important; flex-direction: row !important; align-items: center !important; flex-grow: 0 !important; margin-left: auto !important; visibility: visible !important; }
+        .navbar-collapse.collapse:not(.show) { display: flex !important; }
+        .navbar-nav { display: flex !important; flex-direction: row !important; align-items: center !important; gap: 2px !important; }
+        .navbar-nav .nav-item { display: flex !important; align-items: center !important; }
+        .nav-icon { color: #1A2332 !important; font-size: 18px !important; display: flex !important; align-items: center !important; justify-content: center !important; }
+        html.dark-mode .nav-icon { color: #E8EDF2 !important; }
+
+        /* Navbar profile name — always visible in light & dark mode */
+        .navbar-bg .text-dark, .navbar-profile-name { color: #1A2332 !important; overflow: visible !important; white-space: nowrap !important; text-overflow: clip !important; display: inline-block !important; visibility: visible !important; min-width: 0; }
+        html.dark-mode .navbar-bg .text-dark, html.dark-mode .navbar-profile-name { color: #E8EDF2 !important; }
+
+        .navbar, .navbar-bg {
+            z-index: 1050 !important;
+            position: fixed !important;
+            top: 0 !important; left: calc(var(--sidebar-width) + 5px) !important; right: 0 !important;
+            height: var(--navbar-height) !important;
+            min-height: var(--navbar-height) !important;
+            max-height: var(--navbar-height) !important;
+            width: calc(100% - var(--sidebar-width) - 5px) !important;
+            background: var(--navbar-bg) !important;
+            border-bottom: 2px solid rgba(212,164,90,0.25) !important;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.08) !important;
+            display: flex !important;
+            align-items: center !important;
+            padding: 0 10px !important;
+        }
+
+        .search-results-dropdown {
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 0;
+    right: 0;
+    background: #FFFFFF;
+    border: 1px solid #E2E8F0;
+    border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+    max-height: 450px;
+    overflow-y: auto;
+    display: none;
+    z-index: 1050;
+    width: 100%;
+    scrollbar-width: none;
+}
+
+/* Reduce search bar size to half */
+.sidebar-toggle {
+    width: 32px !important;
+    height: 32px !important;
+    margin-right: 6px !important;
+}
+.navbar {
+    padding: 0 8px !important;
+}
+.search-bar, .search-input, input[type="search"], input[placeholder*="Search"] {
+    max-width: 280px !important;
+    width: 100% !important;
+}
+        .hamburger, .hamburger::before, .hamburger::after {
+            background: #1A2332 !important;
+            width: 22px !important;
+            height: 2px !important;
+            border-radius: 1px !important;
+            transition: all 0.3s ease !important;
+        }
+        .hamburger {
+            display: block !important;
+            position: relative !important;
+        }
+        .hamburger::before, .hamburger::after {
+            content: '' !important;
+            position: absolute !important;
+            left: 0 !important;
+        }
+        .hamburger::before {
+            top: -7px !important;
+        }
+        .hamburger::after {
+            top: 7px !important;
+        }
+        .sidebar.collapsed .hamburger {
+            width: 22px !important;
+        }
+        html.dark-mode .hamburger, html.dark-mode .hamburger::before, html.dark-mode .hamburger::after {
+            background: #FFFFFF !important;
+        }
+        html.dark-mode .superadmin-layout .hamburger, html.dark-mode .superadmin-layout .hamburger::before, html.dark-mode .superadmin-layout .hamburger::after {
+            background: #FFFFFF !important;
+        }
+        html.dark-mode .superadmin-layout .navbar-bg,
+        html.dark-mode .superadmin-layout .navbar {
+            background: #1A2332 !important; border-bottom-color: rgba(255,255,255,0.08) !important;
+        }
+        html.dark-mode .superadmin-layout .sidebar-toggle,
+        html.dark-mode .superadmin-layout .nav-icon,
+        html.dark-mode .superadmin-layout .nav-link { color: #FFFFFF !important; }
+        html.dark-mode .navbar, html.dark-mode .navbar-bg {
+            background: #1A2332 !important;
+            border-bottom: 2px solid rgba(212,164,90,0.2) !important;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.3) !important;
+        }
+        .superadmin-layout .navbar, .superadmin-layout .navbar-bg {
+            position: fixed !important;
+            top: 0 !important;
+            left: calc(var(--sidebar-width) + 5px) !important;
+            width: calc(100vw - var(--sidebar-width) - 5px) !important;
+            height: var(--navbar-height) !important;
+            min-height: var(--navbar-height) !important;
+            max-height: var(--navbar-height) !important;
+            background: var(--navbar-bg) !important;
+            z-index: 1050 !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+        }
+        @@media (min-width: 992px) {
+            .superadmin-layout .sidebar.collapsed ~ .main {
+                margin-left: calc(var(--sidebar-collapsed) + 5px) !important;
+                width: calc(100% - var(--sidebar-collapsed) - 5px) !important;
+            }
+            /* Non-SA sidebar collapse - main content resizes */
+            .sidebar.collapsed ~ .main {
+                margin-left: calc(var(--sidebar-collapsed) + 5px) !important;
+                width: calc(100% - var(--sidebar-collapsed) - 5px) !important;
+            }
+            /* When sidebar is collapsed, move navbar to match collapsed width */
+            .superadmin-layout .sidebar.collapsed ~ .main .navbar,
+            .superadmin-layout .sidebar.collapsed ~ .main .navbar-bg {
+                left: calc(var(--sidebar-collapsed) + 5px) !important;
+                width: calc(100% - var(--sidebar-collapsed) - 5px) !important;
+            }
+            .sidebar.collapsed ~ .main .navbar,
+            .sidebar.collapsed ~ .main .navbar-bg {
+                left: calc(var(--sidebar-collapsed) + 5px) !important;
+                width: calc(100% - var(--sidebar-collapsed) - 5px) !important;
+            }
+        }
+
+        /* =====================================================
+           MAIN CONTENT - Proper spacing and no white gaps
+           ===================================================== */
+.main {
+            margin-left: calc(var(--sidebar-width) + 5px) !important;
+            width: calc(100% - var(--sidebar-width) - 5px) !important;
+            padding-top: var(--navbar-height) !important;
+            min-height: 100vh !important;
+            background: var(--body-bg) !important;
+            position: relative !important;
+            display: block !important;
+        }
+        .main > .content {
+            padding: 5px 10px !important;
+            padding-bottom: 0 !important;
+            margin-bottom: 0 !important;
+            min-height: calc(100vh - var(--navbar-height)) !important;
+        }
+        .main > .content > .container-fluid {
+            max-width: 100% !important;
+            width: 100% !important;
+            margin: 0 !important;
+            padding: 0 !important;
+        }
+        .content {
+            padding-top: 0 !important;
+            padding-bottom: 0 !important;
+        }
+        .breadcrumb { margin-bottom: 0.5rem !important; }
+        nav.mb-3 { margin-bottom: 0.5rem !important; }
+
+        /* =====================================================
+           MAIN LAYOUT - No trailing whitespace (footer was removed)
+           ===================================================== */
+        .main { padding-bottom: 0 !important; margin-bottom: 0 !important; background: var(--body-bg) !important; }
+        main.content { margin-bottom: 0 !important; padding-bottom: 0 !important; }
+        .main { display: flex !important; flex-direction: column !important; }
+        .main > .content { flex: 1 0 auto !important; min-height: 0 !important; }
+        /* Remove any trailing white space below content */
+        html, body { margin: 0 !important; padding: 0 !important; min-height: 100vh !important; height: auto !important; }
+        body { padding-bottom: 0 !important; }
+        .wrapper { padding-bottom: 0 !important; margin-bottom: 0 !important; min-height: 100vh !important; }
+
+        /* =====================================================
+           CUSTOM PAGES - Fix CSS gap for non-standard views
+           ===================================================== */
+        .ce-container, .et-container, .settings-container,
+        .maintenance-container, .email-log-container {
+            max-width: 100% !important;
+            padding-left: 0.5rem !important;
+            padding-right: 0.5rem !important;
+        }
+        .ce-card, .et-card, .settings-card {
+            border-radius: var(--radius) !important;
+            border: 1px solid var(--border-color) !important;
+            background: var(--card-bg) !important;
+        }
+.superadmin-layout .main > .content {
+            padding-top: calc(0.5rem + 5px) !important;
+        }
+        .superadmin-layout .main > .content .et-container,
+        .superadmin-layout .main > .content .settings-container {
+            padding-top: 0.25rem !important;
+        }
+
+        /* =====================================================
+           WELCOME BANNER - Ensure text always visible
+           ===================================================== */
+        .hero-welcome, .hero-welcome h1, .hero-welcome h2, .hero-welcome h3, .hero-welcome h4, .hero-welcome h5, .hero-welcome h6,
+        .hero-welcome p, .hero-welcome span, .hero-welcome div, .hero-welcome a,
+        .hero-welcome .text-white, .hero-welcome .text-white-50,
+        .hero-welcome .fw-bold, .hero-welcome .company-badge-hero *,
+        .superadmin-layout .hero-welcome, .superadmin-layout .hero-welcome h1, .superadmin-layout .hero-welcome h2, 
+        .superadmin-layout .hero-welcome h3, .superadmin-layout .hero-welcome h4, .superadmin-layout .hero-welcome h5, 
+        .superadmin-layout .hero-welcome h6, .superadmin-layout .hero-welcome p, .superadmin-layout .hero-welcome span,
+        .superadmin-layout .hero-welcome div, .superadmin-layout .hero-welcome a,
+        html.dark-mode .hero-welcome, html.dark-mode .hero-welcome *,
+        html:not(.dark-mode) .hero-welcome, html:not(.dark-mode) .hero-welcome * {
+            color: #FFFFFF !important;
+        }
+        /* Ensure hero text is never transparent or hidden */
+        .hero-welcome h2, .hero-welcome .h2 {
+            color: #FFFFFF !important;
+            opacity: 1 !important;
+            visibility: visible !important;
+            display: block !important;
+        }
+        .hero-welcome .text-white-50 { opacity: 0.85 !important; }
+        .hero-welcome a { color: #FFFFFF !important; text-decoration: underline; }
+.hero-welcome.card {
+    background: linear-gradient(135deg, #1A6FA8 0%, #D4A45A 100%) !important;
+}
+        .hero-welcome .card-body {
+            background: transparent !important;
+        }
+
+        /* =====================================================
+           CARDS & GENERAL UI
+           ===================================================== */
+        .card {
+            border-radius: var(--radius) !important;
+            border: 1px solid var(--border-color) !important;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06) !important;
+            background: var(--card-bg) !important;
+        }
+        html.dark-mode .card { border-color: var(--border-color) !important; }
+
+        /* =====================================================
+           NOTIFICATION DROPDOWN
+           ===================================================== */
+        .dropdown-menu-lg { min-width: 340px; max-width: 380px; max-height: 420px; overflow-y: auto; border-radius: 12px !important; }
+        @@media (max-width: 991px) { .dropdown-menu-lg { min-width: 260px !important; max-width: 290px !important; max-height: 340px !important; right: 0 !important; left: auto !important; } }
+        .list-group { max-height: 300px; overflow-y: auto; }
+        .dropdown-menu-header { padding: 10px 14px; background: linear-gradient(90deg, rgba(26,111,168,0.08), rgba(212,164,90,0.08)); border-bottom: 1px solid var(--border-color); font-weight: 600; font-size: 13px; color: var(--text-primary); border-radius: 12px 12px 0 0; }
+        html.dark-mode .dropdown-menu-header { background: rgba(26,111,168,0.12) !important; border-color: var(--border-color) !important; color: var(--text-primary) !important; }
+        .dropdown-menu-footer { padding: 10px 14px; background: rgba(240,244,248,0.6); border-top: 1px solid var(--border-color); text-align: center; border-radius: 0 0 12px 12px; }
+        html.dark-mode .dropdown-menu-footer { background: rgba(30,42,58,0.5) !important; border-color: var(--border-color) !important; }
+        .dropdown-menu-footer a { color: var(--text-muted); text-decoration: none; font-size: 13px; }
+        .notification-link { transition: all 0.18s ease; border-left: 3px solid transparent !important; }
+        .notification-link:hover { background-color: rgba(26,111,168,0.06) !important; }
+        .notif-mark-read-btn { opacity: 0.4; transition: opacity 0.15s ease, color 0.15s ease; font-size: 11px !important; font-weight: 600; padding: 3px 8px !important; border-radius: 4px !important; border: 1px solid transparent !important; background: transparent !important; }
+        .notification-link:hover .notif-mark-read-btn { opacity: 0.7; }
+        .notif-mark-read-btn:hover { opacity: 1 !important; color: #16A34A !important; background: rgba(22,163,74,0.08) !important; border-color: rgba(22,163,74,0.3) !important; }
+        .notification-urgent { background-color: rgba(220,38,38,0.04) !important; }
+        .notification-high { background-color: rgba(245,158,11,0.04) !important; }
+        .notification-normal { background-color: rgba(26,111,168,0.04) !important; }
+        .notification-item { background: #FFFFFF !important; border: 1px solid #E2E8F0 !important; border-radius: 8px !important; margin-bottom: 6px !important; }
+        html.dark-mode .notification-item { background: #1E2A3A !important; border-color: var(--border-color) !important; }
+        .notification-item .notification-link { color: #1A2332 !important; }
+        html.dark-mode .notification-item .notification-link { color: #E8EDF2 !important; }
+
+        /* =====================================================
+           PAGINATION
+           ===================================================== */
+        .pagination-container { width: 100%; }
+        .pagination-controls, #pageNumbers { display: flex; align-items: center; gap: 0.5rem; }
+        #pageNumbers { flex-wrap: wrap; }
+        .pagination-btn, .pagination .page-link { min-height: 34px; min-width: 34px; text-align: center; }
+        .pagination { flex-wrap: wrap; gap: 0.25rem; }
+        @@media (max-width: 991px) {
+            .pagination-container { display: flex !important; flex-direction: column !important; gap: 0.6rem !important; }
+            .pagination-info { text-align: center !important; }
+            .pagination-controls, .pagination, #pageNumbers { justify-content: center !important; }
+        }
+
+        /* =====================================================
+           SUPER ADMIN LAYOUT - Ensure sidebar and main content align properly
+           ===================================================== */
+        .superadmin-layout .sidebar {
+            position: fixed !important;
+            left: 0 !important;
+            top: 0 !important;
+            bottom: 0 !important;
+            z-index: 1030 !important;
+            width: var(--sidebar-width) !important;
+            transition: width 0.25s ease !important;
+        }
+        .superadmin-layout .sidebar.collapsed {
+            width: var(--sidebar-collapsed) !important;
+        }
+        .superadmin-layout .sidebar:not(.collapsed) {
+            width: var(--sidebar-width) !important;
+        }
+        .superadmin-layout .sidebar-content {
+            display: flex !important;
+            flex-direction: column !important;
+            flex: 1 1 auto !important;
+            min-height: 0 !important;
+            height: auto !important;
+            overflow: hidden !important;
+        }
+        .superadmin-layout .sidebar-nav {
+            flex: 1 1 auto !important;
+            min-height: 0 !important;
+            overflow-y: auto !important;
+            overflow-x: hidden !important;
+        }
+        .superadmin-layout .main {
+            margin-left: calc(var(--sidebar-width) + 5px) !important;
+            width: calc(100% - var(--sidebar-width) - 5px) !important;
+            overflow-x: hidden;
+            padding-top: var(--navbar-height) !important;
+            min-height: 100vh !important;
+            background: var(--body-bg) !important;
+            position: relative !important;
+            display: block !important;
+        }
+        .superadmin-layout .content {
+            padding-top: calc(0.5rem + 5px) !important;
+        }
+        .sidebar-item { position: relative; }
+
+        /* Non-SA navbar should also respect sidebar width */
+        .navbar, .navbar-bg {
+            left: calc(var(--sidebar-width) + 5px) !important;
+            width: calc(100% - var(--sidebar-width) - 5px) !important;
+        }
+
+        /* SIDEBAR VISIBILITY - Always show */
+        .sidebar {
+            visibility: visible !important;
+            opacity: 1 !important;
+            display: flex !important;
+        }
+
+        /* =====================================================
+           COLLAPSED SIDEBAR STATE (app.js toggles .collapsed on
+           #sidebar and .expanded on .main)
+           ===================================================== */
+        .sidebar.collapsed ~ .main.expanded,
+        .sidebar.collapsed ~ .main {
+            margin-left: calc(var(--sidebar-collapsed) + 5px) !important;
+            width: calc(100% - var(--sidebar-collapsed) - 5px) !important;
+        }
+        .sidebar.collapsed ~ .main.expanded .navbar,
+        .sidebar.collapsed ~ .main .navbar,
+        .sidebar.collapsed ~ .main.expanded .navbar-bg,
+        .sidebar.collapsed ~ .main .navbar-bg {
+            left: calc(var(--sidebar-collapsed) + 5px) !important;
+            width: calc(100% - var(--sidebar-collapsed) - 5px) !important;
+        }
+        .superadmin-layout .sidebar.collapsed ~ .main.expanded,
+        .superadmin-layout .sidebar.collapsed ~ .main {
+            margin-left: calc(var(--sidebar-collapsed) + 5px) !important;
+            width: calc(100% - var(--sidebar-collapsed) - 5px) !important;
+        }
+        .superadmin-layout .sidebar.collapsed ~ .main.expanded .navbar,
+        .superadmin-layout .sidebar.collapsed ~ .main .navbar,
+        .superadmin-layout .sidebar.collapsed ~ .main.expanded .navbar-bg,
+        .superadmin-layout .sidebar.collapsed ~ .main .navbar-bg {
+            left: calc(var(--sidebar-collapsed) + 5px) !important;
+            width: calc(100% - var(--sidebar-collapsed) - 5px) !important;
+        }
+
+        /* =====================================================
+           COLLAPSED SIDEBAR - HIDE TEXT, SHOW BADGES OVER ICONS
+           ===================================================== */
+        .sidebar.collapsed .sidebar-link span.align-middle:not(.sa-badge),
+        .sidebar.collapsed .sidebar-text-full {
+            display: none !important;
+        }
+        .sidebar.collapsed .sidebar-text-collapsed {
+            display: flex !important;
+            justify-content: center !important;
+        }
+        .sidebar.collapsed .sidebar-link {
+            position: relative !important;
+            justify-content: center !important;
+            padding: 10px 0 !important;
+        }
+
+        /* =====================================================
+           DARK MODE FINE TUNING
+           ===================================================== */
+        .dark-mode .card-header { background-color: rgba(30,42,58,0.7) !important; border-color: var(--border-color) !important; }
+        .dark-mode .table { border-color: var(--border-color) !important; }
+        .dark-mode .modal-header, .dark-mode .modal-footer { border-color: var(--border-color) !important; }
+        .dark-mode .list-group-item { background-color: var(--card-bg) !important; border-color: var(--border-color) !important; }
+        .dark-mode .alert { background-color: #1E2A3A !important; border-color: var(--border-color) !important; }
+        .dark-mode .nav-icon { color: var(--text-primary) !important; }
+        .dark-mode h1,.dark-mode h2,.dark-mode h3,.dark-mode h4,.dark-mode h5,.dark-mode h6 { color: var(--text-primary) !important; }
+        .dark-mode .breadcrumb-item a { color: var(--text-muted) !important; }
+        .dark-mode .breadcrumb-item.active { color: var(--text-primary) !important; }
+
+        /* SA badge last-specificity override */
+        .sa-badge, html.dark-mode .sa-badge, body.dark-mode .sa-badge,
+        .dark-mode .sa-badge { color: #FFFFFF !important; filter: none !important; }
+
+
+        /* Tighten layout framework inside the main list containers */
+        .sidebar-nav, .sidebar-dropdown {
+        padding-left: 0 !important;
+        margin-bottom: 0 !important;
+        list-style: none !important;
+        }
+
+        /* Force left-alignment rule on every layout style type */
+        .sidebar-link,
+        .sidebar-item.has-dropdown > .sidebar-link,
+        .sidebar-item.has-dropdown > .sidebar-link.collapsed {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: flex-start !important; /* Forces all content left */
+        text-align: left !important;
+        gap: 10px !important; /* Consistent spacing for all sidebar items */
+        width: auto !important;
+        position: relative !important;
+        }
+
+        /* Keep structural icons tightly bounded - superseded by PERFECT SIDEBAR ALIGNMENT below */
+
+        /* ===== PERFECT SIDEBAR ALIGNMENT ===== */
+
+        /* All links - consistent fixed box sizing */
+        .sidebar-link,
+        .sidebar-dropdown .sidebar-link {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: flex-start !important;
+        gap: 10px !important;
+        padding: 10px 16px !important;
+        margin: 2px 10px !important;
+        min-height: 40px !important;
+        max-width: calc(100% - 20px) !important;
+        box-sizing: border-box !important;
+        }
+
+/* Icons - fixed size container */
+.sidebar .sidebar-link i,
+.sidebar .sidebar-link svg:not(.sidebar-chevron) {
+    width: 20px !important;
+    height: 20px !important;
+    min-width: 20px !important;
+    max-width: 20px !important;
+    margin: 0 !important;
+    flex-shrink: 0 !important;
+}
+
+        /* Text - consistent alignment */
+        .sidebar-link .align-middle {
+        margin: 0 !important;
+        padding: 0 !important;
+        text-align: left !important;
+        flex: 1 !important;
+        min-width: 0 !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+        white-space: nowrap !important;
+        }
+
+        /* Parent menu arrow */
+        .sidebar-chevron {
+        margin-left: auto !important;
+        width: 14px !important;
+        height: 14px !important;
+        flex-shrink: 0 !important;
+        }
+
+        /* Child menu - consistent indentation */
+        .sidebar-dropdown .sidebar-link {
+        padding-left: 36px !important; /* child indent */
+        }
+
+        /* Child icon */
+        .sidebar-dropdown .sidebar-link i,
+        .sidebar-dropdown .sidebar-link svg:not(.sidebar-chevron) {
+        margin-left: 0 !important;
+        }
+
+        /* Sidebar section headers - consistent spacing */
+        .sidebar-header {
+        padding: 16px 20px 6px 20px !important;
+        margin: 0 10px !important;
+        min-height: 32px !important;
+        }
+
+        /* Sidebar brand - fixed height */
+        .sidebar-brand {
+        min-height: 56px !important;
+        padding: 10px 16px !important;
+        }
+
+        /* Sidebar item wrapper */
+        .sidebar-item {
+        width: 100% !important;
+        max-width: 100% !important;
+        }
+
+        /* Ensure all sidebar elements align properly */
+        .sidebar-nav {
+        width: 100% !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        }
+
+        .sidebar-nav > li,
+        .sidebar-dropdown {
+        width: 100% !important;
+        max-width: 100% !important;
+        }
+
+        /* Hamburger button alignment */
+        .sidebar-toggle {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        width: 40px !important;
+        height: 40px !important;
+        padding: 0 !important;
+        margin-right: 8px !important;
+        border-radius: 8px !important;
+        transition: background-color 0.2s ease !important;
+        cursor: pointer !important;
+        z-index: 1060 !important;
+        position: relative !important;
+        }
+
+        .sidebar-toggle:hover {
+        background-color: rgba(0,0,0,0.05) !important;
+        }
+
+        html.dark-mode .sidebar-toggle:hover {
+        background-color: rgba(255,255,255,0.1) !important;
+        }
+        
+        /* SA layout sidebar toggle - ensure visible and clickable */
+        .superadmin-layout .sidebar-toggle {
+            cursor: pointer !important;
+            z-index: 1060 !important;
+            position: relative !important;
+        }
+        
+        .superadmin-layout .sidebar-toggle .hamburger {
+            display: block !important;
+        }
+
+        /* --- Unified sidebar sizing + collapsed count badges (hardened) --- */
+        .sidebar-link { min-height: 36px !important; display: flex !important; align-items: center !important; }
+        .sidebar .sa-badge { margin-left: auto !important; }
+        .sidebar.collapsed .sa-badge { display: inline-flex !important; position: absolute !important; top: 3px !important; right: 3px !important; margin-left: 0 !important; min-width: 16px !important; height: 16px !important; font-size: 9px !important; line-height: 16px !important; padding: 0 4px !important; border-radius: 8px !important; z-index: 5; }
+    </style>
+</head>
+<body class="@(role == "SuperAdmin" ? "superadmin-layout" : "")">
+    <script>if(document.documentElement.classList.contains('dark-mode'))document.body.classList.add('dark-mode');</script>
+    @Html.AntiForgeryToken()
+    <div class="wrapper">
+
+        <!-- ═══════════════════════════════════════
+             SIDEBAR
+             ═══════════════════════════════════════ -->
+        <nav id="sidebar" class="sidebar js-sidebar@(sidebarCollapsed ? " collapsed" : "")">
+            <div class="sidebar-content js-simplebar">
+
+                <!-- LOGO / BRAND -->
+                <a class="sidebar-brand" asp-area="" asp-controller="Home" asp-action="Index">
+                    @if (role == "SuperAdmin")
+                    {
+                        <!-- SuperAdmin uses the website logo, not a separate CompanyLogo -->
+                        <img src="~/icons/PropTech_Logo_Color.png" alt="PropTech" class="sidebar-logo-full" width="220" height="38" loading="eager" fetchpriority="high">
+                        <img src="~/icons/PropTech_Logo_Color.png" alt="U" class="sidebar-logo-collapsed" width="36" height="36" loading="eager" fetchpriority="high">
+                    }
+                    else
+                    {
+                        <img src="~/icons/PropTech_Logo_Color.png" alt="PropTech" class="sidebar-logo-full" width="220" height="38" loading="eager" fetchpriority="high">
+                        <img src="~/icons/PropTech_Logo_Color.png" alt="U" class="sidebar-logo-collapsed" width="36" height="36" loading="eager" fetchpriority="high">
+                    }
+                </a>
+
+                <!-- IMPERSONATION BANNER -->
+                @if (Context.Session.GetString("IsImpersonating") == "true")
+                {
+                    <div class="impersonation-banner" onclick="stopImpersonation()" title="Impersonating @username - Click to stop">
+                        <i class="fas fa-user-secret"></i>
+                        <span class="impersonation-text"> Impersonating @username</span>
+                        <button class="btn btn-sm btn-outline-light" onclick="event.stopPropagation();stopImpersonation()" title="Stop Impersonation">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                }
+
+                <!-- ═══════════════════════════════
+                     SUPER ADMIN SIDEBAR
+                     ═══════════════════════════════ -->
+                @if (role == "SuperAdmin")
+                {
+        <ul class="sidebar-nav">
+            <li class="sidebar-header">Main</li>
+            <li class="sidebar-item @(ViewContext.RouteData.Values["Action"]?.ToString() == "Dashboard" ? "active" : "")">
+                            <a class="sidebar-link" href="/SuperAdmin/Dashboard">
+                                <i class="align-middle" data-feather="activity"></i>
+                                <span class="align-middle">Dashboard</span>
+                            </a>
+                        </li>
+
+                        <li class="sidebar-header">Tenant Management</li>
+                        <li class="sidebar-item @(ViewContext.RouteData.Values["Action"]?.ToString() == "Tenants" ? "active" : "")">
+                            <a class="sidebar-link" href="/SuperAdmin/Tenants">
+                                <i class="align-middle" data-feather="database"></i>
+                                <span class="align-middle">Tenants</span>
+                                <span class="sa-badge sa-badge-teal" id="sa-tenant-count" style="display:none;">3</span>
+                            </a>
+                        </li>
+                        <li class="sidebar-item @(ViewContext.RouteData.Values["Action"]?.ToString() == "Users" ? "active" : "")">
+                            <a class="sidebar-link" href="/SuperAdmin/Users">
+                                <i class="align-middle" data-feather="users"></i>
+                                <span class="align-middle">Users</span>
+                            </a>
+                        </li>
+                        <li class="sidebar-item @(ViewContext.RouteData.Values["Action"]?.ToString() == "CreateTenant" ? "active" : "")">
+                            <a class="sidebar-link" href="/SuperAdmin/CreateTenant">
+                                <i class="align-middle" data-feather="plus-circle"></i>
+                                <span class="align-middle">Create Tenant</span>
+                            </a>
+                        </li>
+                        <li class="sidebar-item @(ViewContext.RouteData.Values["Action"]?.ToString() == "Inquiries" ? "active" : "")">
+                             <a class="sidebar-link" href="/SuperAdmin/Inquiries">
+                                 <i class="align-middle" data-feather="mail"></i>
+                                 <span class="align-middle">Inquiries</span>
+                                 <span class="sa-badge sa-badge-red" id="sa-inquiry-count" style="display:none;">5</span>
+                             </a>
+                         </li>
+                         <li class="sidebar-item @(ViewContext.RouteData.Values["Action"]?.ToString() == "Referrals" ? "active" : "")">
+                             <a class="sidebar-link" href="/SuperAdmin/Referrals">
+                                 <i class="align-middle" data-feather="gift"></i>
+                                 <span class="align-middle">Referrals</span>
+                             </a>
+                         </li>
+
+                        <li class="sidebar-header">Subscriptions</li>
+                        <li class="sidebar-item @(ViewContext.RouteData.Values["Action"]?.ToString() == "Plans" ? "active" : "")">
+                            <a class="sidebar-link" href="/SuperAdmin/Plans">
+                                <i class="align-middle" data-feather="layers"></i>
+                                <span class="align-middle">Subscription Plans</span>
+                            </a>
+                        </li>
+                        <li class="sidebar-item @(ViewContext.RouteData.Values["Action"]?.ToString() == "TenantSubscriptions" ? "active" : "")">
+                            <a class="sidebar-link" href="/SuperAdmin/TenantSubscriptions">
+                                <i class="align-middle" data-feather="credit-card"></i>
+                                <span class="align-middle">Tenant Subscriptions</span>
+                            </a>
+                        </li>
+
+                        <li class="sidebar-header">Finance</li>
+                        <li class="sidebar-item @(ViewContext.RouteData.Values["Action"]?.ToString() == "PaymentConfig" ? "active" : "")">
+                            <a class="sidebar-link" href="/SuperAdmin/PaymentConfig">
+                                <i class="align-middle" data-feather="settings"></i>
+                                <span class="align-middle">Payment Config</span>
+                            </a>
+                        </li>
+                        <li class="sidebar-item @(ViewContext.RouteData.Values["Action"]?.ToString() == "SaasTransactions" ? "active" : "")">
+                            <a class="sidebar-link" href="/SuperAdmin/SaasTransactions">
+                                <i class="align-middle" data-feather="trending-up"></i>
+                                <span class="align-middle">Transactions</span>
+                            </a>
+                        </li>
+
+                        <li class="sidebar-header">Settings</li>
+                        <li class="sidebar-item @(ViewContext.RouteData.Values["Controller"]?.ToString() == "SaasSetting" && ViewContext.RouteData.Values["Action"]?.ToString() == "Index" ? "active" : "")">
+                            <a class="sidebar-link" href="/SaasSetting/Index">
+                                <i class="align-middle" data-feather="sliders"></i>
+                                <span class="align-middle">System Settings</span>
+                            </a>
+                        </li>
+                        <li class="sidebar-item @(ViewContext.RouteData.Values["Controller"]?.ToString() == "SaasSetting" && ViewContext.RouteData.Values["Action"]?.ToString() == "Maintenance" ? "active" : "")">
+                            <a class="sidebar-link" href="/SaasSetting/Maintenance">
+                                <i class="align-middle" data-feather="shield"></i>
+                                <span class="align-middle">Maintenance</span>
+                            </a>
+                        </li>
+                        <li class="sidebar-item @(ViewContext.RouteData.Values["Controller"]?.ToString() == "Ticket" ? "active" : "")">
+                            <a class="sidebar-link" href="/Ticket">
+                                <i class="align-middle" data-feather="help-circle"></i>
+                                <span class="align-middle">Support Tickets</span>
+                            </a>
+                        </li>
+
+                        <li class="sidebar-header">Messaging</li>
+                        <li class="sidebar-item @(ViewContext.RouteData.Values["Controller"]?.ToString() == "CompanyChat" ? "active" : "")">
+                            <a class="sidebar-link" href="/CompanyChat/Index">
+                                <i class="align-middle" data-feather="message-circle"></i>
+                                <span class="align-middle">Company Chat</span>
+                                <span class="sa-badge sa-badge-blue" id="saChatUnreadBadge" style="display:none;font-size:9px;min-width:16px;height:16px;">0</span>
+                            </a>
+                        </li>
+
+                        <li class="sidebar-header">Email</li>
+                        <li class="sidebar-item @(ViewContext.RouteData.Values["Action"]?.ToString() == "ComposeEmail" ? "active" : "")">
+                            <a class="sidebar-link" href="/SuperAdmin/ComposeEmail">
+                                <i class="align-middle" data-feather="send"></i>
+                                <span class="align-middle">Compose Email</span>
+                            </a>
+                        </li>
+                        <li class="sidebar-item @(ViewContext.RouteData.Values["Action"]?.ToString() == "EmailTemplates" ? "active" : "")">
+                            <a class="sidebar-link" href="/SuperAdmin/EmailTemplates">
+                                <i class="align-middle" data-feather="file-text"></i>
+                                <span class="align-middle">Email Templates</span>
+                            </a>
+                        </li>
+                        <li class="sidebar-item @(ViewContext.RouteData.Values["Action"]?.ToString() == "EmailLog" ? "active" : "")">
+                            <a class="sidebar-link" href="/SuperAdmin/EmailLog">
+                                <i class="align-middle" data-feather="inbox"></i>
+                                <span class="align-middle">Email Log</span>
+                            </a>
+                        </li>
+
+                        <li class="sidebar-header">Monitoring</li>
+                        <li class="sidebar-item @(ViewContext.RouteData.Values["Action"]?.ToString() == "AuditLog" ? "active" : "")">
+                            <a class="sidebar-link" href="/SuperAdmin/AuditLog">
+                                <i class="align-middle" data-feather="clipboard"></i>
+                                <span class="align-middle">Audit Log</span>
+                            </a>
+                        </li>
+
+                        <li class="sidebar-header">Testimonials</li>
+                        <li class="sidebar-item @(ViewContext.RouteData.Values["Action"]?.ToString() == "Testimonials" ? "active" : "")">
+                            <a class="sidebar-link" asp-area="" asp-controller="Settings" asp-action="Testimonials">
+                                <i class="align-middle" data-feather="list"></i>
+                                <span class="align-middle">Manage Testimonials</span>
+                            </a>
+                        </li>
+                     </ul>
+                 }
+
+                <!-- ═══════════════════════════════
+                     ADMIN / OTHER ROLES SIDEBAR
+                     ═══════════════════════════════ -->
+                @if (role != "SuperAdmin")
+                {
+                    <div class="sidebar-text-full" style="width:100%;display:flex;justify-content:center;padding:6px 10px;">
+                        <div style="display:flex;align-items:center;gap:8px;padding:9px 12px;border-radius:10px;
+                                    background:linear-gradient(135deg,#1A6FA8,#D4A45A);color:#FFFFFF;font-size:13px;
+                                    white-space:nowrap;box-shadow:0 3px 10px rgba(0,0,0,0.25);width:100%;">
+                            <span style="display:flex;align-items:center;justify-content:center;width:24px;height:24px;
+                                         border-radius:50%;background:rgba(255,255,255,0.18);"><i class="fa-solid fa-user"></i></span>
+                            <span style="font-size:11px;opacity:0.85;">Role:</span>
+                            <strong style="font-size:12px;">@roleText</strong>
+                        </div>
+                    </div>
+                    <div class="sidebar-text-collapsed" style="width:100%;display:flex;justify-content:center;padding:6px 0;">
+                        <div style="width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,#1A6FA8,#D4A45A);
+                                    color:#FFFFFF;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;
+                                    box-shadow:0 2px 8px rgba(0,0,0,0.25);">
+                            @roleShort
+                        </div>
+                    </div>
+
+                    <ul class="sidebar-nav">
+                        <!-- DASHBOARD -->
+                        @if (canAccessModule("Dashboard"))
+                        {
+                            <li class="sidebar-header">Dashboard</li>
+
+                                        @if (role == "Partner")
+                                        {
+                                            <li class="sidebar-item @(ViewContext.RouteData.Values["Controller"]?.ToString() == "Home" && ViewContext.RouteData.Values["Action"]?.ToString() == "Index" ? "active" : "")">
+                                                <a class="sidebar-link" asp-area="" asp-controller="Home" asp-action="Index">
+                                                    <i class="align-middle" data-feather="activity"></i><span class="align-middle">Dashboard Home</span>
+                                                </a>
+                                            </li>
+                                            <li class="sidebar-item @(ViewContext.RouteData.Values["Controller"]?.ToString() == "Home" && ViewContext.RouteData.Values["Action"]?.ToString() == "SalesOverview" ? "active" : "")">
+                                                <a class="sidebar-link" asp-area="" asp-controller="Home" asp-action="SalesOverview">
+                                                    <i class="align-middle" data-feather="home"></i><span class="align-middle">Partner Dashboard</span>
+                                                </a>
+                                            </li>
+                                            <li class="sidebar-item @(ViewContext.RouteData.Values["Controller"]?.ToString() == "PartnerTracking" ? "active" : "")">
+                                                <a class="sidebar-link" asp-area="" asp-controller="PartnerTracking" asp-action="Index">
+                                                    <i class="align-middle" data-feather="activity"></i><span class="align-middle">Lead Tracking</span>
+                                                </a>
+                                            </li>
+                                        }
+                                        else
+                                        {
+                                            <li class="sidebar-item @(ViewContext.RouteData.Values["Controller"]?.ToString() == "Home" && ViewContext.RouteData.Values["Action"]?.ToString() == "Index" ? "active" : "")">
+                                                <a class="sidebar-link" asp-area="" asp-controller="Home" asp-action="Index">
+                                                    <i class="align-middle" data-feather="activity"></i>
+                                                    <span class="align-middle">@(role == "Admin" ? "Admin Dashboard" : "Main Dashboard")</span>
+                                                </a>
+                                            </li>
+                                        }
+                                        @if (role != "Sales" && role != "Agent" && role != "Partner")
+                                        {
+                                            <li class="sidebar-item @(ViewContext.RouteData.Values["Controller"]?.ToString() == "Home" && ViewContext.RouteData.Values["Action"]?.ToString() == "SalesOverview" ? "active" : "")">
+                                                <a class="sidebar-link" asp-area="" asp-controller="Home" asp-action="SalesOverview">
+                                                    <i class="align-middle" data-feather="shopping-cart"></i><span class="align-middle">Sales Overview</span>
+                                                </a>
+                                            </li>
+                                            @if (role == "Admin" || role == "managerrr")
+                                            {
+                                                <li class="sidebar-item @(ViewContext.RouteData.Values["Controller"]?.ToString() == "Home" && ViewContext.RouteData.Values["Action"]?.ToString() == "TeamDashboard" ? "active" : "")">
+                                                    <a class="sidebar-link" asp-area="" asp-controller="Home" asp-action="TeamDashboard">
+                                                        <i class="align-middle" data-feather="users"></i><span class="align-middle">Team Dashboard</span>
+                                                    </a>
+                                                </li>
+                                            }
+                                        }
+                                        @if (role == "Admin")
+                                        {
+                                            <li class="sidebar-item @(ViewContext.RouteData.Values["Controller"]?.ToString() == "MilestoneTracking" ? "active" : "")">
+                                                <a class="sidebar-link" asp-area="" asp-controller="MilestoneTracking" asp-action="Index">
+                                                    <i class="align-middle" data-feather="check-square"></i><span class="align-middle">Milestone Payments</span>
+                                                </a>
+                                            </li>
+                                        }
+                        }
+
+                        <!-- LEADS & PROPERTIES -->
+                        @if (canAccessModule("Leads & Properties"))
+                        {
+                            <li class="sidebar-header">Leads & Properties</li>
+
+                                            bool canViewLeads = false;
+                                            if (role == "Admin" || allowedModules != null) { canViewLeads = true; }
+                                            else if (!string.IsNullOrEmpty(role)) {
+                                                var currentUser = _context.Users.FirstOrDefault(u => u.Username == username);
+                                                var uCPId = currentUser?.ChannelPartnerId;
+                                                canViewLeads = _context.RolePagePermissions.Include(rpp => rpp.Page).Include(rpp => rpp.Permission)
+                                                    .Any(rpp => rpp.RoleName == role && rpp.Page.Controller == "Leads" && rpp.Page.Action == "Index" && rpp.Permission.PermissionName == "View" && rpp.IsGranted && (rpp.ChannelPartnerId == uCPId || rpp.ChannelPartnerId == null));
+                                            }
+                                        @if (canViewLeads)
+                                        {
+                                            <li class="sidebar-item @(ViewContext.RouteData.Values["Controller"]?.ToString() == "Leads" ? "active" : "")">
+                                                <a class="sidebar-link" asp-area="" asp-controller="Leads" asp-action="Index">
+                                                    <i class="align-middle" data-feather="user-plus"></i><span class="align-middle">Leads</span>
+                                                </a>
+                                            </li>
+                                        }
+                                            bool canViewSalesPipelines = false;
+                                            if (role == "Admin" || allowedModules != null) { canViewSalesPipelines = true; }
+                                            else if (!string.IsNullOrEmpty(role)) {
+                                                var currentUser = _context.Users.FirstOrDefault(u => u.Username == username);
+                                                var uCPId = currentUser?.ChannelPartnerId;
+                                                canViewSalesPipelines = _context.RolePagePermissions.Include(rpp => rpp.Page).Include(rpp => rpp.Permission)
+                                                    .Any(rpp => rpp.RoleName == role && rpp.Page.Controller == "SalesPipelines" && rpp.Page.Action == "Index" && rpp.Permission.PermissionName == "View" && rpp.IsGranted && (rpp.ChannelPartnerId == uCPId || rpp.ChannelPartnerId == null));
+                                            }
+                                        @if (canViewSalesPipelines)
+                                        {
+                                            <li class="sidebar-item @(ViewContext.RouteData.Values["Controller"]?.ToString() == "SalesPipelines" ? "active" : "")">
+                                                <a class="sidebar-link" href="/salespipelines">
+                                                    <i class="align-middle" data-feather="trello"></i><span class="align-middle">Sales Pipeline</span>
+                                                </a>
+                                            </li>
+                                        }
+                                            bool canViewTasks = false;
+                                            if (role == "Admin" || allowedModules != null) { canViewTasks = true; }
+                                            else if (!string.IsNullOrEmpty(role)) {
+                                                var currentUser = _context.Users.FirstOrDefault(u => u.Username == username);
+                                                var uCPId = currentUser?.ChannelPartnerId;
+                                                canViewTasks = _context.RolePagePermissions.Include(rpp => rpp.Page).Include(rpp => rpp.Permission)
+                                                    .Any(rpp => rpp.RoleName == role && rpp.Page.Controller == "Tasks" && rpp.Page.Action == "Index" && rpp.Permission.PermissionName == "View" && rpp.IsGranted && (rpp.ChannelPartnerId == uCPId || rpp.ChannelPartnerId == null));
+                                            }
+                                        @if (canViewTasks)
+                                        {
+                                            <li class="sidebar-item @(ViewContext.RouteData.Values["Controller"]?.ToString() == "Tasks" ? "active" : "")">
+                                                <a class="sidebar-link" href="/tasks">
+                                                    <i class="align-middle" data-feather="calendar"></i><span class="align-middle">Tasks</span>
+                                                </a>
+                                            </li>
+                                        }
+                                        @if (role != "Sales" && role != "Agent")
+                                        {
+                                            <li class="sidebar-item @(ViewContext.RouteData.Values["Controller"]?.ToString() == "WebhookLeads" ? "active" : "")">
+                                                <a class="sidebar-link" href="/WebhookLeads">
+                                                    <i class="align-middle" data-feather="user-x"></i><span class="align-middle">Unassigned Leads</span>
+                                                </a>
+                                            </li>
+                                        }
+                                            bool canViewProperties = false;
+                                            if (role == "Admin" || allowedModules != null) { canViewProperties = true; }
+                                            else if (!string.IsNullOrEmpty(role)) {
+                                                var currentUser = _context.Users.FirstOrDefault(u => u.Username == username);
+                                                var uCPId = currentUser?.ChannelPartnerId;
+                                                canViewProperties = _context.RolePagePermissions.Include(rpp => rpp.Page).Include(rpp => rpp.Permission)
+                                                    .Any(rpp => rpp.RoleName == role && rpp.Page.Controller == "Properties" && rpp.Page.Action == "Index" && rpp.Permission.PermissionName == "View" && rpp.IsGranted && (rpp.ChannelPartnerId == uCPId || rpp.ChannelPartnerId == null));
+                                            }
+                                        @if (canViewProperties)
+                                        {
+                                            <li class="sidebar-item @(ViewContext.RouteData.Values["Controller"]?.ToString() == "Properties" ? "active" : "")">
+                                                <a class="sidebar-link" asp-area="" asp-controller="Properties" asp-action="Index">
+                                                    <i class="align-middle" data-feather="home"></i><span class="align-middle">Properties</span>
+                                                </a>
+                                            </li>
+                                        }
+                        }
+
+                        <!-- SALES -->
+                        @if (!isPartnerAgent && canAccessModule("Sales"))
+                        {
+                            <li class="sidebar-header">Sales</li>
+
+                                            bool canViewQuotations = false;
+                                            if (role == "Admin" || allowedModules != null) { canViewQuotations = true; }
+                                            else if (!string.IsNullOrEmpty(role)) {
+                                                var currentUser = _context.Users.FirstOrDefault(u => u.Username == username);
+                                                var uCPId = currentUser?.ChannelPartnerId;
+                                                canViewQuotations = _context.RolePagePermissions.Include(rpp => rpp.Page).Include(rpp => rpp.Permission)
+                                                    .Any(rpp => rpp.RoleName == role && rpp.Page.Controller == "Quotations" && rpp.Page.Action == "Index" && rpp.Permission.PermissionName == "View" && rpp.IsGranted && (rpp.ChannelPartnerId == uCPId || rpp.ChannelPartnerId == null));
+                                            }
+                                        @if (canViewQuotations)
+                                        {
+                                            <li class="sidebar-item @(ViewContext.RouteData.Values["Controller"]?.ToString() == "Quotations" ? "active" : "")">
+                                                <a class="sidebar-link" asp-area="" asp-controller="Quotations" asp-action="Index">
+                                                    <i class="align-middle" data-feather="clipboard"></i><span class="align-middle">Quotations</span>
+                                                </a>
+                                            </li>
+                                        }
+                                            bool canViewBookings = false;
+                                            if (role == "Admin" || allowedModules != null) { canViewBookings = true; }
+                                            else if (!string.IsNullOrEmpty(role)) {
+                                                var currentUser = _context.Users.FirstOrDefault(u => u.Username == username);
+                                                var uCPId = currentUser?.ChannelPartnerId;
+                                                canViewBookings = _context.RolePagePermissions.Include(rpp => rpp.Page).Include(rpp => rpp.Permission)
+                                                    .Any(rpp => rpp.RoleName == role && rpp.Page.Controller == "Bookings" && rpp.Page.Action == "Index" && rpp.Permission.PermissionName == "View" && rpp.IsGranted && (rpp.ChannelPartnerId == uCPId || rpp.ChannelPartnerId == null));
+                                            }
+                                        @if (canViewBookings)
+                                        {
+                                            <li class="sidebar-item @(ViewContext.RouteData.Values["Controller"]?.ToString() == "Bookings" ? "active" : "")">
+                                                <a class="sidebar-link" asp-area="" asp-controller="Bookings" asp-action="Index">
+                                                    <i class="align-middle" data-feather="book-open"></i><span class="align-middle">Bookings</span>
+                                                </a>
+                                            </li>
+                                        }
+                                            bool canViewInvoices = false;
+                                            if (role == "Admin" || allowedModules != null) { canViewInvoices = true; }
+                                            else if (!string.IsNullOrEmpty(role)) {
+                                                var currentUser = _context.Users.FirstOrDefault(u => u.Username == username);
+                                                var uCPId = currentUser?.ChannelPartnerId;
+                                                canViewInvoices = _context.RolePagePermissions.Include(rpp => rpp.Page).Include(rpp => rpp.Permission)
+                                                    .Any(rpp => rpp.RoleName == role && rpp.Page.Controller == "Invoices" && rpp.Page.Action == "Index" && rpp.Permission.PermissionName == "View" && rpp.IsGranted && (rpp.ChannelPartnerId == uCPId || rpp.ChannelPartnerId == null));
+                                            }
+                                        @if (canViewInvoices)
+                                        {
+                                            <li class="sidebar-item @(ViewContext.RouteData.Values["Controller"]?.ToString() == "Invoices" ? "active" : "")">
+                                                <a class="sidebar-link" asp-area="" asp-controller="Invoices" asp-action="Index">
+                                                    <i class="align-middle" data-feather="file-text"></i><span class="align-middle">Invoices</span>
+                                                </a>
+                                            </li>
+                                        }
+                                            bool canViewPayments = false;
+                                            if (role == "Admin" || allowedModules != null) { canViewPayments = true; }
+                                            else if (!string.IsNullOrEmpty(role)) {
+                                                var currentUser = _context.Users.FirstOrDefault(u => u.Username == username);
+                                                var uCPId = currentUser?.ChannelPartnerId;
+                                                canViewPayments = _context.RolePagePermissions.Include(rpp => rpp.Page).Include(rpp => rpp.Permission)
+                                                    .Any(rpp => rpp.RoleName == role && rpp.Page.Controller == "Payments" && rpp.Page.Action == "Index" && rpp.Permission.PermissionName == "View" && rpp.IsGranted && (rpp.ChannelPartnerId == uCPId || rpp.ChannelPartnerId == null));
+                                            }
+                                        @if (canViewPayments)
+                                        {
+                                            <li class="sidebar-item @(ViewContext.RouteData.Values["Controller"]?.ToString() == "Payments" ? "active" : "")">
+                                                <a class="sidebar-link" asp-area="" asp-controller="Payments" asp-action="Index">
+                                                    <i class="align-middle" data-feather="credit-card"></i><span class="align-middle">Payments</span>
+                                                </a>
+                                            </li>
+                                        }
+                        }
+
+                        <!-- FINANCE -->
+                        @if ((role != "Sales" && role != "Agent" || allowedModules != null) && canAccessModule("Finance"))
+                        {
+                            <li class="sidebar-header">Finance</li>
+
+                                        <li class="sidebar-item @(ViewContext.RouteData.Values["Controller"]?.ToString() == "Expenses" ? "active" : "")">
+                                            <a class="sidebar-link" asp-area="" asp-controller="Expenses" asp-action="Index">
+                                                <i class="align-middle" data-feather="minus-circle"></i><span class="align-middle">Expenses</span>
+                                            </a>
+                                        </li>
+                                        <li class="sidebar-item @(ViewContext.RouteData.Values["Controller"]?.ToString() == "Revenue" ? "active" : "")">
+                                            <a class="sidebar-link" asp-area="" asp-controller="Revenue" asp-action="Index">
+                                                <i class="align-middle" data-feather="plus-circle"></i><span class="align-middle">Revenue</span>
+                                            </a>
+                                        </li>
+                                        <li class="sidebar-item @(ViewContext.RouteData.Values["Controller"]?.ToString() == "Profit" ? "active" : "")">
+                                            <a class="sidebar-link" href="/profits">
+                                                <i class="align-middle" data-feather="trending-up"></i><span class="align-middle">Profit</span>
+                                            </a>
+                                        </li>
+                        }
+
+                        <!-- TEAM MANAGEMENT -->
+                        @if ((role != "Sales" && role != "Agent" || allowedModules != null) && canAccessModule("Team Management"))
+                        {
+                            <li class="sidebar-header">Team</li>
+
+                                        <li class="sidebar-item @(ViewContext.RouteData.Values["Controller"]?.ToString() == "TeamChat" ? "active" : "")">
+                                            <a class="sidebar-link" asp-area="" asp-controller="TeamChat" asp-action="Index">
+                                                <i class="align-middle" data-feather="message-circle"></i><span class="align-middle">Team Chat</span>
+                                            </a>
+                                        </li>
+                                        <li class="sidebar-item @(ViewContext.RouteData.Values["Controller"]?.ToString() == "Agent" ? "active" : "")">
+                                            <a class="sidebar-link" asp-area="" asp-controller="Agent" asp-action="List">
+                                                <i class="align-middle" data-feather="user-check"></i><span class="align-middle">Agent List</span>
+                                            </a>
+                                        </li>
+                                        @if (role == "Admin" && hasPartnerFeature)
+                                        {
+                                            <li class="sidebar-item @(ViewContext.RouteData.Values["Controller"]?.ToString() == "ManageUsers" && ViewContext.RouteData.Values["Action"]?.ToString() == "PartnerApproval" ? "active" : "")">
+                                                <a class="sidebar-link" href="/partnerapproval">
+                                                    <i class="align-middle" data-feather="users"></i><span class="align-middle">Channel Partner</span>
+                                                </a>
+                                            </li>
+                                        }
+                        }
+
+                        <!-- ATTENDANCE -->
+                        @if (allowedModules == null || canAccessModule("Attendance") || role == "Admin")
+                        {
+                            <li class="sidebar-header">Attendance</li>
+
+                                        @if (role == "Sales" || role == "Agent")
+                                        {
+                                            <li class="sidebar-item @(ViewContext.RouteData.Values["Controller"]?.ToString() == "Attendance" && ViewContext.RouteData.Values["Action"]?.ToString() == "Calendar" ? "active" : "")">
+                                                <a class="sidebar-link" asp-area="" asp-controller="Attendance" asp-action="Calendar">
+                                                    <i class="align-middle" data-feather="user"></i><span class="align-middle">My Attendance</span>
+                                                </a>
+                                            </li>
+                                        }
+                                        @if (role == "Admin" || role == "managerrr" || role == "Partner" || allowedModules != null)
+                                        {
+                                            <li class="sidebar-item @(ViewContext.RouteData.Values["Controller"]?.ToString() == "Attendance" && ViewContext.RouteData.Values["Action"]?.ToString() == "AgentList" ? "active" : "")">
+                                                <a class="sidebar-link" asp-area="" asp-controller="Attendance" asp-action="AgentList">
+                                                    <i class="align-middle" data-feather="clock"></i><span class="align-middle">Agent Attendance</span>
+                                                </a>
+                                            </li>
+                                        }
+                        }
+
+                        <!-- PAYOUTS -->
+                        @if ((role != "Sales" && role != "Agent" || allowedModules != null) && canAccessModule("Payouts"))
+                        {
+                            <li class="sidebar-header">Payouts</li>
+
+                                        <li class="sidebar-item @(ViewContext.RouteData.Values["Controller"]?.ToString() == "AgentPayout" ? "active" : "")">
+                                            <a class="sidebar-link" asp-area="" asp-controller="AgentPayout" asp-action="Index">
+                                                <i class="align-middle" data-feather="send"></i><span class="align-middle">Agent Payouts</span>
+                                            </a>
+                                        </li>
+                                        @if (role == "Admin" && hasPartnerFeature)
+                                        {
+                                            <li class="sidebar-item @(ViewContext.RouteData.Values["Controller"]?.ToString() == "PartnerCommission" ? "active" : "")">
+                                                <a class="sidebar-link" href="/partnertransactions/index">
+                                                    <i class="align-middle" data-feather="briefcase"></i><span class="align-middle">Partner Payouts</span>
+                                                </a>
+                                            </li>
+                                        }
+                        }
+
+                        <!-- USER MANAGEMENT -->
+                        @if ((role != "Sales" && role != "Agent" || allowedModules != null) && canAccessModule("User Management"))
+                        {
+                            <li class="sidebar-header">Users</li>
+
+                                        <li class="sidebar-item @(ViewContext.RouteData.Values["Controller"]?.ToString() == "ManageUsers" && ViewContext.RouteData.Values["Action"]?.ToString() == "Index" ? "active" : "")">
+                                            <a class="sidebar-link" href="/manageusers">
+                                                <i class="align-middle" data-feather="sliders"></i><span class="align-middle">Manage Users</span>
+                                            </a>
+                                        </li>
+                                        <li class="sidebar-item @(ViewContext.RouteData.Values["Controller"]?.ToString() == "ManageUsers" && ViewContext.RouteData.Values["Action"]?.ToString() == "Roles" ? "active" : "")">
+                                            <a class="sidebar-link" asp-area="" asp-controller="ManageUsers" asp-action="Roles">
+                                                <i class="align-middle" data-feather="shield"></i><span class="align-middle">Roles Management</span>
+                                            </a>
+                                        </li>
+                        }
+
+                        <!-- SETTINGS -->
+                        @if (canAccessModule("Settings"))
+                        {
+                            <li class="sidebar-header">Settings</li>
+
+                                        <li class="sidebar-item @(ViewContext.RouteData.Values["Controller"]?.ToString() == "Profile" ? "active" : "")">
+                                            <a class="sidebar-link" href="/Profile">
+                                                <i class="align-middle" data-feather="user"></i><span class="align-middle">My Profile</span>
+                                            </a>
+                                        </li>
+                                            bool canViewSettings = false;
+                                            if (role == "Admin" || allowedModules != null) { canViewSettings = true; }
+                                            else if (!string.IsNullOrEmpty(role)) {
+                                                var currentUser = _context.Users.FirstOrDefault(u => u.Username == username);
+                                                var uCPId = currentUser?.ChannelPartnerId;
+                                                canViewSettings = _context.RolePagePermissions.Include(rpp => rpp.Page).Include(rpp => rpp.Permission)
+                                                    .Any(rpp => rpp.RoleName == role && rpp.Page.Controller == "Settings" && rpp.Page.Action == "Index" && rpp.Permission.PermissionName == "View" && rpp.IsGranted && (rpp.ChannelPartnerId == uCPId || rpp.ChannelPartnerId == null));
+                                            }
+                                        @if (canViewSettings)
+                                        {
+                                            <li class="sidebar-item @(ViewContext.RouteData.Values["Controller"]?.ToString() == "Settings" ? "active" : "")">
+                                                <a class="sidebar-link" asp-area="" asp-controller="Settings" asp-action="Index">
+                                                    <i class="align-middle" data-feather="settings"></i><span class="align-middle">System Settings</span>
+                                                </a>
+                                            </li>
+                                        }
+                                        @if ((role == "Admin" || role == "Partner") && HasEmailIntegration)
+                                        {
+                                            <li class="sidebar-item @(ViewContext.RouteData.Values["Controller"]?.ToString() == "EmailSettings" ? "active" : "")">
+                                                <a class="sidebar-link" href="/emailsettings">
+                                                    <i class="align-middle" data-feather="mail"></i><span class="align-middle">Email Settings</span>
+                                                </a>
+                                            </li>
+                                        }
+                        }
+
+                        <!-- SUBSCRIPTIONS -->
+                        @if ((role == "Admin" || role == "Partner" || allowedModules != null) && canAccessModule("Subscriptions"))
+                        {
+                            <li class="sidebar-header">Subscriptions</li>
+
+                                        @if (role == "Admin" || allowedModules != null)
+                                        {
+                                            @if (hasPartnerFeature)
+                                            {
+                                                <li class="sidebar-item @(ViewContext.RouteData.Values["Controller"]?.ToString() == "Subscription" && ViewContext.RouteData.Values["Action"]?.ToString() == "Plans" ? "active" : "")">
+                                                    <a class="sidebar-link" asp-controller="Subscription" asp-action="Plans">
+                                                        <i data-feather="layers"></i><span>Subscription Plans</span>
+                                                    </a>
+                                                </li>
+                                                <li class="sidebar-item @(ViewContext.RouteData.Values["Controller"]?.ToString() == "Subscription" && ViewContext.RouteData.Values["Action"]?.ToString() == "ManagePartnerSubscriptions" ? "active" : "")">
+                                                    <a class="sidebar-link" asp-controller="Subscription" asp-action="ManagePartnerSubscriptions">
+                                                        <i data-feather="bookmark"></i><span>Partner Subscriptions</span>
+                                                    </a>
+                                                </li>
+                                                <li class="sidebar-item @(ViewContext.RouteData.Values["Controller"]?.ToString() == "RazorpayTransactions" ? "active" : "")">
+                                                    <a class="sidebar-link" href="/razorpaytransactions">
+                                                        <i data-feather="database"></i><span>Razorpay Transactions</span>
+                                                    </a>
+                                                </li>
+                                                <li class="sidebar-item @(ViewContext.RouteData.Values["Controller"]?.ToString() == "Subscription" && ViewContext.RouteData.Values["Action"]?.ToString() == "PendingRefunds" ? "active" : "")">
+                                                    <a class="sidebar-link" asp-controller="Subscription" asp-action="PendingRefunds">
+                                                        <i data-feather="rotate-ccw"></i><span>Pending Refunds</span>
+                                                    </a>
+                                                </li>
+                                            }
+                                            <li class="sidebar-item @(ViewContext.RouteData.Values["Controller"]?.ToString() == "SaasSubscription" && ViewContext.RouteData.Values["Action"]?.ToString() == "MyPlan" ? "active" : "")">
+                                                <a class="sidebar-link" href="/SaasSubscription/MyPlan">
+                                                    <i data-feather="award"></i><span>My CRM Plan</span>
+                                                </a>
+                                            </li>
+                                            <li class="sidebar-item @(ViewContext.RouteData.Values["Controller"]?.ToString() == "SaasSubscription" && ViewContext.RouteData.Values["Action"]?.ToString() == "Transactions" ? "active" : "")">
+                                                <a class="sidebar-link" href="/SaasSubscription/Transactions">
+                                                    <i data-feather="credit-card"></i><span>CRM Transactions</span>
+                                                </a>
+                                            </li>
+                                        }
+                                        @if (role == "Partner")
+                                        {
+                                            <li class="sidebar-item @(ViewContext.RouteData.Values["Controller"]?.ToString() == "Subscription" && ViewContext.RouteData.Values["Action"]?.ToString() == "MyPlan" ? "active" : "")">
+                                                <a class="sidebar-link" asp-controller="Subscription" asp-action="MyPlan">
+                                                    <i data-feather="star"></i><span>My Plan</span>
+                                                </a>
+                                            </li>
+                                            <li class="sidebar-item @(ViewContext.RouteData.Values["Controller"]?.ToString() == "PartnerTransactions" ? "active" : "")">
+                                                <a class="sidebar-link" href="/partnertransactions/index">
+                                                    <i data-feather="credit-card"></i><span>My Transactions</span>
+                                                </a>
+                                            </li>
+                                            <li class="sidebar-item @(ViewContext.RouteData.Values["Controller"]?.ToString() == "Subscription" && ViewContext.RouteData.Values["Action"]?.ToString() == "PendingRefunds" ? "active" : "")">
+                                                <a class="sidebar-link" asp-controller="Subscription" asp-action="PendingRefunds">
+                                                    <i data-feather="clock"></i><span>My Refunds</span>
+                                                </a>
+                                            </li>
+                                        }
+                                        @if (role == "Admin" || role == "Partner" || canAccessModule("Subscriptions"))
+                                        {
+                                            <li class="sidebar-item @(ViewContext.RouteData.Values["Action"]?.ToString() == "AdminReferrals" ? "active" : "")">
+                                                <a class="sidebar-link" asp-controller="SaasSubscription" asp-action="AdminReferrals">
+                                                    <i data-feather="share-2"></i><span>Referrals</span>
+                                                </a>
+                                            </li>
+                                        }
+                        }
+
+                        <!-- FINANCIAL SETTINGS -->
+                        @if ((role == "Admin" || allowedModules != null) && canAccessModule("Financial Settings"))
+                        {
+                            <li class="sidebar-header">Financial Settings</li>
+
+                                        <li class="sidebar-item @(ViewContext.RouteData.Values["Controller"]?.ToString() == "Financial" && ViewContext.RouteData.Values["Action"]?.ToString() == "PaymentGateways" ? "active" : "")">
+                                            <a class="sidebar-link" href="/paymentgateways">
+                                                <i class="align-middle" data-feather="credit-card"></i><span class="align-middle">Payment Gateways</span>
+                                            </a>
+                                        </li>
+                                        <li class="sidebar-item @(ViewContext.RouteData.Values["Controller"]?.ToString() == "Financial" && ViewContext.RouteData.Values["Action"]?.ToString() == "BankAccounts" ? "active" : "")">
+                                            <a class="sidebar-link" href="/bankAccounts">
+                                                <i class="align-middle" data-feather="book-open"></i><span class="align-middle">Bank Accounts</span>
+                                            </a>
+                                        </li>
+                        }
+
+                        <!-- INTEGRATIONS -->
+                        @if ((role == "Admin" || role == "Partner" || allowedModules != null) && canAccessModule("Integrations") && HasCustomAPIAccess)
+                        {
+                            <li class="sidebar-header">Integrations</li>
+
+                                        <li class="sidebar-item @(ViewContext.RouteData.Values["Controller"]?.ToString() == "Integrations" && ViewContext.RouteData.Values["Action"]?.ToString() == "LeadIntegrations" ? "active" : "")">
+                                            <a class="sidebar-link" asp-area="" asp-controller="Integrations" asp-action="LeadIntegrations">
+                                                <i class="align-middle" data-feather="download"></i><span class="align-middle">Lead Integrations</span>
+                                            </a>
+                                        </li>
+                        }
+
+                        <!-- CHATBOT DASHBOARD SECTION -->
+                        @if (role != "SuperAdmin" && HasCustomAPIAccess)
+                        {
+                            <li class="sidebar-item @(ViewContext.RouteData.Values["Controller"]?.ToString() == "ChatbotDashboard" ? "active" : "")">
+                                <a class="sidebar-link" asp-area="" asp-controller="ChatbotDashboard" asp-action="Index">
+                                    <i class="align-middle" data-feather="message-square"></i>
+                                    <span class="align-middle">Chatbot Dashboard</span>
+                                </a>
+                            </li>
+                        }
+
+                        <!-- MESSAGING -->
+                        @if (canAccessModule("Settings"))
+                        {
+                            <li class="sidebar-header">Messaging</li>
+                            <li class="sidebar-item @(ViewContext.RouteData.Values["Controller"]?.ToString() == "CompanyChat" ? "active" : "")">
+                                <a class="sidebar-link" href="/CompanyChat/Index">
+                                    <i class="align-middle" data-feather="message-circle"></i>
+                                    <span class="align-middle">Company Chat</span>
+                                    <span class="sa-badge sa-badge-blue" id="chatUnreadBadge" style="display:none;font-size:9px;min-width:16px;height:16px;">0</span>
+                                </a>
+                            </li>
+                        }
+
+                        <!-- SUPPORT -->
+                        <li class="sidebar-header">Support</li>
+                        <li class="sidebar-item @(ViewContext.RouteData.Values["Controller"]?.ToString() == "Ticket" ? "active" : "")">
+                            <a class="sidebar-link" href="/Ticket/Index">
+                                <i class="align-middle" data-feather="headphones"></i>
+                                <span class="align-middle">Support Tickets</span>
+                            </a>
+                        </li>
+                        <li class="sidebar-item @(ViewContext.RouteData.Values["Action"]?.ToString() == "HelpCenter" ? "active" : "")">
+                            <a class="sidebar-link" asp-area="" asp-controller="Home" asp-action="HelpCenter">
+                                <i class="align-middle" data-feather="help-circle"></i>
+                                <span class="align-middle">Help Center</span>
+                            </a>
+                        </li>
+
+                <!-- Active Plan Badge -->
+                @if (role != "SuperAdmin" && !string.IsNullOrEmpty(tIdClaim) && int.TryParse(tIdClaim, out int tIdFooter))
+                {
+                    var currentSub = _mastercontext.TenantSubscriptions
+                        .Where(s => s.TenantId == tIdFooter && (s.Status == "Active" || s.Status == "Trial"))
+                        .OrderByDescending(s => s.StartDate)
+                        .FirstOrDefault();
+                    string currentPlanName = "No Active Plan";
+                    if (currentSub != null)
+                    {
+                        var currentPlan = _mastercontext.SaasPlans.FirstOrDefault(p => p.PlanId == currentSub.PlanId);
+                        currentPlanName = currentPlan?.PlanName ?? "No Active Plan";
+                    }
+                    <li class="sidebar-header" style="margin-top:8px;">Active Plan</li>
+                    <li class="sidebar-item">
+                        <div style="padding:8px 16px;display:flex;align-items:center;gap:8px;">
+                            <i class="fa-solid fa-award" style="color:#D4A45A;font-size:14px;"></i>
+                            <span style="font-size:12px;font-weight:600;color:var(--sidebar-text);">@currentPlanName</span>
+                        </div>
+                    </li>
+                }
+
+                     </ul>
+                 }
+            </div>
+            <div class="sidebar-footer">
+                <i class="fa-solid fa-shield-halved" style="font-size:10px;margin-right:4px;"></i>
+                <span>&copy; @DateTime.Now.Year PropTech CRM &middot; All Rights Reserved</span>
+            </div>
+        </nav>
+
+        <!-- Feather icons init -->
+        <script src="https://unpkg.com/feather-icons"></script>
+        <script>
+            if (typeof feather !== 'undefined') {
+                feather.replace();
+                document.querySelectorAll('[data-feather]').forEach(function(el) {
+                    el.style.width = '15px'; el.style.height = '15px';
+                });
+            }
+        </script>
+
+        <!-- Expand active dropdown immediately -->
+        <script>
+            (function() {
+                var path = window.location.pathname;
+                var parts = path.split('/').filter(function(p) { return p; });
+                var ctrl = parts[0] || '';
+                var action = parts[1] || '';
+                var map = {
+                    'Home': 'dashboardCollapse', 'MilestoneTracking': 'dashboardCollapse',
+                    'Leads': 'leadsPropertiesCollapse', 'SalesPipelines': 'leadsPropertiesCollapse',
+                    'Tasks': 'leadsPropertiesCollapse', 'WebhookLeads': 'leadsPropertiesCollapse', 'Properties': 'leadsPropertiesCollapse',
+                    'Quotations': 'salesCollapse', 'Bookings': 'salesCollapse', 'Invoices': 'salesCollapse', 'Payments': 'salesCollapse',
+                    'Expenses': 'financeCollapse', 'Revenue': 'financeCollapse', 'Profit': 'financeCollapse',
+                    'Agent': 'teamCollapse', 'Attendance': 'attendanceCollapse',
+                    'AgentPayout': 'payoutsCollapse', 'PartnerCommission': 'payoutsCollapse',
+                    'Profile': 'settingsCollapse', 'Settings': 'settingsCollapse', 'EmailSettings': 'settingsCollapse',
+                    'Subscription': 'subscriptionsCollapse', 'RazorpayTransactions': 'subscriptionsCollapse',
+                    'SaasSubscription': 'subscriptionsCollapse', 'PartnerTransactions': 'subscriptionsCollapse',
+                    'Financial': 'financialSettingsCollapse', 'Integrations': 'integrationsCollapse', 'Testimonials': 'testimonialsCollapse'
+                };
+                var id = null;
+                if (ctrl === 'ManageUsers' && action === 'PartnerApproval') id = 'teamCollapse';
+                else if (ctrl === 'ManageUsers') id = 'userManagementCollapse';
+                else id = map[ctrl];
+                if (id) {
+                    var el = document.getElementById(id);
+                    if (el) {
+                        el.classList.add('show');
+                        var link = el.parentElement.querySelector(':scope > .sidebar-link');
+                        if (link) {
+                            link.classList.remove('collapsed'); link.setAttribute('aria-expanded', 'true');
+                            var chev = link.querySelector('.sidebar-chevron');
+                            if (chev) chev.classList.add('open');
+                        }
+                    }
+                }
+            })();
+        </script>
+
+        <!-- SA Badge Loader -->
+        <script>
+            (function() {
+                var isSA = document.body.classList.contains('superadmin-layout');
+                if (!isSA) return;
+                function setBadge(id, count, bgColor) {
+                    var el = document.getElementById(id);
+                    if (!el) return;
+                    if (count > 0) {
+                        el.textContent = count;
+                        el.setAttribute('style', 'display:inline-flex !important;align-items:center;justify-content:center;min-width:18px;height:18px;padding:0 5px;border-radius:9px;font-size:10px;font-weight:700;line-height:1;margin-left:auto;flex-shrink:0;background:' + bgColor + ' !important;color:#FFFFFF !important;filter:none !important;');
+                    } else {
+                        el.setAttribute('style', 'display:none !important;');
+                    }
+                }
+                function loadSABadges() {
+                    fetch('/SuperAdmin/GetTenantCount').then(function(r){return r.json();}).then(function(data){setBadge('sa-tenant-count', data.count||data.Count||0, '#1A6FA8');}).catch(function(){});
+                    fetch('/SuperAdmin/GetInquiryCount').then(function(r){return r.json();}).then(function(data){setBadge('sa-inquiry-count', data.count||data.Count||0, '#DC2626');}).catch(function(){});
+                }
+                if (document.readyState === 'loading') {
+                    document.addEventListener('DOMContentLoaded', function() { loadSABadges(); setInterval(loadSABadges, 60000); });
+                } else { loadSABadges(); setInterval(loadSABadges, 60000); }
+            })();
+        </script>
+
+        <!-- ═══════════════════════════════════════
+             NAVBAR
+             ═══════════════════════════════════════ -->
+        <div class="main@(sidebarCollapsed ? " expanded" : "")">
+            <nav class="navbar navbar-expand navbar-light navbar-bg" style="display:flex !important;align-items:center !important;visibility:visible !important;opacity:1 !important;">
+                <!-- Hamburger -->
+                <a class="sidebar-toggle js-sidebar-toggle" style="display:flex !important;align-items:center !important;justify-content:center !important;width:36px !important;height:36px !important;flex-shrink:0 !important;cursor:pointer !important;visibility:visible !important;opacity:1 !important;">
+                    <i class="hamburger align-self-center" style="display:block !important;width:auto !important;height:auto !important;"></i>
+                </a>
+
+                <!-- Global Search -->
+                @await Html.PartialAsync("_GlobalSearch")
+
+                <!-- Right Icons - ALWAYS VISIBLE -->
+                <div class="navbar-collapse collapse">
+                    <ul class="navbar-nav navbar-align" style="flex-wrap:nowrap !important;">
+
+                        <!-- Dark/Light Toggle -->
+                        <li class="nav-item d-flex align-items-center" style="flex-shrink:0;">
+                            <a class="nav-icon" href="#" id="themeToggle" title="Toggle Dark/Light Mode"
+                               style="display:flex !important;align-items:center;justify-content:center;visibility:visible;opacity:1;width:36px;height:36px;padding:0;flex-shrink:0;">
+                                <i class="fa-solid fa-moon nav-icon-glyph" id="themeIcon" aria-hidden="true"></i>
+                            </a>
+                        </li>
+
+                        <!-- Referral Wallet (Admin only) -->
+                        @if (role == "Admin")
+                        {
+                            <li class="nav-item dropdown d-flex align-items-center" style="flex-shrink:0;">
+                                <a class="nav-icon dropdown-toggle" href="#" id="referralWalletDropdown" data-bs-toggle="dropdown" title="Referral Wallet"
+                                   style="display:flex !important;align-items:center;visibility:visible;opacity:1;padding:0 6px;flex-shrink:0;">
+                                    <div class="position-relative d-flex align-items-center gap-1">
+                                        <i class="fa-solid fa-coins" style="color:#D4A45A;font-size:15px;" aria-hidden="true"></i>
+                                        <span id="referralBalance" style="color:#D4A45A;font-size:11px;font-weight:700;">₹0</span>
+                                    </div>
+                                </a>
+                                <div class="dropdown-menu dropdown-menu-lg dropdown-menu-end py-0" aria-labelledby="referralWalletDropdown" style="border-radius:12px;">
+                                    <div class="dropdown-menu-header"><i class="fa-solid fa-coins me-2" style="color:#D4A45A;"></i>Referral Wallet</div>
+                                    <div class="p-3">
+                                        <div class="text-center mb-3">
+                                            <h4 class="mb-0" style="color:#D4A45A;" id="referralBalanceLarge">₹0</h4>
+                                            <small class="text-muted">Available Balance</small>
+                                        </div>
+                                        <hr>
+                                        <h6 class="mb-2"><i class="fa-solid fa-users me-1"></i>Joined by your referral:</h6>
+                                        <div id="referralList" style="max-height:180px;overflow-y:auto;">
+                                            <div class="text-center text-muted small">Loading...</div>
+                                        </div>
+                                        <hr>
+                                        <div class="text-center">
+                                            <small class="text-muted">Your Referral Code:</small>
+                                            <div class="input-group input-group-sm mt-1">
+                                                <input type="text" class="form-control text-center fw-bold" id="referralCodeDisplay" readonly>
+                                                <button class="btn btn-outline-warning" type="button" onclick="copyReferralCode()" title="Copy"><i class="fa-solid fa-copy"></i></button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </li>
+                        }
+
+                        <!-- Notifications -->
+                        <li class="nav-item dropdown d-flex align-items-center" style="flex-shrink:0;">
+                            <a class="nav-icon dropdown-toggle" href="#" id="alertsDropdown" data-bs-toggle="dropdown"
+                               style="display:flex !important;align-items:center;justify-content:center;visibility:visible;opacity:1;width:36px;height:36px;padding:0;flex-shrink:0;">
+                                <div class="position-relative">
+                                    <i class="fa-solid fa-bell nav-icon-glyph" id="alertsIcon" aria-hidden="true"></i>
+                                    <span class="indicator" id="notificationCount">0</span>
+                                </div>
+                            </a>
+                            <div class="dropdown-menu dropdown-menu-lg dropdown-menu-end py-0" aria-labelledby="alertsDropdown" style="border-radius:12px;">
+                                <div class="dropdown-menu-header" id="notificationHeader">Loading...</div>
+                                <div class="list-group" id="notificationList"></div>
+                                <div class="dropdown-menu-footer">
+                                    <a href="#" id="markAllRead" class="text-muted">Mark all as read</a>
+                                </div>
+                            </div>
+                        </li>
+
+                        <!-- Profile -->
+                        <li class="nav-item dropdown d-flex align-items-center" style="flex-shrink:0;">
+                            <a class="nav-link dropdown-toggle navbar-profile-link" href="@(role == "SuperAdmin" ? "#" : "/Profile")" data-bs-toggle="dropdown"
+                               style="display:flex !important;align-items:center;gap:8px;visibility:visible;opacity:1;padding:0 6px;flex-shrink:0;">
+                                @if (!string.IsNullOrEmpty(profileImageSrc) && profileImageSrc != "/img/default-avatar.png" && profileImageSrc != "https://via.placeholder.com/40")
+                                {
+                                    <img src="@profileImageSrc" class="avatar img-fluid rounded" alt="@username"
+                                         width="34" height="34" loading="eager" fetchpriority="high"
+                                         style="width:34px;height:34px;border-radius:10px;border:2px solid rgba(212,164,90,0.5);" />
+                                }
+                                else
+                                {
+                                    <div class="avatar navbar-avatar-fallback rounded"
+                                         style="width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,#1A6FA8,#D4A45A);
+                                                color:white;font-weight:700;font-size:14px;display:inline-flex;align-items:center;
+                                                justify-content:center;border:2px solid rgba(212,164,90,0.5);flex-shrink:0;">
+                                        @(!string.IsNullOrEmpty(username) ? username.Substring(0, 1).ToUpper() : "G")
+                                    </div>
+                                }
+                                <span class="text-dark navbar-profile-name" style="font-size:14px;font-weight:700;overflow:visible;white-space:nowrap;text-overflow:clip;display:inline-block;visibility:visible;color:#1A2332 !important;">@(role == "SuperAdmin" ? "Global Super Admin" : (!string.IsNullOrEmpty(username) ? username : "Global Super Admin"))</span>
+                                @if (Context.Session.GetString("IsImpersonating") == "true")
+                                {
+                                    <span class="badge bg-warning text-dark" style="font-size:10px;">Impersonating</span>
+                                }
+                            </a>
+                            <div class="dropdown-menu dropdown-menu-end" style="border-radius:12px;min-width:180px;padding:6px;">
+                                @if (role != "SuperAdmin")
+                                {
+                                    <a class="dropdown-item" href="/Profile" style="border-radius:8px;font-size:13px;padding:8px 12px;">
+                                        <i class="fa-solid fa-user me-2" style="color:#1A6FA8;width:16px;"></i>Profile
+                                    </a>
+                                    <a class="dropdown-item" asp-controller="Settings" asp-action="Index" style="border-radius:8px;font-size:13px;padding:8px 12px;">
+                                        <i class="fa-solid fa-gear me-2" style="color:#8FA3B8;width:16px;"></i>Settings
+                                    </a>
+                                    @if (role == "Admin" && hasImpersonation)
+                                    {
+                                        <a class="dropdown-item" asp-controller="Settings" asp-action="Impersonation" style="border-radius:8px;font-size:13px;padding:8px 12px;">
+                                            <i class="fa-solid fa-user-secret me-2" style="color:#F59E0B;width:16px;"></i>Impersonate
+                                        </a>
+                                    }
+                                    <a class="dropdown-item" asp-controller="Home" asp-action="HelpCenter" style="border-radius:8px;font-size:13px;padding:8px 12px;">
+                                        <i class="fa-solid fa-circle-question me-2" style="color:#16A34A;width:16px;"></i>Help Center
+                                    </a>
+                                    <a class="dropdown-item" asp-controller="Home" asp-action="Landing" style="border-radius:8px;font-size:13px;padding:8px 12px;">
+                                        <i class="fa-solid fa-globe me-2" style="color:#2589C9;width:16px;"></i>Visit Site
+                                    </a>
+                                    <div class="dropdown-divider" style="margin:4px 0;"></div>
+                                }
+                                <a class="dropdown-item" asp-controller="Account" asp-action="Logout" style="border-radius:8px;font-size:13px;padding:8px 12px;">
+                                    <i class="fa-solid fa-right-from-bracket me-2" style="color:#DC2626;width:16px;"></i>Log out
+                                </a>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+            </nav>
+
+            <main class="content" style="position:relative;margin-top:0 !important;">
+                <div id="pageLoader" style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(255,255,255,0.75);z-index:1000;display:flex;align-items:center;justify-content:center;pointer-events:none;">
+                    <div class="spinner-border spinner-border-page" role="status"><span class="visually-hidden">Loading...</span></div>
+                </div>
+                @if (Context.Session.GetString("IsSuperAdminImpersonating") == "true")
+                {
+                    <div style="background:linear-gradient(135deg,#F59E0B,#F59E0B);color:white;padding:0.45rem 1rem;text-align:center;font-weight:600;font-size:0.82rem;position:sticky;top:0;z-index:1000;width:80%;margin:0 auto;border-radius:0 0 10px 10px;">
+                        <i class="fa-solid fa-user-secret me-2"></i>You are impersonating this tenant as Admin
+                        <button onclick="backToSuperAdmin()" class="btn btn-sm btn-light ms-3" style="font-weight:600;font-size:12px;">
+                            <i class="fa-solid fa-arrow-left me-1"></i>Back to Super Admin
+                        </button>
+                    </div>
+                    <script>
+                        function backToSuperAdmin() {
+                            fetch('/SuperAdmin/BackToSuperAdmin', { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                                .then(r => r.json())
+                                .then(data => { if (data.success) window.location.replace(data.redirect); else alert(data.message); })
+                                .catch(() => alert('Failed to return to Super Admin'));
+                        }
+                    </script>
+                }
+                <div class="container-fluid p-0" style="padding-top:0 !important;margin-top:0 !important;">
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+
+                    @RenderBody()
+                </div>
+            </main>
+
+            @* Footer removed — no trailing whitespace *@
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="~/js/feature-gate.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/app.js"></script>
+
+    <script>
+        // ==========================================
+        // CHAT UNREAD BADGE POLLING
+        // ==========================================
+        function updateChatBadges() {
+            fetch('/CompanyChat/GetUnreadCount')
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success) {
+                        var count = data.count || 0;
+                        var badges = document.querySelectorAll('#saChatUnreadBadge, #chatUnreadBadge');
+                        badges.forEach(function(b) {
+                            if (count > 0) {
+                                b.style.display = '';
+                                b.textContent = count > 99 ? '99+' : count;
+                            } else {
+                                b.style.display = 'none';
+                            }
+                        });
+                    }
+                })
+                .catch(function() {});
+        }
+        // Poll every 30 seconds
+        if (document.querySelector('#saChatUnreadBadge, #chatUnreadBadge')) {
+            updateChatBadges();
+            setInterval(updateChatBadges, 30000);
+        }
+
+        // ==========================================
+        // SIGNALR CONNECTION FOR COMPANY CHAT (Global - single instance)
+        // ==========================================
+        window.chatConnection = null;
+        function initCompanyChatSignalR() {
+            if (window.chatConnection && window.chatConnection.state === 'Connected') return;
+            window.chatConnection = new signalR.HubConnectionBuilder()
+                .withUrl('/chatHub')
+                .withAutomaticReconnect()
+                .build();
+
+            window.chatConnection.on('ReceiveCompanyMessage', function(msg) {
+                // Update badge when new message arrives
+                updateChatBadges();
+                // Show toast notification if not on chat page
+                if (window.location.pathname.toLowerCase().indexOf('/companychat') === -1) {
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire({
+                            icon: 'info',
+                            title: 'New message from ' + msg.senderName,
+                            text: msg.messageText ? msg.messageText.substring(0, 60) + (msg.messageText.length > 60 ? '...' : '') : 'Sent a file',
+                            toast: true,
+                            position: 'top-end',
+                            showConfirmButton: false,
+                            timer: 4000
+                        });
+                    }
+                }
+            });
+
+            window.chatConnection.onreconnected(function() {
+                window.chatConnection.invoke('JoinCompanyChat').catch(function() {});
+            });
+
+            window.chatConnection.start()
+                .then(function() {
+                    window.chatConnection.invoke('JoinCompanyChat').catch(function() {});
+                })
+                .catch(function(err) {
+                    console.error('SignalR connection error:', err);
+                    setTimeout(initCompanyChatSignalR, 10000);
+                });
+        }
+
+        // Initialize SignalR when page loads
+        if (document.cookie.indexOf('.AspNetCore.Cookies') !== -1 || document.cookie.indexOf('jwtToken') !== -1) {
+            initCompanyChatSignalR();
+        }
+
+        var _pl = document.getElementById("pageLoader");
+        if (_pl) _pl.classList.add("d-none");
+        requestAnimationFrame(function() { requestAnimationFrame(function() { document.documentElement.classList.add('ready'); }); });
+
+        var _featherTimer = null;
+        function debouncedFeatherReplace() {
+            if (_featherTimer) clearTimeout(_featherTimer);
+            _featherTimer = setTimeout(function() {
+                if (typeof feather !== 'undefined') feather.replace();
+                document.querySelectorAll('[data-feather]').forEach(function(el) {
+                    el.style.width = '15px'; el.style.height = '15px';
+                });
+            }, 50);
+        }
+    </script>
+
+    <script>
+        $(document).ready(function() {
+            // Force navbar visibility
+            function forceNavbarVisibility() {
+                $('.navbar,.navbar-bg,.navbar-collapse,.navbar-nav,.nav-item,.nav-icon,.nav-link,#themeToggle,#alertsDropdown,.avatar,.text-dark,#notificationCount,.sidebar-toggle,.hamburger').each(function() {
+                    $(this).css({ visibility:'visible', opacity:'1' });
+                });
+            }
+            forceNavbarVisibility();
+            requestAnimationFrame(forceNavbarVisibility);
+            $(window).on('load', forceNavbarVisibility);
+
+            // Sidebar toggle is handled centrally by app.js (single handler)
+        });
+
+        document.addEventListener('DOMContentLoaded', function() {
+            var darkMode = localStorage.getItem('darkMode');
+            var themeToggle = document.getElementById('themeToggle');
+            var themeIcon = document.getElementById('themeIcon');
+
+            function updateIcon(isDark) {
+                if (!themeIcon) return;
+                themeIcon.classList.remove('fa-moon','fa-sun');
+                themeIcon.classList.add(isDark ? 'fa-sun' : 'fa-moon');
+            }
+            
+            function setDarkMode(isDark) {
+                if (isDark) {
+                    document.documentElement.classList.add('dark-mode');
+                    document.body.classList.add('dark-mode');
+                } else {
+                    document.documentElement.classList.remove('dark-mode');
+                    document.body.classList.remove('dark-mode');
+                }
+                localStorage.setItem('darkMode', isDark ? 'enabled' : 'disabled');
+                updateIcon(isDark);
+                window.dispatchEvent(new CustomEvent('crm:theme-changed', { detail: { isDark: isDark } }));
+                applyThemeToCharts();
+            }
+
+            if (darkMode === 'enabled') { setDarkMode(true); }
+
+            themeToggle && themeToggle.addEventListener('click', function(e) {
+                e.preventDefault();
+                var isDark = !document.documentElement.classList.contains('dark-mode');
+                setDarkMode(isDark);
+            });
+
+            function applyThemeToCharts() {
+                if (typeof Chart === 'undefined') return;
+                var isDark = document.documentElement.classList.contains('dark-mode');
+                var textColor = isDark ? '#E8EDF2' : '#1A2332';
+                var gridColor = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(107,123,141,0.15)';
+                Chart.defaults.color = textColor;
+                document.querySelectorAll('canvas').forEach(function(canvas) {
+                    var chart = typeof Chart.getChart === 'function' ? Chart.getChart(canvas) : null;
+                    if (!chart) return;
+                    var cfg = chart.config;
+                    cfg.options = cfg.options || {};
+                    cfg.options.plugins = cfg.options.plugins || {};
+                    cfg.options.plugins.legend = cfg.options.plugins.legend || {};
+                    cfg.options.plugins.legend.labels = cfg.options.plugins.legend.labels || {};
+                    cfg.options.plugins.legend.labels.color = textColor;
+                    if (cfg.options.scales) {
+                        Object.keys(cfg.options.scales).forEach(function(key) {
+                            var s = cfg.options.scales[key];
+                            if (!s) return;
+                            s.ticks = s.ticks || {}; s.grid = s.grid || {};
+                            s.ticks.color = textColor; s.grid.color = gridColor;
+                        });
+                    }
+                    chart.update('none');
+                });
+            }
+
+            if (typeof feather !== 'undefined') { feather.replace(); }
+            initializeSidebarDropdowns();
+        });
+
+        function initializeSidebarDropdowns() {
+            function expandDropdown($item) {
+                $item.addClass('has-active');
+                $item.find('.collapse').first().addClass('show');
+                $item.find('> .sidebar-link').removeClass('collapsed').attr('aria-expanded', 'true');
+                $item.find('> .sidebar-link .sidebar-chevron').addClass('open');
+            }
+            function collapseDropdown($item) {
+                $item.removeClass('has-active');
+                $item.find('.collapse').first().removeClass('show');
+                $item.find('> .sidebar-link').addClass('collapsed').attr('aria-expanded', 'false');
+                $item.find('> .sidebar-link .sidebar-chevron').removeClass('open');
+            }
+            var currentPath = window.location.pathname;
+            var pathParts = currentPath.split('/').filter(function(p) { return p; });
+            var currentController = pathParts[0] || '';
+
+            var dropdownMappings = {
+                'dashboardCollapse': ['Home', 'MilestoneTracking'],
+                'leadsPropertiesCollapse': ['Leads', 'SalesPipelines', 'Tasks', 'WebhookLeads', 'Properties'],
+                'salesCollapse': ['Quotations', 'Bookings', 'Invoices', 'Payments'],
+                'financeCollapse': ['Expenses', 'Revenue', 'Profit'],
+                'teamCollapse': ['Agent'],
+                'attendanceCollapse': ['Attendance'],
+                'payoutsCollapse': ['AgentPayout', 'PartnerCommission'],
+                'userManagementCollapse': ['ManageUsers'],
+                'settingsCollapse': ['Profile', 'Settings', 'EmailSettings'],
+                'subscriptionsCollapse': ['Subscription', 'SaasSubscription', 'RazorpayTransactions', 'PartnerTransactions'],
+                'financialSettingsCollapse': ['Financial'],
+                'integrationsCollapse': ['Integrations'],
+                'testimonialsCollapse': ['Testimonials']
+            };
+            var specialCases = {
+                '/ManageUsers/PartnerApproval': 'teamCollapse',
+                '/Home/SalesOverview': 'dashboardCollapse',
+                '/Home/TeamDashboard': 'dashboardCollapse',
+                '/MilestoneTracking/Index': 'dashboardCollapse',
+                '/Settings/Testimonials': 'testimonialsCollapse'
+            };
+
+            function getActiveDropdown() {
+                for (var path in specialCases) { if (currentPath.indexOf(path) !== -1) return specialCases[path]; }
+                for (var dropdownId in dropdownMappings) { if (dropdownMappings[dropdownId].includes(currentController)) return dropdownId; }
+                return null;
+            }
+
+            var dropdownToOpen = getActiveDropdown() || localStorage.getItem('activeDropdown');
+            $('.sidebar-item.has-dropdown.has-active').each(function() { expandDropdown($(this)); });
+            if (dropdownToOpen) {
+                var $dd = $('#' + dropdownToOpen);
+                if ($dd.length) { expandDropdown($dd.closest('.sidebar-item.has-dropdown')); localStorage.setItem('activeDropdown', dropdownToOpen); }
+            }
+
+            $('.sidebar-item.has-dropdown > .sidebar-link').on('click', function(e) {
+                e.preventDefault();
+                var isSidebarCollapsed = $('.sidebar').hasClass('collapsed');
+                var $parent = $(this).parent();
+                var $collapse = $parent.find('.collapse').first();
+                var collapseId = $collapse.attr('id');
+                var isOpen = $collapse.hasClass('show');
+                if (isSidebarCollapsed) {
+                    $('.sidebar').removeClass('collapsed'); localStorage.setItem('crm.sidebar.collapsed', '0');
+                    $('.main').removeClass('expanded');
+                    $('.sidebar-item.has-dropdown').each(function() { if (this !== $parent[0]) collapseDropdown($(this)); });
+                    expandDropdown($parent);
+                    if (collapseId) localStorage.setItem('activeDropdown', collapseId);
+                    return;
+                }
+                if (isOpen) { collapseDropdown($parent); localStorage.removeItem('activeDropdown'); }
+                else {
+                    $('.sidebar-item.has-dropdown').each(function() { if (this !== $parent[0]) collapseDropdown($(this)); });
+                    expandDropdown($parent);
+                    if (collapseId) localStorage.setItem('activeDropdown', collapseId);
+                }
+            });
+
+            $(document).on('click', '.sidebar-dropdown .sidebar-link', function() {
+                var collapseId = $(this).closest('.sidebar-item.has-dropdown').find('.collapse').attr('id');
+                if (collapseId) localStorage.setItem('activeDropdown', collapseId);
+            });
+        }
+    </script>
+
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <!-- Currency -->
+    <script>
+        window.formatIndianCurrency = function(amount) {
+            var num = parseFloat(amount);
+            if (isNaN(num)) return amount;
+            var numStr = Math.floor(num).toString();
+            var lastThree = numStr.substring(numStr.length - 3);
+            var otherNumbers = numStr.substring(0, numStr.length - 3);
+            if (otherNumbers !== '') lastThree = ',' + lastThree;
+            return '₹' + otherNumbers.replace(/\B(?=(\d{2})+(?!\d))/g, ',') + lastThree;
+        };
+        $(document).ready(function() {
+            $('.indian-currency').each(function() {
+                var amount = $(this).data('amount');
+                if (amount) {
+                    var t = $(this).text();
+                    var prefix = t.includes('Paid:') ? 'Paid: ' : t.includes('Balance:') ? 'Balance: ' : t.includes('Deduction:') ? 'Deduction: ' : t.includes('Total:') ? 'Total: ' : '';
+                    $(this).text(prefix + formatIndianCurrency(amount));
+                }
+            });
+        });
+    </script>
+
+    <!-- Subscription Upgrade -->
+    <script>
+        window.handleSubscriptionUpgrade = function(response) {
+            if (response && response.showUpgrade) {
+                Swal.fire({ icon:'warning', title:'Subscription Limit Reached', text:response.message, showCancelButton:true, confirmButtonColor:'#1A6FA8', cancelButtonColor:'#6B7B8D', confirmButtonText:'Upgrade Plan', cancelButtonText:'Cancel' })
+                    .then(function(result) { if (result.isConfirmed) window.location.href = response.upgradeUrl || '/Subscription/MyPlan'; });
+                return true;
+            }
+            return false;
+        };
+        $(document).ready(function() {
+            @if (TempData["ShowUpgrade"] != null && TempData["UpgradePrompt"] != null)
+            {
+                <text>
+                Swal.fire({ icon:'warning', title:'Subscription Limit Reached', text:'@TempData["UpgradePrompt"]', showCancelButton:true, confirmButtonColor:'#1A6FA8', cancelButtonColor:'#6B7B8D', confirmButtonText:'Upgrade Plan', cancelButtonText:'Cancel' })
+                    .then(function(result) { if (result.isConfirmed) window.location.href = '/Subscription/MyPlan'; });
+                </text>
+            }
+        });
+    </script>
+
+    <!-- Pagination -->
+    <script>
+        function initializePagination(itemsPerPage) {
+            itemsPerPage = itemsPerPage || 10;
+            var items = document.querySelectorAll('.paginated-item');
+            var totalItems = items.length;
+            var totalPages = Math.ceil(totalItems / itemsPerPage);
+            var currentPage = 1;
+            function showPage(page) {
+                var start = (page - 1) * itemsPerPage;
+                var end = start + itemsPerPage;
+                items.forEach(function(item, index) { item.style.display = (index >= start && index < end) ? 'block' : 'none'; });
+                var html = '<nav><ul class="pagination justify-content-center">';
+                html += '<li class="page-item ' + (page === 1 ? 'disabled' : '') + '"><a class="page-link" href="#" onclick="goToPage(' + (page - 1) + ')">Prev</a></li>';
+                for (var i = 1; i <= totalPages; i++) {
+                    if (i === 1 || i === totalPages || (i >= page - 2 && i <= page + 2)) {
+                        html += '<li class="page-item ' + (i === page ? 'active' : '') + '"><a class="page-link" href="#" onclick="goToPage(' + i + ')">' + i + '</a></li>';
+                    } else if (i === page - 3 || i === page + 3) {
+                        html += '<li class="page-item disabled"><span class="page-link">...</span></li>';
+                    }
+                }
+                html += '<li class="page-item ' + (page === totalPages ? 'disabled' : '') + '"><a class="page-link" href="#" onclick="goToPage(' + (page + 1) + ')">Next</a></li></ul></nav>';
+                var pc = document.getElementById('pagination-container');
+                if (pc) pc.innerHTML = html;
+            }
+            window.goToPage = function(page) { if (page >= 1 && page <= totalPages) { currentPage = page; showPage(page); } };
+            if (totalItems > 0) showPage(1);
+        }
+        document.addEventListener('DOMContentLoaded', function() { if (document.querySelectorAll('.paginated-item').length > 0) initializePagination(); });
+    </script>
+
+    <!-- Notifications -->
+    <script>
+        window.notificationHandler = {
+            handleNotification: function(notification) {
+                if (typeof window.loadNotifications === 'function') window.loadNotifications();
+                if (Notification.permission === 'granted' && notification.title) {
+                    var n = new Notification(notification.title, { body: notification.message || '', icon: '/img/icons/icon-48x48.png', tag: 'crm-' + Date.now() });
+                    n.onclick = function() { window.focus(); if (notification.link) window.location.href = notification.link; n.close(); };
+                    setTimeout(function() { n.close(); }, 5000);
+                }
+            }
+        };
+
+        var _isSuperAdmin = (function() {
+            try {
+                var token = document.cookie.split(';').find(function(c) { return c.trim().startsWith('jwtToken='); });
+                if (token) {
+                    var payload = JSON.parse(atob(token.split('=').slice(1).join('=').split('.')[1]));
+                    return (payload['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'] || payload['role']) === 'SuperAdmin';
+                }
+            } catch(e) {}
+            return false;
+        })();
+
+        // Validate that a notification link points to data that exists on the site.
+        // Returns the link if it is a known/valid route, otherwise null (so we don't navigate to dead pages).
+        window.isValidNotificationLink = function(link) {
+            if (!link || link === '#' || link === '' || link.indexOf('javascript:') === 0) return null;
+            var allowedPrefixes = [
+                '/home', '/leaddetails/', '/quotationdetails/', '/invoicedetails/',
+                '/bookingdetails/', '/paymentreceipt/', '/WebhookLeads', '/tasks',
+                '/Leads', '/Quotations', '/Invoices', '/Bookings', '/Payments',
+                '/Profile', '/Settings', '/Ticket'
+            ];
+            for (var i = 0; i < allowedPrefixes.length; i++) {
+                if (link.indexOf(allowedPrefixes[i]) === 0) return link;
+            }
+            return null;
+        };
+
+        window.loadNotifications = function() {
+            if (typeof $ === 'undefined') return Promise.reject('jQuery not loaded');
+            if (_isSuperAdmin) {
+                return $.get('/SuperAdmin/GetNotifications').then(function(data) {
+                    if (!data.success) return;
+                    var count = data.count || 0;
+                    var $badge = $('#notificationCount');
+                    if (count > 0) { $badge.text(count).removeClass('hidden').show(); } else { $badge.addClass('hidden').hide(); }
+                    $('#notificationHeader').text('Notifications');
+                    var html = '';
+                    if (!data.notifications || data.notifications.length === 0) {
+                        html = '<div class="list-group-item text-center text-muted py-3">No notifications</div>';
+                    } else {
+                        data.notifications.forEach(function(n) {
+                            var safeLink = window.isValidNotificationLink(n.link);
+                            html += buildNotificationItem({ id:n.id, title:n.title, message:n.message, priority:n.priority, createdOn:n.createdOn, link:safeLink, isRead:true });
+                        });
+                    }
+                    $('#notificationList').html(html);
+                    bindNotificationEvents();
+                }).catch(function() {});
+            }
+            return $.when($.get('/Notification/GetNotifications'), $.get('/Tasks/GetTodayTaskNotifications'))
+                .then(function(notifResp, taskResp) {
+                    var data = notifResp[0]; var taskData = taskResp[0];
+                    if (!data.success) return;
+                    var unreadCount = data.count || 0;
+                    var notifications = data.notifications || [];
+                    var taskCount = taskData.count || 0;
+                    var tasks = taskData.tasks || [];
+                    var totalUnread = unreadCount + taskCount;
+                    var allItems = [];
+                    var seenKeys = {};
+                    notifications.forEach(function(n) {
+                        var key = 'n_' + n.id;
+                        if (seenKeys[key]) return;
+                        seenKeys[key] = true;
+                        allItems.push({ type:'notification', data:n });
+                    });
+                    tasks.forEach(function(t) {
+                        var key = 't_' + t.leadId;
+                        if (seenKeys[key]) return;
+                        seenKeys[key] = true;
+                        allItems.push({ type:'task', data: { id:'task_'+t.leadId, title:'Follow-up Due Today', message:t.name+' - '+t.contact, type:'FollowUpDue', link:'/leaddetails/'+t.encodedId, priority:'High', createdOn:'Today', isRead:false } });
+                    });
+                    var $badge = $('#notificationCount');
+                    if (totalUnread > 0) { $badge.text(totalUnread).removeClass('hidden').show(); } else { $badge.addClass('hidden').hide(); }
+                    $('#notificationHeader').text(totalUnread > 0 ? totalUnread + ' Unread Notifications' : 'Notifications');
+                    var html = '';
+                    if (allItems.length === 0) { html = '<div class="list-group-item text-center text-muted py-3">No notifications</div>'; }
+                    else {
+                        allItems.forEach(function(item) {
+                            var n = item.data;
+                            var nId = item.type === 'notification' ? n.id : null;
+                            var safeLink = window.isValidNotificationLink(n.link);
+                            html += buildNotificationItem({ id:nId, title:n.title, message:n.message, priority:n.priority, createdOn:n.createdOn, link:safeLink, isRead:n.isRead });
+                        });
+                    }
+                    $('#notificationList').html(html);
+                    bindNotificationEvents();
+                }).catch(function() {});
+        };
+
+        // Build a single notification item with a "Mark as read" button.
+        function buildNotificationItem(opts) {
+            var nId = opts.id;
+            var link = opts.link; // already validated (null if invalid)
+            var isRead = opts.isRead || false;
+            var priorityClass = 'notification-' + (opts.priority || 'Normal').toLowerCase();
+            var borderColor = getPriorityColor(opts.priority);
+            var clickAttr = link ? 'href="' + link + '"' : 'href="javascript:void(0)"';
+            var dataAttr = nId ? ' data-notification-id="' + nId + '"' : '';
+            var readStyle = isRead ? 'opacity:0.6;' : '';
+            var readBadge = isRead ? '<small class="text-muted" style="font-size:10px;">Read</small>' : '';
+            var html = '<div class="list-group-item notification-item ' + priorityClass + '"' + dataAttr
+                + ' style="padding:10px 14px;border-left:3px solid ' + borderColor + ';display:flex;flex-direction:column;gap:4px;' + readStyle + '">';
+            html += '<div class="d-flex align-items-start justify-content-between gap-2">';
+            html += '<a class="notification-link text-decoration-none flex-grow-1"' + clickAttr + ' style="min-width:0;">'
+                + '<div class="fw-bold text-truncate" style="font-size:13px;color:var(--text-primary);">' + escapeHtml(opts.title) + '</div>'
+                + '<div class="small text-truncate" style="color:var(--text-muted);">' + escapeHtml(opts.message) + '</div>'
+                + readBadge
+                + '<div class="small text-muted mt-1"><i class="far fa-clock me-1"></i>' + escapeHtml(opts.createdOn) + '</div></a>';
+            html += '<button type="button" class="btn btn-sm mark-read-btn" title="Mark as read" data-mark-read="' + (nId || '') + '"'
+                + ' style="flex-shrink:0;border:none;background:transparent;color:var(--text-muted);font-size:11px;font-weight:600;line-height:1;padding:3px 8px;border-radius:4px;"'
+                + (nId ? '' : ' disabled') + '>Read</button>';
+            html += '</div></div>';
+            return html;
+        }
+
+        function escapeHtml(str) {
+            if (str == null) return '';
+            return String(str).replace(/[&<>"']/g, function(c) {
+                return { '&':'&', '<':'<', '>':'>', '"':'"', "'":'&#39;' }[c];
+            });
+        }
+
+        function bindNotificationEvents() {
+            $('.notification-link').off('click').on('click', function(e) {
+                var href = $(this).attr('href');
+                if (!href || href === '#' || href === 'javascript:void(0)' || href.indexOf('javascript:') === 0) {
+                    e.preventDefault();
+                    return;
+                }
+                var nId = $(this).closest('.notification-item').data('notification-id');
+                if (nId) markNotificationAsRead(nId, true);
+            });
+            $('.mark-read-btn').off('click').on('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                var nId = $(this).data('mark-read');
+                if (nId) markNotificationAsRead(nId, false);
+            });
+        }
+
+        function getPriorityColor(p) { return { Urgent:'#DC2626', High:'#D4A45A', Normal:'#1A6FA8', Low:'#6B7B8D' }[p] || '#1A6FA8'; }
+
+        function markNotificationAsRead(notificationId, navigateAfter) {
+            if (typeof $ === 'undefined') return;
+            var $n = $('[data-notification-id="' + notificationId + '"]');
+            if ($n.length) {
+                $n.css('opacity', '0.6');
+                var readBadge = $n.find('.read-badge');
+                if (readBadge.length === 0) {
+                    var msgDiv = $n.find('.small.text-truncate');
+                    if (msgDiv.length) {
+                        msgDiv.after('<small class="text-muted read-badge" style="font-size:10px;"> Read</small>');
+                    }
+                }
+                var $badge = $('#notificationCount');
+                var cur = parseInt($badge.text()) || 0;
+                if (cur > 1) { $badge.text(cur - 1); } else { $badge.text(0).addClass('hidden').hide(); }
+                $('#notificationHeader').text((cur - 1 > 0 ? (cur - 1) + ' Unread Notifications' : 'Notifications'));
+            }
+            $.ajax({ url:'/Notification/MarkAsRead', type:'POST', data:{ notificationId:notificationId }, headers:{ 'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val() },
+                success:function(data) {
+                    if (!data.success && $n.length) { $n.css('opacity', '1'); }
+                    setTimeout(loadNotifications, 1500);
+                },
+                error:function() { if ($n.length) $n.css('opacity', '1'); loadNotifications(); }
+            });
+        }
+
+        if (typeof jQuery !== 'undefined') {
+            $(document).ready(function() {
+                function initNotifications() { loadNotifications().catch(function() { setTimeout(loadNotifications, 3000); }); }
+                initNotifications(); setTimeout(initNotifications, 1000);
+
+                $('#markAllRead').click(function(e) {
+                    e.preventDefault();
+                    var $btn = $(this); $btn.prop('disabled', true).text('Marking...');
+                    var token = $('input[name="__RequestVerificationToken"]').val();
+                    $.when(
+                        $.ajax({ url:'/Notification/MarkAllAsRead', type:'POST', headers:{ 'RequestVerificationToken':token } }),
+                        $.ajax({ url:'/Tasks/MarkTodayTasksAsRead', type:'POST', headers:{ 'RequestVerificationToken':token } })
+                    ).done(function() { $('#notificationCount').addClass('hidden').hide(); $('#notificationHeader').text('Notifications'); setTimeout(loadNotifications, 800); })
+                    .fail(function() { loadNotifications(); })
+                    .always(function() { $btn.prop('disabled', false).text('Mark all as read'); });
+                });
+
+                var isDropdownOpen = false;
+                $('#alertsDropdown').on('show.bs.dropdown', function() { isDropdownOpen = true; loadNotifications(); });
+                $('#alertsDropdown').on('hide.bs.dropdown', function() { isDropdownOpen = false; });
+                setInterval(function() { if (!isDropdownOpen) loadNotifications(); }, 15000);
+                $(window).focus(function() { if (!isDropdownOpen) loadNotifications(); });
+            });
+        }
+
+        window.showToast = function(message, type) {
+            function fireToast() {
+                var iconType = { success:'success', error:'error', warning:'warning' }[type] || 'info';
+                var bg = { success:'#16A34A', error:'#DC2626', warning:'#D4A45A' }[type] || '#1A6FA8';
+                var textColor = type === 'warning' ? '#1A2332' : '#FFFFFF';
+                Swal.fire({ toast:true, position:'top-end', icon:iconType, iconColor:textColor, title:message, showConfirmButton:false, timer:5000, timerProgressBar:false, background:bg, color:textColor, width:'auto', customClass:{ title:'swal-toast-title' } });
+            }
+            if (typeof Swal !== 'undefined') { fireToast(); } else { setTimeout(function() { if (typeof Swal !== 'undefined') fireToast(); }, 500); }
+        };
+    </script>
+
+    <!-- Impersonation -->
+    <script>
+        function loadImpersonationUsers() {
+            $.get('/Account/GetUsersForImpersonation', function(data) {
+                if (data.success) {
+                    var html = '';
+                    for (var r in data.users) {
+                        html += '<h6 class="dropdown-header">' + r + '</h6>';
+                        data.users[r].forEach(function(u) { html += '<a class="dropdown-item" href="#" onclick="startImpersonation(' + u.UserId + ',\'' + u.Username + '\')"> ' + u.Username + '</a>'; });
+                    }
+                    $('#impersonateMenu').html(html);
+                }
+            });
+        }
+        function startImpersonation(userId, username) {
+            if (confirm('Are you sure you want to impersonate ' + username + '?')) {
+                $.post('/Account/StartImpersonation', { userId:userId }, function(data) {
+                    if (data.success) { Swal.fire({ icon:'success', title:'Impersonation Started', text:data.message, timer:2000, showConfirmButton:false }).then(function() { window.location.reload(); }); }
+                    else { Swal.fire('Error', data.message, 'error'); }
+                }).fail(function() { Swal.fire('Error', 'Failed to start impersonation', 'error'); });
+            }
+        }
+        function stopImpersonation() {
+            Swal.fire({ title:'Stop Impersonation?', text:'Return to admin view?', icon:'warning', showCancelButton:true, confirmButtonColor:'#DC2626', cancelButtonColor:'#6B7B8D', confirmButtonText:'Yes, Stop', cancelButtonText:'Cancel' })
+                .then(function(result) {
+                    if (result.isConfirmed) {
+                        $.post('/Account/StopImpersonation', function(data) {
+                            if (data.success) { Swal.fire({ icon:'success', title:'Stopped', text:data.message, timer:2000, showConfirmButton:false }).then(function() { window.location.href = data.redirectUrl || '/Impersonation'; }); }
+                            else { Swal.fire('Error', data.message, 'error'); }
+                        }).fail(function() { Swal.fire('Error', 'Failed to stop impersonation', 'error'); });
+                    }
+                });
+        }
+        $(document).ready(function() { $('#impersonateDropdown').click(function(e) { e.preventDefault(); loadImpersonationUsers(); }); });
+    </script>
+
+    @await Html.PartialAsync("_WhatsAppModal")
+
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-messaging-compat.js"></script>
+    <script>
+        firebase.initializeApp({ apiKey:"AIzaSyAvEHvheqC9sHavPGUILsbF4Byb3SKH1O4", authDomain:"realestate-crm-d8dae.firebaseapp.com", projectId:"realestate-crm-d8dae", storageBucket:"realestate-crm-d8dae.firebasestorage.app", messagingSenderId:"840903614246", appId:"1:840903614246:web:d30663f615726796eaabe7" });
+        var messaging = firebase.messaging();
+        messaging.onMessage(function(payload) {
+            if (Notification.permission === 'granted') {
+                var title = (payload.data && payload.data.title) || 'CRM Notification';
+                var n = new Notification(title, { body:(payload.data && payload.data.body) || '', icon:'/img/icons/icon-48x48.png', tag:'crm-'+Date.now() });
+                n.onclick = function() { window.focus(); window.location.href = (payload.data && payload.data.link) || '/'; n.close(); };
+                setTimeout(function() { n.close(); }, 5000);
+            }
+            if (typeof window.loadNotifications === 'function') window.loadNotifications();
+        });
+
+        // Global auto-refresh after CRUD operations
+        $(document).on('click', '[data-auto-refresh]', function() {
+            var delay = $(this).data('auto-refresh') || 1500;
+            setTimeout(function() { location.reload(); }, delay);
+        });
+
+        // Intercept all AJAX form submissions for auto-refresh
+        $(document).on('submit', 'form[data-ajax="true"]', function() {
+            var $form = $(this);
+            $form.data('submitted', true);
+        });
+
+        // Auto-refresh on successful AJAX responses
+        $(document).ajaxSuccess(function(event, xhr, settings) {
+            if (settings && settings.type === 'POST') {
+                try {
+                    var resp = xhr.responseJSON || JSON.parse(xhr.responseText);
+                    if (resp && resp.success === true) {
+                        // Don't refresh for seed/test endpoints or pages that handle reload themselves
+                        if (settings.url && (settings.url.indexOf('Seed') > -1 || settings.url.indexOf('Mark') > -1 || settings.url.indexOf('Get') === 0)) {
+                            return;
+                        }
+                        setTimeout(function() { location.reload(); }, 1200);
+                    }
+                } catch(e) {}
+            }
+        });
+
+                async function registerFcmToken() {
+            try {
+                var reg = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+                var perm = await Notification.requestPermission();
+                if (perm === 'granted') {
+                    var currentToken = await messaging.getToken({ serviceWorkerRegistration:reg });
+                    if (currentToken) { await fetch('/Fcm/SaveToken', { method:'POST', headers:{ 'Content-Type':'application/x-www-form-urlencoded' }, body:'token='+encodeURIComponent(currentToken) }); }
+                }
+            } catch(err) { console.log('FCM:', err.message); }
+        }
+        @if (!string.IsNullOrEmpty(username))
+        {
+            <text>setTimeout(registerFcmToken, 2000);</text>
+        }
+    </script>
+
+    <!-- Referral Wallet -->
+    <script>
+        function copyReferralCode() {
+            var code = document.getElementById('referralCodeDisplay').value;
+            navigator.clipboard.writeText(code).then(function() { if (typeof showToast === 'function') showToast('Referral code copied!', 'success'); });
+        }
+        $(document).ready(function() {
+            var tenantIdMeta = '@(Context.User.FindFirst("TenantId")?.Value ?? "")';
+            if (tenantIdMeta && tenantIdMeta !== "") {
+                $('#referralWalletDropdown').on('show.bs.dropdown', function() { loadReferralWallet(tenantIdMeta); });
+                $.get('/SuperAdmin/GetReferralWallet?tenantId=' + tenantIdMeta, function(data) {
+                    if (data.success) { $('#referralBalance').text('\u20b9' + data.balance); $('#referralCodeDisplay').val(data.referralCode); }
+                });
+            }
+        });
+        function loadReferralWallet(tenantId) {
+            $.get('/SuperAdmin/GetReferralWallet?tenantId=' + tenantId, function(data) {
+                if (data.success) {
+                    $('#referralBalance, #referralBalanceLarge').text('\u20b9' + data.balance);
+                    $('#referralCodeDisplay').val(data.referralCode);
+                    var html = '';
+                    if (data.referrals && data.referrals.length > 0) {
+                        data.referrals.forEach(function(r) {
+                            var displayAmount = r.amount > 0 ? '\u20b9' + r.amount : r.isUsed ? 'Used' : 'Pending';
+                            var badgeClass = r.amount > 0 ? 'bg-success' : r.isUsed ? 'bg-secondary' : 'bg-warning';
+                            html += '<div class="d-flex justify-content-between align-items-center mb-2 p-2 border rounded"><div><strong>' + r.joinedCompany + '</strong><br><small class="text-muted">' + r.joinedOn + '</small></div><span class="badge ' + badgeClass + '">' + displayAmount + '</span></div>';
+                        });
+                    } else { html = '<div class="text-center text-muted small">No referrals yet.</div>'; }
+                    $('#referralList').html(html);
+                }
+            });
+        }
+    </script>
+
+    @await Html.PartialAsync("_SessionTimeout")
+
+    @await RenderSectionAsync("Scripts", required: false)
+    @if (!string.IsNullOrEmpty(role) && HasAIChatbot)
+    {
+        @Html.Partial("_ChatWidget")
+    }
+</body>
+</html>
+
+<script>
+function toggleDarkMode() {
+    var html = document.documentElement;
+    var body = document.body;
+    if (html.classList.contains('dark-mode')) {
+        html.classList.remove('dark-mode');
+        if (body) body.classList.remove('dark-mode');
+        localStorage.setItem('darkMode', 'disabled');
+    } else {
+        html.classList.add('dark-mode');
+        if (body) body.classList.add('dark-mode');
+        localStorage.setItem('darkMode', 'enabled');
+    }
+}
+
+// Sidebar toggle is handled centrally by app.js (single handler) to avoid
+// multiple competing handlers cancelling each other out on click.
+document.addEventListener('DOMContentLoaded', function() {
+    // Handle scrollbar styles for smooth scrolling
+    initializeSmoothScroll();
+});
+
+// Initialize scroll navigators for horizontally overflowing elements
+function initializeScrollNavigators() {
+    // Find all elements that might benefit from scroll navigation
+    var scrollContainers = document.querySelectorAll('.table-responsive, .scrollable-x, .scroll-container, .card-columns, .row-cols-*');
+    
+    scrollContainers.forEach(function(container) {
+        // Check if element actually overflows horizontally
+        if (container.scrollWidth > container.clientWidth) {
+            // Add scroll navigation buttons if they don't exist
+            if (!container.querySelector('.scroll-nav-btn')) {
+                addScrollNavigationButtons(container);
+            }
+            
+            // Update button visibility based on scroll position
+            updateScrollButtonVisibility(container);
+            
+            // Update visibility when user scrolls
+            container.addEventListener('scroll', function() {
+                updateScrollButtonVisibility(container);
+            });
+        }
+    });
+}
+
+// Add left/right navigation buttons to a scroll container
+function addScrollNavigationButtons(container) {
+    // Create navigation container
+    var navContainer = document.createElement('div');
+    navContainer.className = 'scroll-nav-container';
+    navContainer.style.position = 'absolute';
+    navContainer.style.top = '0';
+    navContainer.style.left = '0';
+    navContainer.style.width = '100%';
+    navContainer.style.height = '100%';
+    navContainer.style.pointerEvents = 'none'; // Let pointer events go through to children
+    navContainer.style.zIndex = '10';
+    
+    // Create left button
+    var leftBtn = document.createElement('button');
+    leftBtn.className = 'scroll-nav-btn scroll-nav-left';
+    leftBtn.innerHTML = '<i class="fas fa-chevron-left"></i>';
+    leftBtn.style.position = 'absolute';
+    leftBtn.style.top = '50%';
+    leftBtn.style.left = '5px';
+    leftBtn.style.transform = 'translateY(-50%)';
+    leftBtn.style.background = 'rgba(255,255,255,0.8)';
+    leftBtn.style.border = 'none';
+    leftBtn.style.width = '35px';
+    leftBtn.style.height = '35px';
+    leftBtn.style.borderRadius = '50%';
+    leftBtn.style.display = 'flex';
+    leftBtn.style.alignItems = 'center';
+    leftBtn.style.justifyContent = 'center';
+    leftBtn.style.cursor = 'pointer';
+    leftBtn.style.zIndex = '11';
+    leftBtn.style.boxShadow = '0 2px 5px rgba(0,0,0,0.2)';
+    leftBtn.style.opacity = '0.7';
+    leftBtn.style.transition = 'opacity 0.2s, transform 0.2s';
+    
+    // Create right button
+    var rightBtn = document.createElement('button');
+    rightBtn.className = 'scroll-nav-btn scroll-nav-right';
+    rightBtn.innerHTML = '<i class="fas fa-chevron-right"></i>';
+    rightBtn.style.position = 'absolute';
+    rightBtn.style.top = '50%';
+    rightBtn.style.right = '5px';
+    rightBtn.style.transform = 'translateY(-50%)';
+    rightBtn.style.background = 'rgba(255,255,255,0.8)';
+    rightBtn.style.border = 'none';
+    rightBtn.style.width = '35px';
+    rightBtn.style.height = '35px';
+    rightBtn.style.borderRadius = '50%';
+    rightBtn.style.display = 'flex';
+    rightBtn.style.alignItems = rightBtn.style.justifyContent = 'center';
+    rightBtn.style.cursor = 'pointer';
+    rightBtn.style.zIndex = '11';
+    rightBtn.style.boxShadow = '0 2px 5px rgba(0,0,0,0.2)';
+    rightBtn.style.opacity = '0.7';
+    rightBtn.style.transition = 'opacity 0.2s, transform 0.2s';
+    
+    // Add hover effects
+    leftBtn.addEventListener('mouseenter', function() {
+        this.style.opacity = '1';
+        this.style.transform = 'translateY(-50%) scale(1.1)';
+    });
+    leftBtn.addEventListener('mouseleave', function() {
+        this.style.opacity = '0.7';
+        this.style.transform = 'translateY(-50%) scale(1)';
+    });
+    
+    rightBtn.addEventListener('mouseenter', function() {
+        this.style.opacity = '1';
+        this.style.transform = 'translateY(-50%) scale(1.1)';
+    });
+    rightBtn.addEventListener('mouseleave', function() {
+        this.style.opacity = '0.7';
+        this.style.transform = 'translateY(-50%) scale(1)';
+    });
+    
+    // Add click handlers
+    leftBtn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        scrollContainerByAmount(container, -200); // Scroll left by 200px
+    });
+    
+    rightBtn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        scrollContainerByAmount(container, 200); // Scroll right by 200px
+    });
+    
+    // Add touch support for mobile
+    let touchStartX = 0;
+    let touchEndX = 0;
+    
+    container.addEventListener('touchstart', function(e) {
+        touchStartX = e.changedTouches[0].screenX;
+    }, { passive: true });
+    
+    container.addEventListener('touchend', function(e) {
+        touchEndX = e.changedTouches[0].screenX;
+        handleSwipeGesture();
+    }, { passive: true });
+    
+    function handleSwipeGesture() {
+        const swipeThreshold = 50;
+        const diff = touchStartX - touchEndX;
+        
+        if (Math.abs(diff) > swipeThreshold) {
+            if (diff > 0) {
+                // Swipe left - scroll right
+                scrollContainerByAmount(container, 200);
+            } else {
+                // Swipe right - scroll left
+                scrollContainerByAmount(container, -200);
+            }
+        }
+    }
+    
+    // Append buttons to container
+    // We need to make the container position relative for absolute positioning of buttons
+    if (getComputedStyle(container).position === 'static') {
+        container.style.position = 'relative';
+    }
+    
+    navContainer.appendChild(leftBtn);
+    navContainer.appendChild(rightBtn);
+    container.appendChild(navContainer);
+}
+
+// Scroll container by specified amount (negative = left, positive = right)
+function scrollContainerByAmount(container, amount) {
+    container.scrollBy({
+        left: amount,
+        behavior: 'smooth'
+    });
+    
+    // Update button visibility after scroll
+    setTimeout(function() {
+        updateScrollButtonVisibility(container);
+    }, 300); // Wait for scroll animation to complete
+}
+
+// Update visibility of scroll navigation buttons based on scroll position
+function updateScrollButtonVisibility(container) {
+    var leftBtn = container.querySelector('.scroll-nav-left');
+    var rightBtn = container.querySelector('.scroll-nav-right');
+    
+    if (!leftBtn || !rightBtn) return;
+    
+    var scrollLeft = container.scrollLeft;
+    var scrollWidth = container.scrollWidth;
+    var clientWidth = container.clientWidth;
+    
+    // Hide left button if at the start
+    if (scrollLeft <= 10) {
+        leftBtn.style.opacity = '0.3';
+        leftBtn.style.pointerEvents = 'none';
+    } else {
+        leftBtn.style.opacity = '0.7';
+        leftBtn.style.pointerEvents = 'all';
+    }
+    
+    // Hide right button if at the end
+    if (scrollLeft + clientWidth >= scrollWidth - 10) {
+        rightBtn.style.opacity = '0.3';
+        rightBtn.style.pointerEvents = 'none';
+    } else {
+        rightBtn.style.opacity = '0.7';
+        rightBtn.style.pointerEvents = 'all';
+    }
+}
+
+// Initialize smooth scrolling and other scroll-related enhancements
+function initializeSmoothScroll() {
+    // Add smooth scroll behavior to all anchor links
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener('click', function (e) {
+            const href = this.getAttribute('href');
+            
+            // Only apply to actual anchor links (not empty href or other protocols)
+            if (href && href !== '#' && !href.startsWith('http') && !href.startsWith('mailto:')) {
+                // Prevent default anchor click behavior
+                e.preventDefault();
+                
+                const targetElement = document.querySelector(href) || 
+                                    (href === '' || href === '#' ? document.documentElement : null);
+                
+                if (targetElement) {
+                    targetElement.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            }
+        });
+    });
+    
+    // Enhance scrollbar appearance for webkit browsers
+    const style = document.createElement('style');
+    style.textContent = `
+        /* Custom scrollbar for main content area */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.05);
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 4px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(0, 0, 0, 0.3);
+        }
+        
+        /* Dark mode scrollbar */
+        .dark-mode ::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+        }
+        
+        .dark-mode ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+        }
+        
+        .dark-mode ::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+    `;
+    document.head.appendChild(style);
+}
+</script>
+
+<style>
+    /* Smooth scrolling for anchor links */
+    html {
+        scroll-behavior: smooth;
+    }
+    
+    /* Custom scrollbar for sidebar */
+    .sidebar {
+        scrollbar-width: thin;
+        scrollbar-color: rgba(212,164,90,0.3) transparent;
+    }
+    
+    .sidebar::-webkit-scrollbar {
+        width: 6px;
+    }
+    
+    .sidebar::-webkit-scrollbar-track {
+        background: transparent;
+    }
+    
+    .sidebar::-webkit-scrollbar-thumb {
+        background-color: rgba(212,164,90,0.35);
+        border-radius: 3px;
+    }
+    
+    .sidebar::-webkit-scrollbar-thumb:hover {
+        background-color: var(--gold);
+    }
+</style>
+
+<!-- Loaded last: guarantees visibility & alignment fixes win over page-level styles -->
+<link rel="stylesheet" href="~/css/superadmin-fixes.css" />
+

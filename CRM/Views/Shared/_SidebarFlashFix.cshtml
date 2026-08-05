@@ -1,0 +1,344 @@
+<script>
+// ULTRA CRITICAL: Detect dark mode BEFORE any rendering
+(function() {
+    var isDark = false;
+    
+    // Check all possible dark mode indicators
+    if (document.documentElement.classList.contains('dark-mode')) isDark = true;
+    if (document.body && document.body.classList.contains('dark-mode')) isDark = true;
+    if (localStorage.getItem('darkMode') === 'enabled') isDark = true;
+    if (sessionStorage.getItem('darkMode') === 'enabled') isDark = true;
+    
+    // Set background IMMEDIATELY
+    var bgColor = isDark ? '#1A2332' : '#F0F4F8';
+    document.documentElement.style.backgroundColor = bgColor;
+    document.documentElement.style.setProperty('background-color', bgColor, 'important');
+    
+    // Inject critical CSS immediately
+    var style = document.createElement('style');
+    style.textContent = isDark ? 
+        'html, body, .wrapper, .main, .content { background-color: #1A2332 !important; } .sidebar { background: #1E2A3A !important; }' :
+        'html, body, .wrapper, .main, .content { background-color: #F0F4F8 !important; } .sidebar { background: white !important; }';
+    document.head.appendChild(style);
+})();
+</script>
+<!-- CRITICAL: Add this script in the <head> section BEFORE any other scripts -->
+<!-- This prevents sidebar flash on page load -->
+<style>
+    /* CRITICAL: Prevent ALL flashing on page load */
+    
+    /* ABSOLUTE LOCK: Light mode backgrounds */
+    body:not(.dark-mode) html,
+    body:not(.dark-mode) {
+        background-color: #F0F4F8 !important;
+    }
+    
+    body:not(.dark-mode) .wrapper {
+        background-color: #F0F4F8 !important;
+    }
+    
+    body:not(.dark-mode) .main {
+        background-color: #F0F4F8 !important;
+        position: relative !important;
+        z-index: 1 !important;
+    }
+    
+    body:not(.dark-mode) .content {
+        background-color: #F0F4F8 !important;
+    }
+    
+    /* ABSOLUTE LOCK: Dark mode backgrounds */
+    body.dark-mode,
+    body.dark-mode html {
+        background-color: #1A2332 !important;
+    }
+    
+    body.dark-mode .wrapper {
+        background-color: #1A2332 !important;
+    }
+    
+    body.dark-mode .main {
+        background-color: #1A2332 !important;
+        position: relative !important;
+        z-index: 1 !important;
+    }
+    
+    body.dark-mode .content {
+        background-color: #1A2332 !important;
+    }
+    
+    html {
+        overflow-x: hidden !important;
+    }
+    
+    body {
+        margin: 0 !important;
+        padding: 0 !important;
+        overflow-x: hidden !important;
+    }
+    
+    /* FREEZE SIDEBAR - Absolute position lock during page load */
+    .sidebar {
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        bottom: 0 !important;
+        z-index: 1000 !important;
+        will-change: auto !important;
+        transform: translateZ(0) !important;
+        backface-visibility: hidden !important;
+    }
+    
+    /* Light mode sidebar */
+    body:not(.dark-mode) .sidebar {
+        background: white !important;
+    }
+    
+    /* Dark mode sidebar */
+    body.dark-mode .sidebar {
+        background: #1E2A3A !important;
+    }
+    
+    /* Prevent sidebar from ANY movement during page transitions */
+    body:not(.page-loaded) .sidebar,
+    body:not(.page-loaded) .sidebar * {
+        transition: none !important;
+        animation: none !important;
+        transform: none !important;
+    }
+    
+    /* Force sidebar to correct state IMMEDIATELY - Override ALL app.css rules */
+    .sidebar-item.has-dropdown > .sidebar-link,
+    .sidebar-item.has-dropdown > .sidebar-link.collapsed,
+    .sidebar-item.has-dropdown > .sidebar-link:hover,
+    .sidebar-item.has-dropdown > .sidebar-link:focus,
+    .sidebar-item.has-dropdown > .sidebar-link:active,
+    .sidebar-item.has-dropdown.has-active > .sidebar-link,
+    .sidebar-item.has-dropdown.has-active > .sidebar-link:hover,
+    .sidebar-nav .sidebar-item.has-dropdown > .sidebar-link:hover,
+    .sidebar .sidebar-item.has-dropdown > .sidebar-link:hover {
+        background: transparent !important;
+        background-color: transparent !important;
+    }
+    
+    /* Nuclear option: Force transparent on ANY sidebar link that's a dropdown parent */
+    .sidebar-item.has-dropdown > a.sidebar-link:hover {
+        background: transparent !important;
+        background-color: transparent !important;
+    }
+    
+    /* Force dropdowns to be open if they have active class - NO animation */
+    .sidebar-item.has-dropdown.has-active > .collapse {
+        display: block !important;
+        height: auto !important;
+        opacity: 1 !important;
+        visibility: visible !important;
+        transition: none !important;
+    }
+    
+    /* Hide all collapsed dropdowns immediately - NO animation */
+    .sidebar-item.has-dropdown > .collapse:not(.show) {
+        display: none !important;
+        height: 0 !important;
+        opacity: 0 !important;
+        visibility: hidden !important;
+        transition: none !important;
+    }
+    
+    /* Disable ALL transitions on page load */
+    .sidebar-item,
+    .sidebar-link,
+    .sidebar-dropdown,
+    .collapse,
+    .sidebar-item.has-dropdown > .sidebar-link {
+        transition: none !important;
+        animation: none !important;
+    }
+    
+    /* Prevent Bootstrap collapse animation on load */
+    .collapsing {
+        transition: none !important;
+        animation: none !important;
+        height: auto !important;
+    }
+    
+    /* Prevent page content from shifting - NUCLEAR */
+    body:not(.page-loaded) * {
+        transition: none !important;
+        animation: none !important;
+    }
+    
+    /* Prevent any background color bleed */
+    body:not(.page-loaded) .wrapper,
+    body:not(.page-loaded) .main,
+    body:not(.page-loaded) .content {
+        opacity: 1 !important;
+        visibility: visible !important;
+    }
+    
+    /* Lock sidebar content during page transitions */
+    body:not(.page-loaded) .sidebar-nav,
+    body:not(.page-loaded) .sidebar-content {
+        opacity: 1 !important;
+        visibility: visible !important;
+        position: relative !important;
+    }
+</style>
+
+<script>
+(function() {
+    'use strict';
+    
+    // Lock backgrounds IMMEDIATELY before anything renders
+    var isDark = false;
+    if (document.documentElement.classList.contains('dark-mode')) isDark = true;
+    if (document.body && document.body.classList.contains('dark-mode')) isDark = true;
+    if (localStorage.getItem('darkMode') === 'enabled') isDark = true;
+    if (sessionStorage.getItem('darkMode') === 'enabled') isDark = true;
+    
+    var bgColor = isDark ? '#1A2332' : '#F0F4F8';
+    document.documentElement.style.backgroundColor = bgColor;
+    document.documentElement.style.setProperty('background-color', bgColor, 'important');
+    document.documentElement.style.overflow = 'hidden';
+    
+    // Prevent page unload flash - keep sidebar visible
+    window.addEventListener('beforeunload', function() {
+        document.body.style.opacity = '1';
+        const sidebar = document.querySelector('.sidebar');
+        if (sidebar) {
+            sidebar.style.opacity = '1';
+            sidebar.style.visibility = 'visible';
+        }
+    });
+    
+    // IMMEDIATELY restore dropdown state from sessionStorage
+    try {
+        const openDropdowns = JSON.parse(sessionStorage.getItem('openDropdowns') || '[]');
+        
+        // Create style element to force dropdowns open
+        if (openDropdowns.length > 0) {
+            const style = document.createElement('style');
+            let css = '';
+            
+            openDropdowns.forEach(function(dropdownId) {
+                css += '#' + dropdownId + ' { display: block !important; height: auto !important; opacity: 1 !important; transition: none !important; }\n';
+                css += '#' + dropdownId + '.collapse { display: block !important; }\n';
+            });
+            
+            style.textContent = css;
+            document.head.appendChild(style);
+        }
+    } catch (e) {
+        console.log('Could not restore dropdown state:', e);
+    }
+    
+    // Prevent any transition/animation classes from being added
+    const originalAddClass = Element.prototype.classList.add;
+    Element.prototype.classList.add = function() {
+        const args = Array.from(arguments);
+        // Block 'collapsing' class during page load
+        if (args.includes('collapsing') && !document.body.classList.contains('page-loaded')) {
+            return;
+        }
+        return originalAddClass.apply(this, args);
+    };
+    
+    // Mark page as loaded after a delay
+    setTimeout(function() {
+        document.body.classList.add('page-loaded');
+        document.documentElement.style.overflow = '';
+        
+        // Restore original classList.add
+        Element.prototype.classList.add = originalAddClass;
+        
+        // Re-enable transitions for user interactions ONLY
+        const style = document.createElement('style');
+        style.textContent = `
+            body.page-loaded .sidebar-item,
+            body.page-loaded .sidebar-link,
+            body.page-loaded .sidebar-dropdown,
+            body.page-loaded .collapse {
+                transition: all 0.3s ease !important;
+            }
+            
+            body.page-loaded .collapsing {
+                transition: height 0.35s ease !important;
+            }
+        `;
+        document.head.appendChild(style);
+    }, 250);
+    
+    // NUCLEAR OPTION: Force remove background on dropdown headers continuously
+    function forceTransparentDropdowns() {
+        const dropdownHeaders = document.querySelectorAll('.sidebar-item.has-dropdown > .sidebar-link');
+        dropdownHeaders.forEach(function(header) {
+            header.style.setProperty('background', 'transparent', 'important');
+            header.style.setProperty('background-color', 'transparent', 'important');
+            
+            // Also remove any event listeners that might add background
+            header.addEventListener('mouseenter', function(e) {
+                e.currentTarget.style.setProperty('background', 'transparent', 'important');
+                e.currentTarget.style.setProperty('background-color', 'transparent', 'important');
+            }, true);
+            
+            header.addEventListener('mouseover', function(e) {
+                e.currentTarget.style.setProperty('background', 'transparent', 'important');
+                e.currentTarget.style.setProperty('background-color', 'transparent', 'important');
+            }, true);
+        });
+    }
+    
+    // Run immediately and on DOM ready
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', forceTransparentDropdowns);
+    } else {
+        forceTransparentDropdowns();
+    }
+    
+    // Also run after a short delay to catch any late-applied styles
+    setTimeout(forceTransparentDropdowns, 50);
+    setTimeout(forceTransparentDropdowns, 100);
+    setTimeout(forceTransparentDropdowns, 200);
+    setTimeout(forceTransparentDropdowns, 300);
+    
+    // Keep forcing it on mouseover events
+    document.addEventListener('mouseover', function(e) {
+        if (e.target.closest('.sidebar-item.has-dropdown > .sidebar-link')) {
+            const header = e.target.closest('.sidebar-item.has-dropdown > .sidebar-link');
+            header.style.setProperty('background', 'transparent', 'important');
+            header.style.setProperty('background-color', 'transparent', 'important');
+        }
+    }, true);
+    
+    // ULTIMATE NUCLEAR OPTION: Watch for style changes and force them back
+    function setupMutationObserver() {
+        const observer = new MutationObserver(function(mutations) {
+            mutations.forEach(function(mutation) {
+                if (mutation.type === 'attributes' && mutation.attributeName === 'style') {
+                    const target = mutation.target;
+                    if (target.matches('.sidebar-item.has-dropdown > .sidebar-link')) {
+                        const bg = window.getComputedStyle(target).backgroundColor;
+                        if (bg !== 'rgba(0, 0, 0, 0)' && bg !== 'transparent') {
+                            target.style.setProperty('background', 'transparent', 'important');
+                            target.style.setProperty('background-color', 'transparent', 'important');
+                        }
+                    }
+                }
+            });
+        });
+        
+        // Observe all dropdown headers
+        setTimeout(function() {
+            document.querySelectorAll('.sidebar-item.has-dropdown > .sidebar-link').forEach(function(header) {
+                observer.observe(header, { attributes: true, attributeFilter: ['style'] });
+            });
+        }, 100);
+    }
+    
+    setupMutationObserver();
+    
+})();
+</script>
+
+
+

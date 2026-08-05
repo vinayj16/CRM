@@ -1,0 +1,645 @@
+@model List<CRM.Models.QuotationModel>
+@inject CRM.Services.ViewPermissionService _viewPermissionService
+@{
+    ViewData["Title"] = "Quotations";
+    var leads = ViewBag.Leads as List<CRM.Models.LeadModel> ?? new List<CRM.Models.LeadModel>();
+    var properties = ViewBag.Properties as List<CRM.Models.PropertyModel> ?? new List<CRM.Models.PropertyModel>();
+    var flats = ViewBag.Flats as List<CRM.Models.PropertyFlatModel> ?? new List<CRM.Models.PropertyFlatModel>();
+    var bookings = ViewBag.Bookings as List<CRM.Models.BookingModel> ?? new List<CRM.Models.BookingModel>();
+    bool canCreate = _viewPermissionService.HasPermission("Quotations", "Index", "Create");
+    bool canEdit = _viewPermissionService.HasPermission("Quotations", "Index", "Edit");
+    bool canDelete = _viewPermissionService.HasPermission("Quotations", "Index", "Delete");
+}
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<style>
+    @@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=JetBrains+Mono:wght@500;600&display=swap');
+
+    :root {
+        --gold: #B8883E;
+        --gold-light: #D4A45A;
+        --gold-dark: #B8883E;
+        --blue: #1A6FA8;
+        --blue-light: #2589C9;
+        --blue-dark: #125082;
+        --bg: #F0F4F8;
+        --surface: #FFFFFF;
+        --border: #E2E8F0;
+        --text: #1E2A3A;
+        --muted: #6B7B8D;
+        --success: #16A34A;
+        --danger: #DC2626;
+        --warn: #F59E0B;
+        --r: 8px;
+        --rs: 5px;
+        --sh: 0 1px 3px rgba(26,111,168,0.08), 0 2px 8px rgba(26,111,168,0.05);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; }
+    body, .content { font-family: 'DM Sans', sans-serif; }
+    .content { background: var(--bg); min-height: 100vh; }
+
+    /* ── PAGE WRAPPER ── */
+    .qp-wrap { padding: 0.5rem 0.6rem; max-width: 100%; }
+
+    /* ── BREADCRUMB ── */
+    .qp-bc { font-size: 0.67rem; color: var(--muted); margin-bottom: 0.35rem; display: flex; align-items: center; gap: 0.25rem; }
+    .qp-bc a { color: var(--blue); text-decoration: none; }
+    .qp-bc a:hover { text-decoration: underline; }
+    .qp-bc-sep { color: var(--border); }
+
+    /* ── HEADER ── */
+    .qp-header {
+        background: linear-gradient(118deg, #0F4C75 0%, #1A6FA8 50%, #2589C9 100%);
+        border-radius: var(--r);
+        padding: 0.5rem 0.85rem;
+        margin-bottom: 0.4rem;
+        position: relative;
+        overflow: hidden;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.75rem;
+    }
+    .qp-header::before {
+        content: '';
+        position: absolute; right: -15px; top: -15px;
+        width: 100px; height: 100px; border-radius: 50%;
+        background: rgba(184,136,62,0.12); pointer-events: none;
+    }
+    .qp-header::after {
+        content: '';
+        position: absolute; right: 60px; bottom: -30px;
+        width: 65px; height: 65px; border-radius: 50%;
+        background: rgba(184,136,62,0.08); pointer-events: none;
+    }
+    .qp-hd-left { display: flex; align-items: center; gap: 0.55rem; }
+    .qp-hd-icon {
+        width: 28px; height: 28px; flex-shrink: 0;
+        background: rgba(184,136,62,0.18);
+        border: 1.5px solid rgba(184,136,62,0.35);
+        border-radius: var(--rs);
+        display: flex; align-items: center; justify-content: center;
+        color: var(--gold-light); font-size: 0.78rem;
+    }
+    .qp-hd-title { font-size: 0.95rem; font-weight: 700; color: #FFFFFF; line-height: 1.1; margin: 0; }
+    .qp-hd-sub { font-size: 0.63rem; color: rgba(255,255,255,0.7); margin: 0; }
+    .qp-hd-stats { display: flex; gap: 0.4rem; flex-shrink: 0; }
+    .qp-stat {
+        background: rgba(255,255,255,0.13);
+        border: 1px solid rgba(255,255,255,0.2);
+        border-radius: var(--rs);
+        padding: 0.3rem 0.6rem;
+        text-align: center; min-width: 48px;
+    }
+    .qp-stat-n { font-size: 1rem; font-weight: 800; color: #FFFFFF; line-height: 1; }
+    .qp-stat-l { font-size: 0.55rem; color: rgba(255,255,255,0.75); text-transform: uppercase; letter-spacing: 0.5px; }
+
+    /* ── FILTER ROW ── */
+    .qp-filters {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--r);
+        padding: 0.45rem 0.75rem;
+        margin-bottom: 0.4rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+        box-shadow: var(--sh);
+    }
+    .qp-fl-label {
+        font-size: 0.58rem; font-weight: 700; text-transform: uppercase;
+        letter-spacing: 0.7px; color: var(--muted);
+        display: flex; align-items: center; gap: 0.25rem;
+        flex-shrink: 0;
+    }
+    .qp-fl-label i { color: var(--gold); }
+    .qp-fl-sep { width: 1px; height: 20px; background: var(--border); flex-shrink: 0; }
+    .qp-fl-search {
+        display: flex; align-items: center; gap: 0; flex: 1; min-width: 160px; max-width: 280px;
+    }
+    .qp-fl-search-icon {
+        background: var(--blue); color: #FFFFFF;
+        padding: 0.26rem 0.5rem; font-size: 0.7rem;
+        border-radius: var(--rs) 0 0 var(--rs);
+        border: 1.5px solid var(--blue); border-right: none;
+        display: flex; align-items: center;
+        flex-shrink: 0;
+    }
+    .qp-fl-search input {
+        flex: 1; font-size: 0.75rem; font-family: 'DM Sans', sans-serif;
+        padding: 0.26rem 0.5rem;
+        border: 1.5px solid var(--border); border-left: none;
+        border-radius: 0 var(--rs) var(--rs) 0;
+        background: #FFFFFF; color: var(--text);
+        outline: none; transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .qp-fl-search input:focus {
+        border-color: var(--blue);
+        box-shadow: 0 0 0 2.5px rgba(26,111,168,0.12);
+        background: #FFFFFF;
+    }
+    .qp-fl-select {
+        font-size: 0.75rem; font-family: 'DM Sans', sans-serif;
+        padding: 0.26rem 1.6rem 0.26rem 0.5rem;
+        border: 1.5px solid var(--border); border-radius: var(--rs);
+        background: #FFFFFF; color: var(--text);
+        outline: none; cursor: pointer;
+        transition: border-color 0.2s, box-shadow 0.2s;
+        appearance: none;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath fill='%236b7a99' d='M0 0l5 6 5-6z'/%3E%3C/svg%3E");
+        background-repeat: no-repeat; background-position: right 0.45rem center;
+        min-width: 110px;
+    }
+    .qp-fl-select:focus {
+        border-color: var(--blue);
+        box-shadow: 0 0 0 2.5px rgba(26,111,168,0.12);
+    }
+    .qp-fl-create {
+        background: linear-gradient(135deg, var(--blue), var(--blue-light));
+        border: none; border-radius: var(--rs);
+        padding: 0.28rem 0.7rem;
+        font-size: 0.72rem; font-weight: 600;
+        color: #FFFFFF !important; text-decoration: none;
+        display: inline-flex; align-items: center; gap: 0.25rem;
+        box-shadow: 0 2px 7px rgba(26,111,168,0.28);
+        transition: all 0.2s; cursor: pointer; flex-shrink: 0;
+        margin-left: auto;
+    }
+    .qp-fl-create:hover { transform: translateY(-1px); box-shadow: 0 3px 12px rgba(26,111,168,0.38); color: #FFFFFF !important; }
+    .search-err { font-size: 0.6rem; color: var(--danger); margin-top: 0.1rem; display: none; }
+    .search-err.show { display: block; }
+
+    /* ── CARDS GRID ── */
+    .qp-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.35rem;
+    }
+    @@media (max-width: 768px) { .qp-grid { grid-template-columns: 1fr; } }
+
+    /* paginated-item must NOT clip dropdown */
+    .paginated-item { position: static; }
+
+    /* ── QUOTATION CARD ── */
+    .qp-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--r);
+        box-shadow: var(--sh);
+        position: relative;
+        overflow: visible;          /* ← was hidden, was clipping dropdown */
+        transition: box-shadow 0.18s, transform 0.18s, border-color 0.18s;
+        display: flex; flex-direction: column;
+    }
+    .qp-card:hover {
+        box-shadow: 0 3px 14px rgba(26,111,168,0.13), 0 1px 4px rgba(26,111,168,0.08);
+        border-color: rgba(26,111,168,0.22);
+        transform: translateY(-1px);
+        z-index: 10;               /* ← lift hovered card above siblings */
+    }
+    /* stripe via pseudo-element so overflow:visible still works */
+    .qp-card::before {
+        content: '';
+        position: absolute; left: 0; top: 0; bottom: 0;
+        width: 3px; border-radius: 8px 0 0 8px;
+        background: var(--blue);
+        pointer-events: none;
+        border-radius: var(--r) 0 0 var(--r);
+    }
+    .qp-card.s-accepted::before { background: var(--success); }
+    .qp-card.s-rejected::before { background: var(--danger); }
+    .qp-card.s-sent::before     { background: var(--blue-light); }
+    .qp-card.s-expired::before  { background: var(--warn); }
+    .qp-card-stripe { display: none; } /* replaced by ::before */
+    .qp-card.s-accepted .qp-card-stripe { background: var(--success); }
+    .qp-card.s-rejected .qp-card-stripe { background: var(--danger); }
+    .qp-card.s-sent     .qp-card-stripe { background: var(--blue-light); }
+    .qp-card.s-expired  .qp-card-stripe { background: var(--warn); }
+
+    .qp-card-inner { padding: 0.5rem 0.65rem 0.5rem 0.9rem; display: flex; align-items: center; gap: 0.6rem; }
+
+    /* Left info */
+    .qp-ci { flex: 1; min-width: 0; }
+    .qp-ci-top { display: flex; align-items: center; gap: 0.3rem; margin-bottom: 0.2rem; flex-wrap: wrap; }
+    .qp-num {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 0.72rem; font-weight: 600; color: var(--blue);
+        white-space: nowrap;
+    }
+
+    /* Status badges */
+    .qp-badge {
+        padding: 0.1rem 0.42rem; border-radius: 20px;
+        font-weight: 700; font-size: 0.55rem;
+        text-transform: uppercase; letter-spacing: 0.4px;
+        white-space: nowrap; line-height: 1.5;
+    }
+    .qp-badge.bd-draft    { background: #F0F4F8; color: #2A3A4A; }
+    .qp-badge.bd-sent     { background: #E2E8F0; color: #1A6FA8; }
+    .qp-badge.bd-accepted { background: #DCFCE7; color: #15803D; }
+    .qp-badge.bd-rejected { background: #FEE2E2; color: #991B1B; }
+    .qp-badge.bd-expired  { background: #FEF3C7; color: #B45309; }
+    .qp-badge.bd-booked   { background: #FEF3C7; color: #B45309; }
+
+    .qp-bhk {
+        font-size: 0.55rem; background: rgba(184,136,62,0.11);
+        color: var(--gold-dark); padding: 0.1rem 0.38rem;
+        border-radius: 10px; font-weight: 600;
+        border: 1px solid rgba(184,136,62,0.2);
+        white-space: nowrap;
+    }
+    .qp-name { font-size: 0.75rem; font-weight: 600; color: var(--text); margin-bottom: 0.12rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .qp-meta { font-size: 0.65rem; color: var(--muted); line-height: 1.4; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .qp-meta i { font-size: 0.55rem; }
+
+    /* Right amount */
+    .qp-cr { flex-shrink: 0; text-align: right; min-width: 80px; }
+    .qp-cr-label { font-size: 0.55rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.4px; }
+    .qp-cr-amt { font-size: 0.88rem; font-weight: 800; color: var(--blue); letter-spacing: -0.3px; white-space: nowrap; }
+    .qp-cr-disc { font-size: 0.58rem; color: var(--success); white-space: nowrap; }
+
+    /* Actions */
+    .qp-ca { flex-shrink: 0; display: flex; gap: 0.25rem; align-items: center; }
+    .btn-qv {
+        padding: 0.2rem 0.48rem; font-size: 0.67rem;
+        border-radius: var(--rs); font-weight: 600;
+        background: rgba(26,111,168,0.08); color: var(--blue);
+        border: 1.5px solid rgba(26,111,168,0.18);
+        text-decoration: none; display: inline-flex; align-items: center; gap: 0.2rem;
+        transition: all 0.18s; cursor: pointer; white-space: nowrap;
+    }
+    .btn-qv:hover { background: var(--blue); color: #FFFFFF; border-color: var(--blue); }
+    .btn-qm {
+        padding: 0.2rem 0.4rem; font-size: 0.67rem;
+        border-radius: var(--rs);
+        background: rgba(107,123,141,0.08); color: var(--muted);
+        border: 1.5px solid var(--border);
+        display: inline-flex; align-items: center;
+        transition: all 0.18s; cursor: pointer;
+    }
+    .btn-qm:hover { background: var(--muted); color: #FFFFFF; }
+
+    /* Dropdown — must escape card stacking context */
+    .qp-ca .dropdown { position: static; }
+    .dropdown-menu {
+        position: absolute !important;
+        border-radius: var(--rs) !important;
+        border: 1px solid var(--border) !important;
+        box-shadow: 0 6px 24px rgba(26,111,168,0.16), 0 2px 8px rgba(0,0,0,0.08) !important;
+        padding: 0.2rem !important; min-width: 155px !important;
+        z-index: 9999 !important;
+    }
+    .dropdown-item {
+        font-size: 0.72rem !important; padding: 0.28rem 0.5rem !important;
+        border-radius: 4px !important; color: var(--text) !important; font-weight: 500 !important;
+    }
+    .dropdown-item:hover { background: rgba(26,111,168,0.07) !important; color: var(--blue) !important; }
+    .dropdown-item.text-danger:hover { background: rgba(220,38,38,0.07) !important; color: var(--danger) !important; }
+    .dropdown-divider { margin: 0.15rem 0 !important; }
+
+    /* ── PAGINATION ── */
+    .qp-pag {
+        background: var(--surface); border: 1px solid var(--border);
+        border-radius: var(--r); box-shadow: var(--sh);
+        padding: 0.4rem 0.75rem;
+        display: flex; align-items: center; justify-content: space-between;
+        gap: 0.5rem; margin-top: 0.35rem; flex-wrap: wrap;
+    }
+    .qp-pag-info { font-size: 0.68rem; color: var(--muted); }
+    .qp-pag-btns { display: flex; gap: 0.25rem; align-items: center; flex-wrap: wrap; }
+    .qp-pb {
+        padding: 0.22rem 0.5rem; border: 1.5px solid var(--border);
+        background: var(--surface); color: var(--muted);
+        border-radius: var(--rs); cursor: pointer;
+        transition: all 0.18s; font-size: 0.68rem; font-weight: 600;
+        font-family: 'DM Sans', sans-serif;
+    }
+    .qp-pb:hover:not(:disabled) { background: rgba(26,111,168,0.06); border-color: var(--blue); color: var(--blue); }
+    .qp-pb:disabled { opacity: 0.38; cursor: not-allowed; }
+    .qp-pb.active { background: var(--blue); border-color: var(--blue); color: #FFFFFF; }
+
+    /* ── EMPTY STATE ── */
+    .qp-empty {
+        text-align: center; padding: 2.5rem 1.5rem;
+        background: var(--surface); border-radius: var(--r);
+        box-shadow: var(--sh); border: 1px solid var(--border);
+    }
+    .qp-empty i { font-size: 2rem; color: var(--border); display: block; margin-bottom: 0.5rem; }
+    .qp-empty h4 { font-size: 0.9rem; color: var(--text); margin-bottom: 0.3rem; }
+    .qp-empty p  { font-size: 0.75rem; color: var(--muted); margin-bottom: 0.75rem; }
+
+    /* ── DARK MODE ── */
+    [data-bs-theme="dark"], .dark-mode {
+        --bg: #0D1724; --surface: #162436; --border: #2A3A4A;
+        --text: #E2E8F0; --muted: #8FA3B8;
+    }
+    .dark-mode .qp-fl-search input,
+    [data-bs-theme="dark"] .qp-fl-search input,
+    .dark-mode .qp-fl-select,
+    [data-bs-theme="dark"] .qp-fl-select {
+        background: #1E2A3A !important; color: var(--text) !important;
+        border-color: var(--border) !important;
+    }
+    .dark-mode .qp-pb { background: #1E2A3A !important; border-color: #2A3A4A !important; color: var(--muted) !important; }
+    .dark-mode .qp-pb.active { background: var(--blue) !important; color: #FFFFFF !important; }
+    .dark-mode .qp-fl-create,
+    body.dark-mode a.qp-fl-create { color: #FFFFFF !important; -webkit-text-fill-color: #FFFFFF !important; }
+    body.dark-mode .qp-badge.bd-accepted { background-color: #2A3A4A !important; color: #DCFCE7 !important; border: 1px solid #15803D !important; }
+    body.dark-mode .qp-stat { background: rgba(0,0,0,0.25) !important; }
+</style>
+
+<div class="content qp-wrap">
+
+    <!-- Breadcrumb -->
+    <div class="qp-bc">
+        <a href="/Home"><i class="fa-solid fa-house" style="font-size:0.6rem;"></i> Home</a>
+        <span class="qp-bc-sep">/</span>
+        <span>Quotations</span>
+    </div>
+
+    <!-- Header -->
+    <div class="qp-header mb-1">
+        <div class="qp-hd-left">
+            <div class="qp-hd-icon"><i class="fa-solid fa-file-invoice"></i></div>
+            <div>
+                <div class="qp-hd-title">Quotations</div>
+                <div class="qp-hd-sub">Manage price quotations for interested leads</div>
+            </div>
+        </div>
+        <div class="qp-hd-stats">
+            <div class="qp-stat">
+                <div class="qp-stat-n">@Model.Count</div>
+                <div class="qp-stat-l">Total</div>
+            </div>
+            <div class="qp-stat">
+                <div class="qp-stat-n">@Model.Count(q => q.Status == "Accepted")</div>
+                <div class="qp-stat-l">Accepted</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters Row -->
+    <div class="qp-filters">
+        <span class="qp-fl-label"><i class="fa-solid fa-sliders"></i> Filters</span>
+        <div class="qp-fl-sep"></div>
+
+        <div class="qp-fl-search">
+            <div class="qp-fl-search-icon"><i class="fa-solid fa-magnifying-glass"></i></div>
+            <input type="text" id="searchInput" placeholder="Customer, amount, status…" value="@ViewBag.SearchTerm" />
+        </div>
+        <span class="search-err" id="searchErr">Min. 2 characters</span>
+
+        <select class="qp-fl-select" id="statusFilter">
+            <option value="">All Status</option>
+            <option value="Draft">Draft</option>
+            <option value="Sent">Sent</option>
+            <option value="Accepted">Accepted</option>
+            <option value="Rejected">Rejected</option>
+            <option value="Expired">Expired</option>
+        </select>
+
+        @if (canCreate)
+        {
+            <a href="/Quotations/Create" class="qp-fl-create">
+                <i class="fa-solid fa-plus"></i> New Quotation
+            </a>
+        }
+    </div>
+
+    <!-- Cards -->
+    @if (Model.Any())
+    {
+        <div class="qp-grid" id="quotationsList">
+            @foreach (var quotation in Model)
+            {
+                var lead = leads.FirstOrDefault(l => l.LeadId == quotation.LeadId);
+                var property = properties.FirstOrDefault(p => p.PropertyId == quotation.PropertyId);
+                var flat = quotation.FlatId.HasValue ? flats.FirstOrDefault(f => f.FlatId == quotation.FlatId) : null;
+                var flatBooking = quotation.FlatId.HasValue ? bookings.FirstOrDefault(b => b.FlatId == quotation.FlatId.Value) : null;
+                var isBookedByOther = quotation.Status == "Accepted" && flatBooking != null && flatBooking.LeadId != quotation.LeadId;
+                var badgeClass = isBookedByOther ? "bd-booked" : $"bd-{quotation.Status.ToLower()}";
+                var statusLabel = isBookedByOther ? "Booked by Other" : quotation.Status;
+                var cardClass = $"s-{quotation.Status.ToLower()}";
+
+                <div class="paginated-item">
+                    <div class="qp-card @cardClass" data-quotation-id="@quotation.QuotationId">
+                        <div class="qp-card-inner">
+
+                            <!-- Info -->
+                            <div class="qp-ci">
+                                <div class="qp-ci-top">
+                                    <span class="qp-num">@quotation.QuotationNumber</span>
+                                    <span class="qp-badge @badgeClass" data-status="@quotation.Status">@statusLabel</span>
+                                    @if (quotation.FlatId.HasValue && flat != null)
+                                    {
+                                        <span class="qp-bhk">@flat.BHK</span>
+                                    }
+                                </div>
+                                <div class="qp-name">
+                                    <i class="fa-solid fa-user" style="color:var(--gold);font-size:0.58rem;margin-right:3px;"></i>@(lead?.Name ?? "Unknown Lead")
+                                </div>
+                                <div class="qp-meta">
+                                    <i class="fa-solid fa-building" style="color:var(--blue);"></i>
+                                    @(property?.PropertyName ?? "Unknown")@if (flat != null){ <span> · @flat.FlatName</span> }
+                                    <span style="margin-left:4px;">· @quotation.QuotationDate.ToString("MMM dd, yy")</span>
+                                    @if (quotation.ValidUntil.HasValue)
+                                    {
+                                        <span> · <i class="fa-regular fa-calendar-check"></i> @quotation.ValidUntil.Value.ToString("MMM dd, yy")</span>
+                                    }
+                                </div>
+                                <span class="quotation-notes" style="display:none;">@quotation.Notes</span>
+                            </div>
+
+                            <!-- Amount -->
+                            <div class="qp-cr">
+                                <div class="qp-cr-label">Grand Total</div>
+                                <div class="qp-cr-amt">₹@quotation.GrandTotal.ToString("N0")</div>
+                                @if (quotation.DiscountAmount > 0)
+                                {
+                                    <div class="qp-cr-disc"><i class="fa-solid fa-tag" style="font-size:0.52rem;"></i> ₹@quotation.DiscountAmount.ToString("N0") off</div>
+                                }
+                            </div>
+
+                            <!-- Actions -->
+                            <div class="qp-ca">
+                            <a href="/quotationdetails/@IdObfuscator.Encode(quotation.QuotationId)" class="btn-qv">
+                                    <i class="fa-solid fa-eye"></i> View
+                                </a>
+                                <div class="dropdown">
+                                    <button class="btn-qm" data-bs-toggle="dropdown" aria-expanded="false">
+                                        <i class="fa-solid fa-ellipsis-v"></i>
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-end">
+                                    <li><a class="dropdown-item" href="/quotationdetails/@IdObfuscator.Encode(quotation.QuotationId)"><i class="fa-solid fa-download me-2" style="color:var(--gold);"></i>Download PDF</a></li>
+                                        @if (canEdit)
+                                        {
+                                            <li><hr class="dropdown-divider"></li>
+                                            <li><a class="dropdown-item status-action" href="#" data-quotation-id="@quotation.QuotationId" data-status="Sent"><i class="fa-solid fa-paper-plane me-2" style="color:var(--blue);"></i>Mark as Sent</a></li>
+                                            <li><a class="dropdown-item status-action" href="#" data-quotation-id="@quotation.QuotationId" data-status="Accepted"><i class="fa-solid fa-check me-2" style="color:var(--success);"></i>Mark as Accepted</a></li>
+                                            <li><a class="dropdown-item status-action" href="#" data-quotation-id="@quotation.QuotationId" data-status="Rejected"><i class="fa-solid fa-times me-2" style="color:var(--danger);"></i>Mark as Rejected</a></li>
+                                        }
+                                        @if (canDelete)
+                                        {
+                                            <li><hr class="dropdown-divider"></li>
+                                            <li><a class="dropdown-item text-danger delete-action" href="#" data-quotation-id="@quotation.QuotationId"><i class="fa-solid fa-trash me-2"></i>Delete</a></li>
+                                        }
+                                    </ul>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+
+        <!-- Pagination -->
+        <div class="qp-pag" id="paginationContainer" style="display:none;">
+            <div class="qp-pag-info"><span id="paginationInfo"></span></div>
+            <div class="qp-pag-btns">
+                <button class="qp-pb" id="prevBtn" onclick="changePage(-1)"><i class="fa-solid fa-chevron-left"></i> Prev</button>
+                <div id="pageNumbers" style="display:flex;gap:0.25rem;"></div>
+                <button class="qp-pb" id="nextBtn" onclick="changePage(1)">Next <i class="fa-solid fa-chevron-right"></i></button>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="qp-empty">
+            <i class="fa-solid fa-file-invoice"></i>
+            <h4>No Quotations Found</h4>
+            <p>Create your first quotation to get started</p>
+            @if (canCreate)
+            {
+                <a href="/Quotations/Create" class="qp-fl-create mt-2"><i class="fa-solid fa-plus"></i> Create Quotation</a>
+            }
+        </div>
+    }
+</div>
+
+<script>
+    let currentPage = 1;
+    const pageSize = 10;
+    let filteredItems = [];
+
+    function applyFilters() {
+        const search = document.getElementById('searchInput').value.toLowerCase().trim();
+        const status = document.getElementById('statusFilter').value;
+        const errEl = document.getElementById('searchErr');
+
+        errEl.classList.toggle('show', search.length === 1);
+
+        filteredItems = [];
+        document.querySelectorAll('#quotationsList .qp-card').forEach(function (card) {
+            const text = card.textContent.toLowerCase();
+            const rawStatus = card.querySelector('.qp-badge')?.getAttribute('data-status') || '';
+            const matchSearch = !search || search.length < 2 || text.includes(search);
+            const matchStatus = !status || rawStatus.toLowerCase() === status.toLowerCase();
+            if (matchSearch && matchStatus) filteredItems.push(card.closest('.paginated-item'));
+        });
+
+        currentPage = 1;
+        updatePagination();
+    }
+
+    function updatePagination() {
+        const totalPages = Math.ceil(filteredItems.length / pageSize);
+        const startIndex = (currentPage - 1) * pageSize;
+        const endIndex = Math.min(startIndex + pageSize, filteredItems.length);
+
+        document.querySelectorAll('.paginated-item').forEach(el => el.style.display = 'none');
+        for (let i = startIndex; i < endIndex; i++) {
+            if (filteredItems[i]) filteredItems[i].style.display = 'block';
+        }
+
+        const start = filteredItems.length > 0 ? startIndex + 1 : 0;
+        document.getElementById('paginationInfo').textContent =
+            `Showing ${start}–${endIndex} of ${filteredItems.length} quotations`;
+
+        updatePageNumbers(totalPages);
+        document.getElementById('prevBtn').disabled = currentPage === 1;
+        document.getElementById('nextBtn').disabled = currentPage === totalPages || totalPages === 0;
+        document.getElementById('paginationContainer').style.display = filteredItems.length > 0 ? 'flex' : 'none';
+    }
+
+    function updatePageNumbers(totalPages) {
+        const container = document.getElementById('pageNumbers');
+        container.innerHTML = '';
+        if (totalPages <= 1) return;
+        const max = 5;
+        let start = Math.max(1, currentPage - Math.floor(max / 2));
+        let end = Math.min(totalPages, start + max - 1);
+        if (end - start + 1 < max) start = Math.max(1, end - max + 1);
+        for (let i = start; i <= end; i++) {
+            const btn = document.createElement('button');
+            btn.className = 'qp-pb' + (i === currentPage ? ' active' : '');
+            btn.textContent = i;
+            btn.onclick = (function (p) { return function () { goToPage(p); }; })(i);
+            container.appendChild(btn);
+        }
+    }
+
+    function changePage(dir) {
+        const total = Math.ceil(filteredItems.length / pageSize);
+        const np = currentPage + dir;
+        if (np >= 1 && np <= total) { currentPage = np; updatePagination(); }
+    }
+
+    function goToPage(p) { currentPage = p; updatePagination(); }
+
+    window.addEventListener('load', function () {
+        filteredItems = Array.from(document.querySelectorAll('.paginated-item'));
+        updatePagination();
+        document.getElementById('statusFilter').value = '@ViewBag.StatusFilter';
+        document.getElementById('searchInput').addEventListener('input', applyFilters);
+        document.getElementById('statusFilter').addEventListener('change', applyFilters);
+        document.getElementById('searchInput').addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') applyFilters();
+        });
+
+        $(document).on('click', '.status-action', function (e) {
+            e.preventDefault();
+            updateStatus($(this).data('quotation-id'), $(this).data('status'));
+        });
+        $(document).on('click', '.delete-action', function (e) {
+            e.preventDefault();
+            deleteQuotation($(this).data('quotation-id'));
+        });
+    });
+
+    function updateStatus(quotationId, status) {
+        $.ajax({
+            url: '/Quotations/UpdateStatus', type: 'POST', dataType: 'json',
+            data: { quotationId: quotationId, status: status }, traditional: true,
+            success: function (response) {
+                if (response.success) {
+                    Swal.fire({ icon: 'success', title: 'Success!', text: response.message, timer: 2000, showConfirmButton: false })
+                        .then(() => { window.location.href = '/Quotations'; });
+                } else { Swal.fire('Error', response.message, 'error'); }
+            },
+            error: function () { Swal.fire('Error', 'Failed to update status', 'error'); }
+        });
+    }
+
+    function deleteQuotation(quotationId) {
+        Swal.fire({
+            title: 'Are you sure?', text: "You won't be able to revert this!",
+            icon: 'warning', showCancelButton: true,
+            confirmButtonColor: '#DC2626', cancelButtonColor: '#6B7B8D',
+            confirmButtonText: 'Yes, delete it!'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                $.ajax({
+                    url: '/Quotations/Delete/' + quotationId, type: 'POST',
+                    success: function (response) {
+                        if (response.success) {
+                            Swal.fire('Deleted!', response.message, 'success').then(() => location.reload());
+                        } else { Swal.fire('Error', response.message, 'error'); }
+                    }
+                });
+            }
+        });
+    }
+</script>

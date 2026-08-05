@@ -1,0 +1,27 @@
+@model CRM.Models.ExpenseModel
+@{
+    ViewData["Title"] = "Expense Details";
+}
+<div class="container mt-4">
+    <div class="card">
+        <div class="card-header bg-primary text-white">
+            <h4>Expense Details</h4>
+        </div>
+        <div class="card-body">
+            <dl class="row">
+                <dt class="col-sm-3">Type</dt>
+                <dd class="col-sm-9">@Model.Type</dd>
+                <dt class="col-sm-3">Amount</dt>
+                <dd class="col-sm-9">₹@Model.Amount.ToString("N0")</dd>
+                <dt class="col-sm-3">Date</dt>
+                <dd class="col-sm-9">@Model.Date.ToString("MMM dd, yyyy")</dd>
+                <dt class="col-sm-3">Description</dt>
+                <dd class="col-sm-9">@Model.Description</dd>
+            </dl>
+            <a href="/Expenses/Index" class="btn btn-secondary">Back to List</a>
+        </div>
+    </div>
+</div>
+
+
+

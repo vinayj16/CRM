@@ -1,0 +1,886 @@
+<!-- Global Search Bar -->
+<div class="global-search-container">
+    <div class="search-wrapper">
+        <i class="fa-solid fa-magnifying-glass search-icon" aria-hidden="true"></i>
+        <input type="text" 
+               id="globalSearchInput" 
+               class="global-search-input" 
+               placeholder="Search leads, documents, projects, anything here..." 
+               autocomplete="off">
+        <div id="searchResults" class="search-results-dropdown"></div>
+    </div>
+</div>
+
+<style>
+    .global-search-container {
+        flex: 0 1 50%;
+        max-width: 50%;
+        min-width: 220px;
+        margin: 0 20px;
+        position: relative;
+    }
+
+    .search-wrapper {
+        position: relative;
+        width: 100%;
+    }
+
+    .search-icon {
+        position: absolute;
+        left: 10px;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 15px;
+        height: 15px;
+        color: #6B7B8D;
+        pointer-events: none;
+        z-index: 1;
+        font-size: 13px;
+    }
+
+    .global-search-input {
+        width: 100%;
+        padding: 6px 12px 6px 36px;
+        border: 1px solid #E2E8F0;
+        border-radius: 20px;
+        font-size: 13px;
+        transition: all 0.3s ease;
+        background: #FFFFFF;
+        height: 32px;
+    }
+
+    .global-search-input:focus {
+        outline: none;
+        border-color: #1A6FA8;
+        box-shadow: 0 0 0 3px rgba(26,111,168,0.12);
+    }
+
+    .search-results-dropdown {
+        position: absolute;
+        top: calc(100% + 8px);
+        left: 0;
+        right: 0;
+        background: #FFFFFF;
+        border: 1px solid #E2E8F0;
+        border-radius: 12px;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+        max-height: 450px;
+        overflow-y: auto;
+        display: none;
+        z-index: 1050;
+        width: 100%;
+        scrollbar-width: none;
+    }
+
+    .search-results-dropdown::-webkit-scrollbar {
+        display: none;
+    }
+
+    .search-results-dropdown.show {
+        display: block;
+    }
+
+    .search-result-item {
+        padding: 12px 16px;
+        border-bottom: 1px solid #F0F4F8;
+        cursor: pointer;
+        transition: background 0.2s;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        text-decoration: none;
+        color: inherit;
+    }
+
+    .search-result-item:last-child {
+        border-bottom: none;
+    }
+
+    .search-result-item:hover {
+        background: #F0F4F8;
+    }
+
+    .search-result-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+
+    /* .search-result-icon.lead { background: #E8EDF2; color: #2589C9; }
+    .search-result-icon.property { background: #E8EDF2; color: #6B7B8D; }
+    .search-result-icon.agent { background: #E8EDF2; color: #15803D; }
+    .search-result-icon.booking { background: #FEE2E2; color: #F59E0B; }
+    .search-result-icon.document { background: #FEE2E2; color: #DC2626; }
+    .search-result-icon.page { background: #E8EDF2; color: #1A6FA8; }
+    .search-result-icon.agent-document { background: #FEE2E2; color: #DC2626; }
+    .search-result-icon.property-document { background: #FEE2E2; color: #DC2626; }
+    .search-result-icon.partner-document { background: #FEE2E2; color: #DC2626; } */
+
+        .search-result-icon.lead {
+            background: #F0F4F8;
+            color: #6B7B8D;
+        }
+
+        .search-result-icon.property {
+            background: #F0F4F8;
+            color: #6B7B8D;
+        }
+
+        .search-result-icon.agent {
+            background: #F0F4F8;
+            color: #6B7B8D;
+        }
+
+        .search-result-icon.booking {
+            background: #F0F4F8;
+            color: #B8883E;
+        }
+
+        .search-result-icon.document {
+            background: #F0F4F8;
+            color: #6B7B8D;
+        }
+
+        .search-result-icon.page {
+            background: #F0F4F8;
+            color: #6B7B8D;
+        }
+
+        .search-result-icon.agent-document {
+            background: #F0F4F8;
+            color: #6B7B8D;
+        }
+
+        .search-result-icon.property-document {
+            background: #F0F4F8;
+            color: #6B7B8D;
+        }
+
+        .search-result-icon.partner-document {
+            background: #F0F4F8;
+            color: #6B7B8D;
+        }
+
+
+    .search-result-content {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .search-result-title {
+        font-weight: 600;
+        font-size: 14px;
+        color: #1A2332;
+        margin-bottom: 2px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .search-result-subtitle {
+        font-size: 12px;
+        color: #6B7B8D;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .search-result-type {
+        font-size: 10px;
+        padding: 3px 8px;
+        border-radius: 12px;
+        background: #E8EDF2;
+        color: #2A3A4A;
+        font-weight: 600;
+        flex-shrink: 0;
+        white-space: nowrap;
+    }
+
+    .search-no-results, .search-loading {
+        padding: 24px;
+        text-align: center;
+        color: #6B7B8D;
+        font-size: 14px;
+    }
+
+    /* Dark Mode */
+    .dark-mode .global-search-input {
+        background: #2A3A4A;
+        border-color: #2A3A4A;
+        color: #E2E8F0;
+    }
+
+    .dark-mode .global-search-input:focus {
+        border-color: #1A6FA8;
+        box-shadow: 0 0 0 3px rgba(26,111,168, 0.1);
+    }
+
+    .dark-mode .search-results-dropdown {
+        background: #1E2A3A;
+        border-color: #2A3A4A;
+    }
+
+    .dark-mode .search-result-item {
+        border-bottom-color: #2A3A4A;
+        color: #E2E8F0;
+    }
+
+    .dark-mode .search-result-item:hover {
+        background: #2A3A4A;
+    }
+
+    .dark-mode .search-result-title {
+        color: #E2E8F0;
+    }
+
+    .dark-mode .search-result-subtitle {
+        color: #8FA3B8;
+    }
+
+    .dark-mode .search-result-type {
+        background: #2A3A4A;
+        color: #E2E8F0;
+    }
+
+    .dark-mode .search-result-icon svg,
+    .dark-mode .search-result-icon i {
+        color: inherit !important;
+        stroke: currentColor !important;
+    }
+
+    .dark-mode .search-result-icon.lead { background: #2A3A4A; color: #B8C8D8; }
+    .dark-mode .search-result-icon.property { background: #2A3A4A; color: #B8C8D8; }
+    .dark-mode .search-result-icon.agent { background: #1E2A3A; color: #8FA3B8; }
+    .dark-mode .search-result-icon.booking { background: #1A2332; color: #D4A45A; }
+    .dark-mode .search-result-icon.document { background: #1A2332; color: #E8C27E; }
+    .dark-mode .search-result-icon.page { background: #162436; color: #8FA3B8; }
+    .dark-mode .search-result-icon.agent-document { background: #1A2332; color: #E8C27E; }
+    .dark-mode .search-result-icon.property-document { background: #1A2332; color: #E8C27E; }
+    .dark-mode .search-result-icon.partner-document { background: #1A2332; color: #E8C27E; }
+
+    .page-card {
+        border: none !important;
+        color: #FFFFFF !important;
+        box-shadow: 0 6px 14px rgba(0,0,0,0.15);
+        transition: all 0.3s ease;
+        font-weight: 600;
+    }
+
+        /* Make text & icons follow card color */
+        .page-card i,
+        .page-card div {
+            color: inherit !important;
+            fill: currentColor;
+        }
+
+
+    .dark-mode .page-card {
+        border-color: #2A3A4A !important;
+        background: #2A3A4A !important;
+    }
+
+    .page-card:hover {
+        transform: translateY(-6px);
+        filter: brightness(1.15);
+    }
+
+
+    .dark-mode .page-card:hover {
+        background: #2A3A4A !important;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    }
+
+    /* Mobile Responsive */
+    @@media (max-width: 991px) {
+        .navbar-bg {
+            padding: 0 5px !important;
+            display: flex !important;
+            justify-content: space-between !important;
+            align-items: center !important;
+        }
+
+        .sidebar-toggle {
+            padding: 0 5px !important;
+            flex-shrink: 0;
+        }
+
+        .global-search-container {
+            flex: 1;
+            max-width: none;
+            margin: 0 5px;
+            min-width: 0;
+        }
+
+        .global-search-input {
+            font-size: 12px;
+            padding: 5px 8px 5px 28px;
+            width: 100% !important;
+            border-radius: 20px;
+            height: 28px;
+        }
+
+        .search-icon {
+            left: 6px;
+            width: 12px;
+            height: 12px;
+            font-size: 11px;
+        }
+
+        .search-results-dropdown {
+            max-height: 70vh;
+            border-radius: 8px;
+            left: 0 !important;
+            right: 0 !important;
+            width: 100% !important;
+            position: fixed !important;
+            top: 56px !important;
+            left: 0 !important;
+            right: 0 !important;
+            margin: 0 !important;
+            border-radius: 0 !important;
+            border-left: none !important;
+            border-right: none !important;
+        }
+
+        .search-result-item {
+            padding: 10px 12px;
+        }
+
+        .search-result-icon {
+            width: 36px;
+            height: 36px;
+        }
+
+        .search-result-title {
+            font-size: 13px;
+        }
+
+        .search-result-subtitle {
+            font-size: 11px;
+        }
+
+        .search-result-type {
+            font-size: 9px;
+            padding: 2px 6px;
+        }
+
+        .navbar-collapse {
+            flex-shrink: 0;
+        }
+
+        .navbar-nav {
+            margin-left: 0 !important;
+            flex-direction: row !important;
+            align-items: center !important;
+        }
+
+        .nav-item {
+            padding: 0 3px !important;
+        }
+
+        .nav-item .nav-icon,
+        .nav-item .nav-link {
+            padding: 0 5px !important;
+        }
+
+        .nav-item .avatar {
+            width: 28px !important;
+            height: 28px !important;
+        }
+
+        .nav-item .text-dark {
+            display: none !important;
+        }
+    }
+
+   /* ===== ULTRAKEY CRM THEME CARDS ===== */
+
+.card-leads {
+    background: linear-gradient(135deg, #1A6FA8, #1A6FA8);
+}
+
+.card-properties {
+    background: linear-gradient(135deg, #2589C9, #2589C9);
+}
+
+.card-finance {
+    background: linear-gradient(135deg, #16A34A, #2589C9);
+}
+
+.card-bookings {
+    background: linear-gradient(135deg, #F59E0B, #F59E0B);
+}
+
+.card-settings {
+    background: linear-gradient(135deg, #125082, #125082);
+}
+
+.card-dashboard {
+    background: linear-gradient(135deg, #D4A45A, #E8C27E);
+}
+
+
+.card-tenants {
+    background: linear-gradient(135deg, #2589C9, #2589C9)
+}
+
+    .card-inquiries {
+        background: linear-gradient(135deg, #F59E0B, #F59E0B)
+    }
+
+    .card-create-tenant {
+        background: linear-gradient(135deg, #16A34A, #2589C9);
+    }
+
+
+/* ===== CARD BASE STYLE ===== */
+
+.page-card {
+    border: none !important;
+    color: #FFFFFF !important;
+    box-shadow: 0 6px 14px rgba(0,0,0,0.15);
+    transition: all 0.3s ease;
+    font-weight: 600;
+}
+
+/* TEXT & ICON VISIBILITY */
+
+.page-card div {
+    color: inherit !important;
+    font-size: 14px;
+    letter-spacing: 0.3px;
+}
+
+.page-card i {
+            color: #inherit !important;
+            display: block;
+            margin: 0 auto;
+            color: inherit;
+}
+
+/* HOVER EFFECT */
+
+.page-card:hover {
+            transform: translateY(-5px) scale(1.02) ;
+    box-shadow: 0 14px 26px rgba(0,0,0,0.25);
+}
+
+
+/* ===== FAVORITES TITLE FIX ===== */
+
+.favorites-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: #1E2A3A;
+}
+
+/* DARK MODE */
+
+body.dark-mode .favorites-title {
+    color: #E2E8F0;
+    }
+
+    .page-card {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+    }
+</style>
+
+<script>
+    var searchTimeout;
+    const searchInput = document.getElementById('globalSearchInput');
+    const searchResults = document.getElementById('searchResults');
+
+    var userRole='';
+
+    fetch('/Search/GetUserRole').then(r=> r.json()).then(d => { if (d.success) userRole = d.role;}).catch(()=>{});
+
+    searchInput.addEventListener('focus', function() {
+        showRecentAndPages();
+    });
+
+    var _searchIsSuperAdmin = (userRole == 'SuperAdmin');
+    searchInput.addEventListener('input', function() {
+        clearTimeout(searchTimeout);
+        const query = this.value.trim();
+
+        if (query.length === 0) {
+            showRecentAndPages();
+            return;
+        }
+
+        if (query.length < 2) {
+            searchResults.classList.remove('show');
+            return;
+        }
+
+        searchResults.innerHTML = '<div class="search-loading"><i data-feather="loader"></i> Searching...</div>';
+        searchResults.classList.add('show');
+        feather.replace();
+
+        searchTimeout = setTimeout(() => {
+            fetch(`/Search/GlobalSearch?query=${encodeURIComponent(query)}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success && data.results.length > 0) {
+
+                        
+                        
+                        if(!_searchIsSuperAdmin && userRole !== 'SuperAdmin'){
+                        fetch('/Search/SaveRecentSearch', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ searchTerm: query })
+                        });
+                        }
+                        displayGroupedResults(data.results);
+                    } else {
+                        searchResults.innerHTML = '<div class="search-no-results">No results found</div>';
+                    }
+                })
+                .catch(error => {
+                    searchResults.innerHTML = '<div class="search-no-results">Error searching</div>';
+                });
+        }, 300);
+    });
+
+    function showRecentAndPages() {
+        const isDark = document.body.classList.contains('dark-mode');
+        let html = '<div style="padding: 16px;">';
+
+    // SuperAdmin: skip favorites/recent API calls (no tenant DB)
+    if (_searchIsSuperAdmin || userRole === 'SuperAdmin') {
+        html += `<div style="font-weight: 600; font-size: 12px; color: ${isDark ? '#8FA3B8' : '#6B7B8D'}; margin: 16px 0 12px 0;">QUICK ACCESS</div>`;
+        html += '<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px;">';
+        var saPages = [
+            {name: 'Dashboard', icon: 'shield', url: '/SuperAdmin/Dashboard', color: '#1E2A3A'},
+            {name: 'Tenants', icon: 'plus-circle', url: '/SuperAdmin/Tenants', color: '#2589C9'},
+            {name: 'Inquiries', icon: 'mail', url: '/SuperAdmin/Inquiries', color: '#16A34A'},
+            {name: 'Create Tenant', icon: 'database', url: '/SuperAdmin/CreateTenant', color: '#F59E0B'}
+        ];
+        saPages.forEach(page => {
+            var cardClass = 'card-' + page.name.toLowerCase().replace(/\s+/g, '-');
+            html += `<a href="${page.url}" class="page-card ${cardClass}" style="padding: 16px; border-radius: 8px; text-align: center; text-decoration: none; position: relative;">
+                <i data-feather="${page.icon}" style="width: 24px; height: 24px; margin-bottom: 8px;"></i>
+                <div style="font-size: 13px; font-weight: 500;">${page.name}</div>
+            </a>`;
+        });
+        html += '</div></div>';
+        searchResults.innerHTML = html;
+        searchResults.classList.add('show');
+        feather.replace();
+        return;
+    }
+
+        // Load favorites and recent searches from database
+        Promise.all([
+            fetch('/Search/GetFavorites').then(r => r.ok ? r.json() : {success: true, favorites: []}).catch(() => ({success: true, favorites: []})),
+            fetch('/Search/GetRecentSearches').then(r => r.ok ? r.json() : {success: true, searches: []}).catch(() => ({success: true, searches: []}))
+        ]).then(([favData, recentData]) => {
+            
+            const favorites = favData.favorites || [];
+            const recent = recentData.searches || [];
+            
+            // Show recent searches
+            if (recent.length > 0) {
+                html += `<div style="font-weight: 600; font-size: 12px; color: ${isDark ? '#8FA3B8' : '#6B7B8D'}; margin-bottom: 12px;">RECENT SEARCHES</div>`;
+                html += `<div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px;">`;
+                recent.forEach(term => {
+                    html += `<div class="recent-pill" style="padding: 6px 12px; background: ${isDark ? '#2A3A4A' : '#E8EDF2'}; color: ${isDark ? '#E2E8F0' : '#1A2332'}; border-radius: 16px; cursor: pointer; white-space: nowrap; font-size: 13px; display: flex; align-items: center; gap: 6px;">
+                        <i data-feather="clock" style="width: 14px; height: 14px; color: ${isDark ? '#8FA3B8' : '#6B7B8D'};"></i>
+                        <span onclick="searchFor('${term}')">${term}</span>
+                        <i data-feather="x" onclick="removeRecentSearch(event, '${term}')" style="width: 14px; height: 14px; color: ${isDark ? '#8FA3B8' : '#6B7B8D'}; cursor: pointer;"></i>
+                    </div>`;
+                });
+                html += '</div>';
+            }
+            
+            // Show favorites
+            if (favorites.length > 0) {
+                html += `<div style="font-weight: 600; font-size: 12px; color: ${isDark ? '#8FA3B8' : '#6B7B8D'}; margin: 16px 0 12px 0;">FAVORITES</div>`;
+                html += '<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; margin-bottom: 16px;">';
+                    favorites.forEach(fav => {
+        html += `<a href="${fav.pageUrl}"
+            class="page-card card-${fav.pageName.toLowerCase()}"
+            style="padding:16px; border-radius:10px; text-align:center;
+            text-decoration:none; position:relative;">
+
+            <i data-feather="${fav.pageIcon}"
+               style="width:26px; height:26px; margin-bottom:8px;"></i>
+
+            <div>${fav.pageName}</div>
+
+            <i data-feather="star"
+               onclick="toggleFavorite(event,'${fav.pageName}','${fav.pageUrl}','${fav.pageIcon}','${fav.pageColor}')"
+               style="position:absolute; top:8px; right:8px;
+               width:16px; height:16px;
+               color:#F59E0B; fill:#F59E0B; cursor:pointer;">
+            </i>
+
+        </a>`;
+    });
+
+                html += '</div>';
+            }
+            
+
+            
+            // Show quick access
+            html += `<div style="font-weight: 600; font-size: 12px; color: ${isDark ? '#8FA3B8' : '#6B7B8D'}; margin: 16px 0 12px 0;">QUICK ACCESS</div>`;
+            html += '<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px;">';
+            
+            let pages = [];
+            if (userRole === 'SuperAdmin') {
+                pages = [
+                    {name: 'Dashboard', icon: 'shield', url: '/SuperAdmin/Dashboard', color: '#1E2A3A'},
+                    {name: 'Tenants', icon: 'database', url: '/SuperAdmin/Tenants', color: '#2589C9'},
+                    {name: 'Inquiries', icon: 'mail', url: '/SuperAdmin/Inquiries', color: '#16A34A'},
+                    {name: 'Create Tenant', icon: 'plus-circle', url: '/SuperAdmin/CreateTenant', color: '#F59E0B'}
+                ];
+            } else if (userRole === 'Sales' || userRole === 'Agent') {
+                pages = [
+                    {name: 'Leads', icon: 'users', url: '/Leads', color: '#2589C9'},
+                    {name: 'Properties', icon: 'home', url: '/Properties', color: '#6B7B8D'},
+                    {name: 'Bookings', icon: 'book-open', url: '/Bookings', color: '#F59E0B'},
+                    {name: 'Dashboard', icon: 'home', url: '/home', color: '#2589C9'}
+                ];
+            } else {
+                pages = [
+                    {name: 'Leads', icon: 'users', url: '/Leads', color: '#2589C9'},
+                    {name: 'Properties', icon: 'home', url: '/Properties', color: '#6B7B8D'},
+                    {name: 'Finance', icon: 'credit-card', url: '/Expenses', color: '#15803D'},
+                    {name: 'Bookings', icon: 'book-open', url: '/Bookings', color: '#F59E0B'},
+                    {name: 'Settings', icon: 'settings', url: '/Settings', color: '#1A6FA8'},
+                    {name: 'Dashboard', icon: 'home', url: '/home', color: '#2589C9'}
+                ];
+            }
+            
+                const favoriteNames = favorites.map(f => f.pageName);
+
+    pages.forEach(page => {
+        const isFav = favoriteNames.includes(page.name);
+
+       html += `<a href="${page.url}"
+            class="page-card card-${page.name.toLowerCase()}"
+            style="padding: 16px;
+                   border-radius: 8px;
+                   text-align: center;
+                   text-decoration: none;
+                   transition: all 0.2s;
+                   position: relative;">
+
+
+            <i data-feather="${page.icon}"
+               style="width: 24px; height: 24px; margin-bottom: 8px;"></i>
+
+            <div style="font-size: 13px; font-weight: 500;">
+                ${page.name}
+            </div>
+
+            <i data-feather="star"
+               onclick="toggleFavorite(event, '${page.name}', '${page.url}', '${page.icon}', '${page.color}')"
+               style="position: absolute; top: 8px; right: 8px; width: 16px; height: 16px;
+               color: ${isFav ? '#F59E0B' : (isDark ? '#8FA3B8' : '#6B7B8D')};
+               ${isFav ? 'fill: #F59E0B;' : ''} cursor: pointer;">
+            </i>
+        </a>`;
+    });
+
+            
+            html += '</div></div>';
+            searchResults.innerHTML = html;
+            searchResults.classList.add('show');
+            feather.replace();
+        }).catch(error => {
+            console.error('Error loading recent searches and favorites:', error);
+            // Fallback to show just quick access if API fails
+            html += `<div style="font-weight: 600; font-size: 12px; color: ${isDark ? '#8FA3B8' : '#6B7B8D'}; margin: 16px 0 12px 0;">QUICK ACCESS</div>`;
+            html += '<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px;">';
+
+                let pages = [];
+                if (userRole === 'SuperAdmin') {
+                    pages = [
+                        {name: 'Dashboard', icon: 'shield', url: '/SuperAdmin/Dashboard', color: '#1E2A3A'},
+                        {name: 'Tenants', icon: 'database', url: '/SuperAdmin/Tenants', color: '#2589C9'},
+                        {name: 'Inquiries', icon: 'mail', url: '/SuperAdmin/Inquiries', color: '#16A34A'},
+                        {name: 'Create Tenant', icon: 'plus-circle', url: '/SuperAdmin/CreateTenant', color: '#F59E0B'}
+                    ];
+                } else if (userRole === 'Sales' || userRole === 'Agent') {
+                    pages = [
+                        {name: 'Leads', icon: 'users', url: '/Leads', color: '#2589C9'},
+                        {name: 'Properties', icon: 'home', url: '/Properties', color: '#6B7B8D'},
+                        {name: 'Bookings', icon: 'book-open', url: '/Bookings', color: '#F59E0B'},
+                        {name: 'Dashboard', icon: 'home', url: '/home', color: '#2589C9'}
+                    ];
+                } else {
+                    pages = [
+                        {name: 'Leads', icon: 'users', url: '/Leads', color: '#2589C9'},
+                        {name: 'Properties', icon: 'home', url: '/Properties', color: '#6B7B8D'},
+                        {name: 'Finance', icon: 'credit-card', url: '/Expenses', color: '#15803D'},
+                        {name: 'Bookings', icon: 'book-open', url: '/Bookings', color: '#F59E0B'},
+                        {name: 'Settings', icon: 'settings', url: '/Settings', color: '#1A6FA8'},
+                        {name: 'Dashboard', icon: 'home', url: '/home', color: '#2589C9'}
+                    ];
+                }
+            
+            pages.forEach(page => {
+                html += `<a href="${page.url}" class="page-card card-${page.name.toLowerCase()}" style="padding: 16px; border-radius: 8px; text-align: center; text-decoration: none;">
+                    <i data-feather="${page.icon}" style="width: 24px; height: 24px; margin-bottom: 8px;"></i>
+                    <div style="font-size: 13px; font-weight: 500;">${page.name}</div>
+                </a>`;
+            });
+            
+            html += '</div></div>';
+            searchResults.innerHTML = html;
+            searchResults.classList.add('show');
+            feather.replace();
+        });
+    }
+
+    function displayGroupedResults(results) {
+        const grouped = {};
+        results.forEach(r => {
+            if (!grouped[r.type]) grouped[r.type] = [];
+            grouped[r.type].push(r);
+        });
+        
+        const isDark = document.body.classList.contains('dark-mode');
+        let html = '';
+        let sectionIndex = 0;
+        Object.keys(grouped).forEach(type => {
+            const items = grouped[type];
+            const hasMore = items.length > 2;
+            const sectionId = 'searchSection_' + sectionIndex;
+            html += `<div style="padding: 10px 16px; background: ${isDark ? '#2A3A4A' : '#F0F4F8'}; font-weight: 700; font-size: 13px; color: ${isDark ? '#E2E8F0' : '#1A2332'}; border-bottom: 1px solid ${isDark ? '#2A3A4A' : '#E2E8F0'}; display: flex; justify-content: space-between; align-items: center;">
+                <span>${type.toUpperCase()} (${items.length})</span>
+                ${hasMore ? `<span onclick="toggleSearchSection('${sectionId}', this)" style="cursor:pointer; font-size:12px; font-weight:500; color:${isDark ? '#B8C8D8' : '#2589C9'}; user-select:none; white-space:nowrap;">View All <i data-feather="chevron-down" style="width:14px;height:14px;vertical-align:middle;"></i></span>` : ''}
+            </div>`;
+            items.forEach((result, i) => {
+                const iconType = result.type.toLowerCase().replace(' ', '-');
+                const hidden = (hasMore && i >= 2) ? `style="display:none;"` : '';
+                html += `
+                    <a href="${result.url}" class="search-result-item ${sectionId}-item" ${hidden}>
+                        <div class="search-result-icon ${iconType}">
+                            <i data-feather="${result.icon}"></i>
+                        </div>
+                        <div class="search-result-content">
+                            <div class="search-result-title">${result.title}</div>
+                            <div class="search-result-subtitle">${result.subtitle}</div>
+                        </div>
+                        <span class="search-result-type">${result.type}</span>
+                    </a>
+                `;
+            });
+            sectionIndex++;
+        });
+        searchResults.innerHTML = html;
+        feather.replace();
+    }
+
+    window.toggleSearchSection = function(sectionId, toggleEl) {
+        event.preventDefault();
+        event.stopPropagation();
+        const items = document.querySelectorAll('.' + sectionId + '-item');
+        const isExpanded = toggleEl.getAttribute('data-expanded') === 'true';
+        items.forEach((item, i) => {
+            if (i >= 2) item.style.display = isExpanded ? 'none' : '';
+        });
+        toggleEl.setAttribute('data-expanded', !isExpanded);
+        const isDark = document.body.classList.contains('dark-mode');
+        const chevron = isExpanded ? 'chevron-down' : 'chevron-up';
+        toggleEl.innerHTML = `${isExpanded ? 'View All' : 'Collapse'} <i data-feather="${chevron}" style="width:14px;height:14px;vertical-align:middle;"></i>`;
+        feather.replace();
+    };
+
+    window.toggleFavorite = function(event, name, url, icon, color) {
+        event.preventDefault();
+        event.stopPropagation();
+        if (_searchIsSuperAdmin || userRole === 'SuperAdmin') return;
+        fetch('/Search/ToggleFavorite', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ pageName: name, pageUrl: url, pageIcon: icon, pageColor: color })
+        }).then(r => {
+            if (!r.ok) {
+                console.error('ToggleFavorite failed:', r.status, r.statusText);
+                return { success: false, error: 'Server error' };
+            }
+            return r.json();
+        }).then(data => {
+            if (data.success) {
+                showRecentAndPages();
+            } else {
+                console.error('ToggleFavorite error:', data.error || 'Unknown error');
+            }
+        }).catch(error => {
+            console.error('ToggleFavorite network error:', error);
+        });
+    };
+
+    window.removeRecentSearch = function(event, term) {
+        event.stopPropagation();
+        if (_searchIsSuperAdmin || userRole === 'SuperAdmin') return;
+        fetch('/Search/RemoveRecentSearch', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ searchTerm: term })
+        }).then(r => {
+            if (!r.ok) {
+                console.error('RemoveRecentSearch failed:', r.status, r.statusText);
+                return { success: false };
+            }
+            return r.json();
+        }).then(data => {
+            if (data.success) {
+                showRecentAndPages();
+            }
+        }).catch(error => {
+            console.error('RemoveRecentSearch error:', error);
+        });
+    };
+
+    window.searchFor = function(term) {
+        event.stopPropagation();
+        searchInput.value = term;
+        searchResults.innerHTML = '<div class="search-loading"><i data-feather="loader"></i> Searching...</div>';
+        searchResults.classList.add('show');
+        feather.replace();
+        
+        fetch(`/Search/GlobalSearch?query=${encodeURIComponent(term)}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && data.results.length > 0) {
+                    displayGroupedResults(data.results);
+                } else {
+                    searchResults.innerHTML = '<div class="search-no-results">No results found</div>';
+                }
+            })
+            .catch(error => {
+                searchResults.innerHTML = '<div class="search-no-results">Error searching</div>';
+            });
+    };
+
+    // Close dropdown when clicking outside
+    document.addEventListener('click', function(e) {
+        if (!e.target.closest('.global-search-container')) {
+            searchResults.classList.remove('show');
+        }
+    });
+
+    // Clear search on ESC
+    searchInput.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            this.value = '';
+            searchResults.classList.remove('show');
+        }
+    });
+</script>
+
+
+
