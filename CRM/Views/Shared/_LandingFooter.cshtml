@@ -4,7 +4,7 @@
     var footerAddress = db?.Settings.FirstOrDefault(s => s.SettingKey == "CompanyAddress" && s.ChannelPartnerId == null)?.SettingValue ?? "";
     var footerPhone = db?.Settings.FirstOrDefault(s => s.SettingKey == "CompanyPhone" && s.ChannelPartnerId == null)?.SettingValue ?? "";
     var footerEmail = db?.Settings.FirstOrDefault(s => s.SettingKey == "CompanyEmail" && s.ChannelPartnerId == null)?.SettingValue ?? "";
-    var footerCompanyName = db?.Settings.FirstOrDefault(s => s.SettingKey == "CompanyName" && s.ChannelPartnerId == null)?.SettingValue ?? "PropTech CRM";
+    var footerCompanyName = db?.Settings.FirstOrDefault(s => s.SettingKey == "CompanyName" && s.ChannelPartnerId == null)?.SettingValue ?? "Ultrakey PropTech";
     var footerMapUrl = db?.Settings.FirstOrDefault(s => s.SettingKey == "CompanyMapUrl" && s.ChannelPartnerId == null)?.SettingValue;
 }
 
@@ -33,11 +33,11 @@
                 <div class="d-flex pt-2">
                     @if (!string.IsNullOrEmpty(branding?.TwitterUrl))
                     {
-                        <a class="btn btn-social me-2" href="@branding.TwitterUrl" target="_blank" style="background-color: #2589C9; border-color: #2589C9; color: white; width:40px; height:40px; display:inline-flex; align-items:center; justify-content:center; border-radius:50%;"><i class="fab fa-twitter"></i></a>
+                        <a class="btn btn-social me-2" href="@branding.TwitterUrl" target="_blank" style="background-color: #1F75CB; border-color: #1F75CB; color: white; width:40px; height:40px; display:inline-flex; align-items:center; justify-content:center; border-radius:50%;"><i class="fab fa-twitter"></i></a>
                     }
                     @if (!string.IsNullOrEmpty(branding?.FacebookUrl))
                     {
-                        <a class="btn btn-social me-2" href="@branding.FacebookUrl" target="_blank" style="background-color: #2589C9; border-color: #2589C9; color: white; width:40px; height:40px; display:inline-flex; align-items:center; justify-content:center; border-radius:50%;"><i class="fab fa-facebook-f"></i></a>
+                        <a class="btn btn-social me-2" href="@branding.FacebookUrl" target="_blank" style="background-color: #1F75CB; border-color: #1F75CB; color: white; width:40px; height:40px; display:inline-flex; align-items:center; justify-content:center; border-radius:50%;"><i class="fab fa-facebook-f"></i></a>
                     }
                     @if (!string.IsNullOrEmpty(branding?.InstagramUrl))
                     {
@@ -45,7 +45,7 @@
                     }
                     @if (!string.IsNullOrEmpty(branding?.LinkedInUrl))
                     {
-                        <a class="btn btn-social me-2" href="@branding.LinkedInUrl" target="_blank" style="background-color: #1A6FA8; border-color: #1A6FA8; color: white; width:40px; height:40px; display:inline-flex; align-items:center; justify-content:center; border-radius:50%;"><i class="fab fa-linkedin-in"></i></a>
+                        <a class="btn btn-social me-2" href="@branding.LinkedInUrl" target="_blank" style="background-color: #125082; border-color: #125082; color: white; width:40px; height:40px; display:inline-flex; align-items:center; justify-content:center; border-radius:50%;"><i class="fab fa-linkedin-in"></i></a>
                     }
                     @if (!string.IsNullOrEmpty(branding?.WhatsAppNumber))
                     {

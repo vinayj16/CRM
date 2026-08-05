@@ -11,7 +11,7 @@
 	var branding = ViewBag.Branding as CRM.Models.BrandingModel;
 	var hasCompanyLogo = !string.IsNullOrEmpty(branding?.CompanyLogo);
 	var logoStyle = branding?.LogoDisplayStyle ?? "LogoOnly";
-	var companyName = Model.ContainsKey("CompanyName") && !string.IsNullOrEmpty(Model["CompanyName"]) ? Model["CompanyName"] : "PropTech CRM";
+	var companyName = Model.ContainsKey("CompanyName") && !string.IsNullOrEmpty(Model["CompanyName"]) ? Model["CompanyName"] : "Ultrakey PropTech";
 
 	// Check plan-based branding: only show custom brand if plan has HasCustomBranding
 	bool hasCustomBranding = false;
@@ -107,10 +107,10 @@ catch { role = ""; username = ""; email = ""; }
 <div id="spinner" class="show position-fixed w-100 vh-100 top-0 start-0 d-flex align-items-center justify-content-center" style="background: white; z-index: 99999;">
 	<div style="text-align: center; position: relative;">
 		<div id="logoContainer" style="position: relative; width: 200px; height: 200px; margin: 0 auto 20px;">
-			<img id="logoImage" src="~/icons/PropTech_Logo_Color.png" alt="PropTech CRM" style="width: 100%; height: 100%; object-fit: contain; opacity: 0.2; transition: opacity 0.3s ease;">
+			<img id="logoImage" src="~/icons/Ultrakey_Logo.svg" alt="Ultrakey PropTech" style="width: 100%; height: 100%; object-fit: contain; opacity: 0.2; transition: opacity 0.3s ease;">
 		</div>
 		<div style="width: 300px; height: 4px; background: #E8EDF2; border-radius: 2px; overflow: hidden; margin: 0 auto 10px;">
-			<div id="loadingBar" style="width: 0%; height: 100%; background: linear-gradient(90deg, #1A6FA8, #DC2626); transition: width 0.3s ease;"></div>
+			<div id="loadingBar" style="width: 0%; height: 100%; background: linear-gradient(90deg, #1F75CB, #D4AF37); transition: width 0.3s ease;"></div>
 		</div>
 		<div id="progressText" style="color: #6B7B8D; font-size: 14px; font-weight: 500;">0%</div>
 	</div>
@@ -137,8 +137,8 @@ catch { role = ""; username = ""; email = ""; }
 			}
 			else
 			{
-				<img src="~/icons/PropTech_Logo_Color.png" alt="PropTech CRM" class="lp-nav__logo-icon" style="max-height:40px;" />
-				<span class="lp-nav__brand-name">PropTech CRM</span>
+				<img src="~/icons/Ultrakey_Logo.svg" alt="Ultrakey PropTech" class="lp-nav__logo-icon" style="max-height:40px;" />
+				<span class="lp-nav__brand-name">Ultrakey PropTech</span>
 			}
 		</a>
 		<button class="lp-nav__toggle" id="navToggle" aria-label="Toggle navigation" aria-expanded="false">
@@ -213,7 +213,7 @@ catch { role = ""; username = ""; email = ""; }
 									<a class="dropdown-item" asp-controller="Profile" asp-action="Index">
 										<!-- Profile (Blue) -->
 										<svg width="16" height="16" viewBox="0 0 24 24"
-											 fill="#2589C9" style="margin-right:6px;">
+											 fill="#1F75CB" style="margin-right:6px;">
 											<circle cx="12" cy="8" r="4"></circle>
 											<path d="M4 20c0-4 4-6 8-6s8 2 8 6"></path>
 										</svg>
@@ -283,7 +283,7 @@ catch { role = ""; username = ""; email = ""; }
 <div class="lp-offcanvas" id="navOffcanvas" role="dialog" aria-modal="true" aria-label="Navigation menu">
 	<div class="lp-offcanvas__head">
 		<div class="lp-offcanvas__head-brand">
-			<img src="~/icons/PropTech_Logo_Color.png" alt="PropTech CRM" style="max-height:32px;max-width:110px;object-fit:contain;" />
+			<img src="~/icons/Ultrakey_Logo.svg" alt="Ultrakey PropTech" style="max-height:32px;max-width:180px;object-fit:contain;" />
 		</div>
 		<button class="lp-offcanvas__close" id="offcanvasClose" aria-label="Close menu">&times;</button>
 	</div>
@@ -347,9 +347,9 @@ catch { role = ""; username = ""; email = ""; }
 				<div class="lp-hero__slide" style="background-image:url('https://images.unsplash.com/photo-1556761175-b413da4baf72?w=1920&h=900&fit=crop')">
 					<div class="lp-hero__overlay">
 						<div class="lp-hero__content">
-							<span class="lp-hero__eyebrow">Premium CRM Platform</span>
-							<h1 class="lp-hero__title">Manage Your<br><em>Business</em></h1>
-							<p class="lp-hero__sub">Streamline sales, manage customer relationships, and grow your business efficiently.</p>
+							<span class="lp-hero__eyebrow">Ultrakey PropTech</span>
+							<h1 class="lp-hero__title">Powering Real<br><em>Estate Relationships</em></h1>
+							<p class="lp-hero__sub">Ultrakey PropTech delivers smart, secure, and scalable CRM solutions for developers, agencies, and channel partners - simplifying workflows, enhancing transparency, and driving better conversions.</p>
 							<div class="lp-hero__actions">
 								<a href="#projects" class="lp-btn lp-btn--primary">Explore Projects</a>
 								<a href="#about" class="lp-btn lp-btn--outline">Learn More</a>
@@ -364,9 +364,9 @@ catch { role = ""; username = ""; email = ""; }
 				<div class="lp-hero__slide" style="background-image:url('https://images.unsplash.com/photo-1541888946425-d81bb19240f5?w=1920&h=900&fit=crop')">
 					<div class="lp-hero__overlay">
 						<div class="lp-hero__content">
-							<span class="lp-hero__eyebrow">Exclusive Properties</span>
-							<h1 class="lp-hero__title">Premium Real<br><em>Estate Projects</em></h1>
-							<p class="lp-hero__sub">Discover our collection of residential and commercial properties with prime locations.</p>
+							<span class="lp-hero__eyebrow">Smart &amp; Secure CRM</span>
+							<h1 class="lp-hero__title">Manage Leads, Deals &amp;<br><em>Payouts</em></h1>
+							<p class="lp-hero__sub">Premium unified lead portfolios, digital documents, and legal payout support - all in one secure workspace.</p>
 							<div class="lp-hero__actions">
 								<a href="#projects" class="lp-btn lp-btn--primary">View Properties</a>
 								<a href="#footer" class="lp-btn lp-btn--outline">Contact Us</a>
@@ -498,10 +498,10 @@ catch { role = ""; username = ""; email = ""; }
 					<p class="lp-about__text">Our experienced professionals ensure every transaction is smooth, transparent, and beneficial. We pride ourselves on our commitment to excellence and customer satisfaction.</p>
 				}
 				<ul class="lp-about__features">
-					<li><i class="fa fa-check-circle"></i> Expert Real Estate Agents</li>
-					<li><i class="fa fa-check-circle"></i> Premium Property Portfolio</li>
-					<li><i class="fa fa-check-circle"></i> Legal Documentation Support</li>
-					<li><i class="fa fa-check-circle"></i> 24/7 Customer Service</li>
+					<li><i class="fa fa-check-circle"></i> Expert Real Estate Workflow Management</li>
+					<li><i class="fa fa-check-circle"></i> Premium Unified Lead Portfolio Profiles</li>
+					<li><i class="fa fa-check-circle"></i> Digital Document &amp; Legal Payout Support</li>
+					<li><i class="fa fa-check-circle"></i> 24/7 Dedicated Server &amp; System Assistance</li>
 				</ul>
 				<a href="#footer" class="lp-btn lp-btn--primary">Contact Us</a>
 			</div>
@@ -712,7 +712,7 @@ catch { role = ""; username = ""; email = ""; }
 		var footerAddress = Context.RequestServices.GetService<CRM.AppDbContext>()?.Settings.FirstOrDefault(s => s.SettingKey == "CompanyAddress" && s.ChannelPartnerId == null)?.SettingValue ?? "";
 		var footerPhone = Context.RequestServices.GetService<CRM.AppDbContext>()?.Settings.FirstOrDefault(s => s.SettingKey == "CompanyPhone" && s.ChannelPartnerId == null)?.SettingValue ?? "";
 		var footerEmail = Context.RequestServices.GetService<CRM.AppDbContext>()?.Settings.FirstOrDefault(s => s.SettingKey == "CompanyEmail" && s.ChannelPartnerId == null)?.SettingValue ?? "";
-		var footerCompanyName = Context.RequestServices.GetService<CRM.AppDbContext>()?.Settings.FirstOrDefault(s => s.SettingKey == "CompanyName" && s.ChannelPartnerId == null)?.SettingValue ?? "PropTech CRM.";
+		var footerCompanyName = Context.RequestServices.GetService<CRM.AppDbContext>()?.Settings.FirstOrDefault(s => s.SettingKey == "CompanyName" && s.ChannelPartnerId == null)?.SettingValue ?? "Ultrakey PropTech.";
 		var footerMapUrl = Context.RequestServices.GetService<CRM.AppDbContext>()?.Settings.FirstOrDefault(s => s.SettingKey == "CompanyMapUrl" && s.ChannelPartnerId == null)?.SettingValue;
 	}
 	<div class="footer-body">
@@ -1011,12 +1011,12 @@ catch { role = ""; username = ""; email = ""; }
 	<style>
 		/* ─── DESIGN TOKENS ───────────────────────────── */
 		:root {
-			--lp-blue: #1A6FA8;
+			--lp-blue: #1F75CB;
 			--lp-blue-d: #125082;
-			--lp-blue-l: #2589C9;
-			--lp-gold: #D4A45A;
-			--lp-gold-d: #B8883E;
-			--lp-gold-l: #E8C27E;
+			--lp-blue-l: #3D8BD9;
+			--lp-gold: #D4AF37;
+			--lp-gold-d: #B8912B;
+			--lp-gold-l: #E8C98A;
 			--lp-dark: #0F1C2E;
 			--lp-dark2: #162436;
 			--lp-text: #2A3A4A;
@@ -1141,7 +1141,7 @@ catch { role = ""; username = ""; email = ""; }
 				border-color: var(--lp-blue-d);
 				transform: translateY(-1px);
 				box-shadow: 0 4px 12px rgba(26,111,168,.35);
-				color: #D4A45A
+				color: #D4AF37
 			}
 
 		.lp-btn--outline {
@@ -2428,11 +2428,11 @@ catch { role = ""; username = ""; email = ""; }
 			}
 
 		.fsoc-tw {
-			background: #2589C9
+			background: #1F75CB
 		}
 
 		.fsoc-fb {
-			background: #2589C9
+			background: #1F75CB
 		}
 
 		.fsoc-ig {
@@ -2463,7 +2463,7 @@ catch { role = ""; username = ""; email = ""; }
 			}
 
 			.footer-lnk:hover {
-				color: #D4A45A;
+				color: #D4AF37;
 			}
 
 		.footer-contact {
@@ -2488,7 +2488,7 @@ catch { role = ""; username = ""; email = ""; }
 			}
 
 				.footer-contact a:hover {
-					color: #D4A45A;
+					color: #D4AF37;
 				}
 
 		@@media (max-width: 991px) {
@@ -2522,7 +2522,7 @@ catch { role = ""; username = ""; email = ""; }
 		}
 
 			.footer-copy a {
-				color: #D4A45A;
+				color: #D4AF37;
 				transition: color .2s;
 			}
 
@@ -2543,7 +2543,7 @@ catch { role = ""; username = ""; email = ""; }
 			}
 
 				.footer-legal a:hover {
-					color: #D4A45A;
+					color: #D4AF37;
 				}
 
 		@@media (max-width: 575px) {

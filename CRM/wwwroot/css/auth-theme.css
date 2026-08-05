@@ -2,8 +2,8 @@
 @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap');
 
 :root {
-    --auth-primary: #DC2626;
-    --auth-secondary: #1A6FA8;
+    --auth-primary: #1F75CB;
+    --auth-secondary: #125082;
     --auth-bg: #F0F4F8;
     --auth-surface: #FFFFFF;
     --auth-border: #E8EDF2;
@@ -23,8 +23,8 @@ body {
     display: grid;
     place-items: center;
     background:
-        radial-gradient(circle at 8% 10%, rgba(220,38,38, 0.12), transparent 36%),
-        radial-gradient(circle at 90% 85%, rgba(26,111,168, 0.18), transparent 35%),
+        radial-gradient(circle at 8% 10%, rgba(31,117,203, 0.12), transparent 36%),
+        radial-gradient(circle at 90% 85%, rgba(212,175,55, 0.16), transparent 35%),
         linear-gradient(160deg, #F0F4F8 0%, #F0F4F8 100%);
     font-family: 'Noto Sans', sans-serif;
     color: var(--auth-text);
@@ -47,7 +47,8 @@ body {
     flex: 0 0 46%;
     background:
         radial-gradient(circle at 14% 20%, rgba(255, 255, 255, 0.16), transparent 35%),
-        linear-gradient(150deg, #162436 0%, #2A3A4A 45%, #0F4C75 100%);
+        radial-gradient(circle at 85% 18%, rgba(212, 175, 55, 0.22), transparent 42%),
+        linear-gradient(150deg, #162436 0%, #0F4C75 55%, #125082 100%);
     color: #FFFFFF;
     position: relative;
     padding: 48px 34px;
@@ -242,7 +243,7 @@ body {
     height: 46px;
     border: 0;
     border-radius: 10px;
-    background: linear-gradient(135deg, #1A6FA8 0%, #125082 100%);
+    background: linear-gradient(135deg, #1F75CB 0%, #125082 100%);
     color: #FFFFFF;
     font-weight: 700;
     font-size: 0.9rem;
@@ -254,7 +255,7 @@ body {
 
 .btn-primary:hover {
     transform: translateY(-1px);
-    box-shadow: 0 10px 22px rgba(26,111,168, 0.24);
+    box-shadow: 0 10px 22px rgba(31,117,203, 0.24);
 }
 
 .btn-secondary {
@@ -399,7 +400,7 @@ html.dark-mode .form-control {
 
 html.dark-mode .form-control:focus {
     background: #1E2A3A;
-    border-color: #2589C9;
+    border-color: #1F75CB;
 }
 
 html.dark-mode .input-wrapper i.fa-user,
@@ -428,16 +429,16 @@ html.dark-mode .btn-secondary {
 }
 
 html.dark-mode .btn-secondary:hover {
-    border-color: #2589C9;
-    color: #2589C9;
+    border-color: #1F75CB;
+    color: #1F75CB;
 }
 
 /* Modern auth refresh: realtime, responsive, no-page-scroll layout */
 
 :root {
-    --auth-accent-a: #0F4C75;
-    --auth-accent-b: #1A6FA8;
-    --auth-glow: rgba(26,111,168, 0.2);
+    --auth-accent-a: #125082;
+    --auth-accent-b: #1F75CB;
+    --auth-glow: rgba(31,117,203, 0.2);
 }
 
 html,
@@ -1365,8 +1366,8 @@ html.dark-mode .auth-v4 .form-control {
 }
 
 html.dark-mode .auth-v4 .form-control:focus {
-    border-color: #2589C9 !important;
-    box-shadow: 0 0 0 3px rgba(37,137,201, 0.24) !important;
+    border-color: #1F75CB !important;
+    box-shadow: 0 0 0 3px rgba(31,117,203, 0.24) !important;
 }
 
 html.dark-mode .auth-v4 .input-wrapper i.fa-user,
@@ -1386,8 +1387,8 @@ html.dark-mode .auth-v4 .btn-secondary {
 }
 
 html.dark-mode .auth-v4 .btn-secondary:hover {
-    border-color: #2589C9 !important;
-    color: #2589C9 !important;
+    border-color: #1F75CB !important;
+    color: #1F75CB !important;
 }
 
 /* =====================================================================
@@ -1476,7 +1477,7 @@ html.dark-mode .auth-v4 .btn-secondary:hover {
 }
 
 .auth-v5 .brand-logo i {
-    color: #2589C9;
+    color: #1F75CB;
 }
 
 .auth-v5 .auth-showcase-header h1 {
@@ -1588,8 +1589,8 @@ html.dark-mode .auth-v4 .btn-secondary:hover {
 }
 
 .auth-v5 .form-control:focus {
-    border-color: #2589C9 !important;
-    box-shadow: 0 0 0 3px rgba(37,137,201, 0.16) !important;
+    border-color: #1F75CB !important;
+    box-shadow: 0 0 0 3px rgba(31,117,203, 0.16) !important;
     background: #FFFFFF !important;
 }
 
@@ -1622,7 +1623,7 @@ html.dark-mode .auth-v4 .btn-secondary:hover {
 }
 
 .auth-v5 .password-toggle:hover {
-    color: #2589C9 !important;
+    color: #1F75CB !important;
 }
 
 .auth-v5 .form-options {
@@ -1638,7 +1639,7 @@ html.dark-mode .auth-v4 .btn-secondary:hover {
 .auth-v5 .btn-primary {
     height: 47px !important;
     border-radius: 14px !important;
-    background: linear-gradient(120deg, #2589C9 0%, #0F4C75 100%) !important;
+    background: linear-gradient(120deg, #1F75CB 0%, #125082 100%) !important;
     color: #FFFFFF !important;
     font-weight: 700;
     font-size: 0.91rem !important;
@@ -1725,7 +1726,7 @@ html.dark-mode .auth-v4 .btn-secondary:hover {
         display: grid;
         place-items: center;
         overflow: hidden;
-        background: linear-gradient(120deg, #2589C9 0%, #0F4C75 100%);
+        background: linear-gradient(120deg, #1F75CB 0%, #125082 100%);
         color: #FFFFFF;
     }
 
@@ -1976,8 +1977,8 @@ html.dark-mode .form-control {
 }
 
 html.dark-mode .form-control:focus {
-    border-color: #2589C9 !important;
-    box-shadow: 0 0 0 3px rgba(37,137,201, 0.24) !important;
+    border-color: #1F75CB !important;
+    box-shadow: 0 0 0 3px rgba(31,117,203, 0.24) !important;
 }
 
 /* =====================================================================
@@ -2270,40 +2271,40 @@ html.dark-mode .form-control:focus {
 }
 
 /* =====================================================================
-   RED COLOR THEME FOR LOGIN, REGISTER & FORGOT PASSWORD PAGES
+   ULTRAKEY BLUE & GOLD THEME FOR LOGIN, REGISTER & FORGOT PASSWORD PAGES
    ===================================================================== */
-/* Red button styling for all auth pages */
+/* Ultrakey blue button styling for all auth pages */
 .auth-v5.auth-login-page .btn-primary,
 .auth-v5.auth-register-page .btn-primary,
 .auth-v5.auth-forgot-page .btn-primary {
-    background: linear-gradient(135deg, #DC2626 0%, #DC2626 100%) !important;
-    box-shadow: 0 4px 12px rgba(220,38,38, 0.24);
+    background: linear-gradient(135deg, #1F75CB 0%, #125082 100%) !important;
+    box-shadow: 0 4px 12px rgba(31,117,203, 0.24);
 }
 
 .auth-v5.auth-login-page .btn-primary:hover,
 .auth-v5.auth-register-page .btn-primary:hover,
 .auth-v5.auth-forgot-page .btn-primary:hover {
     transform: translateY(-1px);
-    box-shadow: 0 10px 24px rgba(220,38,38, 0.32) !important;
+    box-shadow: 0 10px 24px rgba(31,117,203, 0.32) !important;
 }
 
-/* Red focus states for inputs on all auth pages */
+/* Ultrakey blue focus states for inputs on all auth pages */
 .auth-v5.auth-login-page .form-control:focus,
 .auth-v5.auth-register-page .form-control:focus,
 .auth-v5.auth-forgot-page .form-control:focus {
-    border-color: #DC2626 !important;
-    box-shadow: 0 0 0 3px rgba(220,38,38, 0.14) !important;
+    border-color: #1F75CB !important;
+    box-shadow: 0 0 0 3px rgba(31,117,203, 0.14) !important;
     background: #FFFFFF !important;
 }
 
-/* Red accent for links on all auth pages */
+/* Ultrakey blue accent for links on all auth pages */
 .auth-v5.auth-login-page .forgot-link,
 .auth-v5.auth-login-page .signup-text a,
 .auth-v5.auth-register-page .forgot-link,
 .auth-v5.auth-register-page .signup-text a,
 .auth-v5.auth-forgot-page .forgot-link,
 .auth-v5.auth-forgot-page .signup-text a {
-    color: #DC2626 !important;
+    color: #1F75CB !important;
 }
 
 .auth-v5.auth-login-page .forgot-link:hover,
@@ -2312,14 +2313,14 @@ html.dark-mode .form-control:focus {
 .auth-v5.auth-register-page .signup-text a:hover,
 .auth-v5.auth-forgot-page .forgot-link:hover,
 .auth-v5.auth-forgot-page .signup-text a:hover {
-    color: #DC2626 !important;
+    color: #1F75CB !important;
 }
 
-/* Red checkbox accent for all auth pages */
+/* Ultrakey blue checkbox accent for all auth pages */
 .auth-v5.auth-login-page .form-check-input,
 .auth-v5.auth-register-page .form-check-input,
 .auth-v5.auth-forgot-page .form-check-input {
-    accent-color: #DC2626 !important;
+    accent-color: #1F75CB !important;
 }
 
 /* Black background with white text on secondary button hover for all auth pages */
@@ -2331,18 +2332,18 @@ html.dark-mode .form-control:focus {
     color: #FFFFFF !important;
 }
 
-/* Dark mode red theme for all auth pages */
+/* Dark mode Ultrakey theme for all auth pages */
 html.dark-mode .auth-v5.auth-login-page .btn-primary,
 html.dark-mode .auth-v5.auth-register-page .btn-primary,
 html.dark-mode .auth-v5.auth-forgot-page .btn-primary {
-    background: linear-gradient(135deg, #DC2626 0%, #DC2626 100%) !important;
+    background: linear-gradient(135deg, #1F75CB 0%, #125082 100%) !important;
 }
 
 html.dark-mode .auth-v5.auth-login-page .form-control:focus,
 html.dark-mode .auth-v5.auth-register-page .form-control:focus,
 html.dark-mode .auth-v5.auth-forgot-page .form-control:focus {
-    border-color: #DC2626 !important;
-    box-shadow: 0 0 0 3px rgba(220,38,38, 0.2) !important;
+    border-color: #1F75CB !important;
+    box-shadow: 0 0 0 3px rgba(31,117,203, 0.2) !important;
 }
 
 html.dark-mode .auth-v5.auth-login-page .forgot-link,
@@ -2351,7 +2352,7 @@ html.dark-mode .auth-v5.auth-register-page .forgot-link,
 html.dark-mode .auth-v5.auth-register-page .signup-text a,
 html.dark-mode .auth-v5.auth-forgot-page .forgot-link,
 html.dark-mode .auth-v5.auth-forgot-page .signup-text a {
-    color: #DC2626 !important;
+    color: #1F75CB !important;
 }
 
 /* Register-specific mobile fix: allow scroll when validation messages expand fields */
@@ -2640,14 +2641,14 @@ html.dark-mode .auth-v5.auth-forgot-page .signup-text a {
 .text-secondary { color: #6B7B8D !important; }
 .text-success { color: #16A34A !important; }
 .text-danger { color: #DC2626 !important; }
-.text-warning { color: #D4A45A !important; }
-.text-info { color: #2589C9 !important; }
+.text-warning { color: #D4AF37 !important; }
+.text-info { color: #1F75CB !important; }
 .text-muted { color: #6B7B8D !important; }
-.btn-primary { background-color: #1A6FA8 !important; border-color: #1A6FA8 !important; }
+.btn-primary { background-color: #1F75CB !important; border-color: #1F75CB !important; }
 .btn-primary:hover, .btn-primary:focus { background-color: #125082 !important; border-color: #125082 !important; }
 .btn-secondary { background-color: #6B7B8D !important; border-color: #6B7B8D !important; }
 .btn-danger { background-color: #DC2626 !important; border-color: #DC2626 !important; }
-.btn-outline-primary { color: #1A6FA8 !important; border-color: #1A6FA8 !important; }
+.btn-outline-primary { color: #1F75CB !important; border-color: #1F75CB !important; }
 .btn-outline-primary:hover, .btn-outline-primary:focus { color: #FFFFFF !important; background-color: #1A6FA8 !important; border-color: #1A6FA8 !important; }
 .form-control { color: #1A2332 !important; border-color: #8FA3B8 !important; }
 .form-control:focus { border-color: #1A6FA8 !important; box-shadow: 0 0 0 0.2rem rgba(26, 111, 168, 0.25) !important; }

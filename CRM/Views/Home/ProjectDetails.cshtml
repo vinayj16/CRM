@@ -9,7 +9,7 @@
     @{
         var hasLogo = !string.IsNullOrEmpty(ViewBag.CompanyLogo as string);
         var logoStyle = (ViewBag.LogoDisplayStyle as string) ?? "LogoOnly";
-        var cName = (ViewBag.CompanyName as string) ?? "PropTech CRM";
+        var cName = (ViewBag.CompanyName as string) ?? "Ultrakey PropTech";
     }
     <a href="/Home/Landing" class="navbar-brand d-flex align-items-center px-4 px-lg-5">
         @if (hasLogo && logoStyle == "LogoOnly")
@@ -27,7 +27,7 @@
         }
         else
         {
-            <img src="~/icons/PropTech_Logo_Color.png" style="max-height: 40px; margin-right: 12px;" alt="@cName" />
+            <img src="~/icons/Ultrakey_Logo.svg" style="max-height: 40px; margin-right: 12px;" alt="@cName" />
             <h2 class="m-0 text-primary">@cName</h2>
         }
     </a>
@@ -107,7 +107,7 @@
                     }
                     else
                     {
-                        <div style="height:400px; border-radius:10px; background: linear-gradient(135deg, #DC2626 0%, #F59E0B 100%); display:flex; align-items:center; justify-content:center; flex-direction:column; color:white; padding:20px;">
+                        <div style="height:400px; border-radius:10px; background: linear-gradient(135deg, #1F75CB 0%, #D4AF37 100%); display:flex; align-items:center; justify-content:center; flex-direction:column; color:white; padding:20px;">
                             <i class="fa fa-building" style="font-size:64px; margin-bottom:20px; opacity:0.8;"></i>
                             <h3 style="color:white; text-align:center;">@Model.PropertyName</h3>
                             <p style="opacity:0.8;">Image coming soon</p>
@@ -346,10 +346,10 @@
 @section Scripts {
     <style>
         :root {
-            --crm-primary: #DC2626;
-            --crm-primary-hover: #B45309;
-            --crm-secondary: #F59E0B;
-            --crm-teal: #1A6FA8;
+            --crm-primary: #1F75CB;
+            --crm-primary-hover: #125082;
+            --crm-secondary: #D4AF37;
+            --crm-teal: #1F75CB;
             --crm-surface: #F0F4F8;
             --crm-border: #E2E8F0;
             --crm-text: #1E2A3A;
@@ -425,7 +425,7 @@
         }
 
         .badge.bg-light.text-primary {
-            border: 1px solid rgba(220,38,38, 0.25);
+            border: 1px solid rgba(31,117,203, 0.25);
             background-color: #FFFFFF !important;
         }
     </style>

@@ -1,11 +1,11 @@
 
 @{
-    ViewData["Title"] = "CRM Platform";
+    ViewData["Title"] = "Ultrakey PropTech";
     Layout = "_LandingLayout";
 
     var copyrightText = Context.RequestServices.GetService<CRM.MasterDb.MasterDbContext>()?.SaasSetting.FirstOrDefault(s => s.SettingKey == "CopyrightText")?.SettingValue ?? "";
     var footerEmail = Context.RequestServices.GetService<CRM.MasterDb.MasterDbContext>()?.SaasSetting.FirstOrDefault(s => s.SettingKey == "CompanyEmail")?.SettingValue ?? "";
-    var footerCompanyName = Context.RequestServices.GetService<CRM.MasterDb.MasterDbContext>()?.SaasSetting.FirstOrDefault(s => s.SettingKey == "CompanyName")?.SettingValue ?? "PropTech CRM";
+    var footerCompanyName = Context.RequestServices.GetService<CRM.MasterDb.MasterDbContext>()?.SaasSetting.FirstOrDefault(s => s.SettingKey == "CompanyName")?.SettingValue ?? "Ultrakey PropTech";
     var footerMapUrl = Context.RequestServices.GetService<CRM.MasterDb.MasterDbContext>()?.SaasSetting.FirstOrDefault(s => s.SettingKey == "CompanyMapUrl")?.SettingValue;
     var footerPhone = Context.RequestServices.GetService<CRM.MasterDb.MasterDbContext>()?.SaasSetting.FirstOrDefault(s => s.SettingKey == "CompanyPhone")?.SettingValue ?? "";
     var footerAddress = Context.RequestServices.GetService<CRM.MasterDb.MasterDbContext>()?.SaasSetting.FirstOrDefault(s => s.SettingKey == "CompanyAddress")?.SettingValue ?? "";
@@ -14,12 +14,12 @@
 <style>
     /* -- CSS Variables -- */
     :root {
-        --saas-primary: #D4A45A;
-        --saas-primary-hover: #B8883E;
+        --saas-primary: #D4AF37;
+        --saas-primary-hover: #B8912B;
         --saas-dark: #162436;
         --saas-muted-blue: #125082;
         --saas-gray: #6B7B8D;
-        --lp-grad-mix: linear-gradient(90deg, #162436 0%, #125082 35%, #E8C27E 70%, #B8883E 100%);
+        --lp-grad-mix: linear-gradient(90deg, #162436 0%, #125082 35%, #E8C98A 70%, #B8912B 100%);
     }
 
     *, *::before, *::after {
@@ -160,7 +160,7 @@
 
     /* Login button */
     .btn-login {
-        background: linear-gradient(135deg, #D4A45A 0%, #125082 100%);
+        background: linear-gradient(135deg, #D4AF37 0%, #125082 100%);
         color: #FFFFFF;
         padding: 8px 20px;
         border-radius: 6px;
@@ -179,7 +179,7 @@
         }
 
     .btn-signup {
-        background: linear-gradient(135deg, #D4A45A 0%, #125082 100%);
+        background: linear-gradient(135deg, #D4AF37 0%, #125082 100%);
         color: #FFFFFF !important;
         padding: 8px 22px;
         border-radius: 6px;
@@ -246,7 +246,7 @@
     }
 
     .text-primary {
-        color: #2589C9;
+        color: #1F75CB;
     }
     /* blue */
     .text-success {
@@ -262,7 +262,7 @@
     }
     /* orange */
     .text-info {
-        color: #2589C9;
+        color: #1F75CB;
     }
     /* cyan */
     .text-secondary {
@@ -1050,7 +1050,7 @@
     <div class="container d-flex align-items-center justify-content-between">
 
         <a href="/" class="navbar-brand d-flex align-items-center text-decoration-none">
-            <img src="~/icons/PropTech_Logo_Color.png" alt="PropTech CRM" style="max-height:50px;max-width:110px;object-fit:contain;" />
+            <img src="~/icons/Ultrakey_Logo.svg" alt="Ultrakey PropTech" style="max-height:50px;max-width:190px;object-fit:contain;" />
         </a>
 
         <div class="d-flex align-items-center gap-2">
@@ -1096,9 +1096,8 @@
                         <i class="fas fa-home"></i> Home
                     </a>
                 </li>
-                <li class="breadcrumb-item active" aria-current="page" style="color: #6B7B8D;">
-                    CRM Platform
-                </li>
+                <li class="breadcrumb-item active" aria-current="page" style="color: #6B7B8D;">Ultrakey PropTech
+                    </li>
             </ol>
         </nav>
     </div>
@@ -1123,8 +1122,8 @@
     <div class="container">
         <div class="row justify-content-center">
             <div class="col-lg-8 mx-auto">
-                <h1>Manage Your Real Estate Business with <span>One Powerful CRM</span></h1>
-                <p class="mx-auto text-white-50">Streamline your lead tracking, channel partner networks, automated WhatsApp follow-ups, and payout management in one secure workspace.</p>
+                <h1>Powering Real <span>Estate Relationships</span></h1>
+                <p class="mx-auto text-white-50">Ultrakey PropTech is a real estate technology company committed to delivering smart, secure, and scalable CRM solutions for developers, agencies, and channel partners.</p>
                 <div class="d-flex flex-wrap justify-content-center gap-3 mt-3">
                     <a href="#pricing" class="btn btn-saas">View Plan</a>
                     <a href="#inquiry" class="btn btn-saas-outline">Get Started Free</a>
@@ -1515,7 +1514,7 @@
 
             <!-- Company Info -->
             <div class="col-lg-4 col-md-6">
-                <h5 class="footer-title">PropTech CRM</h5>
+                <h5 class="footer-title">Ultrakey PropTech</h5>
                 <p class="footer-text">
                     Modern real estate CRM platform designed to manage leads,
                     automate follow-ups, close deals faster, and grow your
@@ -1928,7 +1927,7 @@
                 btn.innerHTML = original;
                 if (res.success) {
                     form.reset();
-                    Swal.fire({ icon: 'success', title: 'Thank You!', text: res.message, confirmButtonColor: '#D4A45A' });
+                    Swal.fire({ icon: 'success', title: 'Thank You!', text: res.message, confirmButtonColor: '#D4AF37' });
                 } else {
                     Swal.fire({ icon: 'error', title: 'Error', text: res.message || 'Unable to submit inquiry.' });
                 }

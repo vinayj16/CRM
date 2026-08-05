@@ -24,7 +24,7 @@
                     <i class="fas fa-city"></i>
                 }
             </div>
-            <h1>@(ViewBag.CompanyName ?? "PropTech CRM")</h1>
+            <h1>@(ViewBag.CompanyName ?? "Ultrakey PropTech")</h1>
             <p>Run sales, leads, and customer journeys from one workspace.</p>
         </div>
 
@@ -48,7 +48,7 @@
                 }
             </div>
             <div class="form-brand-meta">
-                <h2>@(ViewBag.CompanyName ?? "PropTech CRM")</h2>
+                <h2>@(ViewBag.CompanyName ?? "Ultrakey PropTech")</h2>
                 <p>Sign in to continue</p>
             </div>
         </div>
@@ -127,7 +127,7 @@
                     title: 'Account Pending Approval',
                     html: 'Your account is awaiting admin approval.<br>You will be notified once approved.',
                     confirmButtonText: 'OK',
-                    confirmButtonColor: '#DC2626'
+                    confirmButtonColor: '#1F75CB'
                 });
                 </text>
             }
@@ -140,7 +140,7 @@
                     title: 'Registration Complete!',
                     html: 'Your account has been created successfully.<br>It is pending admin approval. You will be notified once approved.',
                     confirmButtonText: 'Got it',
-                    confirmButtonColor: '#DC2626'
+                    confirmButtonColor: '#1F75CB'
                 });
                 </text>
             }
@@ -222,7 +222,7 @@
                                     document.querySelectorAll('.workspace-option').forEach(function (el) {
 
                                         el.addEventListener('mouseenter', function () {
-                                            this.style.borderColor = '#1A6FA8';
+                                            this.style.borderColor = '#1F75CB';
                                             this.style.background = '#F0F4F8';
                                         });
 
@@ -284,7 +284,7 @@
                             icon: 'success',
                             title: 'Login Successful!',
                             html: 'Welcome back, <strong>' + welcomename + '</strong>!<br>Redirecting to your dashboard...',
-                            confirmButtonColor: '#DC2626',
+                            confirmButtonColor: '#1F75CB',
                             timer: 1800,
                             timerProgressBar: true,
                             showConfirmButton: false,
@@ -299,7 +299,7 @@
                             title: 'Account Pending Approval',
                             html: 'Your account is awaiting admin approval.<br>You will be notified once approved.',
                             confirmButtonText: 'OK',
-                            confirmButtonColor: '#DC2626'
+                            confirmButtonColor: '#1F75CB'
                         });
                     } else {
                         resetBtn();
