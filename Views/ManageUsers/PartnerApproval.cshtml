@@ -910,7 +910,7 @@ html.dark-mode .pa-modal .form-label,
 
         var prevBtn=document.createElement('button');
         prevBtn.className='pa-pb'+(currentPage===1?' disabled':'');
-        prevBtn.innerHTML='&#991B1B99; Prev';
+        prevBtn.innerHTML='&#10094; Prev';
         if(currentPage>1) prevBtn.onclick=function(){changePage(currentPage-1);};
         pg.appendChild(prevBtn);
 
@@ -928,7 +928,7 @@ html.dark-mode .pa-modal .form-label,
 
         var nextBtn=document.createElement('button');
         nextBtn.className='pa-pb'+(currentPage===total?' disabled':'');
-        nextBtn.innerHTML='Next &#991B1B00;';
+        nextBtn.innerHTML='Next &#10095;';
         if(currentPage<total) nextBtn.onclick=function(){changePage(currentPage+1);};
         pg.appendChild(nextBtn);
     }

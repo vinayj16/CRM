@@ -379,8 +379,8 @@
                         <td>@item.Description</td>
                         <td>@item.ItemType</td>
                         <td class="te">@item.Quantity</td>
-                        <td class="te">&#6B7B8D77;@item.Amount.ToString("N2")</td>
-                        <td class="te">&#6B7B8D77;@item.Total.ToString("N2")</td>
+                        <td class="te">&#8377;@item.Amount.ToString("N2")</td>
+                        <td class="te">&#8377;@item.Total.ToString("N2")</td>
                     </tr>
                 }
             </tbody>
@@ -390,22 +390,22 @@
         <div class="qd-totals">
             <div class="qd-t-row">
                 <span>Subtotal</span>
-                <strong>&#6B7B8D77;@Model.BasePrice.ToString("N2")</strong>
+                <strong>&#8377;@Model.BasePrice.ToString("N2")</strong>
             </div>
             @if (Model.DiscountAmount > 0)
             {
                 <div class="qd-t-row">
                     <span>Discount</span>
-                    <strong style="color:var(--success)">&#B8883E22; &#6B7B8D77;@Model.DiscountAmount.ToString("N2")</strong>
+                    <strong style="color:var(--success)">&#8377; &#8377;@Model.DiscountAmount.ToString("N2")</strong>
                 </div>
             }
             <div class="qd-t-row">
                 <span>GST (@((Model.TaxAmount / (Model.BasePrice - Model.DiscountAmount) * 100).ToString("N2"))%)</span>
-                <strong>&#6B7B8D77;@Model.TaxAmount.ToString("N2")</strong>
+                <strong>&#8377;@Model.TaxAmount.ToString("N2")</strong>
             </div>
             <div class="qd-t-grand">
                 <span>Grand Total</span>
-                <span>&#6B7B8D77;@Model.GrandTotal.ToString("N2")</span>
+                <span>&#8377;@Model.GrandTotal.ToString("N2")</span>
             </div>
         </div>
 

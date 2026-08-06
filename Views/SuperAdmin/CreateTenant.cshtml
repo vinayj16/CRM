@@ -337,7 +337,7 @@
                 <div class="fg">
                     <label class="form-label">Company Name <span class="text-danger"></span></label>
                     <input name="companyName" id="companyName" class="form-control" placeholder="e.g. ABC Realty" autocomplete="organization" />
-                    <span class="val-msg err" id="err-companyName">&#6B7B8D88; Company name is required</span>
+                    <span class="val-msg err" id="err-companyName">&#9888; Company name is required</span>
                 </div>
 
                 <div class="fg">
@@ -347,7 +347,7 @@
                                placeholder="e.g. abcrealty" />
                         <span class="subdomain-suffix">.uproptech.com</span>
                     </div>
-                    <span class="val-msg err" id="err-subdomain">&#6B7B8D88; Lowercase letters &amp; numbers only (min 2 chars)</span>
+                    <span class="val-msg err" id="err-subdomain">&#9888; Lowercase letters &amp; numbers only (min 2 chars)</span>
                     <span class="val-msg ok"  id="ok-subdomain">&#10003; Looks good</span>
                     <small class="form-text">Lowercase letters &amp; numbers only. No spaces.</small>
                 </div>
@@ -357,20 +357,20 @@
                 <div class="fg">
                     <label class="form-label">Contact Person</label>
                     <input name="contactPerson" id="contactPerson" class="form-control" placeholder="e.g. John Doe" />
-                    <span class="val-msg err" id="err-contactPerson">&#6B7B8D88; Only letters &amp; spaces allowed</span>
+                    <span class="val-msg err" id="err-contactPerson">&#9888; Only letters &amp; spaces allowed</span>
                 </div>
 
                 <div class="fg">
                     <label class="form-label">Email</label>
                     <input name="email" type="email" id="email" class="form-control" placeholder="e.g. admin@company.com" autocomplete="email" />
-                    <span class="val-msg err" id="err-email">&#6B7B8D88; Enter a valid email address</span>
+                    <span class="val-msg err" id="err-email">&#9888; Enter a valid email address</span>
                     <span class="val-msg ok"  id="ok-email">&#10003; Valid email</span>
                 </div>
 
                 <div class="fg">
                     <label class="form-label">Phone</label>
                     <input name="phone" id="phone" class="form-control" placeholder="e.g. 9876543210" />
-                    <span class="val-msg err" id="err-phone">&#6B7B8D88; Enter a valid 10-digit number</span>
+                    <span class="val-msg err" id="err-phone">&#9888; Enter a valid 10-digit number</span>
                     <span class="val-msg ok"  id="ok-phone">&#10003; Valid phone</span>
                 </div>
             </div>
@@ -389,7 +389,7 @@
                             <i class="fa-solid fa-list"></i>
                         </button>
                     </div>
-                    <span class="val-msg err" id="err-plan">&#6B7B8D88; Please select a plan</span>
+                    <span class="val-msg err" id="err-plan">&#9888; Please select a plan</span>
                     <div id="freeTrialText">
                         <i class="fa-solid fa-gift fa-xs"></i>
                         <span id="selectedPlanText"></span> — 7 Days Free Trial
@@ -705,7 +705,7 @@
     }
 
     function escapeHtml(v) {
-        return String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#125082;');
+        return String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
     }
 
     function escapeJs(v) {
