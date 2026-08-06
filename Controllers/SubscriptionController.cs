@@ -239,6 +239,7 @@ namespace CRM.Controllers
 
             plan.IsActive = isActive;
             plan.UpdatedOn = IndianTime.Now;
+            _context.SubscriptionPlans.Update(plan);
             await _context.SaveChangesAsync();
 
             return RedirectToAction(nameof(Plans));
@@ -672,6 +673,7 @@ namespace CRM.Controllers
                             {
                                 _logger.LogInformation($"Fixing subscription status from {relatedSubscription.Status} to Scheduled");
                                 relatedSubscription.Status = "Scheduled";
+                                _context.PartnerSubscriptions.Update(relatedSubscription);
                                 await _context.SaveChangesAsync();
                                 scheduledSubscription = relatedSubscription;
                             }
@@ -2877,6 +2879,7 @@ namespace CRM.Controllers
                 transaction.Status = "Authorized";
                 transaction.WebhookEventId = eventId;
                 transaction.RazorpayPaymentId = paymentId;
+                _context.PaymentTransactions.Update(transaction);
                 await _context.SaveChangesAsync();
             }
         }

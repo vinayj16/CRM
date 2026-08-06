@@ -131,6 +131,7 @@ namespace CRM.Controllers
                 expense.Description = model.Description;
                 expense.Amount = model.Amount;
                 
+                _db.Expenses.Update(expense);
                 _db.SaveChanges();
                 return Json(new { success = true });
             }

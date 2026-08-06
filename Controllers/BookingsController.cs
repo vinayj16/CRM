@@ -734,7 +734,7 @@ namespace CRM.Controllers
             if (existingLog != null) return;
 
             // Get partner commission (percentage-based)
-            var commissionPercentage = GetPartnerCommissionPercentage(partner.CommissionScheme);
+            var commissionPercentage = GetPartnerCommissionPercentage(partner);
             var commissionAmount = (booking.TotalAmount * commissionPercentage) / 100;
 
             // Create commission log
@@ -824,12 +824,14 @@ namespace CRM.Controllers
                 existingPayout.TotalCommission = totalCommission;
                 existingPayout.TotalSales = totalSales;
                 existingPayout.ConvertedLeads = totalSales;
+                existingPayout.Amount = totalCommission;
+                _db.PartnerPayouts.Update(existingPayout);
             }
             else
             {
                 // Create new payout
                 var partner = await _db.ChannelPartners.FindAsync(partnerId);
-                var commissionPercentage = GetPartnerCommissionPercentage(partner?.CommissionScheme);
+                var commissionPercentage = GetPartnerCommissionPercentage(partner);
                 
                 var payout = new PartnerPayoutModel
                 {
@@ -839,6 +841,7 @@ namespace CRM.Controllers
                     FixedCommissionPerSale = commissionPercentage,
                     TotalSales = totalSales,
                     TotalCommission = totalCommission,
+                    Amount = totalCommission,
                     ConvertedLeads = totalSales,
                     Status = "Pending"
                 };
@@ -866,10 +869,16 @@ namespace CRM.Controllers
             return decimal.TryParse(commissionText, out decimal percentage) ? percentage : 0;
         }
 
-        private decimal GetPartnerCommissionPercentage(string? commissionScheme)
+        private decimal GetPartnerCommissionPercentage(ChannelPartnerModel? partner)
         {
+            // Preferred source: the numeric CommissionPercentage field (e.g. 5 for 5%).
+            if (partner != null && partner.CommissionPercentage > 0)
+                return partner.CommissionPercentage;
+
+            // Fallback: parse a human-readable scheme such as "5% of sale" or "2% of sale".
+            var commissionScheme = partner?.CommissionScheme;
             if (string.IsNullOrEmpty(commissionScheme)) return 0;
-            var commissionText = commissionScheme.Replace("%", "").Trim();
+            var commissionText = commissionScheme.Replace("%", "").Trim().Split(' ')[0];
             return decimal.TryParse(commissionText, out decimal percentage) ? percentage : 0;
         }
 

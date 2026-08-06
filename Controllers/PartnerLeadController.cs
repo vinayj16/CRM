@@ -167,6 +167,7 @@ namespace CRM.Controllers
                 lead.Status = "Converted";
                 lead.ConvertedToSale = true;
                 lead.CommissionAmount = commissionAmount;
+                _context.PartnerLeads.Update(lead);
                 await _context.SaveChangesAsync();
 
                 // Create new LeadModel in main Leads table

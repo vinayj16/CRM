@@ -42,6 +42,7 @@ namespace CRM.Controllers
             if (payout != null)
             {
                 payout.Status = "Approved";
+                _context.AgentPayouts.Update(payout);
                 await _context.SaveChangesAsync();
             }
             return RedirectToAction("List");
@@ -54,6 +55,7 @@ namespace CRM.Controllers
             if (payout != null)
             {
                 payout.Status = "Approved";
+                _context.PartnerPayouts.Update(payout);
                 await _context.SaveChangesAsync();
             }
             return RedirectToAction("List");

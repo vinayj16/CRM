@@ -296,6 +296,7 @@ namespace CRM.Controllers
                 ticket.Status = "InProgress";
                 ticket.ModifiedOn = IndianTime.Now;
 
+                _db.Tickets.Update(ticket);
                 await _db.SaveChangesAsync();
 
                 return Json(new { success = true, message = $"Ticket assigned to {assignedUser.Username}" });
@@ -345,6 +346,7 @@ namespace CRM.Controllers
                 if (ticket.Status == "Closed" || ticket.Status == "Resolved")
                     ticket.Status = "InProgress";
 
+                _db.Tickets.Update(ticket);
                 await _db.SaveChangesAsync();
 
                 return Json(new { success = true, message = "Reply added" });

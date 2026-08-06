@@ -477,6 +477,7 @@ namespace CRM.Controllers
 
                 invoice.Status = status;
                 invoice.ModifiedOn = IndianTime.Now;
+                _db.Invoices.Update(invoice);
                 _db.SaveChanges();
 
                 return Json(new { success = true, message = "Status updated successfully" });

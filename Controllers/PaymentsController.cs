@@ -223,6 +223,24 @@ namespace CRM.Controllers
                 model.ReceivedBy = _getCurrentUserId();
                 model.CreatedOn = IndianTime.Now;
 
+                // P0-P2: Validate payment doesn't exceed installment balance BEFORE saving
+                if (model.InstallmentId.HasValue)
+                {
+                    var installmentForCheck = _db.PaymentInstallments.Find(model.InstallmentId.Value);
+                    if (installmentForCheck != null)
+                    {
+                        var remainingBalance = installmentForCheck.Amount - installmentForCheck.PaidAmount;
+                        if (model.Amount > remainingBalance)
+                        {
+                            return Json(new
+                            {
+                                success = false,
+                                message = $"Payment amount (₹{model.Amount:N2}) exceeds installment balance (₹{remainingBalance:N2})"
+                            });
+                        }
+                    }
+                }
+
                 // Save payment
                 _db.Payments.Add(model);
                 _db.SaveChanges();
@@ -244,6 +262,7 @@ namespace CRM.Controllers
                         invoice.Status = "Partial";
                     }
 
+                    _db.Invoices.Update(invoice);
                     _db.SaveChanges();
                 }
 
@@ -253,17 +272,6 @@ namespace CRM.Controllers
                     var installment = _db.PaymentInstallments.Find(model.InstallmentId.Value);
                     if (installment != null)
                     {
-                        // P0-P2: Validate payment doesn't exceed installment balance
-                        var remainingBalance = installment.Amount - installment.PaidAmount;
-                        if (model.Amount > remainingBalance)
-                        {
-                            return Json(new
-                            {
-                                success = false,
-                                message = $"Payment amount (₹{model.Amount:N2}) exceeds installment balance (₹{remainingBalance:N2})"
-                            });
-                        }
-
                         installment.PaidAmount += model.Amount;
                         installment.PaidDate = IndianTime.Now;
 
@@ -281,6 +289,7 @@ namespace CRM.Controllers
                             installment.Status = "Overdue";
                         }
 
+                        _db.PaymentInstallments.Update(installment);
                         _db.SaveChanges();
 
                         // Update payment plan
@@ -289,6 +298,7 @@ namespace CRM.Controllers
                         {
                             paymentPlan.PaidAmount += model.Amount;
                             paymentPlan.OutstandingAmount -= model.Amount;
+                            _db.PaymentPlans.Update(paymentPlan);
                             _db.SaveChanges();
                         }
                     }
@@ -380,6 +390,7 @@ namespace CRM.Controllers
                 invoice.PaidAmount += paymentAmount;
                 invoice.ModifiedOn = IndianTime.Now;
                 invoice.Status = invoice.PaidAmount >= invoice.TotalAmount ? "Paid" : "Partial";
+                _db.Invoices.Update(invoice);
                 await _db.SaveChangesAsync();
 
                 // Update installment if linked
@@ -391,6 +402,7 @@ namespace CRM.Controllers
                         installment.PaidAmount += paymentAmount;
                         installment.PaidDate = IndianTime.Now;
                         installment.Status = installment.PaidAmount >= installment.Amount ? "Paid" : "Partial";
+                        _db.PaymentInstallments.Update(installment);
                         await _db.SaveChangesAsync();
 
                         // Update payment plan
@@ -399,6 +411,7 @@ namespace CRM.Controllers
                         {
                             paymentPlan.PaidAmount += paymentAmount;
                             paymentPlan.OutstandingAmount -= paymentAmount;
+                            _db.PaymentPlans.Update(paymentPlan);
                             await _db.SaveChangesAsync();
                         }
                     }
@@ -491,6 +504,8 @@ namespace CRM.Controllers
                     {
                         invoice.Status = "Partial";
                     }
+
+                    _db.Invoices.Update(invoice);
                 }
 
                 // Reverse installment payment
@@ -511,12 +526,15 @@ namespace CRM.Controllers
                             installment.Status = "Partial";
                         }
 
+                        _db.PaymentInstallments.Update(installment);
+
                         // Update payment plan
                         var paymentPlan = _db.PaymentPlans.Find(installment.PlanId);
                         if (paymentPlan != null)
                         {
                             paymentPlan.PaidAmount -= payment.Amount;
                             paymentPlan.OutstandingAmount += payment.Amount;
+                            _db.PaymentPlans.Update(paymentPlan);
                         }
                     }
                 }

@@ -612,6 +612,7 @@ namespace CRM.Controllers
             tenant.IsActive = true;
             tenant.SuspendedReason = null;
             tenant.UpdatedOn = DateTime.UtcNow;
+            _masterDb.Tenants.Update(tenant);
             await _masterDb.SaveChangesAsync();
             try
             {
@@ -1227,6 +1228,7 @@ namespace CRM.Controllers
                 existing.SortOrder = plan.SortOrder;
                 existing.UpdatedOn = DateTime.UtcNow;
 
+                _masterDb.SaasPlans.Update(existing);
                 await _masterDb.SaveChangesAsync();
                 await LogAuditAsync(GetCurrentUserId(), "Update", "Plan", plan.PlanId, $"Plan: {existing.PlanName}");
                 return Json(new { success = true, message = "Plan updated successfully" });
@@ -1419,6 +1421,7 @@ namespace CRM.Controllers
 
                 plan.IsActive = isActive;
                 plan.UpdatedOn = DateTime.UtcNow;
+                _masterDb.SaasPlans.Update(plan);
                 await _masterDb.SaveChangesAsync();
 
                 var msg = isActive ? "Plan activated successfully" : "Plan deactivated successfully";
@@ -1472,6 +1475,7 @@ namespace CRM.Controllers
                 existing.Variables = model.Variables;
                 existing.IsActive = model.IsActive;
                 existing.UpdatedOn = DateTime.UtcNow;
+                appDb.EmailTemplates.Update(existing);
                 await appDb.SaveChangesAsync();
                 return Json(new { success = true, message = "Template updated" });
             }
@@ -1700,6 +1704,7 @@ namespace CRM.Controllers
                     existing.RazorpayKeySecret = model.RazorpayKeySecret;
                     existing.RazorpayWebhookSecret = model.RazorpayWebhookSecret;
                     existing.UpdatedOn = DateTime.UtcNow;
+                    _masterDb.SaasPaymentConfig.Update(existing);
                 }
                 else
                 {
@@ -2237,6 +2242,7 @@ namespace CRM.Controllers
                 if (!string.IsNullOrWhiteSpace(password))
                     user.Password = PasswordHelper.HashPassword(password);
 
+                appDb.Users.Update(user);
                 await appDb.SaveChangesAsync();
                 await LogAuditAsync(GetCurrentUserId(), "Update", "User", userId,
                     $"User '{username}' updated (role: {role})");
@@ -2888,6 +2894,7 @@ namespace CRM.Controllers
                 {
                     var oldHash = user.Password;
                     user.Password = hashedPassword;
+                    appDb.Users.Update(user);
                     results.Add(new { userId = user.UserId, username = user.Username, email = user.Email, role = user.Role, password = defaultPassword, oldHashLength = oldHash?.Length ?? 0 });
                 }
                 await appDb.SaveChangesAsync();
@@ -2897,6 +2904,7 @@ namespace CRM.Controllers
                 {
                     var oldHash = sa.PasswordHash;
                     sa.PasswordHash = hashedPassword;
+                    masterDb.SuperAdmins.Update(sa);
                     results.Add(new { superAdminId = sa.Id, name = sa.FullName, email = sa.Email, role = "SuperAdmin", password = defaultPassword, oldHashLength = oldHash?.Length ?? 0 });
                 }
                 await masterDb.SaveChangesAsync();

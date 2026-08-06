@@ -220,6 +220,7 @@ namespace CRM.Controllers
                 partner.Status = "Approved";
                 partner.ApprovedBy = userId;
                 partner.ApprovedOn = IndianTime.Now;
+                _context.ChannelPartners.Update(partner);
 
                 if (!partner.UserId.HasValue)
                 {
@@ -230,6 +231,8 @@ namespace CRM.Controllers
                         existingUser.IsActive = true;
                         existingUser.ChannelPartnerId = partner.PartnerId;
                         partner.UserId = existingUser.UserId;
+                        _context.Users.Update(existingUser);
+                        _context.ChannelPartners.Update(partner);
                     }
                     else
                     {
@@ -248,6 +251,7 @@ namespace CRM.Controllers
                         _context.Users.Add(user);
                         await _context.SaveChangesAsync();
                         partner.UserId = user.UserId;
+                        _context.ChannelPartners.Update(partner);
                         // Create UserProfile with partner details
                         _context.UserProfiles.Add(new UserProfile
                         {
@@ -267,7 +271,10 @@ namespace CRM.Controllers
                     // User already linked - just activate
                     var linkedUser = await _context.Users.FindAsync(partner.UserId.Value);
                     if (linkedUser != null)
+                    {
                         linkedUser.IsActive = true;
+                        _context.Users.Update(linkedUser);
+                    }
                 }
 
                 await _context.SaveChangesAsync();
@@ -291,6 +298,7 @@ namespace CRM.Controllers
                 if (partner == null) return NotFound();
 
                 partner.Status = "Rejected";
+                _context.ChannelPartners.Update(partner);
                 await _context.SaveChangesAsync();
 
                 TempData["Success"] = "Partner rejected successfully.";
@@ -553,6 +561,7 @@ namespace CRM.Controllers
                         {
                             existingSub.Status = "Cancelled";
                             existingSub.UpdatedOn = IndianTime.Now;
+                            _context.PartnerSubscriptions.Update(existingSub);
                         }
 
                         var plan = await _context.SubscriptionPlans.FindAsync(model.SelectedPlanId.Value);
@@ -583,6 +592,7 @@ namespace CRM.Controllers
                     partner.Documents = "Uploaded";
                 }
 
+                _context.ChannelPartners.Update(partner);
                 await _context.SaveChangesAsync();
 
                 return Json(new { success = true, message = "Partner updated successfully!" });

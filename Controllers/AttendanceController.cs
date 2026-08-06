@@ -260,6 +260,7 @@ namespace CRM.Controllers
                         dbRecord.LoginTime = att.LoginTime;
                         dbRecord.LogoutTime = att.LogoutTime;
                         dbRecord.Status = "Present";
+                        _context.AgentAttendance.Update(dbRecord);
                     }
                 }
 

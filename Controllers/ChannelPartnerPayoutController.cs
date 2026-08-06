@@ -142,6 +142,7 @@ namespace CRM.Controllers
                 if (status == "Paid")
                     payout.ProcessedOn = IndianTime.Now;
 
+                _context.PartnerPayouts.Update(payout);
                 await _context.SaveChangesAsync();
                 return Json(new { success = true, message = "Status updated successfully" });
             }
