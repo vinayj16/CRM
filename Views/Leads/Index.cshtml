@@ -1974,15 +1974,14 @@
         rating: document.getElementById('leadRating').value, comments: document.getElementById('leadComments').value,
         createdOn: new Date().toISOString(), modifiedOn: new Date().toISOString()
         };
-        const formData = new FormData();
-        Object.keys(leadData).forEach(key => { if (leadData[key] !== null && leadData[key] !== '') formData.append(key, leadData[key]); });
-        fetch('/Leads/SaveLead', { method: 'POST', body: formData, headers: { 'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value, 'X-Requested-With': 'XMLHttpRequest' } })
+        Object.keys(leadData).forEach(key => { if (leadData[key] === null || leadData[key] === '') delete leadData[key]; });
+        fetch('/Leads/SaveLead', { method: 'POST', headers: { 'Content-Type': 'application/json', 'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value, 'X-Requested-With': 'XMLHttpRequest' }, body: JSON.stringify(leadData) })
         .then(response => response.json())
         .then(data => {
         if (data.success) {
         if (leadId === 0) {
         leadData.LeadId = allLeads.length > 0 ? Math.max(...allLeads.map(l => l.LeadId)) + 1 : 1;
-        const newLead = { LeadId: leadData.leadId, Name: leadData.name, Contact: leadData.contact, Email: leadData.email, Stage: leadData.stage, Status: leadData.status, GroupName: leadData.groupName, Source: leadData.source, PreferredLocation: leadData.preferredLocation, Sqft: leadData.sqft, Facing: leadData.facing, Type: leadData.type, PropertyType: leadData.propertyType, BHK: leadData.bhk, LocationDistance: leadData.locationDistance, Requirement: leadData.requirement, ExecutiveId: leadData.executiveId, FollowUpDate: leadData.followUpDate, Rating: leadData.rating, Comments: leadData.comments, CreatedOn: leadData.createdOn, ModifiedOn: leadData.modifiedOn, EncodedId: lead.LeadId };
+        const newLead = { LeadId: leadData.LeadId, Name: leadData.name, Contact: leadData.contact, Email: leadData.email, Stage: leadData.stage, Status: leadData.status, GroupName: leadData.groupName, Source: leadData.source, PreferredLocation: leadData.preferredLocation, Sqft: leadData.sqft, Facing: leadData.facing, Type: leadData.type, PropertyType: leadData.propertyType, BHK: leadData.bhk, LocationDistance: leadData.locationDistance, Requirement: leadData.requirement, ExecutiveId: leadData.executiveId, FollowUpDate: leadData.followUpDate, Rating: leadData.rating, Comments: leadData.comments, CreatedOn: leadData.createdOn, ModifiedOn: leadData.modifiedOn, EncodedId: leadData.LeadId };
         allLeads.unshift(newLead);
         } else {
         const index = allLeads.findIndex(l => l.LeadId === leadId);

@@ -487,6 +487,8 @@ namespace CRM.Controllers
                     }
                     
                     // New lead
+                    // Auto-generate LeadId (MongoDbSet does not auto-increment int keys)
+                    model.LeadId = _db.Leads.Any() ? await _db.Leads.MaxAsync(l => l.LeadId) + 1 : 1;
                     model.CreatedOn = IndianTime.Now;
                     model.CreatedBy = currentUserId;
                     
@@ -731,6 +733,8 @@ namespace CRM.Controllers
                     model.ExecutiveId = Convert.ToInt32(UserId);
                 }
 
+                // Auto-generate FollowUpId (MongoDbSet does not auto-increment int keys)
+                model.FollowUpId = _db.LeadFollowUps.Any() ? await _db.LeadFollowUps.MaxAsync(f => f.FollowUpId) + 1 : 1;
                 model.CreatedOn = IndianTime.Now;
 
                 _db.LeadFollowUps.Add(model);

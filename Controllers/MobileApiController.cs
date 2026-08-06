@@ -346,6 +346,9 @@ namespace CRM.Controllers
                 if (request.BHK != null) lead.BHK = request.BHK;
                 lead.ModifiedOn = IndianTime.Now;
 
+                _db.Leads.Update(lead);
+                await _db.SaveChangesAsync();
+
                 return Ok(new { success = true, message = "Lead updated successfully" });
             }
             catch (Exception ex)

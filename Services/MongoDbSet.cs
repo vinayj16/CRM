@@ -287,72 +287,78 @@ namespace CRM
         /// For PropertyModel, returns "PropertyId". For LeadModel, returns "LeadId".
         /// Returns null if no int ID property is found or if [BsonId] is on an int property (in which case _id search works).
         /// </summary>
+        /// <summary>
+        /// Resolves the integer ID property for this entity type.
+        /// Returns null when the int id maps to MongoDB _id (int "Id" or [BsonId] on int)
+        /// or when no unambiguous int id property exists.
+        /// </summary>
+        private static PropertyInfo? ResolveIntIdProperty(out bool mapsToMongoId)
+        {
+            mapsToMongoId = false;
+            var type = typeof(T);
+
+            // 1) [BsonId] property IS the MongoDB _id.
+            var bsonIdProp = type.GetProperties()
+                .FirstOrDefault(p => p.GetCustomAttribute(typeof(MongoDB.Bson.Serialization.Attributes.BsonIdAttribute), false) != null);
+
+            if (bsonIdProp != null)
+            {
+                // int [BsonId] maps to _id
+                if (bsonIdProp.PropertyType == typeof(int) || bsonIdProp.PropertyType == typeof(int?))
+                {
+                    mapsToMongoId = true;
+                    return null;
+                }
+                // ObjectId [BsonId] -> integer ids live in a separate named field (search below)
+            }
+
+            // 2) Plain int "Id" property - MongoDB convention maps "Id" to _id
+            if (type.GetProperty("Id", typeof(int)) != null || type.GetProperty("Id", typeof(int?)) != null)
+            {
+                mapsToMongoId = true;
+                return null;
+            }
+
+            // 3) [Key]-annotated int property (LeadModel.LeadId, FollowUpModel.FollowUpId)
+            var keyProp = type.GetProperties().FirstOrDefault(p =>
+                p.GetCustomAttribute(typeof(System.ComponentModel.DataAnnotations.KeyAttribute), false) != null &&
+                (p.PropertyType == typeof(int) || p.PropertyType == typeof(int?)));
+            if (keyProp != null)
+                return keyProp;
+
+            // 4) Named integer id field: {TypeName}Id or {TypeName minus Model}Id
+            //    (LeadModel -> LeadId, PropertyModel -> PropertyId)
+            var baseName = type.Name.EndsWith("Model", StringComparison.Ordinal)
+                ? type.Name.Substring(0, type.Name.Length - 5)
+                : type.Name;
+
+            var namedId = type.GetProperty(baseName + "Id", typeof(int))
+                       ?? type.GetProperty(baseName + "Id", typeof(int?))
+                       ?? type.GetProperty(type.Name + "Id", typeof(int))
+                       ?? type.GetProperty(type.Name + "Id", typeof(int?));
+            if (namedId != null)
+                return namedId;
+
+            // 5) Unambiguous fallback: exactly one other int property ending in "Id" (skip TenantId).
+            //    Guessing between several candidates risks updating/deleting the wrong document,
+            //    so we only resolve when there is a single candidate.
+            var candidates = type.GetProperties()
+                .Where(p => p.Name != "TenantId" && p.Name.EndsWith("Id") &&
+                            (p.PropertyType == typeof(int) || p.PropertyType == typeof(int?)))
+                .ToList();
+
+            return candidates.Count == 1 ? candidates[0] : null;
+        }
+
         private static string? GetIntIdPropertyName()
         {
             if (_intIdPropertyChecked)
                 return _intIdPropertyName;
 
             _intIdPropertyChecked = true;
-            var type = typeof(T);
-
-            // Check if [BsonId] is on an ObjectId field - if so, _id won't match int IDs
-            bool bsonIdOnObjectId = false;
-            foreach (var prop in type.GetProperties())
-            {
-                if (prop.GetCustomAttribute(typeof(MongoDB.Bson.Serialization.Attributes.BsonIdAttribute), false) != null)
-                {
-                    if (prop.PropertyType == typeof(MongoDB.Bson.ObjectId) ||
-                        prop.PropertyType == typeof(MongoDB.Bson.ObjectId?))
-                    {
-                        bsonIdOnObjectId = true;
-                    }
-                    break;
-                }
-            }
-
-            if (!bsonIdOnObjectId)
-            {
-                // Check if the type has an int Id property that is the primary key
-                // (MongoDB convention maps Id to _id)
-                var primaryIdProp = type.GetProperty("Id", typeof(int))
-                            ?? type.GetProperty("Id", typeof(int?))
-                            ?? type.GetProperty(type.Name + "Id", typeof(int))
-                            ?? type.GetProperty(type.Name + "Id", typeof(int?));
-                
-                if (primaryIdProp != null)
-                {
-                    _intIdPropertyName = "_id";
-                    return _intIdPropertyName;
-                }
-                
-                _intIdPropertyName = null;
-                return null;
-            }
-
-            // Look for {TypeName}Id property (e.g., PropertyId for PropertyModel)
-            var typeName = type.Name;
-            var idProp = type.GetProperty(typeName + "Id", typeof(int))
-                       ?? type.GetProperty(typeName + "Id", typeof(int?));
-
-            if (idProp != null)
-            {
-                _intIdPropertyName = idProp.Name;
-                return _intIdPropertyName;
-            }
-
-            // Fallback: look for any int property ending with "Id"
-            foreach (var prop in type.GetProperties())
-            {
-                if (prop.Name.EndsWith("Id") &&
-                    (prop.PropertyType == typeof(int) || prop.PropertyType == typeof(int?)))
-                {
-                    _intIdPropertyName = prop.Name;
-                    return _intIdPropertyName;
-                }
-            }
-
-            _intIdPropertyName = null;
-            return null;
+            var prop = ResolveIntIdProperty(out bool mapsToMongoId);
+            _intIdPropertyName = mapsToMongoId ? "_id" : prop?.Name;
+            return _intIdPropertyName;
         }
 
         public T? Find(object id)
@@ -506,10 +512,13 @@ namespace CRM
                 if (prop.GetCustomAttribute(typeof(MongoDB.Bson.Serialization.Attributes.BsonIdAttribute), false) != null)
                     return prop.GetValue(document);
             }
-            // Fallback: look for Id, _id, or {TypeName}Id
-            var idProp = type.GetProperty("Id") ?? type.GetProperty("_id") ??
-                         type.GetProperty(type.Name + "Id");
-            return idProp?.GetValue(document);
+            // Resolve the integer id property (or int "Id" mapped to _id)
+            var idProp = ResolveIntIdProperty(out _);
+            if (idProp != null)
+                return idProp.GetValue(document);
+            // Legacy fallback: int "Id" convention property (mapped to _id)
+            return type.GetProperty("_id")?.GetValue(document)
+                   ?? type.GetProperty("Id")?.GetValue(document);
         }
     }
 
