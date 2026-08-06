@@ -597,6 +597,8 @@ namespace CRM.Controllers
                 if (request.Phone != null) fullUser.Phone = request.Phone;
                 fullUser.LastActivity = IndianTime.Now;
 
+                _db.Users.Update(fullUser);
+                await _db.SaveChangesAsync();
                 return Ok(new { success = true, message = "Profile updated successfully" });
             }
             catch (Exception ex)
@@ -638,8 +640,10 @@ namespace CRM.Controllers
                 else
                 {
                     profile.ProfileImagePath = request.ImageBase64;
+                    _db.UserProfiles.Update(profile);
                 }
 
+                await _db.SaveChangesAsync();
                 return Ok(new { success = true, message = "Profile image updated" });
             }
             catch (Exception ex)
@@ -887,6 +891,8 @@ namespace CRM.Controllers
 
                 booking.Status = request.Status ?? booking.Status;
                 booking.ModifiedOn = IndianTime.Now;
+                _db.Bookings.Update(booking);
+                await _db.SaveChangesAsync();
 
                 return Ok(new { success = true, message = "Booking status updated" });
             }

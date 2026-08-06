@@ -979,6 +979,7 @@ namespace CRM.Controllers
             var token = Guid.NewGuid().ToString("N");
             user.ResetToken = token;
             user.ResetTokenExpiry = DateTime.UtcNow.AddHours(1); // Token expires in 1 hour
+            _db.Users.Update(user);
             await _db.SaveChangesAsync();
 
             // send reset email

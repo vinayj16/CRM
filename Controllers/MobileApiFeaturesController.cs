@@ -77,6 +77,8 @@ namespace CRM.Controllers
             if (campaign == null) return NotFound(new { success = false, message = "Campaign not found" });
             campaign.Status = request.Status ?? campaign.Status;
             campaign.UpdatedOn = IndianTime.Now;
+            _db.Campaigns.Update(campaign);
+            await _db.SaveChangesAsync();
             return Ok(new { success = true });
         }
 
@@ -158,6 +160,8 @@ namespace CRM.Controllers
             var lead = await _db.PartnerLeads.FirstOrDefaultAsync(p => p.LeadId == id && p.TenantId == tid);
             if (lead == null) return NotFound(new { success = false, message = "Partner lead not found" });
             lead.Status = request.Status ?? lead.Status;
+            _db.PartnerLeads.Update(lead);
+            await _db.SaveChangesAsync();
             return Ok(new { success = true });
         }
 
