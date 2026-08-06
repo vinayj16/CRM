@@ -323,9 +323,10 @@
             line-height: 1.5 !important;
             text-align: center !important;
             box-sizing: border-box !important;
-            overflow: hidden !important;
-            white-space: nowrap !important;
-            text-overflow: ellipsis !important;
+            overflow: visible !important;
+            white-space: normal !important;
+            text-overflow: clip !important;
+            word-wrap: break-word !important;
             z-index: 6 !important;
             display: block !important;
         }
@@ -1070,6 +1071,62 @@
         }
         .sidebar .sa-badge { margin-left: auto !important; }
         .sidebar.collapsed .sa-badge { display: inline-flex !important; position: absolute !important; top: 3px !important; right: 3px !important; margin-left: 0 !important; min-width: 16px !important; height: 16px !important; font-size: 9px !important; line-height: 16px !important; padding: 0 4px !important; border-radius: 8px !important; z-index: 5; }
+
+        /* =====================================================
+           SWEETALERT BRAND THEME - consistent blue/gold across all popups
+           ===================================================== */
+        .swal2-popup {
+            border-radius: 14px !important;
+            padding: 22px 20px !important;
+            max-width: 420px !important;
+            width: auto !important;
+            font-family: 'Inter', sans-serif !important;
+            color: var(--text-primary) !important;
+        }
+        .swal2-title { font-size: 1.15rem !important; font-weight: 700 !important; color: var(--text-primary) !important; }
+        .swal2-html-container { font-size: 0.9rem !important; color: var(--text-muted) !important; line-height: 1.55 !important; }
+        .swal2-confirm {
+            background: linear-gradient(135deg, #1A6FA8, #2589C9) !important;
+            border: none !important;
+            border-radius: 8px !important;
+            font-size: 0.85rem !important;
+            font-weight: 600 !important;
+            padding: 8px 20px !important;
+            color: #FFFFFF !important;
+            box-shadow: 0 4px 12px rgba(26,111,168,0.35) !important;
+        }
+        .swal2-confirm:hover { background: linear-gradient(135deg, #125082, #1A6FA8) !important; }
+        .swal2-cancel {
+            background: #F0F4F8 !important;
+            border: 1px solid var(--border-color) !important;
+            border-radius: 8px !important;
+            font-size: 0.85rem !important;
+            font-weight: 600 !important;
+            padding: 8px 20px !important;
+            color: var(--text-primary) !important;
+        }
+        .swal2-cancel:hover { background: #E2E8F0 !important; }
+        /* Only the warning icon gets the brand gold; success/error keep semantic colors */
+        .swal2-icon.swal2-warning { border-color: var(--gold) !important; color: var(--gold) !important; }
+        .swal2-toast { border-radius: 12px !important; font-family: 'Inter', sans-serif !important; box-shadow: 0 8px 24px rgba(0,0,0,0.18) !important; }
+        .swal2-toast .swal2-confirm { padding: 6px 14px !important; font-size: 0.8rem !important; }
+        .swal2-timer-progress-bar { background: linear-gradient(90deg, #1A6FA8, #D4A45A) !important; }
+        html.dark-mode .swal2-popup { background: #1E2A3A !important; }
+        html.dark-mode .swal2-title, html.dark-mode .swal2-html-container { color: #E8EDF2 !important; }
+        html.dark-mode .swal2-cancel { background: #2A3A4A !important; border-color: #3A4A5A !important; color: #E8EDF2 !important; }
+
+        /* =====================================================
+           NOTIFICATION DROPDOWN - brand styling for reminders
+           ===================================================== */
+        .notification-dropdown-panel .notification-item {
+            background: #FFFFFF !important;
+            border: 1px solid var(--border-color) !important;
+            border-radius: 8px !important;
+            margin-bottom: 6px !important;
+        }
+        .notification-item:hover { border-color: rgba(26,111,168,0.4) !important; box-shadow: 0 2px 8px rgba(26,111,168,0.12) !important; }
+        .notification-link { border-radius: 6px !important; }
+        html.dark-mode .notification-dropdown-panel .notification-item { background: #1E2A3A !important; }
     </style>
 </head>
 <body class="@(role == "SuperAdmin" ? "superadmin-layout" : "")">

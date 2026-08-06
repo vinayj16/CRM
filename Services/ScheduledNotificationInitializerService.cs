@@ -148,7 +148,7 @@ namespace CRM.Services
                     $"It's time for your follow-up with {leadName} at {time}! Stage: {stage}, Status: {status}",
                     "FollowUpReminder",
                     executiveId,
-                    $"/Leads/Details/{leadId}",
+                    $"/leaddetails/{IdObfuscator.Encode(leadId)}",
                     leadId,
                     "Lead",
                     "Urgent"
@@ -159,7 +159,7 @@ namespace CRM.Services
                     executiveId,
                     "Follow-Up Reminder",
                     $"It's time for your follow-up with {leadName} at {time}!",
-                    $"/Leads/Details/{leadId}",
+                    $"/leaddetails/{IdObfuscator.Encode(leadId)}",
                     "FollowUpReminder",
                     leadId
                 );
@@ -176,7 +176,7 @@ namespace CRM.Services
                         $"Follow-up time for {leadName} at {time}! Stage: {stage}, Status: {status}",
                         "FollowUpReminder",
                         admin.UserId,
-                        $"/Leads/Details/{leadId}",
+                        $"/leaddetails/{IdObfuscator.Encode(leadId)}",
                         leadId,
                         "Lead",
                         "High"
@@ -187,7 +187,7 @@ namespace CRM.Services
                         admin.UserId,
                         "Follow-Up Reminder",
                         $"Follow-up time for {leadName} at {time}!",
-                        $"/Leads/Details/{leadId}",
+                        $"/leaddetails/{IdObfuscator.Encode(leadId)}",
                         "FollowUpReminder",
                         leadId
                     );

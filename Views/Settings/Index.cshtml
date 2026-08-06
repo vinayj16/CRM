@@ -788,16 +788,17 @@
     $(document).on('click', '#removeLogo', function() {
         Swal.fire({
             title: 'Remove Logo?',
-            text: 'Are you sure you want to remove the company logo?',
+            html: 'Are you sure you want to remove the company logo?<br><small class="text-muted">This action cannot be undone.</small>',
             icon: 'warning',
             showCancelButton: true,
-            confirmButtonColor: '#DC2626',
-            confirmButtonText: 'Yes, remove'
+            confirmButtonText: 'Yes, remove',
+            cancelButtonText: 'Cancel'
         }).then((result) => {
             if (!result.isConfirmed) return;
             $.post('/Settings/RemoveLogo', function(data) {
                 if (data.success) {
                     $('#companyLogoPreviewCol').html('<div class="logo-placeholder" style="max-width: 280px;"><span class="text-muted" style="font-size:0.8rem;">No logo uploaded</span></div>');
+                    Swal.fire({ icon: 'success', title: 'Logo removed successfully', toast: true, position: 'top-end', timer: 2200, showConfirmButton: false, timerProgressBar: true });
                 } else {
                     Swal.fire('Error', data.message || 'Failed to remove logo', 'error');
                 }
@@ -815,17 +816,18 @@
 
     $(document).on('click', '#removeCollapsedLogo', function() {
         Swal.fire({
-            title: 'Remove Logo?',
-            text: 'Are you sure you want to remove the collapsed logo?',
+            title: 'Remove Collapsed Logo?',
+            html: 'Are you sure you want to remove the collapsed logo?<br><small class="text-muted">This action cannot be undone.</small>',
             icon: 'warning',
             showCancelButton: true,
-            confirmButtonColor: '#DC2626',
-            confirmButtonText: 'Yes, remove'
+            confirmButtonText: 'Yes, remove',
+            cancelButtonText: 'Cancel'
         }).then((result) => {
             if (!result.isConfirmed) return;
             $.post('/Settings/RemoveCollapsedLogo', function(data) {
                 if (data.success) {
                     $('#collapsedLogoPreviewCol').html('<label class="form-label">Collapsed Logo Preview</label><div class="logo-placeholder" style="max-width: 190px;"><span class="text-muted" style="font-size:0.8rem;">No collapsed logo</span></div>');
+                    Swal.fire({ icon: 'success', title: 'Collapsed logo removed successfully', toast: true, position: 'top-end', timer: 2200, showConfirmButton: false, timerProgressBar: true });
                 } else {
                     Swal.fire('Error', data.message || 'Failed to remove collapsed logo', 'error');
                 }

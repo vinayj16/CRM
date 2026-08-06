@@ -80,7 +80,7 @@ namespace CRM.Services
                             "Follow-Up Scheduled for Today",
                             $"You have a follow-up today at {fu.f.FollowUpTime ?? "Not specified"} with {fu.l?.Name ?? "Lead"}. Stage: {fu.f.Stage}, Status: {fu.f.Status}",
                             "FollowUp", executiveId,
-                            $"/Leads/Details/{fu.f.LeadId}", fu.f.LeadId, "Lead", "High");
+                            $"/leaddetails/{IdObfuscator.Encode(fu.f.LeadId)}", fu.f.LeadId, "Lead", "High");
                     }
                     else
                     {

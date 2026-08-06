@@ -416,7 +416,13 @@
                 <div class="row">
                     <!-- Profile Image Section -->
                     <div class="col-lg-2 text-center border-end" style="min-width:0;overflow:hidden;">
-                        <img src="@profileImageSrc" alt="User Avatar" class="img-fluid rounded-circle mb-2 profile-image-preview" width="100" height="100" id="profileImagePreview" style="object-fit: cover;" />
+                        <div class="position-relative d-inline-block">
+                            <img src="@profileImageSrc" alt="User Avatar" class="img-fluid rounded-circle mb-1 profile-image-preview" width="100" height="100" id="profileImagePreview" style="object-fit: cover; cursor:pointer;" onclick="openProfilePhotoModal()" title="Change profile photo" />
+                            <button type="button" class="btn btn-primary btn-sm rounded-circle position-absolute" style="bottom:-4px;right:-4px;width:30px;height:30px;padding:0;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,0.3);font-size:13px;" onclick="openProfilePhotoModal()" title="Change profile photo">
+                                <i class="fa-solid fa-camera"></i>
+                            </button>
+                        </div>
+                        <button type="button" class="btn btn-sm btn-outline-primary mb-2" style="font-size:0.78rem;" onclick="openProfilePhotoModal()"><i class="fa-solid fa-image me-1"></i>Upload / Remove Photo</button>
                         <h5 class="fw-bold mb-1" style="word-break:break-word;overflow-wrap:break-word;">@(!string.IsNullOrEmpty(Model?.FirstName) && !string.IsNullOrEmpty(Model?.LastName) ? $"{Model.FirstName} {Model.LastName}" : Model?.Username)</h5>
                         <p class="text-muted mb-2 small" style="word-break:break-word;overflow-wrap:break-word;">@Model?.Location</p>
                         <span class="badge bg-success px-2 py-1 mb-2" style="font-size: 0.75rem;">Active User</span>
@@ -869,6 +875,16 @@
                     document.getElementById('removeImageFlag').value = 'false';
                 }
                 reader.readAsDataURL(file);
+            }
+        }
+
+        function openProfilePhotoModal() {
+            var modalEl = document.getElementById('editProfileModal');
+            if (!modalEl) return;
+            if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                bootstrap.Modal.getOrCreateInstance(modalEl).show();
+            } else if (window.$ && $.fn.modal) {
+                $('#editProfileModal').modal('show');
             }
         }
 

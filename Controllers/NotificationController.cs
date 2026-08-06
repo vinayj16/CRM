@@ -1,3 +1,4 @@
+using CRM.Helpers;
 using CRM.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -167,7 +168,7 @@ namespace CRM.Controllers
                     "You have been assigned Lead #101 - John Doe for immediate follow-up",
                     "LeadAssigned",
                     agentId,
-                    "/Leads/Details/101",
+                    $"/leaddetails/{IdObfuscator.Encode(101)}",
                     101,
                     "Lead",
                     "High"
@@ -178,7 +179,7 @@ namespace CRM.Controllers
                     "You have been assigned Lead #102 - Jane Smith for site visit",
                     "LeadAssigned",
                     agentId,
-                    "/Leads/Details/102",
+                    $"/leaddetails/{IdObfuscator.Encode(102)}",
                     102,
                     "Lead",
                     "High"

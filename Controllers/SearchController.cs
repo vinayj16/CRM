@@ -351,7 +351,7 @@ namespace CRM.Controllers
                 Subtitle = (leadNameLookup.TryGetValue(b.LeadId, out var ln) ? ln + " - " : "") + b.Status,
                 Type = "Booking",
                 Icon = "book-open",
-                Url = "/Bookings/Details/" + b.BookingId
+                Url = "/bookingdetails/" + IdObfuscator.Encode(b.BookingId)
             }).ToList();
             results.AddRange(bookings);
 

@@ -80,7 +80,7 @@ namespace CRM.Controllers
                         Title = "New Lead - Express Interest",
                         Message = $"{model.Name} expressed interest in {model.ProjectName}. Phone: {model.Contact}, Location: {model.PreferredLocation}, BHK: {model.BHK}, Budget: ₹{model.Budget}",
                         Type = "NewLead",
-                        Link = $"/Leads/Details/{lead.LeadId}",
+                        Link = $"/leaddetails/{IdObfuscator.Encode(lead.LeadId)}",
                         CreatedOn = IndianTime.Now,
                         IsRead = false,
                         UserId = null // Visible to all admins
@@ -167,7 +167,7 @@ namespace CRM.Controllers
                         Title = "New Site Visit Request",
                         Message = $"{model.Name} requested site visit for {model.ProjectName}. Phone: {model.Contact}, Location: {model.PreferredLocation}, BHK: {model.BHK}, Budget: ₹{model.Budget}",
                         Type = "SiteVisit",
-                        Link = $"/Leads/Details/{lead.LeadId}",
+                        Link = $"/leaddetails/{IdObfuscator.Encode(lead.LeadId)}",
                         CreatedOn = IndianTime.Now,
                         IsRead = false,
                         UserId = null // Visible to all admins
