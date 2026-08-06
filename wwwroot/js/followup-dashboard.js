@@ -72,7 +72,7 @@ class FollowUpDashboard {
                         <div class="text-end">
                             <small class="text-muted">${this.formatTime(followUp.followUpDate)} ${followUp.followUpTime || ''}</small>
                             <div>
-                                <a href="/Leads/Details/${followUp.leadId}" class="btn btn-sm btn-outline-primary">
+                                <a href="${followUp.encodedId ? '/leaddetails/' + followUp.encodedId : '/leads'}" class="btn btn-sm btn-outline-primary">
                                     <i class="fas fa-eye"></i> View
                                 </a>
                             </div>
@@ -115,7 +115,7 @@ class FollowUpDashboard {
                         <div class="text-end">
                             <small class="text-muted">Due: ${this.formatDate(followUp.followUpDate)} ${followUp.followUpTime || ''}</small>
                             <div>
-                                <a href="/Leads/Details/${followUp.leadId}" class="btn btn-sm btn-outline-danger">
+                                <a href="${followUp.encodedId ? '/leaddetails/' + followUp.encodedId : '/leads'}" class="btn btn-sm btn-outline-danger">
                                     <i class="fas fa-exclamation-triangle"></i> Action
                                 </a>
                             </div>

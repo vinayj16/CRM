@@ -65,6 +65,7 @@ namespace CRM.Controllers
                 int.TryParse(userIdStr, out int userId);
                 var currentUser = _db.Users.FirstOrDefault(u => u.UserId == userId);
                 var channelPartnerId = currentUser?.ChannelPartnerId;
+                var tenantIdForSave = currentUser?.TenantId > 0 ? currentUser.TenantId : (HttpContext.Items["TenantId"] as int? ?? 0);
                 var cpIdForFile = userRole?.ToLower() == "partner" ? channelPartnerId : null;
 
                 // Handle logo upload - saved to wwwroot/uploads/logos (not base64)
@@ -76,9 +77,9 @@ namespace CRM.Controllers
 
                         SettingsModel logoSetting;
                         if (userRole?.ToLower() == "partner")
-                            logoSetting = _db.Settings.FirstOrDefault(s => s.SettingKey == "CompanyLogo" && s.ChannelPartnerId == channelPartnerId);
+                            logoSetting = _db.Settings.FirstOrDefault(s => s.SettingKey == "CompanyLogo" && s.ChannelPartnerId == channelPartnerId && s.TenantId == tenantIdForSave);
                         else
-                            logoSetting = _db.Settings.FirstOrDefault(s => s.SettingKey == "CompanyLogo" && s.ChannelPartnerId == null);
+                            logoSetting = _db.Settings.FirstOrDefault(s => s.SettingKey == "CompanyLogo" && s.ChannelPartnerId == null && s.TenantId == tenantIdForSave);
                         
                         if (logoSetting != null)
                         {
@@ -100,7 +101,8 @@ namespace CRM.Controllers
                                 SettingType = "Image",
                                 ModifiedOn = IndianTime.Now,
                                 ModifiedBy = currentUserId,
-                                ChannelPartnerId = cpIdForFile
+                                ChannelPartnerId = cpIdForFile,
+                                TenantId = tenantIdForSave
                             });
                         }
                     }
@@ -119,9 +121,9 @@ namespace CRM.Controllers
 
                         SettingsModel collapsedLogoSetting;
                         if (userRole?.ToLower() == "partner")
-                            collapsedLogoSetting = _db.Settings.FirstOrDefault(s => s.SettingKey == "CollapsedLogo" && s.ChannelPartnerId == channelPartnerId);
+                            collapsedLogoSetting = _db.Settings.FirstOrDefault(s => s.SettingKey == "CollapsedLogo" && s.ChannelPartnerId == channelPartnerId && s.TenantId == tenantIdForSave);
                         else
-                            collapsedLogoSetting = _db.Settings.FirstOrDefault(s => s.SettingKey == "CollapsedLogo" && s.ChannelPartnerId == null);
+                            collapsedLogoSetting = _db.Settings.FirstOrDefault(s => s.SettingKey == "CollapsedLogo" && s.ChannelPartnerId == null && s.TenantId == tenantIdForSave);
                         
                         if (collapsedLogoSetting != null)
                         {
@@ -142,7 +144,8 @@ namespace CRM.Controllers
                                 SettingType = "Image",
                                 ModifiedOn = IndianTime.Now,
                                 ModifiedBy = currentUserId,
-                                ChannelPartnerId = cpIdForFile
+                                ChannelPartnerId = cpIdForFile,
+                                TenantId = tenantIdForSave
                             });
                         }
                     }
@@ -164,9 +167,9 @@ namespace CRM.Controllers
                     
                     SettingsModel existingSetting;
                     if (userRole?.ToLower() == "partner")
-                        existingSetting = _db.Settings.FirstOrDefault(s => s.SettingKey == key && s.ChannelPartnerId == channelPartnerId);
+                        existingSetting = _db.Settings.FirstOrDefault(s => s.SettingKey == key && s.ChannelPartnerId == channelPartnerId && s.TenantId == tenantIdForSave);
                     else
-                        existingSetting = _db.Settings.FirstOrDefault(s => s.SettingKey == key && s.ChannelPartnerId == null);
+                        existingSetting = _db.Settings.FirstOrDefault(s => s.SettingKey == key && s.ChannelPartnerId == null && s.TenantId == tenantIdForSave);
                     
                     if (existingSetting != null)
                     {
@@ -184,7 +187,8 @@ namespace CRM.Controllers
                             SettingType = "Text",
                             ModifiedOn = IndianTime.Now,
                             ModifiedBy = currentUserId,
-                            ChannelPartnerId = cpIdForFile
+                            ChannelPartnerId = cpIdForFile,
+                            TenantId = tenantIdForSave
                         });
                     }
                 }
@@ -210,12 +214,13 @@ namespace CRM.Controllers
                 int.TryParse(userIdStr, out int uId);
                 var currentUser = _db.Users.FirstOrDefault(u => u.UserId == uId);
                 var cpId = currentUser?.ChannelPartnerId;
+                var tenantId = currentUser?.TenantId > 0 ? currentUser.TenantId : (HttpContext.Items["TenantId"] as int? ?? 0);
 
                 SettingsModel logoSetting;
                 if (userRole?.ToLower() == "partner")
-                    logoSetting = _db.Settings.FirstOrDefault(s => s.SettingKey == "CompanyLogo" && s.ChannelPartnerId == cpId);
+                    logoSetting = _db.Settings.FirstOrDefault(s => s.SettingKey == "CompanyLogo" && s.ChannelPartnerId == cpId && s.TenantId == tenantId);
                 else
-                    logoSetting = _db.Settings.FirstOrDefault(s => s.SettingKey == "CompanyLogo" && s.ChannelPartnerId == null);
+                    logoSetting = _db.Settings.FirstOrDefault(s => s.SettingKey == "CompanyLogo" && s.ChannelPartnerId == null && s.TenantId == tenantId);
 
                 if (logoSetting != null)
                 {
@@ -244,12 +249,13 @@ namespace CRM.Controllers
                 int.TryParse(userIdStr, out int uId);
                 var currentUser = _db.Users.FirstOrDefault(u => u.UserId == uId);
                 var cpId = currentUser?.ChannelPartnerId;
+                var tenantId = currentUser?.TenantId > 0 ? currentUser.TenantId : (HttpContext.Items["TenantId"] as int? ?? 0);
 
                 SettingsModel logoSetting;
                 if (userRole?.ToLower() == "partner")
-                    logoSetting = _db.Settings.FirstOrDefault(s => s.SettingKey == "CollapsedLogo" && s.ChannelPartnerId == cpId);
+                    logoSetting = _db.Settings.FirstOrDefault(s => s.SettingKey == "CollapsedLogo" && s.ChannelPartnerId == cpId && s.TenantId == tenantId);
                 else
-                    logoSetting = _db.Settings.FirstOrDefault(s => s.SettingKey == "CollapsedLogo" && s.ChannelPartnerId == null);
+                    logoSetting = _db.Settings.FirstOrDefault(s => s.SettingKey == "CollapsedLogo" && s.ChannelPartnerId == null && s.TenantId == tenantId);
 
                 if (logoSetting != null)
                 {
@@ -287,7 +293,12 @@ namespace CRM.Controllers
         [HttpGet]
         public IActionResult GetSetting(string key)
         {
-            var setting = _db.Settings.FirstOrDefault(s => s.SettingKey == key);
+            var userIdStr = User?.FindFirst("UserId")?.Value ?? User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            int.TryParse(userIdStr ?? "0", out int gsUserId);
+            var gsUser = _db.Users.FirstOrDefault(u => u.UserId == gsUserId);
+            var gsTenantId = gsUser?.TenantId > 0 ? gsUser.TenantId : (HttpContext.Items["TenantId"] as int? ?? 0);
+            var setting = _db.Settings.FirstOrDefault(s => s.SettingKey == key
+                && (gsTenantId > 0 ? s.TenantId == gsTenantId : true));
             
             if (setting != null)
             {
@@ -333,6 +344,28 @@ namespace CRM.Controllers
         public static string GetSettingValue(AppDbContext db, string key, int? channelPartnerId, string defaultValue = "")
         {
             var setting = db.Settings.FirstOrDefault(s => s.SettingKey == key && s.ChannelPartnerId == channelPartnerId);
+            return setting?.SettingValue ?? defaultValue;
+        }
+
+        // Tenant-scoped overload: never leaks another tenant's settings. Falls back to the
+        // tenant-scoped row, then an unassigned (TenantId == 0) row of the same scope.
+        public static string GetSettingValue(AppDbContext db, string key, int tenantId, int? channelPartnerId, string defaultValue = "")
+        {
+            if (tenantId > 0)
+            {
+                var scoped = db.Settings.FirstOrDefault(s => s.SettingKey == key && s.TenantId == tenantId
+                    && (channelPartnerId.HasValue && channelPartnerId.Value > 0 ? s.ChannelPartnerId == channelPartnerId.Value : s.ChannelPartnerId == null));
+                if (scoped != null) return scoped.SettingValue ?? defaultValue;
+
+                var legacy = db.Settings.FirstOrDefault(s => s.SettingKey == key && s.TenantId == 0
+                    && (channelPartnerId.HasValue && channelPartnerId.Value > 0 ? s.ChannelPartnerId == channelPartnerId.Value : s.ChannelPartnerId == null));
+                if (legacy != null) return legacy.SettingValue ?? defaultValue;
+
+                return defaultValue;
+            }
+
+            var setting = db.Settings.FirstOrDefault(s => s.SettingKey == key
+                && (channelPartnerId.HasValue && channelPartnerId.Value > 0 ? s.ChannelPartnerId == channelPartnerId.Value : s.ChannelPartnerId == null));
             return setting?.SettingValue ?? defaultValue;
         }
 

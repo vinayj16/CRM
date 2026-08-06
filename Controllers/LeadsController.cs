@@ -542,7 +542,7 @@ namespace CRM.Controllers
 
                     if (isAjax)
                     {
-                        return Json(new { success = true, message = "Lead created successfully!" });
+                        return Json(new { success = true, message = "Lead created successfully!", leadId = model.LeadId, encodedId = IdObfuscator.Encode(model.LeadId) });
                     }
                     TempData["Success"] = "Lead created successfully!";
                 }

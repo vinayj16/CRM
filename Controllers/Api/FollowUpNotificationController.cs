@@ -187,6 +187,7 @@ namespace CRM.Controllers.Api
                     {
                         x.f.FollowUpId,
                         x.f.LeadId,
+                        encodedId = IdObfuscator.Encode(x.l.LeadId),
                         LeadName = x.l.Name,
                         x.f.Stage,
                         x.f.Status,
@@ -223,6 +224,7 @@ namespace CRM.Controllers.Api
                     {
                         x.f.FollowUpId,
                         x.f.LeadId,
+                        encodedId = IdObfuscator.Encode(x.l.LeadId),
                         LeadName = x.l.Name,
                         x.f.Stage,
                         x.f.Status,

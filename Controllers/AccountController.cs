@@ -78,8 +78,9 @@ namespace CRM.Controllers
             }
 
             var subdomainPId = HttpContext.Items["SubdomainPartnerId"] as int?;
-            ViewBag.CompanyLogo = BrandingResolver.ResolveCompanyLogo(_db, subdomainPId);
-            ViewBag.CompanyName = BrandingResolver.ResolveCompanyName(_db, subdomainPId, HttpContext.Items["SubdomainPartnerName"] as string);
+            var subdomainTenantId = HttpContext.Items["TenantId"] as int?;
+            ViewBag.CompanyLogo = BrandingResolver.ResolveCompanyLogo(_db, subdomainPId, subdomainTenantId);
+            ViewBag.CompanyName = BrandingResolver.ResolveCompanyName(_db, subdomainPId, subdomainTenantId, HttpContext.Items["SubdomainPartnerName"] as string);
 
             return View();
         }
@@ -413,8 +414,9 @@ namespace CRM.Controllers
             if (passwordReset != null) TempData["PasswordResetSuccess"] = passwordReset;
 
             var subdomainPartnerId = HttpContext.Items["SubdomainPartnerId"] as int?;
-            ViewBag.CompanyLogo = BrandingResolver.ResolveCompanyLogo(_db, subdomainPartnerId);
-            ViewBag.CompanyName = BrandingResolver.ResolveCompanyName(_db, subdomainPartnerId, HttpContext.Items["SubdomainPartnerName"] as string);
+            var subdomainTenantId = HttpContext.Items["TenantId"] as int?;
+            ViewBag.CompanyLogo = BrandingResolver.ResolveCompanyLogo(_db, subdomainPartnerId, subdomainTenantId);
+            ViewBag.CompanyName = BrandingResolver.ResolveCompanyName(_db, subdomainPartnerId, subdomainTenantId, HttpContext.Items["SubdomainPartnerName"] as string);
             ViewBag.SubdomainPartnerId = subdomainPartnerId;
             return View();
         }
@@ -961,8 +963,9 @@ namespace CRM.Controllers
         public IActionResult ForgotPassword()
         {
             var subdomainPId = HttpContext.Items["SubdomainPartnerId"] as int?;
-            ViewBag.CompanyLogo = BrandingResolver.ResolveCompanyLogo(_db, subdomainPId);
-            ViewBag.CompanyName = BrandingResolver.ResolveCompanyName(_db, subdomainPId, HttpContext.Items["SubdomainPartnerName"] as string);
+            var subdomainTenantId = HttpContext.Items["TenantId"] as int?;
+            ViewBag.CompanyLogo = BrandingResolver.ResolveCompanyLogo(_db, subdomainPId, subdomainTenantId);
+            ViewBag.CompanyName = BrandingResolver.ResolveCompanyName(_db, subdomainPId, subdomainTenantId, HttpContext.Items["SubdomainPartnerName"] as string);
             return View();
         }
         [HttpPost]

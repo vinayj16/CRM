@@ -1235,7 +1235,13 @@ namespace CRM.Controllers
                 var scopeFactory = httpContext.RequestServices.GetRequiredService<IServiceScopeFactory>();
                 using var scope = scopeFactory.CreateScope();
                 var emailService = scope.ServiceProvider.GetRequiredService<EmailService>();
-                var companyName = _context.Settings.FirstOrDefault(s => s.SettingKey == "CompanyName")?.SettingValue ?? "Real Estate CRM";
+                // Scope the company name to the current tenant so the welcome email carries the right company
+                var actingTenantId = httpContext.Items["TenantId"] as int? ?? 0;
+                var companyName = actingTenantId > 0
+                    ? (_context.Settings.FirstOrDefault(s => s.SettingKey == "CompanyName" && s.ChannelPartnerId == null && s.TenantId == actingTenantId)?.SettingValue
+                        ?? _context.Settings.FirstOrDefault(s => s.SettingKey == "CompanyName" && s.ChannelPartnerId == null)?.SettingValue
+                        ?? "Real Estate CRM")
+                    : (_context.Settings.FirstOrDefault(s => s.SettingKey == "CompanyName" && s.ChannelPartnerId == null)?.SettingValue ?? "Real Estate CRM");
 
                 var baseUrl = $"{httpContext.Request.Scheme}://{httpContext.Request.Host}";
 

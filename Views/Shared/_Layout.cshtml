@@ -92,18 +92,20 @@
     int? subdomainPartnerId = Context.Items["subdomainPartnerId"] as int?;
     string subdomainPartnerName = Context.Items["subdomainPartnerName"] as string;
     int? userChannelPartnerId = subdomainPartnerId;
+    int? userTenantId = Context.Items["TenantId"] as int?;
     bool isPartnerAgent = false;
     if (!string.IsNullOrEmpty(username) && role != "SuperAdmin")
     {
         var userRecord = _context.Users.FirstOrDefault(u => u.Username == username);
         userChannelPartnerId = userRecord?.ChannelPartnerId;
+        userTenantId = userRecord?.TenantId > 0 ? userRecord.TenantId : userTenantId;
         isPartnerAgent = userRecord?.ChannelPartnerId != null && (role == "Sales" || role == "Agent");
     }
     // Company logos (uploaded via Settings > Company Logo / Collapsed Sidebar Logo) with default fallbacks.
-    // Only query partner-scoped logos when the user actually belongs to a partner (id > 0).
+    // Scoped by tenant so each company sees its own branding (never another tenant's).
     var logoPartnerId = userChannelPartnerId is > 0 ? userChannelPartnerId : null;
-    var sidebarFullLogo = BrandingResolver.ResolveCompanyLogo(_context, logoPartnerId);
-    var sidebarCollapsedLogo = BrandingResolver.ResolveCollapsedLogo(_context, logoPartnerId);
+    var sidebarFullLogo = BrandingResolver.ResolveCompanyLogo(_context, logoPartnerId, userTenantId);
+    var sidebarCollapsedLogo = BrandingResolver.ResolveCollapsedLogo(_context, logoPartnerId, userTenantId);
     bool hasPartnerFeature = false;
     bool HasAdvancedReports = false;
     if (role != "SuperAdmin" && !string.IsNullOrEmpty(token))
@@ -125,8 +127,10 @@
         }
     }
 
-    // SidebarCollapsed preference (set via Settings page)
-    var sidebarCollapsedVal = _context.Settings.FirstOrDefault(s => s.SettingKey == "SidebarCollapsed" && s.ChannelPartnerId == null)?.SettingValue;
+    // SidebarCollapsed preference (set via Settings page) - tenant scoped so companies don't override each other
+    var sidebarCollapsedVal = (userTenantId is > 0
+        ? _context.Settings.FirstOrDefault(s => s.SettingKey == "SidebarCollapsed" && s.TenantId == userTenantId.Value && s.ChannelPartnerId == null)
+        : _context.Settings.FirstOrDefault(s => s.SettingKey == "SidebarCollapsed" && s.ChannelPartnerId == null))?.SettingValue;
     var sidebarCollapsed = sidebarCollapsedVal == "true";
     List<string> allowedModules = null;
     if (!string.IsNullOrEmpty(role) && role != "SuperAdmin")

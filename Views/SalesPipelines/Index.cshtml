@@ -186,6 +186,7 @@ function createCard(lead){
     card.className='crm-kcard';
     card.draggable=true;
     card.dataset.leadId=lead.leadId;
+    card.dataset.encodeUrl=lead.encodeUrl||'/leads';
 
     const st=lead.status||'Inactive';
     const stCls='cst-'+(st.toLowerCase().replace(/\s+/g,''));
@@ -352,7 +353,7 @@ function onTouchEnd(e){
     document.removeEventListener('touchend',onTouchEnd);
     document.removeEventListener('touchcancel',onTouchEnd);
     if(!touchMoved){
-        if(touchCard&&touchLeadId)window.location.href=`/Leads/Details/${touchLeadId}`;
+        if(touchCard&&touchLeadId)window.location.href=touchCard.dataset.encodeUrl||`/leaddetails/${touchLeadId}`;
         cleanupTouch();return;
     }
     const lastTouch=e.changedTouches[0];

@@ -30,8 +30,8 @@ namespace CRM.Controllers
 
             var currentUser = _context.Users.FirstOrDefault(u => u.UserId == userId);
             var channelPartnerId = currentUser?.ChannelPartnerId;
-            ViewBag.CompanyName = BrandingResolver.ResolveCompanyName(_context, channelPartnerId);
-            ViewBag.CompanyLogo = BrandingResolver.ResolveCompanyLogo(_context, channelPartnerId);
+            ViewBag.CompanyName = BrandingResolver.ResolveCompanyName(_context, channelPartnerId, currentUser?.TenantId);
+            ViewBag.CompanyLogo = BrandingResolver.ResolveCompanyLogo(_context, channelPartnerId, currentUser?.TenantId);
 
             return View();
         }
@@ -46,8 +46,8 @@ namespace CRM.Controllers
 
             var currentUser = _context.Users.FirstOrDefault(u => u.UserId == userId);
             var channelPartnerId = currentUser?.ChannelPartnerId;
-            ViewBag.CompanyName = BrandingResolver.ResolveCompanyName(_context, channelPartnerId);
-            ViewBag.CompanyLogo = BrandingResolver.ResolveCompanyLogo(_context, channelPartnerId);
+            ViewBag.CompanyName = BrandingResolver.ResolveCompanyName(_context, channelPartnerId, currentUser?.TenantId);
+            ViewBag.CompanyLogo = BrandingResolver.ResolveCompanyLogo(_context, channelPartnerId, currentUser?.TenantId);
 
             return View();
         }
@@ -134,8 +134,8 @@ namespace CRM.Controllers
 
             var currentUser = _context.Users.FirstOrDefault(u => u.UserId == userId);
             var channelPartnerId = currentUser?.ChannelPartnerId;
-            ViewBag.CompanyName = BrandingResolver.ResolveCompanyName(_context, channelPartnerId);
-            ViewBag.CompanyLogo = BrandingResolver.ResolveCompanyLogo(_context, channelPartnerId);
+            ViewBag.CompanyName = BrandingResolver.ResolveCompanyName(_context, channelPartnerId, currentUser?.TenantId);
+            ViewBag.CompanyLogo = BrandingResolver.ResolveCompanyLogo(_context, channelPartnerId, currentUser?.TenantId);
 
             if (role?.ToLower() == "admin" || role?.ToLower() == "managerrr")
             {
@@ -261,7 +261,7 @@ namespace CRM.Controllers
 
             var flats = _context.PropertyFlats.Where(f => f.PropertyId == id).ToList();
             var uploads = _context.PropertyUploads.Where(u => u.PropertyId == id).ToList();
-            var settings = _context.Settings.Where(s => s.ChannelPartnerId == null).AsEnumerable().GroupBy(s => s.SettingKey).ToDictionary(g => g.Key, g => g.First().SettingValue ?? "");
+            var settings = GetPublicSettings();
 
             // Get branding data
             var branding = _context.Branding.FirstOrDefault();
@@ -332,7 +332,7 @@ namespace CRM.Controllers
                 }
 
                 var companyEmail = "maheswarim257@gmail.com";
-                var companyName = _context.Settings.FirstOrDefault(s => s.SettingKey == "CompanyName")?.SettingValue ?? "CRM";
+                var companyName = GetPublicSettings().TryGetValue("CompanyName", out var cn) && !string.IsNullOrWhiteSpace(cn) ? cn : "CRM";
 
                 var adminUser = _context.Users.FirstOrDefault(u => u.Role == "Admin");
                 var (fromEmail, password) = adminUser != null ? await _emailService.GetEmailCredentials(adminUser.UserId) : (null, null);
@@ -388,7 +388,7 @@ namespace CRM.Controllers
         public IActionResult Privacy()
         {
             var branding = _context.Branding.FirstOrDefault() ?? new BrandingModel();
-            var settings = _context.Settings.Where(s => s.ChannelPartnerId == null).AsEnumerable().GroupBy(s => s.SettingKey).ToDictionary(g => g.Key, g => g.First().SettingValue ?? "");
+            var settings = GetPublicSettings();
             ViewBag.Branding = branding;
             ViewBag.Settings = settings;
             return View();
@@ -502,7 +502,7 @@ namespace CRM.Controllers
         public IActionResult RefundPolicy()
         {
             var branding = _context.Branding.FirstOrDefault() ?? new BrandingModel();
-            var settings = _context.Settings.Where(s => s.ChannelPartnerId == null).AsEnumerable().GroupBy(s => s.SettingKey).ToDictionary(g => g.Key, g => g.First().SettingValue ?? "");
+            var settings = GetPublicSettings();
             ViewBag.Branding = branding;
             ViewBag.Settings = settings;
             return View();
@@ -512,7 +512,7 @@ namespace CRM.Controllers
         public IActionResult Support()
         {
             var branding = _context.Branding.FirstOrDefault() ?? new BrandingModel();
-            var settings = _context.Settings.Where(s => s.ChannelPartnerId == null).AsEnumerable().GroupBy(s => s.SettingKey).ToDictionary(g => g.Key, g => g.First().SettingValue ?? "");
+            var settings = GetPublicSettings();
             ViewBag.Branding = branding;
             ViewBag.Settings = settings;
             return View();
@@ -534,19 +534,17 @@ namespace CRM.Controllers
 
         [Authorize]
         public IActionResult HelpCenter()
-        {
-            var branding = _context.Branding.FirstOrDefault() ?? new BrandingModel();
-            var settings = _context.Settings.Where(s => s.ChannelPartnerId == null).AsEnumerable().GroupBy(s => s.SettingKey).ToDictionary(g => g.Key, g => g.First().SettingValue ?? "");
+        {            var branding = _context.Branding.FirstOrDefault() ?? new BrandingModel();
+            var settings = GetPublicSettings();
             ViewBag.Branding = branding;
             ViewBag.Settings = settings;
             return View();
         }
-
         [AllowAnonymous]
         public IActionResult Terms()
         {
             var branding = _context.Branding.FirstOrDefault() ?? new BrandingModel();
-            var settings = _context.Settings.Where(s => s.ChannelPartnerId == null).AsEnumerable().GroupBy(s => s.SettingKey).ToDictionary(g => g.Key, g => g.First().SettingValue ?? "");
+            var settings = GetPublicSettings();
             ViewBag.Branding = branding;
             ViewBag.Settings = settings;
             return View();
@@ -1294,6 +1292,19 @@ namespace CRM.Controllers
             {
                 return Json(new { error = ex.Message });
             }
+        }
+
+        /// <summary>
+        /// Builds the settings dictionary for public/marketing pages, scoped to the current
+        /// subdomain tenant when one is present so each company sees its own branding.
+        /// </summary>
+        private Dictionary<string, string> GetPublicSettings()
+        {
+            var tenantId = HttpContext.Items["TenantId"] as int?;
+            var query = _context.Settings.Where(s => s.ChannelPartnerId == null);
+            if (tenantId is > 0)
+                query = query.Where(s => s.TenantId == tenantId.Value);
+            return query.AsEnumerable().GroupBy(s => s.SettingKey).ToDictionary(g => g.Key, g => g.First().SettingValue ?? "");
         }
 
         private static (int paidCount, int pendingCount, int overdueCount) CalculateSalesStatusCounts(IEnumerable<BookingModel> bookings)

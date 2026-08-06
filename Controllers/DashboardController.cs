@@ -29,7 +29,7 @@ namespace CRM.Controllers
             var channelPartnerId = currentUser?.ChannelPartnerId;
 
             ViewBag.Username = username;
-            ViewBag.CompanyName = BrandingResolver.ResolveCompanyName(_db, channelPartnerId);
+            ViewBag.CompanyName = BrandingResolver.ResolveCompanyName(_db, channelPartnerId, currentUser?.TenantId);
 
             return View();
         }
@@ -340,6 +340,7 @@ namespace CRM.Controllers
                 {
                     x.FollowUp.FollowUpId,
                     x.FollowUp.LeadId,
+                    encodedId = IdObfuscator.Encode(x.Lead.LeadId),
                     LeadName = x.Lead.Name,
                     LeadContact = x.Lead.Contact,
                     x.FollowUp.FollowUpDate,

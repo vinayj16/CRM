@@ -464,7 +464,7 @@
                                                         <br><small>${followUp.leadContact || ''}</small>
                             <br><small class="text-muted">${formatDate(followUp.followUpDate)} - ${followUp.priority || followUp.status || ''}</small>
                             <br><small>${followUp.notes || 'No notes'}</small>
-                            <br><a href="/Leads/Details/${followUp.leadId}" class="btn btn-sm btn-primary mt-2">View Lead</a>
+                            <br><a href="${followUp.encodedId ? '/leaddetails/' + followUp.encodedId : '/leads'}" class="btn btn-sm btn-primary mt-2">View Lead</a>
                         </div>`;
                     });
 

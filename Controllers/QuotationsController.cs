@@ -622,6 +622,13 @@ namespace CRM.Controllers
             var property = _db.Properties.FirstOrDefault(p => p.PropertyId == quotation.PropertyId);
             var flat = quotation.FlatId.HasValue ? _db.PropertyFlats.FirstOrDefault(f => f.FlatId == quotation.FlatId) : null;
 
+            // Resolve tenant context so the PDF header uses THIS company's branding, not another tenant's
+            var uid = User?.FindFirst("UserId")?.Value ?? User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            int.TryParse(uid ?? "0", out int userId);
+            var pdfUser = _db.Users.FirstOrDefault(u => u.UserId == userId);
+            var pdfTenantId = pdfUser?.TenantId > 0 ? pdfUser.TenantId : (HttpContext.Items["TenantId"] as int? ?? 0);
+            var pdfPartnerId = pdfUser?.ChannelPartnerId is > 0 ? pdfUser.ChannelPartnerId : null;
+
             using (var ms = new MemoryStream())
             {
                 var doc = new Document(PageSize.A4, 36, 36, 36, 36);
@@ -644,10 +651,10 @@ namespace CRM.Controllers
                 //var companyContact = "Phone: +91-9876543210 | Email: info@company.com";
                 //var companyGST = "GST: XX-XXXXX-XXXXX-XX";
 
-                var companyName = _db.Settings.FirstOrDefault(s => s.SettingKey == "CompanyName")?.SettingValue ?? "Real Estate Company";
-                var companyAddress = _db.Settings.FirstOrDefault(s => s.SettingKey == "CompanyAddress")?.SettingValue ?? "123, Business Street, City, State - 500001";
-                var companyContact = _db.Settings.FirstOrDefault(s => s.SettingKey == "CompanyContact")?.SettingValue ?? "Phone: +91-9876543210 | Email: info@company.com";
-                var companyGST = _db.Settings.FirstOrDefault(s => s.SettingKey == "CompanyGST")?.SettingValue ?? "GST: XX-XXXXX-XXXXX-XX";
+                var companyName = SettingsController.GetSettingValue(_db, "CompanyName", pdfTenantId, pdfPartnerId, "Real Estate Company");
+                var companyAddress = SettingsController.GetSettingValue(_db, "CompanyAddress", pdfTenantId, pdfPartnerId, "123, Business Street, City, State - 500001");
+                var companyContact = SettingsController.GetSettingValue(_db, "CompanyContact", pdfTenantId, pdfPartnerId, "Phone: +91-9876543210 | Email: info@company.com");
+                var companyGST = SettingsController.GetSettingValue(_db, "CompanyGST", pdfTenantId, pdfPartnerId, "GST: XX-XXXXX-XXXXX-XX");
 
                 var companyHeader = new Paragraph(companyName, titleFont) { Alignment = Element.ALIGN_CENTER };
                 doc.Add(companyHeader);

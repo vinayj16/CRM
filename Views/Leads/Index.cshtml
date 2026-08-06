@@ -1866,7 +1866,7 @@
         card.innerHTML = `
         <div class="lc-mobile">
         <div class="lc-mob-top">
-        <a href="/leaddetails/${lead.EncodedId || lead.LeadId}" class="lc-name">${lead.Name || 'Unnamed Lead'}</a>
+        <a href="${lead.EncodedId ? '/leaddetails/' + lead.EncodedId : '/leads'}" class="lc-name">${lead.Name || 'Unnamed Lead'}</a>
         <div class="lc-actions">${actBtns}</div>
         </div>
         <div class="lc-mob-grid">
@@ -1885,7 +1885,7 @@
         card.innerHTML = `
         <div class="lc-inner">
         <div class="lc-col">
-        <a href="/leaddetails/${lead.EncodedId || lead.LeadId}" class="lc-name">${lead.Name || 'Unnamed Lead'}</a>
+        <a href="${lead.EncodedId ? '/leaddetails/' + lead.EncodedId : '/leads'}" class="lc-name">${lead.Name || 'Unnamed Lead'}</a>
         <div class="lc-row"><i class="fa-solid fa-phone"></i><span>${lead.Contact || '-'}</span></div>
         <div class="lc-row"><i class="fa-solid fa-envelope"></i><span>${lead.Email || '-'}</span></div>
         </div>
@@ -1980,8 +1980,9 @@
         .then(data => {
         if (data.success) {
         if (leadId === 0) {
-        leadData.LeadId = allLeads.length > 0 ? Math.max(...allLeads.map(l => l.LeadId)) + 1 : 1;
-        const newLead = { LeadId: leadData.LeadId, Name: leadData.name, Contact: leadData.contact, Email: leadData.email, Stage: leadData.stage, Status: leadData.status, GroupName: leadData.groupName, Source: leadData.source, PreferredLocation: leadData.preferredLocation, Sqft: leadData.sqft, Facing: leadData.facing, Type: leadData.type, PropertyType: leadData.propertyType, BHK: leadData.bhk, LocationDistance: leadData.locationDistance, Requirement: leadData.requirement, ExecutiveId: leadData.executiveId, FollowUpDate: leadData.followUpDate, Rating: leadData.rating, Comments: leadData.comments, CreatedOn: leadData.createdOn, ModifiedOn: leadData.modifiedOn, EncodedId: leadData.LeadId };
+        // Use the server-generated id + encoded id so the detail link never 404s
+        leadData.LeadId = data.leadId || (allLeads.length > 0 ? Math.max(...allLeads.map(l => l.LeadId)) + 1 : 1);
+        const newLead = { LeadId: leadData.LeadId, Name: leadData.name, Contact: leadData.contact, Email: leadData.email, Stage: leadData.stage, Status: leadData.status, GroupName: leadData.groupName, Source: leadData.source, PreferredLocation: leadData.preferredLocation, Sqft: leadData.sqft, Facing: leadData.facing, Type: leadData.type, PropertyType: leadData.propertyType, BHK: leadData.bhk, LocationDistance: leadData.locationDistance, Requirement: leadData.requirement, ExecutiveId: leadData.executiveId, FollowUpDate: leadData.followUpDate, Rating: leadData.rating, Comments: leadData.comments, CreatedOn: leadData.createdOn, ModifiedOn: leadData.modifiedOn, EncodedId: data.encodedId || leadData.LeadId };
         allLeads.unshift(newLead);
         } else {
         const index = allLeads.findIndex(l => l.LeadId === leadId);
