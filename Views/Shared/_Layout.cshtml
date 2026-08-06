@@ -228,9 +228,9 @@
         .content .badge { font-size: 0.78rem !important; }
         .content .btn { font-size: 0.88rem !important; }
 
-        /* Sidebar text sizing */
+        /* Sidebar text sizing - identical for every menu item */
         .sidebar-link { font-size: 13px !important; }
-        .sidebar-dropdown .sidebar-link { font-size: 12.5px !important; }
+        .sidebar-dropdown .sidebar-link { font-size: 13px !important; }
         .sidebar-header { font-size: 11px !important; letter-spacing: 1.2px !important; }
         .sidebar-brand span { font-size: 1rem !important; }
         .sa-profile-info strong { font-size: 12px !important; }
@@ -291,17 +291,21 @@
             flex: 1 1 auto !important;
             min-height: 0 !important;
             overflow-x: hidden !important;
+            overflow-y: auto !important;
             max-width: 100% !important;
+            margin-bottom: 0 !important;
+            padding-bottom: 8px !important;
         }
         .sidebar::-webkit-scrollbar { width: 3px; }
         .sidebar::-webkit-scrollbar-track { background: transparent; }
         .sidebar::-webkit-scrollbar-thumb { background: rgba(212,164,90,0.35); border-radius: 2px; }
         .sidebar::-webkit-scrollbar-thumb:hover { background: var(--gold); }
 
-        /* Sidebar footer - pinned at bottom, distinct color */
+        /* Sidebar footer - always pinned to the bottom edge, fully visible */
         .sidebar-footer {
-            position: sticky !important;
-            bottom: 0 !important;
+            position: relative !important;
+            bottom: auto !important;
+            margin-top: auto !important;
             flex-shrink: 0 !important;
             width: 100% !important;
             max-width: 100% !important;
@@ -317,6 +321,7 @@
             white-space: nowrap !important;
             text-overflow: ellipsis !important;
             z-index: 6 !important;
+            display: block !important;
         }
         .sidebar-footer a { color: var(--gold-light) !important; text-decoration: none !important; }
         .sidebar.collapsed .sidebar-footer { padding: 6px 0 !important; }
@@ -1769,10 +1774,10 @@
                     }
                     <li class="sidebar-header" style="margin-top:8px;">Active Plan</li>
                     <li class="sidebar-item">
-                        <div style="padding:8px 16px;display:flex;align-items:center;gap:8px;">
-                            <i class="fa-solid fa-award" style="color:#D4A45A;font-size:14px;"></i>
-                            <span style="font-size:12px;font-weight:600;color:var(--sidebar-text);">@currentPlanName</span>
-                        </div>
+                        <a class="sidebar-link" href="#" tabindex="-1" style="cursor:default;pointer-events:none;">
+                            <i class="fa-solid fa-award" style="color:#D4A45A;font-size:13px;"></i>
+                            <span class="align-middle" style="font-weight:600;">@currentPlanName</span>
+                        </a>
                     </li>
                 }
 

@@ -21,6 +21,16 @@ namespace CRM.Controllers
 
         public IActionResult Index()
         {
+            var uid = User?.FindFirst("UserId")?.Value ?? User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            int.TryParse(uid, out int userId);
+            var username = User?.FindFirst(ClaimTypes.Name)?.Value ?? User?.FindFirst("name")?.Value ?? "User";
+
+            var currentUser = userId > 0 ? _db.Users.FirstOrDefault(u => u.UserId == userId) : null;
+            var channelPartnerId = currentUser?.ChannelPartnerId;
+
+            ViewBag.Username = username;
+            ViewBag.CompanyName = BrandingResolver.ResolveCompanyName(_db, channelPartnerId);
+
             return View();
         }
 
