@@ -212,8 +212,10 @@ body {
 .sidebar-item.active .sidebar-link {
     background-color: rgba(37,137,201, 0.1);
     color: var(--sidebar-link-hover);
-    border-left: 3px solid var(--sidebar-link-hover);
-    padding-left: calc(1.5rem - 3px);
+    border-left: none;
+    border-right: none;
+    border-top: none;
+    border-bottom: none;
 }
 
 .sidebar-cta {

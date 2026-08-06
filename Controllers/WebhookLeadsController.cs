@@ -139,6 +139,8 @@ namespace CRM.Controllers
                             Notes = $"Lead assigned to agent via Unassigned Leads page"
                         });
                     }
+
+                    _context.Leads.Update(lead);
                 }
 
                 await _context.SaveChangesAsync();

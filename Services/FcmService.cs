@@ -160,12 +160,14 @@ namespace CRM.Services
             foreach (var prev in previousUsers)
             {
                 prev.DeviceToken = null;
+                _context.Users.Update(prev);
             }
 
             var user = await _context.Users.FirstOrDefaultAsync(u => u.UserId == userId);
             if (user != null)
             {
                 user.DeviceToken = deviceToken;
+                _context.Users.Update(user);
                 await _context.SaveChangesAsync();
             }
         }
@@ -176,6 +178,7 @@ namespace CRM.Services
             if (user != null)
             {
                 user.DeviceToken = null;
+                _context.Users.Update(user);
                 await _context.SaveChangesAsync();
             }
         }

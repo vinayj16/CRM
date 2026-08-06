@@ -1781,6 +1781,7 @@ namespace CRM.Services
             {
                 session.AssignedAgentId = execId.Value;
                 session.Status = "Assigned";
+                _context.ChatSessions.Update(session);
                 await _context.SaveChangesAsync();
             }
 
@@ -2492,6 +2493,7 @@ Please provide a helpful, detailed response that addresses their specific needs.
                     assignment.LastAgentActivityAt = DateTime.UtcNow;
                 }
 
+                _context.ChatConversationAssignments.Update(assignment);
                 await _context.SaveChangesAsync();
                 return true;
             }

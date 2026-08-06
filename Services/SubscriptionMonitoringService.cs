@@ -79,6 +79,7 @@ namespace CRM.Services
                 // Update subscription status
                 subscription.Status = "Expired";
                 subscription.UpdatedOn = IndianTime.Now;
+                context.PartnerSubscriptions.Update(subscription);
 
                 // Create notification for partner
                 if (subscription.ChannelPartner != null)
@@ -136,12 +137,14 @@ namespace CRM.Services
                 {
                     activeSub.Status = "Expired";
                     activeSub.UpdatedOn = IndianTime.Now;
+                    context.PartnerSubscriptions.Update(activeSub);
                     _logger.LogInformation($"Expired subscription {activeSub.SubscriptionId} to make way for scheduled subscription");
                 }
 
                 // Activate the scheduled subscription
                 scheduledSubscription.Status = "Active";
                 scheduledSubscription.UpdatedOn = IndianTime.Now;
+                context.PartnerSubscriptions.Update(scheduledSubscription);
 
                 // Create notification for partner
                 if (scheduledSubscription.ChannelPartner != null)

@@ -87,6 +87,7 @@ namespace CRM.Services
             {
                 retry.Status = "Processing";
                 retry.RetryCount++;
+                context.WebhookRetryQueue.Update(retry);
                 await context.SaveChangesAsync(stoppingToken);
 
                 _logger.LogInformation($"Retrying webhook {retry.WebhookEventId} (Attempt {retry.RetryCount}/{retry.MaxRetries})");
@@ -128,6 +129,8 @@ namespace CRM.Services
                     }
                 }
 
+                // Persist the final processing result (ReplaceOne via Update)
+                context.WebhookRetryQueue.Update(retry);
                 await context.SaveChangesAsync(stoppingToken);
             }
             catch (HttpRequestException ex)
@@ -147,6 +150,7 @@ namespace CRM.Services
                     retry.NextRetryAt = IndianTime.Now.AddMinutes(delayMinutes);
                 }
 
+                context.WebhookRetryQueue.Update(retry);
                 await context.SaveChangesAsync(stoppingToken);
                 _logger.LogError(ex, $"Network error retrying webhook {retry.WebhookEventId}");
             }
@@ -157,6 +161,7 @@ namespace CRM.Services
                 retry.LastError = $"Unexpected error: {ex.Message}";
                 retry.ProcessedOn = IndianTime.Now;
                 
+                context.WebhookRetryQueue.Update(retry);
                 await context.SaveChangesAsync(stoppingToken);
                 _logger.LogError(ex, $"Unexpected error retrying webhook {retry.WebhookEventId}");
             }

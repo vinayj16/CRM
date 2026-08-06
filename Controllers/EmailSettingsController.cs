@@ -81,6 +81,7 @@ namespace CRM.Controllers
                 emailSetting.SmtpFrom = smtpFrom;
                 emailSetting.SmtpPassword = smtpPassword;
                 emailSetting.UpdatedOn = IndianTime.Now;
+                _context.EmailSettings.Update(emailSetting);
             }
 
             await _context.SaveChangesAsync();

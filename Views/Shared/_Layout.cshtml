@@ -1018,7 +1018,45 @@
         }
 
         /* --- Unified sidebar sizing + collapsed count badges (hardened) --- */
-        .sidebar-link { min-height: 36px !important; display: flex !important; align-items: center !important; }
+        .sidebar-link { min-height: 40px !important; display: flex !important; align-items: center !important; }
+
+        /* ===== CONSISTENT MENU BORDERS (all menus, all roles) =====
+           Every sidebar menu item gets identical border treatment:
+           no left/right/top/bottom stripes, same radius, same box. */
+        .sidebar-link,
+        .sidebar-dropdown .sidebar-link,
+        .sidebar-item.active > .sidebar-link,
+        .sidebar-dropdown .sidebar-item.active > .sidebar-link,
+        .sidebar-item.has-dropdown > .sidebar-link,
+        .superadmin-layout .sidebar-link,
+        .superadmin-layout .sidebar-dropdown .sidebar-link,
+        .superadmin-layout .sidebar-item.active > .sidebar-link {
+            border: none !important;
+            border-left: none !important;
+            border-right: none !important;
+            border-top: none !important;
+            border-bottom: none !important;
+            border-radius: 8px !important;
+            padding: 10px 16px !important;
+            margin: 2px 10px !important;
+            min-height: 40px !important;
+            box-sizing: border-box !important;
+        }
+        .sidebar-item,
+        .sidebar-dropdown {
+            border: none !important;
+            border-radius: 0 !important;
+        }
+        .sidebar-item.active > .sidebar-link::before,
+        .sidebar-item.active > .sidebar-link::after,
+        .sidebar-link::before,
+        .sidebar-link::after {
+            display: none !important;
+        }
+        /* Keep child (dropdown) menu indent consistent after the border-normalisation block */
+        .sidebar-dropdown .sidebar-item .sidebar-link {
+            padding-left: 36px !important;
+        }
         .sidebar .sa-badge { margin-left: auto !important; }
         .sidebar.collapsed .sa-badge { display: inline-flex !important; position: absolute !important; top: 3px !important; right: 3px !important; margin-left: 0 !important; min-width: 16px !important; height: 16px !important; font-size: 9px !important; line-height: 16px !important; padding: 0 4px !important; border-radius: 8px !important; z-index: 5; }
     </style>
@@ -2654,13 +2692,13 @@
             var tenantIdMeta = '@(Context.User.FindFirst("TenantId")?.Value ?? "")';
             if (tenantIdMeta && tenantIdMeta !== "") {
                 $('#referralWalletDropdown').on('show.bs.dropdown', function() { loadReferralWallet(tenantIdMeta); });
-                $.get('/SuperAdmin/GetReferralWallet?tenantId=' + tenantIdMeta, function(data) {
+                $.get('/Home/GetReferralWallet?tenantId=' + tenantIdMeta, function(data) {
                     if (data.success) { $('#referralBalance').text('\u20b9' + data.balance); $('#referralCodeDisplay').val(data.referralCode); }
                 });
             }
         });
         function loadReferralWallet(tenantId) {
-            $.get('/SuperAdmin/GetReferralWallet?tenantId=' + tenantId, function(data) {
+            $.get('/Home/GetReferralWallet?tenantId=' + tenantId, function(data) {
                 if (data.success) {
                     $('#referralBalance, #referralBalanceLarge').text('\u20b9' + data.balance);
                     $('#referralCodeDisplay').val(data.referralCode);

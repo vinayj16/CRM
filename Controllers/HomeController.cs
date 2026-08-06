@@ -60,6 +60,57 @@ namespace CRM.Controllers
             _tenantService = tenantService;
         }
 
+        // Shared referral wallet endpoint - accessible to all authenticated users
+        // (the layout dropdown calls this for every role; SuperAdminController is SA-only).
+        // tenantId is derived from the caller's claims so users can only ever read
+        // their own tenant's referral data (never another tenant's).
+        [Authorize]
+        public async Task<IActionResult> GetReferralWallet(int tenantId = 0)
+        {
+            var claimTenant = User?.FindFirst("TenantId")?.Value;
+            if (!int.TryParse(claimTenant, out int callerTenantId) || callerTenantId <= 0)
+            {
+                return Json(new { success = false, message = "Tenant not determined" });
+            }
+            // Never trust client-supplied tenantId - always scope to the caller's own tenant
+            tenantId = callerTenantId;
+            var earnings = await _masterDb.ReferralEarnings
+                .Where(r => r.TenantId == tenantId && !r.IsUsed)
+                .ToListAsync();
+
+            var balance = earnings.Sum(e => e.Amount);
+
+            var referralEarnings = await _masterDb.ReferralEarnings
+                .Where(r => r.TenantId == tenantId && r.Type == "Referrer")
+                .OrderByDescending(r => r.CreatedOn)
+                .ToListAsync();
+
+            var referredTenantIds = referralEarnings.Where(r => r.ReferredTenantId.HasValue).Select(r => r.ReferredTenantId!.Value).Distinct().ToList();
+            var referredTenants = await _masterDb.Tenants.Where(t => referredTenantIds.Contains(t.TenantId)).ToListAsync();
+
+            var referrals = referralEarnings.Select(r => new
+            {
+                r.Id,
+                r.Amount,
+                r.Description,
+                r.IsUsed,
+                JoinedCompany = r.ReferredTenantId.HasValue
+                    ? (referredTenants.FirstOrDefault(t => t.TenantId == r.ReferredTenantId.Value)?.CompanyName ?? "")
+                    : "",
+                JoinedOn = r.CreatedOn.ToString("MMM dd, yyyy")
+            }).ToList();
+
+            var tenant = await _masterDb.Tenants.FindAsync(tenantId);
+
+            return Json(new
+            {
+                success = true,
+                balance,
+                referralCode = tenant?.Referral ?? "",
+                referrals
+            });
+        }
+
         [Authorize]
         [Route("home")]
         [Route("Home/Index")]

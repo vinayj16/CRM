@@ -121,6 +121,7 @@ namespace CRM.Services
             {
                 notification.IsRead = true;
                 notification.ReadOn = IndianTime.Now;
+                _context.Notifications.Update(notification);
                 await _context.SaveChangesAsync();
             }
         }
@@ -152,6 +153,7 @@ namespace CRM.Services
             {
                 notification.IsRead = true;
                 notification.ReadOn = IndianTime.Now;
+                _context.Notifications.Update(notification);
             }
 
             await _context.SaveChangesAsync();
