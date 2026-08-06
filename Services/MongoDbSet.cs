@@ -423,19 +423,21 @@ namespace CRM
         public void Add(T document)
         {
             StampTenant(document);
+            AutoAssignIntId(document);
             _collection.InsertOne(document);
         }
 
         public Task AddAsync(T document)
         {
             StampTenant(document);
+            AutoAssignIntId(document);
             return _collection.InsertOneAsync(document);
         }
 
         public void AddRange(IEnumerable<T> documents)
         {
             var list = documents?.ToList() ?? new List<T>();
-            foreach (var d in list) StampTenant(d);
+            foreach (var d in list) { StampTenant(d); AutoAssignIntId(d); }
             if (list.Any())
                 _collection.InsertMany(list);
         }
@@ -443,10 +445,53 @@ namespace CRM
         public Task AddRangeAsync(IEnumerable<T> documents)
         {
             var list = documents?.ToList() ?? new List<T>();
-            foreach (var d in list) StampTenant(d);
+            foreach (var d in list) { StampTenant(d); AutoAssignIntId(d); }
             if (list.Any())
                 return _collection.InsertManyAsync(list);
             return Task.CompletedTask;
+        }
+
+        /// <summary>
+        /// When the document's integer ID (resolved via [Key] / naming convention) is
+        /// still 0, assigns max+1 before insert. This prevents entity documents from
+        /// being persisted with id 0, which would make Find/Update/Remove by int id
+        /// target the wrong document (or no document at all).
+        /// Entities whose int id maps to MongoDB _id (plain "Id" or int [BsonId]) are
+        /// skipped — the driver assigns those.
+        /// NOTE: For AddRange/AddRangeAsync callers must pass a pre-computed id or
+        /// use single Add calls when more than one id-less document is inserted at
+        /// once, because each AutoAssignIntId call queries the DB before the batch
+        /// is flushed and would assign the same max+1 to every id-less document.
+        /// </summary>
+        private void AutoAssignIntId(T document)
+        {
+            if (document == null) return;
+
+            var idProp = ResolveIntIdProperty(out bool mapsToMongoId);
+            if (idProp == null || mapsToMongoId) return;
+            if (idProp.Name == "TenantId") return;
+
+            var current = idProp.GetValue(document);
+            if (current is int i && i != 0) return;
+
+            int max = 0;
+            try
+            {
+                var filter = WithTenant(FilterDefinition<T>.Empty);
+                var last = _collection.Find(filter)
+                    .Sort(Builders<T>.Sort.Descending(idProp.Name))
+                    .Limit(1)
+                    .FirstOrDefault();
+                if (last != null && idProp.GetValue(last) is int mi)
+                    max = mi;
+            }
+            catch
+            {
+                // Best effort only: if the id field cannot be sorted we leave the
+                // id as-is rather than scanning the whole collection on every Add.
+            }
+
+            idProp.SetValue(document, max + 1);
         }
 
         public void Remove(T document)

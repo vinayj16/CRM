@@ -246,6 +246,9 @@ namespace CRM.Controllers
                     return Json(new { success = false, message = "This flat is already booked." });
                 }
 
+                // Auto-generate BookingId (MongoDbSet does not auto-increment int keys)
+                model.BookingId = _db.Bookings.Any() ? await _db.Bookings.MaxAsync(b => b.BookingId) + 1 : 1;
+
                 // Save booking
                 _db.Bookings.Add(model);
                 await _db.SaveChangesAsync();
@@ -279,8 +282,10 @@ namespace CRM.Controllers
                         foreach (var q in otherAcceptedQuotations)
                         {
                             q.Status = "Rejected";
+                            _db.Quotations.Update(q);
                         }
                         quotation.Status = "Accepted";
+                        _db.Quotations.Update(quotation);
                         await _db.SaveChangesAsync();
                     }
                 }
@@ -291,6 +296,7 @@ namespace CRM.Controllers
                     var uploadsFolder = Path.Combine(_environment.WebRootPath, "uploads", "bookings", model.BookingId.ToString());
                     Directory.CreateDirectory(uploadsFolder);
 
+                    var maxDocId = _db.BookingDocuments.ToList().Count > 0 ? _db.BookingDocuments.ToList().Max(d => d.DocumentId) : 0;
                     foreach (var file in documents)
                     {
                         if (file.Length > 0)
@@ -303,8 +309,10 @@ namespace CRM.Controllers
                                 await file.CopyToAsync(stream);
                             }
 
+                            maxDocId++;
                             var document = new BookingDocumentModel
                             {
+                                DocumentId = maxDocId,
                                 BookingId = model.BookingId,
                                 DocumentType = GetDocumentType(fileName),
                                 DocumentName = fileName,
@@ -566,6 +574,7 @@ namespace CRM.Controllers
 
             var paymentPlan = new PaymentPlanModel
             {
+                PlanId = _db.PaymentPlans.Any() ? await _db.PaymentPlans.MaxAsync(p => p.PlanId) + 1 : 1,
                 BookingId = bookingId,
                 TotalAmount = totalAmount,
                 PaidAmount = 0,
@@ -582,13 +591,16 @@ namespace CRM.Controllers
             var milestones = new[] { "Booking", "Agreement", "Foundation", "Possession" };
             var today = IndianTime.Now;
 
+            var maxInstallmentId = _db.PaymentInstallments.ToList().Count > 0 ? _db.PaymentInstallments.ToList().Max(x => x.InstallmentId) : 0;
             for (int i = 0; i < percentages.Count; i++)
             {
                 var installmentAmount = (totalAmount * percentages[i]) / 100;
                 var dueDate = today.AddMonths((i + 1) * 3); // 3 months gap between installments
 
+                maxInstallmentId++;
                 var installment = new PaymentInstallmentModel
                 {
+                    InstallmentId = maxInstallmentId,
                     PlanId = paymentPlan.PlanId,
                     InstallmentNumber = i + 1,
                     MilestoneName = milestones[i],
@@ -638,42 +650,27 @@ namespace CRM.Controllers
         {
             try
             {
-                System.IO.File.AppendAllText("BookingCommissionDebug.txt", $"\n=== Processing Commission for {booking.BookingNumber} at {IndianTime.Now} ===\n");
-                System.IO.File.AppendAllText("BookingCommissionDebug.txt", $"Booking Amount: {booking.TotalAmount}, LeadId: {booking.LeadId}\n");
-                
                 var month = booking.BookingDate.ToString("MMMM");
                 var year = booking.BookingDate.Year;
 
                 // 1. PROCESS AGENT COMMISSION (if agent involved)
                 var lead = await _db.Leads.FindAsync(booking.LeadId);
-                System.IO.File.AppendAllText("BookingCommissionDebug.txt", $"Lead found: {lead != null}, ExecutiveId: {lead?.ExecutiveId}\n");
                 
                 if (lead?.ExecutiveId != null)
                 {
                     // Find user by ExecutiveId, then find matching agent by email
                     var user = await _db.Users.FindAsync(lead.ExecutiveId.Value);
-                    System.IO.File.AppendAllText("BookingCommissionDebug.txt", $"User found: {user != null}, Username: {user?.Username}\n");
                     
                     if (user != null)
                     {
                         // Find agent by email match (most reliable)
                         var agent = await _db.Agents.FirstOrDefaultAsync(a => a.Email == user.Email && a.Status == "Approved");
-                        System.IO.File.AppendAllText("BookingCommissionDebug.txt", $"Agent found: {agent?.FullName} (ID: {agent?.AgentId}, Type: {agent?.AgentType})\n");
                         
                         if (agent != null)
                         {
-                            System.IO.File.AppendAllText("BookingCommissionDebug.txt", $"Processing commission for {agent.FullName}\n");
                             await ProcessAgentCommission(agent, booking, month, year);
                         }
-                        else
-                        {
-                            System.IO.File.AppendAllText("BookingCommissionDebug.txt", $"No agent found for user {user.Username}\n");
-                        }
                     }
-                }
-                else
-                {
-                    System.IO.File.AppendAllText("BookingCommissionDebug.txt", $"No ExecutiveId found in lead\n");
                 }
 
                 // 2. PROCESS CHANNEL PARTNER COMMISSION (if lead from partner)
@@ -710,7 +707,6 @@ namespace CRM.Controllers
             var commissionPercentage = GetCommissionPercentage(agent.CommissionRules);
             var commissionAmount = (booking.TotalAmount * commissionPercentage) / 100;
 
-            System.IO.File.AppendAllText("BookingCommissionDebug.txt", $"Commission calculation: {booking.TotalAmount} * {commissionPercentage}% = {commissionAmount}\n");
 
             // Create commission log
             var commissionLog = new AgentCommissionLogModel
@@ -725,7 +721,6 @@ namespace CRM.Controllers
                 Year = year
             };
             _db.AgentCommissionLogs.Add(commissionLog);
-            System.IO.File.AppendAllText("BookingCommissionDebug.txt", $"Commission log created for AgentId {agent.AgentId}\n");
 
             // Update or create agent payout
             await UpdateAgentPayout(agent.AgentId, month, year);

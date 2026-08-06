@@ -237,6 +237,10 @@ namespace CRM.Controllers
                 model.TaxAmount = (subtotal - model.DiscountAmount) * (gstRate / 100);
                 model.GrandTotal = (subtotal - model.DiscountAmount) + model.TaxAmount;
 
+                // Auto-generate QuotationId (MongoDbSet does not auto-increment int keys)
+                var allQuotations = _db.Quotations.ToList();
+                model.QuotationId = allQuotations.Any() ? allQuotations.Max(q => q.QuotationId) + 1 : 1;
+
                 _db.Quotations.Add(model);
                 _db.SaveChanges();
 
@@ -250,8 +254,11 @@ namespace CRM.Controllers
                     _db.SaveChanges();
                 }
                 // Add items without duplicates
+                var maxItemId = _db.QuotationItems.ToList().Count > 0 ? _db.QuotationItems.ToList().Max(i => i.ItemId) : 0;
                 foreach (var item in items.GroupBy(i => new { i.ItemType, i.Description, i.Amount }).Select(g => g.First()))
                 {
+                    maxItemId++;
+                    item.ItemId = maxItemId;
                     item.QuotationId = model.QuotationId;
                     _db.QuotationItems.Add(item);
                 }
@@ -425,6 +432,7 @@ namespace CRM.Controllers
 
                 quotation.Status = status;
                 quotation.ModifiedOn = IndianTime.Now;
+                _db.Quotations.Update(quotation);
                 _db.SaveChanges();
 
                 // Update lead stage based on quotation status
@@ -843,12 +851,16 @@ namespace CRM.Controllers
                 _db.QuotationItems.RemoveRange(oldItems);
 
                 // Add new items
+                var maxItemId = _db.QuotationItems.ToList().Count > 0 ? _db.QuotationItems.ToList().Max(i => i.ItemId) : 0;
                 foreach (var item in items)
                 {
+                    maxItemId++;
+                    item.ItemId = maxItemId;
                     item.QuotationId = model.QuotationId;
                     _db.QuotationItems.Add(item);
                 }
 
+                _db.Quotations.Update(quotation);
                 _db.SaveChanges();
                 return Json(new { success = true, message = "Quotation updated successfully" });
             }
