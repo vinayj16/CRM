@@ -39,6 +39,16 @@ namespace CRM.Controllers
         [Authorize]
         public IActionResult SalesOverview()
         {
+            var uid = User?.FindFirst("UserId")?.Value ?? User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            int.TryParse(uid ?? "0", out int userId);
+            var username = User?.FindFirst(ClaimTypes.Name)?.Value ?? User?.FindFirst("name")?.Value ?? "User";
+            ViewBag.Username = username;
+
+            var currentUser = _context.Users.FirstOrDefault(u => u.UserId == userId);
+            var channelPartnerId = currentUser?.ChannelPartnerId;
+            ViewBag.CompanyName = BrandingResolver.ResolveCompanyName(_context, channelPartnerId);
+            ViewBag.CompanyLogo = BrandingResolver.ResolveCompanyLogo(_context, channelPartnerId);
+
             return View();
         }
         private readonly ILogger<HomeController> _logger;
