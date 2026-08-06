@@ -6,6 +6,7 @@
 @using System.Security.Claims
 @using Microsoft.EntityFrameworkCore
 @using CRM.Models
+@using CRM.Helpers
 
 @{
     bool hasImpersonation = false;
@@ -98,6 +99,11 @@
         userChannelPartnerId = userRecord?.ChannelPartnerId;
         isPartnerAgent = userRecord?.ChannelPartnerId != null && (role == "Sales" || role == "Agent");
     }
+    // Company logos (uploaded via Settings > Company Logo / Collapsed Sidebar Logo) with default fallbacks.
+    // Only query partner-scoped logos when the user actually belongs to a partner (id > 0).
+    var logoPartnerId = userChannelPartnerId is > 0 ? userChannelPartnerId : null;
+    var sidebarFullLogo = BrandingResolver.ResolveCompanyLogo(_context, logoPartnerId);
+    var sidebarCollapsedLogo = BrandingResolver.ResolveCollapsedLogo(_context, logoPartnerId);
     bool hasPartnerFeature = false;
     bool HasAdvancedReports = false;
     if (role != "SuperAdmin" && !string.IsNullOrEmpty(token))
@@ -1087,8 +1093,8 @@
                     }
                     else
                     {
-                        <img src="~/icons/PropTech_Logo_Color.png" alt="Ultrakey PropTech" class="sidebar-logo-full" style="max-height:38px;object-fit:contain;" loading="eager" fetchpriority="high">
-                        <img src="~/icons/PropTech_Logo_Favicon.png" alt="U" class="sidebar-logo-collapsed" width="36" height="36" loading="eager" fetchpriority="high">
+                        <img src="@(sidebarFullLogo ?? "~/icons/PropTech_Logo_Color.png")" alt="Company Logo" class="sidebar-logo-full" style="max-height:38px;object-fit:contain;" loading="eager" fetchpriority="high">
+                        <img src="@(sidebarCollapsedLogo ?? "~/icons/PropTech_Logo_Favicon.png")" alt="U" class="sidebar-logo-collapsed" width="36" height="36" loading="eager" fetchpriority="high">
                     }
                 </a>
 

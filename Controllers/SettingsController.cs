@@ -82,9 +82,14 @@ namespace CRM.Controllers
                         
                         if (logoSetting != null)
                         {
+                            var oldLogoValue = logoSetting.SettingValue;
                             logoSetting.SettingValue = logoPath;
                             logoSetting.ModifiedOn = IndianTime.Now;
                             logoSetting.ModifiedBy = currentUserId;
+                            _db.Settings.Update(logoSetting);
+                            // Remove the previous logo file when replacing (otherwise old files accumulate)
+                            if (!string.Equals(oldLogoValue, logoPath, System.StringComparison.OrdinalIgnoreCase))
+                                DeleteLogoFile(oldLogoValue);
                         }
                         else
                         {
@@ -120,9 +125,13 @@ namespace CRM.Controllers
                         
                         if (collapsedLogoSetting != null)
                         {
+                            var oldCollapsedValue = collapsedLogoSetting.SettingValue;
                             collapsedLogoSetting.SettingValue = logoPath;
                             collapsedLogoSetting.ModifiedOn = IndianTime.Now;
                             collapsedLogoSetting.ModifiedBy = currentUserId;
+                            _db.Settings.Update(collapsedLogoSetting);
+                            if (!string.Equals(oldCollapsedValue, logoPath, System.StringComparison.OrdinalIgnoreCase))
+                                DeleteLogoFile(oldCollapsedValue);
                         }
                         else
                         {
@@ -164,6 +173,7 @@ namespace CRM.Controllers
                         existingSetting.SettingValue = value;
                         existingSetting.ModifiedOn = IndianTime.Now;
                         existingSetting.ModifiedBy = currentUserId;
+                        _db.Settings.Update(existingSetting);
                     }
                     else
                     {
