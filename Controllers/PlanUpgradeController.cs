@@ -353,6 +353,7 @@ namespace CRM.Controllers
                 upgradeRequest.RazorpayPaymentId = razorpayPaymentId;
                 upgradeRequest.RazorpaySignature = razorpaySignature;
                 upgradeRequest.CompletedDate = IndianTime.Now;
+                _context.PaymentTransactions.Update(upgradeRequest);
 
                 // Process the upgrade based on type
                 var result = await ProcessUpgradeByType(upgradeRequest, upgradeType);

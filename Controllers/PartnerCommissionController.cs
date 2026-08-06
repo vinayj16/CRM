@@ -335,6 +335,7 @@ namespace CRM.Controllers
                 }
 
                 payout.Status = "Approved";
+                _context.PartnerPayouts.Update(payout);
                 await _context.SaveChangesAsync();
 
                 return Json(new { success = true, message = "Payout approved successfully" });
@@ -423,6 +424,7 @@ namespace CRM.Controllers
                 }
 
                 payout.Status = "Paid";
+                _context.PartnerPayouts.Update(payout);
                 await _context.SaveChangesAsync();
 
                 return Json(new { success = true, message = "Payout marked as paid" });

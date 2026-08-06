@@ -167,6 +167,7 @@ namespace CRM.Controllers
                 existingPlan.SortOrder = model.SortOrder;
                 existingPlan.UpdatedOn = IndianTime.Now;
 
+                _masterDb.SaasPlans.Update(existingPlan);
                 await _masterDb.SaveChangesAsync();
 
                 if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
@@ -353,6 +354,7 @@ namespace CRM.Controllers
                     currentSub.UpdatedOn = IndianTime.Now;
                     currentSub.CancellationReason = $"Admin changed plan - {reason}";
                     currentSub.CancelledOn = IndianTime.Now;
+                    _masterDb.TenantSubscriptions.Update(currentSub);
                 }
 
                 // Cancel any scheduled subscriptions
@@ -366,6 +368,7 @@ namespace CRM.Controllers
                     sch.CancelledOn = IndianTime.Now;
                     sch.CancellationReason = $"Admin changed plan - {reason}";
                     sch.UpdatedOn = IndianTime.Now;
+                    _masterDb.TenantSubscriptions.Update(sch);
                 }
 
                 // Create new active subscription
@@ -4087,6 +4090,7 @@ namespace CRM.Controllers
                             currentSub.CancellationReason = $"Upgraded to {plan.PlanName} via payment";
                             currentSub.CancelledOn = IndianTime.Now;
                             currentSub.UpdatedOn = IndianTime.Now;
+                            _masterDb.TenantSubscriptions.Update(currentSub);
                         }
 
                         // Determine billing cycle based on amount

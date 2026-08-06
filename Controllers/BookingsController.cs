@@ -478,6 +478,7 @@ namespace CRM.Controllers
                     {
                         flat.FlatStatus = "Available";
                         flat.IsActive = true; // Mark as active when cancelled
+                        _db.PropertyFlats.Update(flat);
                     }
                 }
 
@@ -515,6 +516,7 @@ namespace CRM.Controllers
                 {
                     flat.FlatStatus = "Available";
                     flat.IsActive = true; // Mark as active when booking deleted
+                    _db.PropertyFlats.Update(flat);
                 }
 
                 _db.Bookings.Remove(booking);

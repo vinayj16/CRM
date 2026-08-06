@@ -41,6 +41,7 @@ namespace CRM.Controllers
                     existing.WebhookSecret = model.WebhookSecret;
                     existing.IsActive = model.IsActive;
                     existing.UpdatedOn = IndianTime.Now;
+                    _context.PaymentGateways.Update(existing);
                 }
                 else
                 {

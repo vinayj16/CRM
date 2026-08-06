@@ -243,6 +243,7 @@ namespace CRM.Controllers
             agent.Status = "Approved";
             agent.ApprovedBy = 1;
             agent.ApprovedOn = IndianTime.Now;
+            _context.Agents.Update(agent);
             await _context.SaveChangesAsync();
 
             // Auto-create or activate user
@@ -256,6 +257,7 @@ namespace CRM.Controllers
             {
                 existingUser.IsActive = true;
                 existingUser.ChannelPartnerId = agent.ChannelPartnerId;
+                _context.Users.Update(existingUser);
                 await _context.SaveChangesAsync();
                 TempData["Success"] = $"Agent approved and account activated for {existingUser.Username}.";
 
@@ -333,6 +335,7 @@ namespace CRM.Controllers
                 agent.Status = "Rejected";
                 agent.ApprovedBy = 1;
                 agent.ApprovedOn = IndianTime.Now;
+                _context.Agents.Update(agent);
                 await _context.SaveChangesAsync();
                 TempData["Success"] = "Agent rejected successfully.";
             }

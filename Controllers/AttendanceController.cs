@@ -431,6 +431,7 @@ namespace CRM.Controllers
             if (record != null)
             {
                 record.Status = "Present";
+                _context.AgentAttendance.Update(record);
                 try
                 {
                     // Ensure AttendanceId exists in AgentAttendance
@@ -513,6 +514,7 @@ namespace CRM.Controllers
                 record.LoginTime = new DateTime(date.Year, date.Month, date.Day, 9, 0, 0);
                 record.LogoutTime = record.LoginTime.Value.AddHours(hoursToApply);
 
+                _context.AgentAttendance.Update(record);
                 await _context.SaveChangesAsync();
             }
             return Ok();

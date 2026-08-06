@@ -2763,6 +2763,7 @@ namespace CRM.Controllers
                     lead.Status = status;
                     if (!string.IsNullOrEmpty(stage))
                         lead.Stage = stage;
+                    _db.Leads.Update(lead);
 
                     // Log status change
                     var history = new LeadHistoryModel

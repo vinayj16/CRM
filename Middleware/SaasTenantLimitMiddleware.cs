@@ -62,6 +62,7 @@ namespace CRM.Middleware
             {
                 subscription.EndDate = DateTime.UtcNow.AddYears(1);
                 subscription.Status = "Active";
+                appDb.TenantSubscriptions.Update(subscription);
                 await appDb.SaveChangesAsync();
                 _logger.LogInformation("Auto-renewed expired subscription for TenantId={TenantId}, new EndDate={EndDate}", tenantId, subscription.EndDate);
             }

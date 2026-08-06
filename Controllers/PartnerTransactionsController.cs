@@ -319,6 +319,7 @@ namespace CRM.Controllers
                     {
                         await ActivateSubscriptionOnCapture(transaction.Subscription);
                     }
+                    _context.PaymentTransactions.Update(transaction);
                     
                     await _context.SaveChangesAsync();
                     
@@ -467,6 +468,7 @@ namespace CRM.Controllers
                             {
                                 transaction.Status = newStatus;
                                 transaction.UpdatedOn = IndianTime.Now;
+                                _context.PaymentTransactions.Update(transaction);
                                 updated++;
                             }
                         }

@@ -268,6 +268,7 @@ namespace CRM.Controllers
                 {
                     message.IsRead = true;
                     message.ReadAt = DateTime.UtcNow;
+                    _context.RealTimeChatMessages.Update(message);
                     await _context.SaveChangesAsync();
                 }
 
@@ -299,6 +300,7 @@ namespace CRM.Controllers
                 {
                     notification.IsRead = true;
                     notification.ReadAt = DateTime.UtcNow;
+                    _context.ChatNotifications.Update(notification);
                     await _context.SaveChangesAsync();
                 }
 

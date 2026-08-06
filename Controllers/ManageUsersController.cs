@@ -465,6 +465,7 @@ namespace CRM.Controllers
                 existingUser.Password = PasswordHelper.HashPassword(user.Password);
             }
 
+            _context.Users.Update(existingUser);
             await _context.SaveChangesAsync();
 
             if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")

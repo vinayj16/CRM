@@ -245,6 +245,7 @@ namespace CRM.Controllers
                     // Manual refund
                     subscription.CancellationReason = $"Cancelled by admin - Refund Processed Manually: ₹{subscription.Amount:N0}. {request.RefundNotes}";
                     subscription.UpdatedOn = IndianTime.Now;
+                    _db.PartnerSubscriptions.Update(subscription);
                     await _db.SaveChangesAsync();
 
                     return Ok(new
@@ -267,6 +268,7 @@ namespace CRM.Controllers
                     // Update subscription
                     subscription.CancellationReason = $"Cancelled by admin - Refund Processed: ₹{subscription.Amount:N0}. Refund ID: {refundId}. {request.RefundNotes}";
                     subscription.UpdatedOn = IndianTime.Now;
+                    _db.PartnerSubscriptions.Update(subscription);
 
                     // Create refund transaction record
                     var refundTransaction = new PaymentTransactionModel

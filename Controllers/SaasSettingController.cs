@@ -116,9 +116,13 @@ namespace CRM.Controllers
 
                         if (logoSetting != null)
                         {
+                            var oldLogoValue = logoSetting.SettingValue;
                             logoSetting.SettingValue = logoPath;
                             logoSetting.ModifiedOn = IndianTime.Now;
                             logoSetting.ModifiedBy = currentId;
+                            _db.SaasSetting.Update(logoSetting);
+                            if (!string.Equals(oldLogoValue, logoPath, System.StringComparison.OrdinalIgnoreCase))
+                                DeleteLogoFile(oldLogoValue);
                         }
                         else
                         {
@@ -154,9 +158,13 @@ namespace CRM.Controllers
 
                         if (collapsedLogoSetting != null)
                         {
+                            var oldCollapsedValue = collapsedLogoSetting.SettingValue;
                             collapsedLogoSetting.SettingValue = logoPath;
                             collapsedLogoSetting.ModifiedOn = IndianTime.Now;
                             collapsedLogoSetting.ModifiedBy = currentId;
+                            _db.SaasSetting.Update(collapsedLogoSetting);
+                            if (!string.Equals(oldCollapsedValue, logoPath, System.StringComparison.OrdinalIgnoreCase))
+                                DeleteLogoFile(oldCollapsedValue);
                         }
                         else
                         {
@@ -195,6 +203,7 @@ namespace CRM.Controllers
                         existingSetting.SettingValue = value;
                         existingSetting.ModifiedOn = IndianTime.Now;
                         existingSetting.ModifiedBy = currentId;
+                        _db.SaasSetting.Update(existingSetting);
                     }
                     else
                     {
@@ -520,6 +529,7 @@ namespace CRM.Controllers
                 {
                     enabledSetting.SettingValue = isEnabled ? "true" : "false";
                     enabledSetting.ModifiedOn = IndianTime.Now;
+                    _db.SaasSetting.Update(enabledSetting);
                 }
                 else
                 {
@@ -538,6 +548,7 @@ namespace CRM.Controllers
                 {
                     msgSetting.SettingValue = message ?? "We are currently performing scheduled maintenance. Please check back shortly.";
                     msgSetting.ModifiedOn = IndianTime.Now;
+                    _db.SaasSetting.Update(msgSetting);
                 }
                 else
                 {
@@ -554,7 +565,10 @@ namespace CRM.Controllers
                 {
                     var startSetting = _db.SaasSetting.FirstOrDefault(s => s.SettingKey == "MaintenanceStartDate");
                     if (startSetting != null)
+                    {
                         startSetting.SettingValue = startDate.Value.ToString("yyyy-MM-dd HH:mm");
+                        _db.SaasSetting.Update(startSetting);
+                    }
                     else
                         _db.SaasSetting.Add(new SaasSettingsModel { SettingKey = "MaintenanceStartDate", SettingValue = startDate.Value.ToString("yyyy-MM-dd HH:mm"), SettingType = "DateTime", ModifiedOn = IndianTime.Now });
                 }
@@ -563,7 +577,10 @@ namespace CRM.Controllers
                 {
                     var endSetting = _db.SaasSetting.FirstOrDefault(s => s.SettingKey == "MaintenanceEndDate");
                     if (endSetting != null)
+                    {
                         endSetting.SettingValue = endDate.Value.ToString("yyyy-MM-dd HH:mm");
+                        _db.SaasSetting.Update(endSetting);
+                    }
                     else
                         _db.SaasSetting.Add(new SaasSettingsModel { SettingKey = "MaintenanceEndDate", SettingValue = endDate.Value.ToString("yyyy-MM-dd HH:mm"), SettingType = "DateTime", ModifiedOn = IndianTime.Now });
                 }
