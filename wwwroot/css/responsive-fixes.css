@@ -1320,8 +1320,8 @@ html.dark-mode body {
 }
 
 body.modal-open {
-    position: fixed !important;
-    width: 100% !important;
+    /* Do NOT use position:fixed here - it permanently freezes page scroll
+       if the modal-open class lingers after a modal/Swal closes. */
     overflow: hidden !important;
 }
 

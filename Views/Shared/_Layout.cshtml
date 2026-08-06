@@ -504,6 +504,46 @@
             padding: 0 10px !important;
         }
 
+        /* MOBILE: sidebar is off-canvas -> navbar + main span full width so the
+           right-side header icons (dark mode, bell, profile, logout) are ALWAYS visible */
+        @@media (max-width: 991px) {
+            .navbar, .navbar-bg {
+                left: 0 !important;
+                right: 0 !important;
+                width: 100% !important;
+            }
+            .main,
+            .sidebar.collapsed ~ .main,
+            .superadmin-layout .main,
+            .superadmin-layout .sidebar.collapsed ~ .main {
+                margin-left: 0 !important;
+                width: 100% !important;
+            }
+            .navbar-collapse {
+                margin-left: auto !important;
+            }
+            .navbar-profile-name {
+                max-width: 110px !important;
+                overflow: hidden !important;
+                text-overflow: ellipsis !important;
+            }
+        }
+        /* VERY NARROW PHONES: shrink search bar so right-side header icons
+           (dark mode, bell, profile/logout) stay fully visible */
+        @@media (max-width: 575px) {
+            .global-search-container {
+                min-width: 120px !important;
+                max-width: 42% !important;
+                margin: 0 8px !important;
+                flex: 0 1 42% !important;
+            }
+            .search-wrapper .search-input,
+            .global-search-input {
+                font-size: 12px !important;
+                padding-left: 26px !important;
+            }
+        }
+
         .search-results-dropdown {
     position: absolute;
     top: calc(100% + 8px);
@@ -544,11 +584,22 @@
         .hamburger {
             display: block !important;
             position: relative !important;
+            width: 22px !important;
+            height: 2px !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            border: none !important;
+            background: #1A2332 !important;
+            box-sizing: content-box !important;
         }
         .hamburger::before, .hamburger::after {
             content: '' !important;
             position: absolute !important;
             left: 0 !important;
+            width: 22px !important;
+            height: 2px !important;
+            background: #1A2332 !important;
+            border-radius: 1px !important;
         }
         .hamburger::before {
             top: -7px !important;
@@ -558,6 +609,31 @@
         }
         .sidebar.collapsed .hamburger {
             width: 22px !important;
+        }
+        /* GUARANTEED 3-LINE HAMBURGER - middle bar cannot collapse */
+        .sidebar-toggle .hamburger {
+            width: 22px !important;
+            height: 2px !important;
+            min-width: 22px !important;
+            min-height: 2px !important;
+            flex: 0 0 auto !important;
+        }
+        .sidebar-toggle .hamburger::before {
+            top: -7px !important;
+        }
+        .sidebar-toggle .hamburger::after {
+            top: 7px !important;
+        }
+
+        /* COLLAPSED SIDEBAR - keep menu scrollable and footer pinned */
+        .sidebar.collapsed .sidebar-nav {
+            overflow-y: auto !important;
+            overflow-x: hidden !important;
+        }
+        .sidebar.collapsed .sidebar-footer {
+            position: relative !important;
+            flex-shrink: 0 !important;
+            margin-top: auto !important;
         }
         html.dark-mode .hamburger, html.dark-mode .hamburger::before, html.dark-mode .hamburger::after {
             background: #FFFFFF !important;
@@ -1934,8 +2010,8 @@
         <div class="main@(sidebarCollapsed ? " expanded" : "")">
             <nav class="navbar navbar-expand navbar-light navbar-bg" style="display:flex !important;align-items:center !important;visibility:visible !important;opacity:1 !important;">
                 <!-- Hamburger -->
-                <a class="sidebar-toggle js-sidebar-toggle" style="display:flex !important;align-items:center !important;justify-content:center !important;width:36px !important;height:36px !important;flex-shrink:0 !important;cursor:pointer !important;visibility:visible !important;opacity:1 !important;">
-                    <i class="hamburger align-self-center" style="display:block !important;width:auto !important;height:auto !important;"></i>
+                <a class="sidebar-toggle js-sidebar-toggle" role="button" aria-label="Toggle sidebar" title="Toggle sidebar" tabindex="0" style="display:flex !important;align-items:center !important;justify-content:center !important;width:36px !important;height:36px !important;flex-shrink:0 !important;cursor:pointer !important;visibility:visible !important;opacity:1 !important;">
+                    <i class="hamburger align-self-center" aria-hidden="true"></i>
                 </a>
 
                 <!-- Global Search -->

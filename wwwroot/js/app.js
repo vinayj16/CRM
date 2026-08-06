@@ -79,6 +79,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 window.crmSidebar.toggleCollapsed(true);
             }
         });
+
+        // Keyboard accessibility: Enter / Space triggers the toggle
+        sidebarToggle.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                e.stopPropagation();
+                sidebarToggle.click();
+            }
+        });
     }
 
     // Close sidebar when clicking outside in mobile mode
