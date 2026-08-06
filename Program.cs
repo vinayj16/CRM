@@ -557,7 +557,12 @@ using (var scope = app.Services.CreateScope())
                         MaxUsers = 25, MaxAgents = 15, MaxLeadsPerMonth = 5000, MaxPartners = 5,
                         HasWhatsAppIntegration = true, HasEmailIntegration = true, HasFacebookIntegration = true,
                         HasAdvancedReports = true, HasCustomBranding = true, HasPrioritySupport = true,
-                        HasImpersonation = true, SupportLevel = "Chat", PlanType = "Standard",
+                        HasImpersonation = true, HasLeadScoring = true, HasSiteVisitManagement = true,
+                        HasDocumentManagement = true, HasInventoryManagement = true, HasCampaignManagement = true,
+                        HasLegalManagement = true, HasInvoiceAutomation = true, HasQuotationManagement = true,
+                        HasWorkflowAutomation = true, MaxSiteVisitsPerMonth = -1, MaxEmailCampaigns = -1,
+                        MaxDocuments = -1, MaxProperties = -1, MaxQuotationsPerMonth = -1,
+                        SupportLevel = "Chat", PlanType = "Standard",
                         IsActive = true, SortOrder = 3, ShowOnLandingPage = true, CreatedOn = now
                     });
                     masterDb.SaasPlans.Add(new CRM.MasterDb.Models.SaasSubscriptionPlanModel
@@ -567,7 +572,15 @@ using (var scope = app.Services.CreateScope())
                         MaxUsers = -1, MaxAgents = -1, MaxLeadsPerMonth = -1, MaxPartners = -1,
                         HasWhatsAppIntegration = true, HasEmailIntegration = true, HasFacebookIntegration = true,
                         HasCustomAPIAccess = true, HasAdvancedReports = true, HasCustomBranding = true,
-                        HasPrioritySupport = true, HasImpersonation = true, SupportLevel = "Dedicated", PlanType = "Premium",
+                        HasPrioritySupport = true, HasImpersonation = true, HasLeadScoring = true,
+                        HasSiteVisitManagement = true, HasDocumentManagement = true, HasInventoryManagement = true,
+                        HasCampaignManagement = true, HasLegalManagement = true, HasInvoiceAutomation = true,
+                        HasQuotationManagement = true, HasWorkflowAutomation = true, HasCustomerPortal = true,
+                        HasAIScoring = true, HasAIChatbot = true, HasMobileApp = true, HasTwoFactorAuth = true,
+                        HasCallIntegration = true, HasSmsIntegration = true, HasMultiLanguage = true,
+                        HasGpsTracking = true, MaxSiteVisitsPerMonth = -1, MaxEmailCampaigns = -1,
+                        MaxDocuments = -1, MaxProperties = -1, MaxQuotationsPerMonth = -1,
+                        SupportLevel = "Dedicated", PlanType = "Premium",
                         IsActive = true, SortOrder = 4, ShowOnLandingPage = true, CreatedOn = now
                     });
                     await masterDb.SaveChangesAsync();

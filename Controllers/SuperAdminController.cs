@@ -587,6 +587,7 @@ namespace CRM.Controllers
             tenant.SuspendedReason = reason;
             tenant.UpdatedOn = DateTime.UtcNow;
 
+            _masterDb.Tenants.Update(tenant);
             await _masterDb.SaveChangesAsync();
 
             _logger.LogInformation($"Tenant suspended: {tenant.CompanyName}. Reason: {reason}");
@@ -2259,6 +2260,7 @@ namespace CRM.Controllers
                     return Json(new { success = false, message = "User not found" });
 
                 user.IsActive = false;
+                appDb.Users.Update(user);
                 await appDb.SaveChangesAsync();
                 await LogAuditAsync(GetCurrentUserId(), "Delete", "User", userId,
                     $"User '{user.Username}' deactivated");

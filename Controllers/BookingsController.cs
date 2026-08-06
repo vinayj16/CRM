@@ -340,6 +340,7 @@ namespace CRM.Controllers
                 {
                     flat.FlatStatus = "Booked";
                     flat.IsActive = false; // Mark as inactive when booked
+                    _db.PropertyFlats.Update(flat);
                     await _db.SaveChangesAsync();
                 }
 

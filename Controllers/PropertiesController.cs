@@ -218,6 +218,7 @@ namespace CRM.Controllers
                     {
                         builder = new BuilderModel
                         {
+                            BuilderId = _db.Builders.Any() ? await _db.Builders.MaxAsync(b => b.BuilderId) + 1 : 1,
                             BuilderName = builderName,
                             IsActive = true,
                             CreatedOn = IndianTime.Now
@@ -229,6 +230,7 @@ namespace CRM.Controllers
                     // Create new property
                     var property = new PropertyModel
                     {
+                        PropertyId = _db.Properties.Any() ? await _db.Properties.MaxAsync(p => p.PropertyId) + 1 : 1,
                         PropertyName = propertyName,
                         BuilderId = builder.BuilderId,
                         Location = location,
@@ -338,6 +340,7 @@ namespace CRM.Controllers
                         }
                     }
 
+                    _db.Properties.Update(property);
                     await _db.SaveChangesAsync();
 
                     // Add to history
@@ -379,6 +382,7 @@ namespace CRM.Controllers
                 property.IsActive = false;
                 property.UpdatedOn = IndianTime.Now;
                 property.UpdatedBy = UserId;
+                _db.Properties.Update(property);
                 await _db.SaveChangesAsync();
 
                 // Add to history
@@ -855,6 +859,7 @@ namespace CRM.Controllers
                     // Create new flat
                     var flat = new PropertyFlatModel
                     {
+                        FlatId = _db.PropertyFlats.Any() ? await _db.PropertyFlats.MaxAsync(f => f.FlatId) + 1 : 1,
                         PropertyId = int.Parse(propertyId),
                         BlockName = blockName,
                         FloorName = floorName,
@@ -920,6 +925,7 @@ namespace CRM.Controllers
                     flat.FloorNumber = floorName;
                     flat.Status= flatStatus;
                     flat.Area = !string.IsNullOrWhiteSpace(areaSqft) ? decimal.Parse(areaSqft).ToString("F2") + " sqft" : null;
+                    _db.PropertyFlats.Update(flat);
                     await _db.SaveChangesAsync();
 
                     // Add to history
@@ -959,6 +965,7 @@ namespace CRM.Controllers
                 flat.IsActive = false;
                 flat.UpdatedOn = IndianTime.Now;
                 flat.UpdatedBy = UserId;
+                _db.PropertyFlats.Update(flat);
                 await _db.SaveChangesAsync();
 
                 // Add to history

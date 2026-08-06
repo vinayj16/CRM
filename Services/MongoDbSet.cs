@@ -312,8 +312,16 @@ namespace CRM
                 // ObjectId [BsonId] -> integer ids live in a separate named field (search below)
             }
 
-            // 2) Plain int "Id" property - MongoDB convention maps "Id" to _id
-            if (type.GetProperty("Id", typeof(int)) != null || type.GetProperty("Id", typeof(int?)) != null)
+            // Properties marked [BsonIgnore] are not persisted, so they can never be
+            // the stored document id (e.g. UserProfile.Id is [Key] + [BsonIgnore]).
+            bool IsIgnored(PropertyInfo p)
+                => p.GetCustomAttribute(typeof(MongoDB.Bson.Serialization.Attributes.BsonIgnoreAttribute), false) != null;
+
+            // 2) Plain int "Id" property (not [BsonIgnore]) - MongoDB convention maps "Id" to _id
+            var idProp = type.GetProperties().FirstOrDefault(p => p.Name == "Id" &&
+                (p.PropertyType == typeof(int) || p.PropertyType == typeof(int?)) &&
+                !IsIgnored(p));
+            if (idProp != null)
             {
                 mapsToMongoId = true;
                 return null;
@@ -322,7 +330,8 @@ namespace CRM
             // 3) [Key]-annotated int property (LeadModel.LeadId, FollowUpModel.FollowUpId)
             var keyProp = type.GetProperties().FirstOrDefault(p =>
                 p.GetCustomAttribute(typeof(System.ComponentModel.DataAnnotations.KeyAttribute), false) != null &&
-                (p.PropertyType == typeof(int) || p.PropertyType == typeof(int?)));
+                (p.PropertyType == typeof(int) || p.PropertyType == typeof(int?)) &&
+                !IsIgnored(p));
             if (keyProp != null)
                 return keyProp;
 
@@ -336,7 +345,7 @@ namespace CRM
                        ?? type.GetProperty(baseName + "Id", typeof(int?))
                        ?? type.GetProperty(type.Name + "Id", typeof(int))
                        ?? type.GetProperty(type.Name + "Id", typeof(int?));
-            if (namedId != null)
+            if (namedId != null && !IsIgnored(namedId))
                 return namedId;
 
             // 5) Unambiguous fallback: exactly one other int property ending in "Id" (skip TenantId).
@@ -344,7 +353,8 @@ namespace CRM
             //    so we only resolve when there is a single candidate.
             var candidates = type.GetProperties()
                 .Where(p => p.Name != "TenantId" && p.Name.EndsWith("Id") &&
-                            (p.PropertyType == typeof(int) || p.PropertyType == typeof(int?)))
+                            (p.PropertyType == typeof(int) || p.PropertyType == typeof(int?)) &&
+                            !IsIgnored(p))
                 .ToList();
 
             return candidates.Count == 1 ? candidates[0] : null;
@@ -516,9 +526,11 @@ namespace CRM
             var idProp = ResolveIntIdProperty(out _);
             if (idProp != null)
                 return idProp.GetValue(document);
-            // Legacy fallback: int "Id" convention property (mapped to _id)
-            return type.GetProperty("_id")?.GetValue(document)
-                   ?? type.GetProperty("Id")?.GetValue(document);
+            // Legacy fallback: _id / Id convention property (skip [BsonIgnore] members)
+            var legacy = type.GetProperties().FirstOrDefault(p =>
+                (p.Name == "_id" || p.Name == "Id") &&
+                p.GetCustomAttribute(typeof(MongoDB.Bson.Serialization.Attributes.BsonIgnoreAttribute), false) == null);
+            return legacy?.GetValue(document);
         }
     }
 

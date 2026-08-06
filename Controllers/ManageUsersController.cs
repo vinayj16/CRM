@@ -477,6 +477,7 @@ namespace CRM.Controllers
             }
 
             user.IsActive = false;
+            _context.Users.Update(user);
             await _context.SaveChangesAsync();
 
             return RedirectToAction("Index");
@@ -646,9 +647,11 @@ namespace CRM.Controllers
                     if (user != null)
                     {
                         user.IsActive = false;
+                        _context.Users.Update(user);
                     }
                 }
 
+                _context.ChannelPartners.Update(partner);
                 await _context.SaveChangesAsync();
 
                 return Json(new { success = true, message = "Partner deleted successfully" });
