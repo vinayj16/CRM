@@ -1295,8 +1295,8 @@
                     }
                     else
                     {
-                        <img src="@(sidebarFullLogo ?? "~/icons/PropTech_Logo_Color.png")" alt="Company Logo" class="sidebar-logo-full" style="max-height:38px;object-fit:contain;" loading="eager" fetchpriority="high">
-                        <img src="@(sidebarCollapsedLogo ?? "~/icons/PropTech_Logo_Favicon.png")" alt="U" class="sidebar-logo-collapsed" width="36" height="36" loading="eager" fetchpriority="high">
+                        <img src="@Url.Content(sidebarFullLogo ?? "~/icons/PropTech_Logo_Color.png")" alt="Company Logo" class="sidebar-logo-full" style="max-height:38px;object-fit:contain;" loading="eager" fetchpriority="high">
+                        <img src="@Url.Content(sidebarCollapsedLogo ?? "~/icons/PropTech_Logo_Favicon.png")" alt="U" class="sidebar-logo-collapsed" width="36" height="36" loading="eager" fetchpriority="high">
                     }
                 </a>
 
@@ -2158,7 +2158,7 @@
                                style="display:flex !important;align-items:center;gap:8px;visibility:visible;opacity:1;padding:0 6px;flex-shrink:0;">
                                 @if (!string.IsNullOrEmpty(profileImageSrc) && profileImageSrc != "/img/default-avatar.png" && profileImageSrc != "https://via.placeholder.com/40")
                                 {
-                                    <img src="@profileImageSrc" class="avatar img-fluid rounded" alt="@username"
+                                    <img src="@Url.Content(profileImageSrc)" class="avatar img-fluid rounded" alt="@username"
                                          width="34" height="34" loading="eager" fetchpriority="high"
                                          style="width:34px;height:34px;border-radius:10px;border:2px solid rgba(212,164,90,0.5);" />
                                 }
