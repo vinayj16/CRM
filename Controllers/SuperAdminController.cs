@@ -1996,6 +1996,14 @@ namespace CRM.Controllers
                 var actions = new[] { "Login", "Login", "Login", "Create", "Update", "Delete", "View", "View" };
                 var entityTypes = new[] { "User", "Lead", "Tenant", "Plan", "Payment", "Ticket", "Lead", "Booking" };
 
+                // AuditId is an int [Key] - seed explicit ids so the AddRange batch
+                // does not give every log the same max+1 id.
+                int nextAuditId = 1;
+                if (appDb.AuditLogs.Any())
+                {
+                    nextAuditId = (appDb.AuditLogs.AsQueryable().Select(a => (int?)a.AuditId).Max() ?? 0) + 1;
+                }
+
                 for (int i = 0; i < 50; i++)
                 {
                     var userId = rng.Next(0, 2) == 0
@@ -2007,6 +2015,7 @@ namespace CRM.Controllers
 
                     auditLogs.Add(new AuditLogModel
                     {
+                        AuditId = nextAuditId++,
                         UserId = userId,
                         Action = action,
                         EntityType = entityType,
@@ -2486,21 +2495,27 @@ namespace CRM.Controllers
                     return Json(new { success = true, message = $"Page permissions already seeded ({existingModules} modules exist)" });
                 }
 
-                // Seed modules
-                var modules = new List<ModuleModel>
+                // Seed modules - assign explicit ids because AddRange cannot auto-increment
+                int nextModuleId = 1;
+                if (appDb.Modules.Any())
                 {
-                    new() { ModuleName = "Dashboard", Icon = "activity", SortOrder = 1, IsActive = true },
-                    new() { ModuleName = "Leads & Properties", Icon = "folder", SortOrder = 2, IsActive = true },
-                    new() { ModuleName = "Sales", Icon = "shopping-cart", SortOrder = 3, IsActive = true },
-                    new() { ModuleName = "Finance", Icon = "credit-card", SortOrder = 4, IsActive = true },
-                    new() { ModuleName = "Team Management", Icon = "users", SortOrder = 5, IsActive = true },
-                    new() { ModuleName = "Attendance", Icon = "calendar", SortOrder = 6, IsActive = true },
-                    new() { ModuleName = "Payouts", Icon = "credit-card", SortOrder = 7, IsActive = true },
-                    new() { ModuleName = "User Management", Icon = "settings", SortOrder = 8, IsActive = true },
-                    new() { ModuleName = "Settings", Icon = "sliders", SortOrder = 9, IsActive = true },
-                    new() { ModuleName = "Subscriptions", Icon = "layers", SortOrder = 10, IsActive = true },
-                    new() { ModuleName = "Support", Icon = "help-circle", SortOrder = 11, IsActive = true }
+                    nextModuleId = (appDb.Modules.AsQueryable().Select(m => (int?)m.ModuleId).Max() ?? 0) + 1;
+                }
+                var moduleNames = new[]
+                {
+                    ("Dashboard", "activity"), ("Leads & Properties", "folder"), ("Sales", "shopping-cart"),
+                    ("Finance", "credit-card"), ("Team Management", "users"), ("Attendance", "calendar"),
+                    ("Payouts", "credit-card"), ("User Management", "settings"), ("Settings", "sliders"),
+                    ("Subscriptions", "layers"), ("Support", "help-circle")
                 };
+                var modules = moduleNames.Select((pair, idx) => new ModuleModel
+                {
+                    ModuleId = nextModuleId + idx,
+                    ModuleName = pair.Item1,
+                    Icon = pair.Item2,
+                    SortOrder = idx + 1,
+                    IsActive = true
+                }).ToList();
                 appDb.Modules.AddRange(modules);
                 await appDb.SaveChangesAsync();
 
@@ -2559,6 +2574,12 @@ namespace CRM.Controllers
                     new() { ModuleId = modules[10].ModuleId, PageName = "Support Tickets", Controller = "Ticket", Action = "Index", SortOrder = 1, IsActive = true },
                     new() { ModuleId = modules[10].ModuleId, PageName = "Help Center", Controller = "Home", Action = "HelpCenter", SortOrder = 2, IsActive = true }
                 };
+                int nextPageId = 1;
+                if (appDb.Pages.Any())
+                {
+                    nextPageId = (appDb.Pages.AsQueryable().Select(p => (int?)p.PageId).Max() ?? 0) + 1;
+                }
+                for (int pi = 0; pi < pages.Count; pi++) pages[pi].PageId = nextPageId + pi;
                 appDb.Pages.AddRange(pages);
                 await appDb.SaveChangesAsync();
 
@@ -2569,6 +2590,7 @@ namespace CRM.Controllers
                 {
                     var permissions = permNames.Select((name, idx) => new PermissionModel
                     {
+                        PermissionId = idx + 1,
                         PermissionName = name,
                         SortOrder = idx + 1,
                         IsActive = true

@@ -183,6 +183,9 @@ namespace CRM.Controllers
                 lead.UtmMedium = "api_sync";
             }
 
+            // Pre-assign sequential LeadIds: AddRange cannot auto-increment, and the shim
+            // would otherwise give every id-less lead in the batch the SAME max+1 id.
+            await AssignSequentialLeadIdsAsync(leads);
             _context.Leads.AddRange(leads);
             config.LastSyncedAt = IndianTime.Now;
             config.LeadsSynced += leads.Count;
@@ -284,6 +287,7 @@ namespace CRM.Controllers
                 if (leads.Count > 0)
                 {
                     foreach (var lead in leads) lead.ChannelPartnerId = partnerId;
+                    await AssignSequentialLeadIdsAsync(leads);
                     _context.Leads.AddRange(leads);
                     config.LeadsSynced += leads.Count;
                     totalLeads += leads.Count;
@@ -681,6 +685,7 @@ namespace CRM.Controllers
                     });
                 }
 
+                await AssignSequentialLeadIdsAsync(leads);
                 _context.Leads.AddRange(leads);
                 await _context.SaveChangesAsync();
 
@@ -706,6 +711,31 @@ namespace CRM.Controllers
                     return val.GetString();
             }
             return null;
+        }
+
+        /// <summary>
+        /// Assign sequential LeadIds to a batch before AddRange. The Mongo shim's AddRange
+        /// cannot auto-increment int keys - every id-less document would receive the same
+        /// max+1 value, corrupting lookups/updates. Mirrors the MaxAsync+1 pattern used by
+        /// SaveLead for single inserts.
+        /// </summary>
+        private async Task AssignSequentialLeadIdsAsync(List<LeadModel> leads)
+        {
+            if (leads == null || leads.Count == 0) return;
+
+            int nextId = 1;
+            if (_context.Leads.Any())
+            {
+                nextId = (await _context.Leads.MaxAsync(l => (int?)l.LeadId) ?? 0) + 1;
+            }
+
+            foreach (var lead in leads)
+            {
+                if (lead.LeadId <= 0)
+                {
+                    lead.LeadId = nextId++;
+                }
+            }
         }
     }
 }

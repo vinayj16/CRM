@@ -12,7 +12,7 @@ namespace CRM.Models
         public int TenantId { get; set; } = 0;
 
         [Key]
-        public long AuditId { get; set; }
+        public int AuditId { get; set; }
         
         public int? UserId { get; set; }
         
