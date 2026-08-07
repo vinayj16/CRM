@@ -527,6 +527,7 @@ namespace CRM.Controllers
             if (record != null && record.CorrectionRequested && record.CorrectionStatus == "Pending")
             {
                 record.CorrectionStatus = "Rejected";
+                _context.AgentAttendance.Update(record);
                 await _context.SaveChangesAsync();
             }
             return Ok();
@@ -541,6 +542,7 @@ namespace CRM.Controllers
                 log.CorrectionRequested = true;
                 log.CorrectionReason = reason;
                 log.CorrectionStatus = "Pending";
+                _context.AttendanceLog.Update(log);
                 await _context.SaveChangesAsync();
                 return Ok();
             }
@@ -554,6 +556,7 @@ namespace CRM.Controllers
             if (log != null && log.CorrectionRequested && log.CorrectionStatus == "Pending")
             {
                 log.CorrectionStatus = "Approved";
+                _context.AttendanceLog.Update(log);
                 await _context.SaveChangesAsync();
             }
             return Ok();
@@ -566,6 +569,7 @@ namespace CRM.Controllers
             if (log != null && log.CorrectionRequested && log.CorrectionStatus == "Pending")
             {
                 log.CorrectionStatus = "Rejected";
+                _context.AttendanceLog.Update(log);
                 await _context.SaveChangesAsync();
             }
             return Ok();

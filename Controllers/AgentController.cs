@@ -207,6 +207,7 @@ namespace CRM.Controllers
             agent.Salary = model.Salary;
             agent.CommissionRules = model.CommissionRules;
 
+            _context.Agents.Update(agent);
             await _context.SaveChangesAsync();
 
             if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
@@ -583,6 +584,7 @@ namespace CRM.Controllers
                 document.VerifiedOn = IndianTime.Now;
                 document.RejectionReason = null;
 
+                _context.AgentDocuments.Update(document);
                 await _context.SaveChangesAsync();
 
                 return Json(new { success = true, message = "Document approved successfully" });
@@ -620,6 +622,7 @@ namespace CRM.Controllers
                 document.VerifiedOn = IndianTime.Now;
                 document.RejectionReason = reason;
 
+                _context.AgentDocuments.Update(document);
                 await _context.SaveChangesAsync();
 
                 return Json(new { success = true, message = "Document rejected successfully" });

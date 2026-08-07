@@ -183,6 +183,7 @@ namespace CRM.Controllers
                 existingPlan.SortOrder = model.SortOrder;
                 existingPlan.UpdatedOn = IndianTime.Now;
 
+                _context.SubscriptionPlans.Update(existingPlan);
                 await _context.SaveChangesAsync();
 
                 if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
@@ -357,6 +358,7 @@ namespace CRM.Controllers
 
             subscription.EndDate = subscription.EndDate.AddDays(days);
             subscription.UpdatedOn = IndianTime.Now;
+            _context.PartnerSubscriptions.Update(subscription);
             await _context.SaveChangesAsync();
 
             return Json(new { success = true, message = $"Trial extended by {days} days until {subscription.EndDate:MMM dd, yyyy}" });
@@ -721,6 +723,7 @@ namespace CRM.Controllers
                 currentSubscription.CancellationReason = $"Cancelled by user - Refund Pending: ₹{currentSubscription.Amount:N0}";
                 currentSubscription.UpdatedOn = IndianTime.Now;
 
+                _context.PartnerSubscriptions.Update(currentSubscription);
                 await _context.SaveChangesAsync();
 
                 _logger.LogInformation($"Partner {partnerId} cancelled subscription {currentSubscription.SubscriptionId}. Refund pending: ₹{currentSubscription.Amount}");
@@ -2859,6 +2862,7 @@ namespace CRM.Controllers
                 transaction.WebhookEventId = eventId;
                 transaction.RazorpayPaymentId = paymentId;
                 transaction.Description += $" | Failed: {errorDescription}";
+                _context.PaymentTransactions.Update(transaction);
                 await _context.SaveChangesAsync();
             }
         }

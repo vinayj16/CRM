@@ -359,6 +359,7 @@ namespace CRM.Controllers
                 // Recalculate final payout for Hybrid agent: BaseSalary - Deduction + Commission
                 payout.FinalPayout = payout.BaseSalary - payout.AttendanceDeduction + commissionTotal;
                 payout.Amount = payout.FinalPayout;
+                _context.AgentPayouts.Update(payout);
                 
                 await _context.SaveChangesAsync();
                 

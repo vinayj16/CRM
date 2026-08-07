@@ -606,7 +606,14 @@ namespace CRM
             foreach (var prop in type.GetProperties())
             {
                 if (prop.GetCustomAttribute(typeof(MongoDB.Bson.Serialization.Attributes.BsonIdAttribute), false) != null)
-                    return prop.GetValue(document);
+                {
+                    var v = prop.GetValue(document);
+                    // Boxed Nullable<ObjectId> arrives as ObjectId; normalize it so
+                    // Update/Remove can match the _id filter in all cases.
+                    if (v is MongoDB.Bson.ObjectId oid && oid != MongoDB.Bson.ObjectId.Empty)
+                        return oid;
+                    return v;
+                }
             }
             // Resolve the integer id property (or int "Id" mapped to _id)
             var idProp = ResolveIntIdProperty(out _);

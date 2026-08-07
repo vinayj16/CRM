@@ -69,6 +69,7 @@ namespace CRM.Controllers
             if (superAdmin != null && PasswordHelper.VerifyPassword(model.Password, superAdmin.PasswordHash))
             {
                 superAdmin.LastLoginOn = DateTime.UtcNow;
+                _masterDb.SuperAdmins.Update(superAdmin);
                 await _masterDb.SaveChangesAsync();
 
                 var saToken = GenerateSuperAdminToken(superAdmin);
@@ -147,6 +148,7 @@ namespace CRM.Controllers
         [HttpGet]
         public async Task<IActionResult> Dashboard()
         {
+
             var totalTenants = await _masterDb.Tenants.CountAsync();
             var activeTenants = await _masterDb.Tenants.CountAsync(t => t.IsActive && !t.IsSuspended);
             var suspendedTenants = await _masterDb.Tenants.CountAsync(t => t.IsSuspended);
@@ -344,7 +346,22 @@ namespace CRM.Controllers
         [HttpPost]
         public async Task<IActionResult> UpdateProfile([FromBody] UpdateSuperAdminProfileRequest request)
         {
-            var superAdmin = await _masterDb.SuperAdmins.FirstOrDefaultAsync();
+            // Resolve the currently logged-in superadmin (UserId claim), falling back
+            // to the first record only when the claim is unavailable.
+            // NOTE: materialize first, then filter in memory — a predicate-based
+            // FirstOrDefaultAsync is translated to a Mongo filter, which fails on
+            // the [BsonIgnore] computed Id property.
+            int? saId = null;
+            if (int.TryParse(User?.FindFirst("UserId")?.Value, out int claimedId))
+                saId = claimedId;
+
+            var superAdmins = await _masterDb.SuperAdmins.ToListAsync();
+            var superAdmin = saId.HasValue
+                ? superAdmins.FirstOrDefault(s => s.Id == saId.Value)
+                : superAdmins.FirstOrDefault();
+            if (superAdmin == null && superAdmins.Count > 0)
+                superAdmin = superAdmins.FirstOrDefault();
+
             if (superAdmin == null)
             {
                 return Json(new { success = false, error = "SuperAdmin not found" });
@@ -353,6 +370,7 @@ namespace CRM.Controllers
             if (!string.IsNullOrWhiteSpace(request.FullName))
             {
                 superAdmin.FullName = request.FullName.Trim();
+                _masterDb.SuperAdmins.Update(superAdmin);
                 await _masterDb.SaveChangesAsync();
             }
 
@@ -454,6 +472,7 @@ namespace CRM.Controllers
                 }
                 inquiry.UpdatedOn = DateTime.UtcNow;
 
+                _masterDb.Inquiries.Update(inquiry);
                 await _masterDb.SaveChangesAsync();
 
                 return Json(new { success = true, message = "Status updated successfully" });

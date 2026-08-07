@@ -192,6 +192,7 @@ namespace CRM.Controllers
             config.LastSyncedAt = IndianTime.Now;
             config.LeadsSynced += leads.Count;
             config.UpdatedOn = IndianTime.Now;
+            _context.LeadIntegrationConfigs.Update(config);
             await _context.SaveChangesAsync();
 
             foreach (var lead in leads)
@@ -223,6 +224,7 @@ namespace CRM.Controllers
             config.LastSyncedAt = IndianTime.Now;
             config.LeadsSynced += count;
             config.UpdatedOn = IndianTime.Now;
+            _context.LeadIntegrationConfigs.Update(config);
             await _context.SaveChangesAsync();
 
             return Json(new { success = true, message = $"Generated {count} test leads from {platform}. These are marked as [TEST] and can be cleared anytime.", count });
@@ -259,6 +261,7 @@ namespace CRM.Controllers
             {
                 c.LeadsSynced = 0;
                 c.LastSyncedAt = null;
+                _context.LeadIntegrationConfigs.Update(c);
             }
 
             await _context.SaveChangesAsync();

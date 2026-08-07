@@ -164,6 +164,8 @@ namespace CRM.Controllers
 
                     lead.ModifiedOn = IndianTime.Now;
 
+                    _db.Leads.Update(lead);
+
                     var changes = _db.SaveChanges();
 
                     // Check if moved to today for notification refresh
@@ -300,6 +302,7 @@ namespace CRM.Controllers
                 foreach (var followUp in todayFollowUps)
                 {
                     followUp.IsNotificationRead = true;
+                    _db.LeadFollowUps.Update(followUp);
                 }
 
                 await _db.SaveChangesAsync();

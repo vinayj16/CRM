@@ -244,6 +244,7 @@ namespace CRM.Services
                 foreach (var permission in permissions)
                 {
                     permission.RoleName = newRoleName;
+                    _context.RolePagePermissions.Update(permission);
                 }
                 await _context.SaveChangesAsync();
                 return true;

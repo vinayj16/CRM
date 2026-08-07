@@ -647,6 +647,7 @@ namespace CRM.Controllers
 
                 branding.ModifiedOn = IndianTime.Now;
                 branding.ModifiedBy = _getCurrentId();
+                _db.SaasBranding.Update(branding);
                 await _db.SaveChangesAsync();
 
                 return Json(new { success = true, message = "Image removed successfully" });

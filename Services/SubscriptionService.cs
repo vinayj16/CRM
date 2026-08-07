@@ -319,6 +319,7 @@ namespace CRM.Services
             subscription.CurrentMonthLeads = leadCount;
             subscription.UpdatedOn = IndianTime.Now;
 
+            _context.PartnerSubscriptions.Update(subscription);
             await _context.SaveChangesAsync();
         }
     }

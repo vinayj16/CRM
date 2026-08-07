@@ -1381,6 +1381,7 @@ namespace CRM.Controllers
                 if (!string.IsNullOrEmpty(user.Password) && !user.Password.Contains('.'))
                 {
                     user.Password = PasswordHelper.HashPassword(user.Password);
+                    _db.Users.Update(user);
                     migrated++;
                 }
             }

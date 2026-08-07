@@ -1196,6 +1196,7 @@ namespace CRM.Controllers
                 document.VerifiedOn = IndianTime.Now;
                 document.RejectionReason = null;
 
+                _context.ChannelPartnerDocuments.Update(document);
                 await _context.SaveChangesAsync();
 
                 return Json(new { success = true, message = "Document approved successfully" });
@@ -1234,6 +1235,7 @@ namespace CRM.Controllers
                 document.VerifiedOn = IndianTime.Now;
                 document.RejectionReason = reason;
 
+                _context.ChannelPartnerDocuments.Update(document);
                 await _context.SaveChangesAsync();
 
                 return Json(new { success = true, message = "Document rejected successfully" });

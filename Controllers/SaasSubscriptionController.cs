@@ -207,6 +207,7 @@ namespace CRM.Controllers
 
             plan.IsActive = isActive;
             plan.UpdatedOn = IndianTime.Now;
+            _masterDb.SaasPlans.Update(plan);
             await _masterDb.SaveChangesAsync();
 
             return RedirectToAction(nameof(Plans));
@@ -317,6 +318,7 @@ namespace CRM.Controllers
 
             subscription.EndDate = subscription.EndDate.AddDays(days);
             subscription.UpdatedOn = IndianTime.Now;
+            _masterDb.TenantSubscriptions.Update(subscription);
             await _masterDb.SaveChangesAsync();
 
             return Json(new { success = true, message = $"Trial extended by {days} days until {subscription.EndDate:MMM dd, yyyy}" });
@@ -599,6 +601,7 @@ namespace CRM.Controllers
             {
 
                 currentSubscription.UpdatedOn = IndianTime.Now;
+                _masterDb.TenantSubscriptions.Update(currentSubscription);
                 await _masterDb.SaveChangesAsync();
             }
 
@@ -698,6 +701,7 @@ namespace CRM.Controllers
                 currentSubscription.CancellationReason = "Cancelled by user - Refund Pending";
                 currentSubscription.UpdatedOn = IndianTime.Now;
 
+                _masterDb.TenantSubscriptions.Update(currentSubscription);
                 await _masterDb.SaveChangesAsync();
 
                 _logger.LogInformation($"Partner {tenantId} cancelled subscription {currentSubscription.SubscriptionId}. Refund pending.");
@@ -4394,6 +4398,7 @@ namespace CRM.Controllers
                 transaction.RazorpayPaymentId = paymentId;
                 transaction.Description += $" | Failed: {errorDescription}";
 
+                _masterDb.SaasPaymentTransactions.Update(transaction);
                 await _masterDb.SaveChangesAsync();
             }
         }
@@ -4416,6 +4421,7 @@ namespace CRM.Controllers
                 transaction.WebhookEventId = eventId;
                 transaction.RazorpayPaymentId = paymentId;
 
+                _masterDb.SaasPaymentTransactions.Update(transaction);
                 await _masterDb.SaveChangesAsync();
             }
         }

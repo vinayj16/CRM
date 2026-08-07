@@ -1778,6 +1778,7 @@ namespace CRM.Controllers
             if (note == null) return Json(new { success = false, message = "Note not found" });
 
             note.NoteText = noteText;
+            _db.LeadNotes.Update(note);
             _db.SaveChanges();
 
             return Json(new { success = true });

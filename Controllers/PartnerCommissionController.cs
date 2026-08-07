@@ -260,6 +260,7 @@ namespace CRM.Controllers
                     payout.TotalSales = logs.Count;
                     payout.TotalCommission = logs.Sum(c => c.FixedCommissionAmount);
                     payout.ConvertedLeads = logs.Count;
+                    _context.PartnerPayouts.Update(payout);
                 }
 
                 await _context.SaveChangesAsync();
@@ -448,6 +449,7 @@ namespace CRM.Controllers
                 foreach (var payout in payouts)
                 {
                     payout.Status = "Pending";
+                    _context.PartnerPayouts.Update(payout);
                 }
                 
                 await _context.SaveChangesAsync();

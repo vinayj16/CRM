@@ -417,6 +417,8 @@ namespace CRM.Controllers
                         upgradeTransaction.RazorpayPaymentId = paymentId;
                         upgradeTransaction.CompletedDate = IndianTime.Now;
 
+                        _context.PaymentTransactions.Update(upgradeTransaction);
+
                         var result = await ProcessUpgradeByType(upgradeTransaction, upgradeType);
                         if (result.success)
                         {
