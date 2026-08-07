@@ -1507,6 +1507,7 @@ namespace CRM.Controllers
                     existing.ShowTeamPerformance = model.ShowTeamPerformance;
                     existing.ShowTopPerformers = model.ShowTopPerformers;
                     existing.ModifiedOn = DateTime.UtcNow;
+                    _context.UserDashboardSettings.Update(existing);
                 }
                 else
                 {

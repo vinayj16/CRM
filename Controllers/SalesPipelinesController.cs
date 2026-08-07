@@ -74,6 +74,7 @@ namespace CRM.Controllers
 
                 lead.Stage = request.NewStage;
                 lead.ModifiedOn = IndianTime.Now;
+                _db.Leads.Update(lead);
                 _db.SaveChanges();
 
                 return Json(new { success = true });

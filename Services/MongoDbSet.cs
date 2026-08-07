@@ -511,6 +511,17 @@ namespace CRM
 
             if (id is MongoDB.Bson.ObjectId oid && oid != MongoDB.Bson.ObjectId.Empty)
                 _collection.DeleteOne(WithTenant(Builders<T>.Filter.Eq("_id", oid)));
+
+            // String keys (e.g. UserDashboardSetting.Id = Guid string, or
+            // ReferralEarningModel.Id = ObjectId-as-string) map to _id.
+            // Try ObjectId first (those docs store _id as ObjectId), else raw string.
+            if (id is string strId && !string.IsNullOrEmpty(strId))
+            {
+                if (MongoDB.Bson.ObjectId.TryParse(strId, out var parsedOid))
+                    _collection.DeleteOne(WithTenant(Builders<T>.Filter.Eq("_id", parsedOid)));
+                else
+                    _collection.DeleteOne(WithTenant(Builders<T>.Filter.Eq("_id", strId)));
+            }
         }
 
         public void RemoveRange(IEnumerable<T> documents)
@@ -523,6 +534,8 @@ namespace CRM
             var intIds = ids.Where(id => id is int).Cast<int>().ToList();
             var objectIds = ids.Where(id => id is MongoDB.Bson.ObjectId oid && oid != MongoDB.Bson.ObjectId.Empty)
                 .Cast<MongoDB.Bson.ObjectId>().ToList();
+            var stringIds = ids.Where(id => id is string s && !string.IsNullOrEmpty(s))
+                .Cast<string>().ToList();
 
             if (intIds.Any())
             {
@@ -533,6 +546,23 @@ namespace CRM
 
             if (objectIds.Any())
                 _collection.DeleteMany(WithTenant(Builders<T>.Filter.In("_id", objectIds)));
+
+            if (stringIds.Any())
+            {
+                var oidStrings = new List<MongoDB.Bson.ObjectId>();
+                var rawStrings = new List<string>();
+                foreach (var s in stringIds)
+                {
+                    if (MongoDB.Bson.ObjectId.TryParse(s, out var parsedOid))
+                        oidStrings.Add(parsedOid);
+                    else
+                        rawStrings.Add(s);
+                }
+                if (oidStrings.Any())
+                    _collection.DeleteMany(WithTenant(Builders<T>.Filter.In("_id", oidStrings)));
+                if (rawStrings.Any())
+                    _collection.DeleteMany(WithTenant(Builders<T>.Filter.In("_id", rawStrings)));
+            }
         }
 
         public void Update(T document)
@@ -552,6 +582,17 @@ namespace CRM
 
             if (id is MongoDB.Bson.ObjectId oid && oid != MongoDB.Bson.ObjectId.Empty)
                 _collection.ReplaceOne(WithTenant(Builders<T>.Filter.Eq("_id", oid)), document);
+
+            // String keys (e.g. UserDashboardSetting.Id = Guid string, or
+            // ReferralEarningModel.Id = ObjectId-as-string) map to _id.
+            // Try ObjectId first (those docs store _id as ObjectId), else raw string.
+            if (id is string strId && !string.IsNullOrEmpty(strId))
+            {
+                if (MongoDB.Bson.ObjectId.TryParse(strId, out var parsedOid))
+                    _collection.ReplaceOne(WithTenant(Builders<T>.Filter.Eq("_id", parsedOid)), document);
+                else
+                    _collection.ReplaceOne(WithTenant(Builders<T>.Filter.Eq("_id", strId)), document);
+            }
         }
 
         // =================================================================

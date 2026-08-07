@@ -264,6 +264,7 @@ namespace CRM.Controllers
                 revenue.Description = model.Description;
                 revenue.Amount = model.Amount;
                 
+                _db.Revenues.Update(revenue);
                 _db.SaveChanges();
                 return Json(new { success = true });
             }

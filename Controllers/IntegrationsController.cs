@@ -117,6 +117,7 @@ namespace CRM.Controllers
                     existing.PollIntervalMinutes = model.PollIntervalMinutes > 0 ? model.PollIntervalMinutes : 5;
                     existing.UpdatedOn = IndianTime.Now;
                     existing.WebhookUrl = $"{Request.Scheme}://{Request.Host}/api/integrations/webhook/{model.PlatformName.ToLower()}?key={existing.ApiKey}";
+                    _context.LeadIntegrationConfigs.Update(existing);
                 }
                 else
                 {
@@ -156,6 +157,7 @@ namespace CRM.Controllers
 
             config.IsEnabled = enable;
             config.UpdatedOn = IndianTime.Now;
+            _context.LeadIntegrationConfigs.Update(config);
             await _context.SaveChangesAsync();
             return Json(new { success = true, message = $"{platform} {(enable ? "enabled" : "disabled")} successfully!" });
         }
