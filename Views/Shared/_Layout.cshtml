@@ -504,45 +504,52 @@
         /* =====================================================
            THEME TOGGLE (Dark/Light) - always visible & aligned
            ===================================================== */
-        .navbar .nav-icon#themeToggle {
-            width: 38px !important;
-            height: 38px !important;
-            min-width: 38px !important;
+        /* Theme toggle + bell share identical icon-button styling so the row looks uniform */
+        .navbar .nav-icon#themeToggle,
+        .navbar .nav-icon#alertsDropdown {
+            width: 40px !important;
+            height: 40px !important;
+            min-width: 40px !important;
             border-radius: 10px !important;
-            background: rgba(26, 35, 50, 0.06) !important;
-            border: 1px solid rgba(26, 35, 50, 0.10) !important;
+            background: transparent !important;
+            border: 1px solid transparent !important;
             color: #1A2332 !important;
             display: inline-flex !important;
             align-items: center !important;
             justify-content: center !important;
             cursor: pointer !important;
-            margin: 0 4px !important;
             flex-shrink: 0 !important;
             transition: background 0.2s ease, transform 0.15s ease, box-shadow 0.2s ease !important;
         }
-        .navbar .nav-icon#themeToggle:hover {
-            background: rgba(26, 35, 50, 0.12) !important;
+        .navbar .nav-icon#themeToggle:hover,
+        .navbar .nav-icon#alertsDropdown:hover {
+            background: rgba(26, 35, 50, 0.10) !important;
+            border-color: rgba(26, 35, 50, 0.12) !important;
             transform: scale(1.05) !important;
-            box-shadow: 0 2px 8px rgba(26, 35, 50, 0.15) !important;
+            box-shadow: 0 2px 8px rgba(26, 35, 50, 0.12) !important;
         }
-        .navbar .nav-icon#themeToggle:active {
+        .navbar .nav-icon#themeToggle:active,
+        .navbar .nav-icon#alertsDropdown:active {
             transform: scale(0.95) !important;
         }
         .navbar .nav-icon#themeToggle .nav-icon-glyph,
-        .navbar .nav-icon#themeToggle .fa-solid {
-            font-size: 17px !important;
-            width: 17px !important;
-            height: 17px !important;
+        .navbar .nav-icon#themeToggle .fa-solid,
+        .navbar .nav-icon#alertsDropdown .nav-icon-glyph,
+        .navbar .nav-icon#alertsDropdown .fa-solid {
+            font-size: 18px !important;
+            width: 18px !important;
+            height: 18px !important;
             line-height: 1 !important;
             color: inherit !important;
         }
-        html.dark-mode .navbar .nav-icon#themeToggle {
-            background: rgba(255, 255, 255, 0.10) !important;
-            border-color: rgba(255, 255, 255, 0.16) !important;
+        html.dark-mode .navbar .nav-icon#themeToggle,
+        html.dark-mode .navbar .nav-icon#alertsDropdown {
             color: #E8EDF2 !important;
         }
-        html.dark-mode .navbar .nav-icon#themeToggle:hover {
-            background: rgba(255, 255, 255, 0.18) !important;
+        html.dark-mode .navbar .nav-icon#themeToggle:hover,
+        html.dark-mode .navbar .nav-icon#alertsDropdown:hover {
+            background: rgba(255, 255, 255, 0.12) !important;
+            border-color: rgba(255, 255, 255, 0.16) !important;
         }
 
         /* Navbar profile name — always visible in light & dark mode */

@@ -291,6 +291,8 @@ body {
 
 .hamburger {
     position: relative;
+    display: block !important;
+    flex-shrink: 0 !important;
     transition: all 0.3s ease;
 }
 
