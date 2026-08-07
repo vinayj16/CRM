@@ -596,14 +596,7 @@ namespace CRM.Controllers
                     .FirstOrDefaultAsync();
             }
 
-            // Update current usage counts
-            if (currentSubscription != null)
-            {
-
-                currentSubscription.UpdatedOn = IndianTime.Now;
-                _masterDb.TenantSubscriptions.Update(currentSubscription);
-                await _masterDb.SaveChangesAsync();
-            }
+            // (No write here — this is a display-only GET action.)
 
             var availablePlans = await _masterDb.SaasPlans.Where(p => p.IsActive).OrderBy(p => p.SortOrder).ToListAsync();
 
