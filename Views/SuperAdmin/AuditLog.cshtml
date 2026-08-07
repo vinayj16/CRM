@@ -198,6 +198,7 @@
                     <thead>
                         <tr>
                             <th>Timestamp</th>
+                            <th>Tenant</th>
                             <th>User</th>
                             <th>Action</th>
                             <th>Entity</th>
@@ -224,6 +225,7 @@
                                 <td>
                                     <div class="al-ts">@log.Timestamp.ToString("MMM dd, HH:mm")</div>
                                 </td>
+                                <td style="color:var(--text-muted);">@(log.TenantId > 0 ? log.TenantId.ToString() : "-")</td>
                                 <td>
                                     <div class="al-user">@(log.User?.Username ?? $"User #{log.UserId}")</div>
                                 </td>

@@ -682,5 +682,46 @@
             </div>
         </div>
 
+        <div class="sa-card" style="grid-column:1/-1;">
+            <div class="sa-card-header">
+                <div class="sa-card-icon sa-card-icon-blue">
+                    <i class="fa-solid fa-clock-rotate-left"></i>
+                </div>
+                <h3>Recent Activity</h3>
+                <a href="/SuperAdmin/AuditLog" class="sa-link-all" style="margin-left:auto;font-size:0.72rem;font-weight:600;color:#1A6FA8;text-decoration:none;">View All &raquo;</a>
+            </div>
+            <div class="table-scroll">
+                <table class="sa-table">
+                    <thead>
+                        <tr>
+                            <th>User</th>
+                            <th>Action</th>
+                            <th>Type</th>
+                            <th>Time</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var l in (List<CRM.Models.AuditLogModel>)ViewBag.RecentActivity)
+                        {
+                            <tr>
+                                <td>
+                                    <div class="sa-company">@(l.User?.Username ?? "Unknown")</div>
+                                    @if (l.TenantId > 0)
+                                    {
+                                        <div class="sa-subdomain">Tenant @l.TenantId</div>
+                                    }
+                                </td>
+                                <td>
+                                    <span class="sa-badge @(l.Action == "Login" ? "sa-badge-active" : l.Action == "Logout" ? "sa-badge-plan" : "sa-badge-new")">@l.Action</span>
+                                </td>
+                                <td style="color:var(--text-muted);">@l.EntityType</td>
+                                <td style="color:var(--text-muted); white-space:nowrap;">@l.Timestamp.ToString("MMM dd HH:mm")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
     </div>
 </div>

@@ -1,4 +1,4 @@
-﻿using CRM.Helpers;
+using CRM.Helpers;
 using CRM.MasterDb;
 using CRM.Models;
 using CRM.Services;
@@ -443,6 +443,19 @@ namespace CRM.Controllers
                 superAdmin.LastLoginOn = DateTime.UtcNow;
                 await _masterDb.SaveChangesAsync();
 
+                // Audit log for SuperAdmin login
+                _db.AuditLogs.Add(new AuditLogModel
+                {
+                    UserId = superAdmin.Id,
+                    TenantId = 0,
+                    Action = "Login",
+                    EntityType = "SuperAdmin",
+                    EntityId = superAdmin.Id,
+                    IpAddress = HttpContext.Connection.RemoteIpAddress?.ToString(),
+                    UserAgent = Request.Headers["User-Agent"].ToString(),
+                    Timestamp = IndianTime.Now
+                });
+
                 var saToken = GenerateSuperAdminToken(superAdmin);
 
                 Response.Cookies.Append("jwtToken", saToken, new CookieOptions
@@ -812,6 +825,7 @@ namespace CRM.Controllers
             _db.AuditLogs.Add(new AuditLogModel
             {
                 UserId = user.UserId,
+                TenantId = tenantId,
                 Action = "Login",
                 EntityType = "User",
                 EntityId = user.UserId,
@@ -1250,9 +1264,14 @@ namespace CRM.Controllers
             var userIdClaim = User.FindFirst("UserId")?.Value;
             if (!string.IsNullOrEmpty(userIdClaim) && int.TryParse(userIdClaim, out int logoutUserId))
             {
+                int logoutTenantId = 0;
+                var logoutTenantClaim = User.FindFirst("TenantId")?.Value;
+                if (!string.IsNullOrEmpty(logoutTenantClaim)) int.TryParse(logoutTenantClaim, out logoutTenantId);
+
                 _db.AuditLogs.Add(new AuditLogModel
                 {
                     UserId = logoutUserId,
+                    TenantId = logoutTenantId,
                     Action = "Logout",
                     EntityType = "User",
                     EntityId = logoutUserId,

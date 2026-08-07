@@ -214,6 +214,30 @@ namespace CRM.Controllers
                 ViewBag.SuperAdminProfileImage = superAdmin.ProfileImagePath;
             }
 
+            // Recent login/logout activity from audit logs for the dashboard
+            try
+            {
+                var mongoDbContext = HttpContext.RequestServices.GetRequiredService<MongoDbContext>();
+                var appDb = HttpContext.RequestServices.GetRequiredService<AppDbContext>();
+                var auditCollection = mongoDbContext.GetCollection<AuditLogModel>("audit_logs");
+                var activityFilter = Builders<AuditLogModel>.Filter.Or(
+                    Builders<AuditLogModel>.Filter.Eq(a => a.Action, "Login"),
+                    Builders<AuditLogModel>.Filter.Eq(a => a.Action, "Logout"));
+                var recentLogs = await auditCollection
+                    .Find(activityFilter)
+                    .SortByDescending(a => a.Timestamp)
+                    .Limit(8)
+                    .ToListAsync();
+
+                await ResolveAuditLogUsers(appDb, recentLogs);
+                ViewBag.RecentActivity = recentLogs;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Could not load recent activity for dashboard");
+                ViewBag.RecentActivity = new List<AuditLogModel>();
+            }
+
             return View();
         }
 
@@ -1938,26 +1962,7 @@ namespace CRM.Controllers
                     .ToListAsync();
 
                 // Load user info for each log - check both AppDb users and SuperAdmins
-                var userIds = logs.Where(l => l.UserId.HasValue).Select(l => l.UserId.Value).Distinct().ToList();
-                var users = await appDb.Users.Where(u => userIds.Contains(u.UserId)).ToListAsync();
-                var superAdminUsers = await _masterDb.SuperAdmins.Where(s => userIds.Contains(s.Id)).ToListAsync();
-                
-                // Attach users to matching logs
-                foreach (var log in logs)
-                {
-                    if (log.UserId.HasValue)
-                    {
-                        log.User = users.FirstOrDefault(u => u.UserId == log.UserId.Value);
-                        if (log.User == null)
-                        {
-                            var sa = superAdminUsers.FirstOrDefault(s => s.Id == log.UserId.Value);
-                            if (sa != null)
-                            {
-                                log.User = new UserModel { Username = $"Super Admin ({sa.FullName})" };
-                            }
-                        }
-                    }
-                }
+                await ResolveAuditLogUsers(appDb, logs);
 
                 ViewBag.ActionFilter = actionFilter ?? "";
                 ViewBag.EntityType = entityType ?? "";
@@ -1982,6 +1987,41 @@ namespace CRM.Controllers
                 _logger.LogError(ex, "Error loading audit log");
                 ViewBag.Error = "Error loading audit log: " + ex.Message;
                 return View(new List<AuditLogModel>());
+            }
+        }
+
+        /// <summary>
+        /// Attaches Username info to audit logs from both tenant users and super admins.
+        /// </summary>
+        private async Task ResolveAuditLogUsers(AppDbContext appDb, List<AuditLogModel> logs)
+        {
+            try
+            {
+                var userIds = logs.Where(l => l.UserId.HasValue).Select(l => l.UserId.Value).Distinct().ToList();
+                if (userIds.Count == 0) return;
+
+                var users = await appDb.Users.Where(u => userIds.Contains(u.UserId)).ToListAsync();
+                var superAdminUsers = await _masterDb.SuperAdmins.Where(s => userIds.Contains(s.Id)).ToListAsync();
+
+                foreach (var log in logs)
+                {
+                    if (log.UserId.HasValue)
+                    {
+                        log.User = users.FirstOrDefault(u => u.UserId == log.UserId.Value);
+                        if (log.User == null)
+                        {
+                            var sa = superAdminUsers.FirstOrDefault(s => s.Id == log.UserId.Value);
+                            if (sa != null)
+                            {
+                                log.User = new UserModel { Username = $"Super Admin ({sa.FullName})" };
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Could not resolve audit log users");
             }
         }
 
