@@ -6,7 +6,7 @@ namespace CRM.Services
 {
     public interface INotificationService
     {
-        Task CreateNotificationAsync(string title, string message, string type, int? userId = null, string? link = null, int? relatedEntityId = null, string? relatedEntityType = null, string priority = "Normal");
+        Task CreateNotificationAsync(string title, string message, string type, int? userId = null, string? link = null, int? relatedEntityId = null, string? relatedEntityType = null, string priority = "Normal", int? tenantId = null);
         Task<List<NotificationModel>> GetUserNotificationsAsync(int userId, string userRole);
         Task<int> GetUnreadCountAsync(int userId, string userRole);
         Task MarkAsReadAsync(int notificationId);
@@ -37,7 +37,7 @@ namespace CRM.Services
             _fcmService = fcmService;
         }
 
-        public async Task CreateNotificationAsync(string title, string message, string type, int? userId = null, string? link = null, int? relatedEntityId = null, string? relatedEntityType = null, string priority = "Normal")
+        public async Task CreateNotificationAsync(string title, string message, string type, int? userId = null, string? link = null, int? relatedEntityId = null, string? relatedEntityType = null, string priority = "Normal", int? tenantId = null)
         {
             // Prevent duplicate notifications: check if a similar (same type, userId, relatedEntityId) unread notification already exists
             var recentWindow = IndianTime.Now.AddMinutes(-30);
@@ -54,6 +54,9 @@ namespace CRM.Services
                 duplicate.Message = message;
                 duplicate.Link = link;
                 duplicate.Priority = priority;
+                // Also stamp the tenant on the duplicate if it was a legacy tenant-0 orphan
+                if (duplicate.TenantId <= 0 && tenantId is int dupTid && dupTid > 0)
+                    duplicate.TenantId = dupTid;
                 await _context.SaveChangesAsync();
                 return;
             }
@@ -71,6 +74,12 @@ namespace CRM.Services
                 IsRead = false,
                 CreatedOn = IndianTime.Now
             };
+
+            // Background services (no HTTP context) cannot resolve the tenant from the
+            // request, so callers that know their tenant pass it explicitly. This prevents
+            // TenantId=0 orphaned notifications.
+            if (tenantId is int tid && tid > 0)
+                notification.TenantId = tid;
 
             _context.Notifications.Add(notification);
             await _context.SaveChangesAsync();

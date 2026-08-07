@@ -3,6 +3,7 @@ using CRM.Models;
 using CRM.MasterDb.Models;
 using CRM.Models.Chatbot;
 using CRM.Services;
+using Microsoft.AspNetCore.Http;
 
 namespace CRM
 {
@@ -15,11 +16,13 @@ namespace CRM
     {
         private readonly MongoDbContext _mongo;
         private readonly ITenantService? _tenantService;
+        private readonly IHttpContextAccessor? _httpContextAccessor;
 
-        public AppDbContext(MongoDbContext mongo, ITenantService? tenantService = null)
+        public AppDbContext(MongoDbContext mongo, ITenantService? tenantService = null, IHttpContextAccessor? httpContextAccessor = null)
         {
             _mongo = mongo;
             _tenantService = tenantService;
+            _httpContextAccessor = httpContextAccessor;
         }
 
         /// <summary>
@@ -43,7 +46,7 @@ namespace CRM
         /// Gets a typed MongoDbSet for the given collection name.
         /// </summary>
         private MongoDbSet<T> Set<T>(string name) where T : class
-            => new MongoDbSet<T>(_mongo.GetCollection<T>(name), _tenantService);
+            => new MongoDbSet<T>(_mongo.GetCollection<T>(name), _tenantService, _httpContextAccessor);
 
         // ===================== TENANT-SCOPED COLLECTIONS =====================
 

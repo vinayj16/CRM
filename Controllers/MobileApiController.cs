@@ -258,6 +258,8 @@ namespace CRM.Controllers
                 var lead = await _db.Leads.FirstOrDefaultAsync(l => l.LeadId == id);
                 if (lead == null)
                     return NotFound(new { success = false, message = "Lead not found" });
+                if (user.TenantId > 0 && lead.TenantId != user.TenantId)
+                    return Forbid();
 
                 return Ok(new { success = true, data = lead });
             }
@@ -331,6 +333,8 @@ namespace CRM.Controllers
                 var lead = await _db.Leads.FirstOrDefaultAsync(l => l.LeadId == id);
                 if (lead == null)
                     return NotFound(new { success = false, message = "Lead not found" });
+                if (user.TenantId > 0 && lead.TenantId != user.TenantId)
+                    return Forbid();
 
                 if (request.Name != null) lead.Name = request.Name;
                 if (request.Contact != null) lead.Contact = request.Contact;
@@ -441,6 +445,8 @@ namespace CRM.Controllers
                 var property = await _db.Properties.FirstOrDefaultAsync(p => p.PropertyId == id);
                 if (property == null)
                     return NotFound(new { success = false, message = "Property not found" });
+                if (user.TenantId > 0 && property.TenantId != user.TenantId)
+                    return Forbid();
 
                 return Ok(new { success = true, data = property });
             }
@@ -524,6 +530,8 @@ namespace CRM.Controllers
                 var booking = await _db.Bookings.FirstOrDefaultAsync(b => b.BookingId == id);
                 if (booking == null)
                     return NotFound(new { success = false, message = "Booking not found" });
+                if (user.TenantId > 0 && booking.TenantId != user.TenantId)
+                    return Forbid();
 
                 return Ok(new { success = true, data = booking });
             }
@@ -888,6 +896,8 @@ namespace CRM.Controllers
                 var booking = await _db.Bookings.FirstOrDefaultAsync(b => b.BookingId == id);
                 if (booking == null)
                     return NotFound(new { success = false, message = "Booking not found" });
+                if (user.TenantId > 0 && booking.TenantId != user.TenantId)
+                    return Forbid();
 
                 booking.Status = request.Status ?? booking.Status;
                 booking.ModifiedOn = IndianTime.Now;
@@ -956,6 +966,8 @@ namespace CRM.Controllers
                 var invoice = await _db.Invoices.FirstOrDefaultAsync(i => i.InvoiceId == id);
                 if (invoice == null)
                     return NotFound(new { success = false, message = "Invoice not found" });
+                if (user.TenantId > 0 && invoice.TenantId != user.TenantId)
+                    return Forbid();
 
                 return Ok(new { success = true, data = invoice });
             }
@@ -1208,6 +1220,8 @@ namespace CRM.Controllers
                 var quotation = await _db.Quotations.FirstOrDefaultAsync(q => q.QuotationId == id);
                 if (quotation == null)
                     return NotFound(new { success = false, message = "Quotation not found" });
+                if (user.TenantId > 0 && quotation.TenantId != user.TenantId)
+                    return Forbid();
 
                 return Ok(new { success = true, data = quotation });
             }
@@ -1686,12 +1700,237 @@ namespace CRM.Controllers
             return Ok(new { success = true, message = "CRM Mobile API is running", timestamp = IndianTime.Now, version = "1.0.0" });
         }
 
+        // ===================== DELETE ENDPOINTS (full CRUD) =====================
+
+        /// <summary>
+        /// Delete a lead
+        /// DELETE /api/mobile/leads/{id}
+        /// </summary>
+        [HttpDelete("leads/{id}")]
+        public async Task<IActionResult> DeleteLead(int id)
+        {
+            var user = Authenticate();
+            if (user == null)
+                return Unauthorized(new { success = false, message = "Invalid or missing token" });
+
+            var lead = await _db.Leads.FirstOrDefaultAsync(l => l.LeadId == id);
+            if (lead == null)
+                return NotFound(new { success = false, message = "Lead not found" });
+            if (user.TenantId > 0 && lead.TenantId != user.TenantId)
+                return Forbid();
+
+            _db.Leads.Remove(lead);
+            await _db.SaveChangesAsync();
+            return Ok(new { success = true, message = "Lead deleted" });
+        }
+
+        /// <summary>
+        /// Delete an expense
+        /// DELETE /api/mobile/expenses/{id}
+        /// </summary>
+        [HttpDelete("expenses/{id}")]
+        public async Task<IActionResult> DeleteExpense(int id)
+        {
+            var user = Authenticate();
+            if (user == null)
+                return Unauthorized(new { success = false, message = "Invalid or missing token" });
+
+            var expense = await _db.Expenses.FirstOrDefaultAsync(e => e.ExpenseId == id);
+            if (expense == null)
+                return NotFound(new { success = false, message = "Expense not found" });
+            if (user.TenantId > 0 && expense.TenantId != user.TenantId)
+                return Forbid();
+
+            _db.Expenses.Remove(expense);
+            await _db.SaveChangesAsync();
+            return Ok(new { success = true, message = "Expense deleted" });
+        }
+
+        /// <summary>
+        /// Delete a support ticket
+        /// DELETE /api/mobile/tickets/{id}
+        /// </summary>
+        [HttpDelete("tickets/{id}")]
+        public async Task<IActionResult> DeleteTicket(int id)
+        {
+            var user = Authenticate();
+            if (user == null)
+                return Unauthorized(new { success = false, message = "Invalid or missing token" });
+
+            var ticket = await _db.Tickets.FirstOrDefaultAsync(t => t.TicketId == id);
+            if (ticket == null)
+                return NotFound(new { success = false, message = "Ticket not found" });
+            if (user.TenantId > 0 && ticket.TenantId != user.TenantId)
+                return Forbid();
+
+            _db.Tickets.Remove(ticket);
+            await _db.SaveChangesAsync();
+            return Ok(new { success = true, message = "Ticket deleted" });
+        }
+
+        /// <summary>
+        /// Delete a site visit
+        /// DELETE /api/mobile/sitevisits/{id}
+        /// </summary>
+        [HttpDelete("sitevisits/{id}")]
+        public async Task<IActionResult> DeleteSiteVisit(int id)
+        {
+            var user = Authenticate();
+            if (user == null)
+                return Unauthorized(new { success = false, message = "Invalid or missing token" });
+
+            var visit = await _db.SiteVisits.FirstOrDefaultAsync(s => s.SiteVisitId == id);
+            if (visit == null)
+                return NotFound(new { success = false, message = "Site visit not found" });
+            if (user.TenantId > 0 && visit.TenantId != user.TenantId)
+                return Forbid();
+
+            _db.SiteVisits.Remove(visit);
+            await _db.SaveChangesAsync();
+            return Ok(new { success = true, message = "Site visit deleted" });
+        }
+
+        /// <summary>
+        /// Delete a booking
+        /// DELETE /api/mobile/bookings/{id}
+        /// </summary>
+        [HttpDelete("bookings/{id}")]
+        public async Task<IActionResult> DeleteBooking(int id)
+        {
+            var user = Authenticate();
+            if (user == null)
+                return Unauthorized(new { success = false, message = "Invalid or missing token" });
+
+            var booking = await _db.Bookings.FirstOrDefaultAsync(b => b.BookingId == id);
+            if (booking == null)
+                return NotFound(new { success = false, message = "Booking not found" });
+            if (user.TenantId > 0 && booking.TenantId != user.TenantId)
+                return Forbid();
+
+            _db.Bookings.Remove(booking);
+            await _db.SaveChangesAsync();
+            return Ok(new { success = true, message = "Booking deleted" });
+        }
+
+        /// <summary>
+        /// Delete a payment
+        /// DELETE /api/mobile/payments/{id}
+        /// </summary>
+        [HttpDelete("payments/{id}")]
+        public async Task<IActionResult> DeletePayment(int id)
+        {
+            var user = Authenticate();
+            if (user == null)
+                return Unauthorized(new { success = false, message = "Invalid or missing token" });
+
+            var payment = await _db.Payments.FirstOrDefaultAsync(p => p.PaymentId == id);
+            if (payment == null)
+                return NotFound(new { success = false, message = "Payment not found" });
+            if (user.TenantId > 0 && payment.TenantId != user.TenantId)
+                return Forbid();
+
+            _db.Payments.Remove(payment);
+            await _db.SaveChangesAsync();
+            return Ok(new { success = true, message = "Payment deleted" });
+        }
+
+        /// <summary>
+        /// Delete an invoice
+        /// DELETE /api/mobile/invoices/{id}
+        /// </summary>
+        [HttpDelete("invoices/{id}")]
+        public async Task<IActionResult> DeleteInvoice(int id)
+        {
+            var user = Authenticate();
+            if (user == null)
+                return Unauthorized(new { success = false, message = "Invalid or missing token" });
+
+            var invoice = await _db.Invoices.FirstOrDefaultAsync(i => i.InvoiceId == id);
+            if (invoice == null)
+                return NotFound(new { success = false, message = "Invoice not found" });
+            if (user.TenantId > 0 && invoice.TenantId != user.TenantId)
+                return Forbid();
+
+            _db.Invoices.Remove(invoice);
+            await _db.SaveChangesAsync();
+            return Ok(new { success = true, message = "Invoice deleted" });
+        }
+
+        /// <summary>
+        /// Delete a quotation
+        /// DELETE /api/mobile/quotations/{id}
+        /// </summary>
+        [HttpDelete("quotations/{id}")]
+        public async Task<IActionResult> DeleteQuotation(int id)
+        {
+            var user = Authenticate();
+            if (user == null)
+                return Unauthorized(new { success = false, message = "Invalid or missing token" });
+
+            var quotation = await _db.Quotations.FirstOrDefaultAsync(q => q.QuotationId == id);
+            if (quotation == null)
+                return NotFound(new { success = false, message = "Quotation not found" });
+            if (user.TenantId > 0 && quotation.TenantId != user.TenantId)
+                return Forbid();
+
+            _db.Quotations.Remove(quotation);
+            await _db.SaveChangesAsync();
+            return Ok(new { success = true, message = "Quotation deleted" });
+        }
+
+        /// <summary>
+        /// Delete a property
+        /// DELETE /api/mobile/properties/{id}
+        /// </summary>
+        [HttpDelete("properties/{id}")]
+        public async Task<IActionResult> DeleteProperty(int id)
+        {
+            var user = Authenticate();
+            if (user == null)
+                return Unauthorized(new { success = false, message = "Invalid or missing token" });
+
+            var property = await _db.Properties.FirstOrDefaultAsync(p => p.PropertyId == id);
+            if (property == null)
+                return NotFound(new { success = false, message = "Property not found" });
+            if (user.TenantId > 0 && property.TenantId != user.TenantId)
+                return Forbid();
+
+            _db.Properties.Remove(property);
+            await _db.SaveChangesAsync();
+            return Ok(new { success = true, message = "Property deleted" });
+        }
+
+        /// <summary>
+        /// Delete a notification
+        /// DELETE /api/mobile/notifications/{id}
+        /// </summary>
+        [HttpDelete("notifications/{id}")]
+        public async Task<IActionResult> DeleteNotification(int id)
+        {
+            var user = Authenticate();
+            if (user == null)
+                return Unauthorized(new { success = false, message = "Invalid or missing token" });
+
+            var notification = await _db.Notifications.FirstOrDefaultAsync(n => n.NotificationId == id);
+            if (notification == null)
+                return NotFound(new { success = false, message = "Notification not found" });
+            // Only the recipient, or admins (who may delete global notifications) can delete
+            if (notification.UserId != null && notification.UserId != user.UserId)
+                return Forbid();
+            if (notification.UserId == null && user.Role != "Admin" && user.Role != "SuperAdmin")
+                return Forbid();
+
+            _db.Notifications.Remove(notification);
+            await _db.SaveChangesAsync();
+            return Ok(new { success = true, message = "Notification deleted" });
+        }
+
         // ===================== HELPER METHODS =====================
 
         private TokenUser? Authenticate()
         {
             var authHeader = Request.Headers["Authorization"].ToString();
-            return JwtHelper.ValidateToken(authHeader);
+            return JwtHelper.ValidateToken(authHeader, _config);
         }
 
         private string GenerateJwtToken(UserModel user)

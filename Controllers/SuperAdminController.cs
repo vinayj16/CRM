@@ -2062,7 +2062,9 @@ namespace CRM.Controllers
                 int nextAuditId = 1;
                 if (appDb.AuditLogs.Any())
                 {
-                    nextAuditId = (appDb.AuditLogs.AsQueryable().Select(a => (int?)a.AuditId).Max() ?? 0) + 1;
+                    // Use MaxAsync (global, not tenant-scoped) so audit IDs stay unique
+                    // across tenants in the shared collection (unique index on AuditId).
+                    nextAuditId = (await appDb.AuditLogs.MaxAsync(a => (int?)a.AuditId) ?? 0) + 1;
                 }
 
                 for (int i = 0; i < 50; i++)

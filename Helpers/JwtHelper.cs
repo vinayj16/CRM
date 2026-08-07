@@ -3,6 +3,7 @@ using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using Microsoft.Extensions.Configuration;
 
 namespace CRM.Helpers
 {
@@ -44,9 +45,17 @@ namespace CRM.Helpers
 
         /// <summary>
         /// Validate a Bearer token and extract user identity info.
-        /// Returns null if token is invalid or expired.
+        /// Returns null if the token is invalid, expired, or - when a config is
+        /// supplied - fails signature/issuer/audience validation.
         /// </summary>
-        public static TokenUser? ValidateToken(string authHeader)
+        /// <param name="authHeader">The raw Authorization header value.</param>
+        /// <param name="config">Optional IConfiguration. When provided, the token
+        /// signature/issuer/audience are cryptographically validated with the
+        /// configured Jwt:Key; when null, only the token is decoded and its
+        /// lifetime checked (backward-compatible fallback).
+        /// SECURITY NOTE: callers that use the returned claims to stamp tenant/
+        /// user ownership MUST pass a config so forged tokens are rejected.</param>
+        public static TokenUser? ValidateToken(string authHeader, IConfiguration? config = null)
         {
             if (string.IsNullOrEmpty(authHeader) || !authHeader.StartsWith("Bearer "))
                 return null;
@@ -56,11 +65,35 @@ namespace CRM.Helpers
             try
             {
                 var handler = new JwtSecurityTokenHandler();
-                var jwt = handler.ReadJwtToken(token);
+                JwtSecurityToken jwt;
 
-                // Check expiration
-                if (jwt.ValidTo < IndianTime.Now)
-                    return null;
+                if (config != null)
+                {
+                    var jwtKey = config["Jwt:Key"];
+                    if (string.IsNullOrEmpty(jwtKey))
+                        return null;
+
+                    var validationParameters = new TokenValidationParameters
+                    {
+                        ValidateIssuerSigningKey = true,
+                        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
+                        ValidateIssuer = true,
+                        ValidateAudience = true,
+                        ValidIssuer = config["Jwt:Issuer"],
+                        ValidAudience = config["Jwt:Audience"],
+                        ValidateLifetime = true,
+                        ClockSkew = TimeSpan.Zero
+                    };
+
+                    handler.ValidateToken(token, validationParameters, out _);
+                    jwt = handler.ReadJwtToken(token);
+                }
+                else
+                {
+                    jwt = handler.ReadJwtToken(token);
+                    if (jwt.ValidTo < IndianTime.Now)
+                        return null;
+                }
 
                 var userIdClaim = jwt.Claims.FirstOrDefault(c => c.Type == "UserId")?.Value;
                 var role = jwt.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;

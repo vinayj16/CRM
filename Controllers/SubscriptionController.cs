@@ -50,6 +50,16 @@ namespace CRM.Controllers
             return (userId, role, user?.ChannelPartnerId);
         }
 
+        private int? GetCurrentTenantId()
+        {
+            var token = _httpContextAccessor.HttpContext?.Request.Cookies["jwtToken"];
+            if (string.IsNullOrEmpty(token)) return null;
+
+            var jwt = new System.IdentityModel.Tokens.Jwt.JwtSecurityTokenHandler().ReadJwtToken(token);
+            var tenantIdClaim = jwt.Claims.FirstOrDefault(c => c.Type == "TenantId")?.Value;
+            return int.TryParse(tenantIdClaim, out int t) && t > 0 ? t : (int?)null;
+        }
+
         // Subscription Plans Management (Admin)
         [HttpGet]
         [RoleAuthorize("Admin")]
@@ -99,6 +109,11 @@ namespace CRM.Controllers
         {
             if (ModelState.IsValid)
             {
+                // Ensure the plan is always linked to the current tenant, even if the
+                // shim's automatic tenant stamping cannot resolve a context.
+                var tenantId = GetCurrentTenantId();
+                if (tenantId is int ct && ct > 0)
+                    model.TenantId = ct;
                 model.CreatedDate = IndianTime.Now;
                 _context.SubscriptionPlans.Add(model);
                 await _context.SaveChangesAsync();

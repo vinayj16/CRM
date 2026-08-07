@@ -52,7 +52,8 @@ namespace CRM.Services
                 {
                     var cutoff = IndianTime.Now.AddHours(-1);
                     var filter = Builders<Models.NotificationModel>.Filter.Where(n =>
-                        n.Title == "Pending Approvals Reminder" && n.CreatedOn < cutoff);
+                        n.Title == "Pending Approvals Reminder" && n.CreatedOn < cutoff
+                        && (n.TenantId == tenant.TenantId || n.TenantId == 0));
                     var result = await tenantDb.Notifications.Collection.DeleteManyAsync(filter);
                     if (result.DeletedCount > 0)
                     {
@@ -119,7 +120,8 @@ namespace CRM.Services
                     pendingPartners > 0 ? "/ManageUsers/PartnerApproval" : "/List",
                     null,
                     "Reminder",
-                    "High");
+                    "High",
+                    tenant.TenantId);
 
                 try
                 {

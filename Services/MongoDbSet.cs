@@ -2,6 +2,8 @@ using MongoDB.Driver;
 using System.Linq.Expressions;
 using System.Reflection;
 using CRM.Services;
+using Microsoft.AspNetCore.Http;
+using System.Security.Claims;
 
 namespace CRM
 {
@@ -24,11 +26,13 @@ namespace CRM
     {
         private readonly IMongoCollection<T> _collection;
         private readonly ITenantService? _tenantService;
+        private readonly IHttpContextAccessor? _httpContextAccessor;
 
-        public MongoDbSet(IMongoCollection<T> collection, ITenantService? tenantService = null)
+        public MongoDbSet(IMongoCollection<T> collection, ITenantService? tenantService = null, IHttpContextAccessor? httpContextAccessor = null)
         {
             _collection = collection;
             _tenantService = tenantService;
+            _httpContextAccessor = httpContextAccessor;
         }
 
         /// <summary>
@@ -96,6 +100,82 @@ namespace CRM
                           || (current is int ci && ci == 0);
             if (isUnset)
                 prop.SetValue(document, tid);
+        }
+
+        // Creator property names that can be auto-stamped with the current user id.
+        // "ExecutiveId" is deliberately excluded (it is an assignment, not a creator).
+        private static readonly string[] _creatorPropertyNames =
+        {
+            "CreatedBy", "PostedBy", "UploadedBy", "CreatedByUserId", "SenderId"
+        };
+
+        /// <summary>
+        /// Resolves the current logged-in tenant user id from the "UserId" claim
+        /// (cookie auth) or from the Bearer JWT (mobile / API requests).
+        /// Returns 0 when there is no authenticated request, when the caller is the
+        /// SuperAdmin (no TenantId claim), or when the claim cannot be parsed.
+        /// </summary>
+        private int CurrentUserId
+        {
+            get
+            {
+                try
+                {
+                    var http = _httpContextAccessor?.HttpContext;
+                    var user = http?.User;
+                    if (user != null)
+                    {
+                        // Only regular tenant users carry a TenantId claim; SuperAdmin does not.
+                        if (!string.IsNullOrEmpty(user.FindFirstValue("TenantId")))
+                        {
+                            var uid = user.FindFirstValue("UserId");
+                            if (int.TryParse(uid, out var parsed) && parsed > 0)
+                                return parsed;
+                        }
+                    }
+
+                    // Fallback: Bearer JWT (mobile API) - the token carries UserId + TenantId
+                    // but is not loaded into HttpContext.User (only cookie auth is registered).
+                    var authHeader = http?.Request?.Headers["Authorization"].ToString();
+                    if (!string.IsNullOrEmpty(authHeader) && authHeader.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
+                    {
+                        var cfg = http?.RequestServices?.GetService<Microsoft.Extensions.Configuration.IConfiguration>();
+                        var tokenUser = CRM.Helpers.JwtHelper.ValidateToken(authHeader, cfg);
+                        if (tokenUser?.TenantId is int bearerTid && bearerTid > 0 && tokenUser.UserId > 0)
+                            return tokenUser.UserId;
+                    }
+
+                    return 0;
+                }
+                catch { return 0; }
+            }
+        }
+
+        /// <summary>
+        /// Stamps the current tenant user id onto creator/owner properties
+        /// (CreatedBy, PostedBy, UploadedBy, CreatedByUserId, SenderId) when the
+        /// document is newly created and those properties are currently unset.
+        /// This guarantees every new resource is linked to the user who created it.
+        /// </summary>
+        private void StampCreator(T document)
+        {
+            if (document == null) return;
+            var uid = CurrentUserId;
+            if (uid <= 0) return;
+
+            var type = typeof(T);
+            foreach (var name in _creatorPropertyNames)
+            {
+                var prop = type.GetProperty(name);
+                if (prop == null || !prop.CanWrite) continue;
+                var propType = Nullable.GetUnderlyingType(prop.PropertyType) ?? prop.PropertyType;
+                if (propType != typeof(int)) continue;
+
+                var current = prop.GetValue(document);
+                var isUnset = current == null || (current is int ci && ci == 0);
+                if (isUnset)
+                    prop.SetValue(document, uid);
+            }
         }
 
         // =================================================================
@@ -414,30 +494,88 @@ namespace CRM
             => Task.FromResult(MaterializedQueryable().Min(selector));
 
         public Task<TResult> MaxAsync<TResult>(Expression<Func<T, TResult>> selector)
-            => Task.FromResult(MaterializedQueryable().Max(selector));
+        {
+            // IMPORTANT: compute the max across the WHOLE collection (no tenant filter).
+            // All tenants share one MongoDB collection and integer IDs must be globally
+            // unique (enforced by the unique indexes). MaxAsync is only used for
+            // auto-increment ID generation (maxId + 1) across the codebase, so a
+            // tenant-scoped max would make every tenant restart at 1 and collide.
+            return Task.FromResult(
+                _collection.Find(FilterDefinition<T>.Empty)
+                    .ToList()
+                    .AsQueryable()
+                    .Max(selector));
+        }
 
         // =================================================================
         // CRUD operations
         // =================================================================
 
+        private const int MaxIdRetryAttempts = 5;
+
+        private static bool IsDuplicateKeyException(Exception ex)
+        {
+            // MongoDB duplicate-key writes surface as MongoWriteException with a
+            // DuplicateKey write-error category (E11000). The unique indexes on the
+            // int-ID fields make concurrent max+1 races throw this instead of
+            // silently creating colliding rows, so we retry with a fresh ID.
+            if (ex is MongoDB.Driver.MongoWriteException we)
+                return we.WriteError?.Category == ServerErrorCategory.DuplicateKey;
+            if (ex is MongoBulkWriteException bw)
+                return bw.WriteErrors.Any(e => e.Category == ServerErrorCategory.DuplicateKey);
+            return false;
+        }
+
         public void Add(T document)
         {
             StampTenant(document);
-            AutoAssignIntId(document);
+            StampCreator(document);
+
+            for (int attempt = 0; attempt < MaxIdRetryAttempts; attempt++)
+            {
+                AutoAssignIntId(document);
+                try
+                {
+                    _collection.InsertOne(document);
+                    return;
+                }
+                catch (Exception ex) when (IsDuplicateKeyException(ex))
+                {
+                    // Two concurrent creates read the same max and assigned the same
+                    // ID - recompute a fresh ID and try again.
+                }
+            }
+
+            // Last resort: surface the error instead of an infinite loop.
             _collection.InsertOne(document);
         }
 
-        public Task AddAsync(T document)
+        public async Task AddAsync(T document)
         {
             StampTenant(document);
-            AutoAssignIntId(document);
-            return _collection.InsertOneAsync(document);
+            StampCreator(document);
+
+            for (int attempt = 0; attempt < MaxIdRetryAttempts; attempt++)
+            {
+                AutoAssignIntId(document);
+                try
+                {
+                    await _collection.InsertOneAsync(document);
+                    return;
+                }
+                catch (Exception ex) when (IsDuplicateKeyException(ex))
+                {
+                    // Recompute a fresh ID and retry.
+                }
+            }
+
+            await _collection.InsertOneAsync(document);
         }
 
         public void AddRange(IEnumerable<T> documents)
         {
             var list = documents?.ToList() ?? new List<T>();
-            foreach (var d in list) { StampTenant(d); AutoAssignIntId(d); }
+            foreach (var d in list) { StampTenant(d); StampCreator(d); AutoAssignIntId(d); }
             if (list.Any())
                 _collection.InsertMany(list);
         }
@@ -445,7 +583,7 @@ namespace CRM
         public Task AddRangeAsync(IEnumerable<T> documents)
         {
             var list = documents?.ToList() ?? new List<T>();
-            foreach (var d in list) { StampTenant(d); AutoAssignIntId(d); }
+            foreach (var d in list) { StampTenant(d); StampCreator(d); AutoAssignIntId(d); }
             if (list.Any())
                 return _collection.InsertManyAsync(list);
             return Task.CompletedTask;
@@ -477,8 +615,12 @@ namespace CRM
             int max = 0;
             try
             {
-                var filter = WithTenant(FilterDefinition<T>.Empty);
-                var last = _collection.Find(filter)
+                // IMPORTANT: do NOT apply the tenant filter here. All tenants share one
+                // MongoDB collection, so integer IDs must be globally unique across
+                // tenants. A per-tenant max (WithTenant) would make every tenant start
+                // at 1 and collide (e.g. six different tenants each with InvoiceId=1),
+                // which broke lookups and required renumbering migrations.
+                var last = _collection.Find(FilterDefinition<T>.Empty)
                     .Sort(Builders<T>.Sort.Descending(idProp.Name))
                     .Limit(1)
                     .FirstOrDefault();

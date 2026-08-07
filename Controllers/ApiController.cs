@@ -316,7 +316,7 @@ namespace CRM.Controllers
 
         private UserModel? ValidateToken(string authHeader)
         {
-            var tokenUser = JwtHelper.ValidateToken(authHeader);
+            var tokenUser = JwtHelper.ValidateToken(authHeader, _config);
             if (tokenUser == null) return null;
 
             return new UserModel

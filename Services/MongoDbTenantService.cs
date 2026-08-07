@@ -2,6 +2,8 @@ using CRM.MasterDb.Models;
 using CRM.Models.MongoDb;
 using MongoDB.Driver;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Configuration;
+using CRM.Helpers;
 
 namespace CRM.Services
 {
@@ -57,7 +59,7 @@ namespace CRM.Services
         {
             if (_resolved) return;
 
-            // Priority 1: JWT claim (already logged in)
+            // Priority 1: JWT claim (already logged in - cookie auth)
             var tenantIdClaim = _accessor.HttpContext?.User?.FindFirst("TenantId")?.Value;
             if (int.TryParse(tenantIdClaim, out int tenantId))
             {
@@ -67,6 +69,27 @@ namespace CRM.Services
                 {
                     _resolved = true;
                     return;
+                }
+            }
+
+            // Priority 1b: Bearer token (mobile / API requests) - the API sends
+            // the tenant in the JWT Authorization header, which is NOT loaded into
+            // HttpContext.User (only cookie auth is registered). Without this, every
+            // mobile-created resource would be stamped TenantId=0 and become orphaned.
+            var authHeader = _accessor.HttpContext?.Request?.Headers["Authorization"].ToString();
+            if (!string.IsNullOrEmpty(authHeader) && authHeader.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
+            {
+                var cfg = _accessor.HttpContext?.RequestServices?.GetService<IConfiguration>();
+                var tokenUser = JwtHelper.ValidateToken(authHeader, cfg);
+                if (tokenUser?.TenantId is int bearerTenantId && bearerTenantId > 0)
+                {
+                    _tenant = _context.Tenants.Find(t => t.TenantId == bearerTenantId && t.IsActive && !t.IsSuspended)
+                        .FirstOrDefault();
+                    if (_tenant != null)
+                    {
+                        _resolved = true;
+                        return;
+                    }
                 }
             }
 

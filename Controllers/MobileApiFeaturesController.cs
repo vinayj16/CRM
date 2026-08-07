@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using CRM.Helpers;
 using CRM.Models;
 using CRM.Services;
@@ -15,23 +16,44 @@ namespace CRM.Controllers
     public class MobileApiFeaturesController : ControllerBase
     {
         private readonly AppDbContext _db;
+        private readonly IConfiguration _config;
 
-        public MobileApiFeaturesController(AppDbContext db)
+        public MobileApiFeaturesController(AppDbContext db, IConfiguration config)
         {
             _db = db;
+            _config = config;
+        }
+
+        /// <summary>
+        /// Resolves the authenticated caller from either the cookie claims (web) or
+        /// the signature-validated Bearer JWT (mobile). Returns null when the request
+        /// is not authenticated - callers must reject with 401 in that case so no
+        /// unlinked/orphaned resources can be created.
+        /// </summary>
+        private TokenUser? GetTokenUser()
+        {
+            var tidClaim = User.FindFirst("TenantId")?.Value;
+            if (int.TryParse(tidClaim, out var tid) && tid > 0)
+            {
+                var uidClaim = User.FindFirst("UserId")?.Value;
+                return new TokenUser
+                {
+                    TenantId = tid,
+                    UserId = int.TryParse(uidClaim, out var uid) ? uid : 0,
+                    Role = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value ?? ""
+                };
+            }
+            // Mobile API sends the tenant/user in the Bearer JWT, which is not loaded
+            // into HttpContext.User (only cookie auth is registered). The signature is
+            // cryptographically validated against Jwt:Key so forged tokens are rejected.
+            return JwtHelper.ValidateToken(Request.Headers["Authorization"].ToString() ?? "", _config);
         }
 
         private int GetTenantId()
-        {
-            var claim = User.FindFirst("TenantId")?.Value;
-            return int.TryParse(claim, out var tid) ? tid : 0;
-        }
+            => GetTokenUser()?.TenantId ?? 0;
 
         private int GetUserId()
-        {
-            var claim = User.FindFirst("UserId")?.Value;
-            return int.TryParse(claim, out var uid) ? uid : 0;
-        }
+            => GetTokenUser()?.UserId ?? 0;
 
         // ===================== CAMPAIGNS =====================
 
@@ -48,7 +70,10 @@ namespace CRM.Controllers
         [HttpPost("campaigns")]
         public async Task<IActionResult> CreateCampaign([FromBody] MobileCampaignRequest request)
         {
-            var tid = GetTenantId();
+            var caller = GetTokenUser();
+            if (caller?.TenantId is not int tid || tid <= 0)
+                return Unauthorized(new { success = false, message = "Authentication required" });
+            var uid = caller.UserId;
             var maxId = await _db.Campaigns.AnyAsync() ? await _db.Campaigns.MaxAsync(c => c.CampaignId) : 0;
             var campaign = new CampaignModel
             {
@@ -62,7 +87,7 @@ namespace CRM.Controllers
                 Budget = request.Budget,
                 MessageTemplate = request.MessageTemplate,
                 AudienceFilter = request.AudienceFilter,
-                CreatedBy = GetUserId(),
+                CreatedBy = uid,
                 CreatedOn = IndianTime.Now
             };
             _db.Campaigns.Add(campaign);
@@ -82,6 +107,19 @@ namespace CRM.Controllers
             return Ok(new { success = true });
         }
 
+        [HttpDelete("campaigns/{id}")]
+        public async Task<IActionResult> DeleteCampaign(int id)
+        {
+            var caller = GetTokenUser();
+            if (caller?.TenantId is not int tid || tid <= 0)
+                return Unauthorized(new { success = false, message = "Authentication required" });
+            var campaign = await _db.Campaigns.FirstOrDefaultAsync(c => c.CampaignId == id && c.TenantId == tid);
+            if (campaign == null) return NotFound(new { success = false, message = "Campaign not found" });
+            _db.Campaigns.Remove(campaign);
+            await _db.SaveChangesAsync();
+            return Ok(new { success = true, message = "Campaign deleted" });
+        }
+
         // ===================== AGENTS =====================
 
         [HttpGet("agents")]
@@ -97,7 +135,9 @@ namespace CRM.Controllers
         [HttpPost("agents")]
         public async Task<IActionResult> CreateAgent([FromBody] MobileAgentRequest request)
         {
-            var tid = GetTenantId();
+            var caller = GetTokenUser();
+            if (caller?.TenantId is not int tid || tid <= 0)
+                return Unauthorized(new { success = false, message = "Authentication required" });
             var maxId = await _db.Agents.AnyAsync() ? await _db.Agents.MaxAsync(a => a.AgentId) : 0;
             var agent = new AgentModel
             {
@@ -116,6 +156,19 @@ namespace CRM.Controllers
             return Ok(new { success = true, data = agent });
         }
 
+        [HttpDelete("agents/{id}")]
+        public async Task<IActionResult> DeleteAgent(int id)
+        {
+            var caller = GetTokenUser();
+            if (caller?.TenantId is not int tid || tid <= 0)
+                return Unauthorized(new { success = false, message = "Authentication required" });
+            var agent = await _db.Agents.FirstOrDefaultAsync(a => a.AgentId == id && a.TenantId == tid);
+            if (agent == null) return NotFound(new { success = false, message = "Agent not found" });
+            _db.Agents.Remove(agent);
+            await _db.SaveChangesAsync();
+            return Ok(new { success = true, message = "Agent deleted" });
+        }
+
         // ===================== PARTNER LEADS =====================
 
         [HttpGet("partner-leads")]
@@ -131,7 +184,9 @@ namespace CRM.Controllers
         [HttpPost("partner-leads")]
         public async Task<IActionResult> SubmitPartnerLead([FromBody] MobilePartnerLeadRequest request)
         {
-            var tid = GetTenantId();
+            var caller = GetTokenUser();
+            if (caller?.TenantId is not int tid || tid <= 0)
+                return Unauthorized(new { success = false, message = "Authentication required" });
             var maxId = await _db.PartnerLeads.AnyAsync() ? await _db.PartnerLeads.MaxAsync(p => p.LeadId) : 0;
             var lead = new PartnerLeadModel
             {
@@ -189,10 +244,25 @@ namespace CRM.Controllers
             return Ok(new { success = true, data = items, total, page, pageSize });
         }
 
+        [HttpDelete("testimonials/{id}")]
+        public async Task<IActionResult> DeleteTestimonial(int id)
+        {
+            var caller = GetTokenUser();
+            if (caller?.TenantId is not int tid || tid <= 0)
+                return Unauthorized(new { success = false, message = "Authentication required" });
+            var testimonial = await _db.Testimonials.FirstOrDefaultAsync(t => t.TestimonialId == id && t.TenantId == tid);
+            if (testimonial == null) return NotFound(new { success = false, message = "Testimonial not found" });
+            _db.Testimonials.Remove(testimonial);
+            await _db.SaveChangesAsync();
+            return Ok(new { success = true, message = "Testimonial deleted" });
+        }
+
         [HttpPost("testimonials")]
         public async Task<IActionResult> CreateTestimonial([FromBody] MobileTestimonialRequest request)
         {
-            var tid = GetTenantId();
+            var caller = GetTokenUser();
+            if (caller?.TenantId is not int tid || tid <= 0)
+                return Unauthorized(new { success = false, message = "Authentication required" });
             var maxId = await _db.Testimonials.AnyAsync() ? await _db.Testimonials.MaxAsync(t => t.TestimonialId) : 0;
             var testimonial = new TestimonialModel
             {
@@ -206,6 +276,35 @@ namespace CRM.Controllers
             };
             _db.Testimonials.Add(testimonial);
             return Ok(new { success = true, data = testimonial });
+        }
+
+        // ===================== INQUIRIES (global SaaS leads) =====================
+
+        [HttpGet("inquiries")]
+        public async Task<IActionResult> GetInquiries([FromQuery] int page = 1, [FromQuery] int pageSize = 20)
+        {
+            var caller = GetTokenUser();
+            if (caller?.TenantId is not int tid || tid <= 0)
+                return Unauthorized(new { success = false, message = "Authentication required" });
+            var query = _db.Inquiries.OrderByDescending(i => i.CreatedOn);
+            var total = await query.CountAsync();
+            var items = await query.Skip((page - 1) * pageSize).Take(pageSize).ToListAsync();
+            return Ok(new { success = true, data = items, total, page, pageSize });
+        }
+
+        [HttpPut("inquiries/{id}/status")]
+        public async Task<IActionResult> UpdateInquiryStatus(int id, [FromBody] MobileStatusRequest request)
+        {
+            var caller = GetTokenUser();
+            if (caller?.TenantId is not int tid || tid <= 0)
+                return Unauthorized(new { success = false, message = "Authentication required" });
+            var inquiry = await _db.Inquiries.FirstOrDefaultAsync(i => i.InquiryId == id);
+            if (inquiry == null) return NotFound(new { success = false, message = "Inquiry not found" });
+            inquiry.Status = request.Status ?? inquiry.Status;
+            inquiry.UpdatedOn = IndianTime.Now;
+            _db.Inquiries.Update(inquiry);
+            await _db.SaveChangesAsync();
+            return Ok(new { success = true, data = inquiry });
         }
 
         // ===================== COMPANY CHAT / MESSAGES =====================
@@ -227,8 +326,10 @@ namespace CRM.Controllers
         [HttpPost("company-messages")]
         public async Task<IActionResult> SendCompanyMessage([FromBody] MobileMessageRequest request)
         {
-            var tid = GetTenantId();
-            var uid = GetUserId();
+            var caller = GetTokenUser();
+            if (caller?.TenantId is not int tid || tid <= 0 || caller.UserId <= 0)
+                return Unauthorized(new { success = false, message = "Authentication required" });
+            var uid = caller.UserId;
             var userName = User.FindFirst("Name")?.Value ?? "User";
             var userRole = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value ?? "";
             var msg = new CompanyMessageModel
@@ -257,6 +358,7 @@ namespace CRM.Controllers
             if (msg == null) return NotFound(new { success = false });
             msg.IsRead = true;
             msg.ReadAt = IndianTime.Now;
+            await _db.SaveChangesAsync();
             return Ok(new { success = true });
         }
     }
