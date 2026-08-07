@@ -501,6 +501,50 @@
         .nav-icon { color: #1A2332 !important; font-size: 18px !important; display: flex !important; align-items: center !important; justify-content: center !important; }
         html.dark-mode .nav-icon { color: #E8EDF2 !important; }
 
+        /* =====================================================
+           THEME TOGGLE (Dark/Light) - always visible & aligned
+           ===================================================== */
+        .navbar .nav-icon#themeToggle {
+            width: 38px !important;
+            height: 38px !important;
+            min-width: 38px !important;
+            border-radius: 10px !important;
+            background: rgba(26, 35, 50, 0.06) !important;
+            border: 1px solid rgba(26, 35, 50, 0.10) !important;
+            color: #1A2332 !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            cursor: pointer !important;
+            margin: 0 4px !important;
+            flex-shrink: 0 !important;
+            transition: background 0.2s ease, transform 0.15s ease, box-shadow 0.2s ease !important;
+        }
+        .navbar .nav-icon#themeToggle:hover {
+            background: rgba(26, 35, 50, 0.12) !important;
+            transform: scale(1.05) !important;
+            box-shadow: 0 2px 8px rgba(26, 35, 50, 0.15) !important;
+        }
+        .navbar .nav-icon#themeToggle:active {
+            transform: scale(0.95) !important;
+        }
+        .navbar .nav-icon#themeToggle .nav-icon-glyph,
+        .navbar .nav-icon#themeToggle .fa-solid {
+            font-size: 17px !important;
+            width: 17px !important;
+            height: 17px !important;
+            line-height: 1 !important;
+            color: inherit !important;
+        }
+        html.dark-mode .navbar .nav-icon#themeToggle {
+            background: rgba(255, 255, 255, 0.10) !important;
+            border-color: rgba(255, 255, 255, 0.16) !important;
+            color: #E8EDF2 !important;
+        }
+        html.dark-mode .navbar .nav-icon#themeToggle:hover {
+            background: rgba(255, 255, 255, 0.18) !important;
+        }
+
         /* Navbar profile name — always visible in light & dark mode */
         .navbar-bg .text-dark, .navbar-profile-name { color: #1A2332 !important; overflow: visible !important; white-space: nowrap !important; text-overflow: clip !important; display: inline-block !important; visibility: visible !important; min-width: 0; }
         html.dark-mode .navbar-bg .text-dark, html.dark-mode .navbar-profile-name { color: #E8EDF2 !important; }
