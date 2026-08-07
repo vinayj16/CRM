@@ -503,8 +503,19 @@ namespace CRM.Controllers
 
                 // Register in Master DB
 
+                // Assign the next TenantId explicitly: the Mongo shim treats TenantId as a
+                // foreign key and deliberately skips it in AutoAssignIntId, so without this
+                // the tenant would be persisted with TenantId 0 and could never be found
+                // (FindAsync / filters by TenantId), nor would its users/subscriptions link.
+                int nextTenantId = 1;
+                if (await _masterDb.Tenants.AnyAsync())
+                {
+                    nextTenantId = (await _masterDb.Tenants.MaxAsync(t => (int?)t.TenantId) ?? 0) + 1;
+                }
+
                 var tenant = new TenantModel
                 {
+                    TenantId = nextTenantId,
                     CompanyName = companyName,
                     Subdomain = subdomain,
                     ConnectionString = "mongodb://localhost:27017/crm",
@@ -520,10 +531,27 @@ namespace CRM.Controllers
                 _masterDb.Tenants.Add(tenant);
                 await _masterDb.SaveChangesAsync();
 
-                // Create 7-day free trial subscription if plan selected
-                var selectedPlan = planId.HasValue
-                    ? await _masterDb.SaasPlans.FirstOrDefaultAsync(p => p.PlanId == planId.Value && p.IsActive)
-                    : await _masterDb.SaasPlans.FirstOrDefaultAsync(p => p.PlanName == plan && p.IsActive);
+                // Create 7-day free trial subscription. Plan names in the DB are stored as
+                // "Basic Plan"/"Standard Plan"/"Premium Plan", while the form posts a short
+                // "basic"/"standard"/"premium" - match by PlanType (case-insensitive) and fall
+                // back to the Free plan so a brand-new company is never locked out.
+                var selectedPlan = (SaasSubscriptionPlanModel?)null;
+                if (planId.HasValue)
+                {
+                    selectedPlan = await _masterDb.SaasPlans.FirstOrDefaultAsync(p => p.PlanId == planId.Value && p.IsActive);
+                }
+                if (selectedPlan == null && !string.IsNullOrWhiteSpace(plan))
+                {
+                    var planType = plan.Trim();
+                    selectedPlan = await _masterDb.SaasPlans.FirstOrDefaultAsync(p =>
+                        p.IsActive && p.PlanType != null && p.PlanType.ToLower() == planType.ToLower());
+                }
+                if (selectedPlan == null)
+                {
+                    selectedPlan = await _masterDb.SaasPlans.FirstOrDefaultAsync(p => p.IsActive && p.PlanType == "Free")
+                        ?? await _masterDb.SaasPlans.FirstOrDefaultAsync(p => p.IsActive);
+                }
+
                 if (selectedPlan != null)
                 {
                     var trial = new MasterDb.Models.TenantSubscriptionModel
@@ -542,6 +570,41 @@ namespace CRM.Controllers
 
                     _masterDb.TenantSubscriptions.Add(trial);
                     await _masterDb.SaveChangesAsync();
+
+                    // Keep the tenant's Plan field in sync with the actual plan
+                    tenant.Plan = selectedPlan.PlanName;
+                    _masterDb.Tenants.Update(tenant);
+                    await _masterDb.SaveChangesAsync();
+                }
+
+                // Seed the tenant's CompanyName setting so the sidebar footer, welcome banner and
+                // PDF headers immediately show this company's name instead of the platform fallback.
+                try
+                {
+                    var appDb = HttpContext.RequestServices.GetRequiredService<AppDbContext>();
+                    var existingNameSetting = appDb.Settings.FirstOrDefault(s =>
+                        s.SettingKey == "CompanyName" && s.TenantId == tenant.TenantId && s.ChannelPartnerId == null);
+                    if (existingNameSetting == null)
+                    {
+                        int nextSettingId = 1;
+                        if (appDb.Settings.Any())
+                        {
+                            nextSettingId = (await appDb.Settings.MaxAsync(s => (int?)s.SettingId) ?? 0) + 1;
+                        }
+                        appDb.Settings.Add(new SettingsModel
+                        {
+                            SettingId = nextSettingId,
+                            SettingKey = "CompanyName",
+                            SettingValue = companyName,
+                            TenantId = tenant.TenantId,
+                            ChannelPartnerId = null
+                        });
+                        await appDb.SaveChangesAsync();
+                    }
+                }
+                catch (Exception settingsEx)
+                {
+                    _logger.LogWarning(settingsEx, "Failed to seed CompanyName setting for tenant {TenantId}", tenant.TenantId);
                 }
 
                 _logger.LogInformation($"Tenant created: {companyName} ({subdomain})");

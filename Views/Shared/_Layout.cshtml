@@ -349,13 +349,17 @@
         .sidebar.collapsed .sidebar-footer i { margin-right: 0 !important; }
         html.dark-mode .sidebar-footer { background: #0D1724 !important; border-top-color: rgba(212,164,90,0.3) !important; }
 
-        /* Brand area */
+        /* Brand area - pinned to the top of the sidebar, never scrolls away */
         .sidebar-brand {
             background: var(--sidebar-bg2) !important;
             border-bottom: 1px solid rgba(212,164,90,0.2) !important;
             display: flex !important;
             align-items: center !important;
             justify-content: center !important;
+            position: sticky !important;
+            top: 0 !important;
+            z-index: 20 !important;
+            flex-shrink: 0 !important;
         }
         .sidebar-brand .sidebar-logo-full {
             height: 38px !important; width: 100% !important;
