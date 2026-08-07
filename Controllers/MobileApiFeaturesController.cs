@@ -279,6 +279,16 @@ namespace CRM.Controllers
         }
 
         // ===================== INQUIRIES (global SaaS leads) =====================
+        // Inquiries are global SaaS sales leads owned by the platform (no TenantId).
+        // Only tenant Admins may view them and only SuperAdmin/Admin may mutate them,
+        // so a regular sales user cannot read or modify other tenants' pipeline data.
+
+        private bool IsPrivilegedUser()
+        {
+            var role = GetTokenUser()?.Role ?? "";
+            return role.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase)
+                || role.Equals("Admin", StringComparison.OrdinalIgnoreCase);
+        }
 
         [HttpGet("inquiries")]
         public async Task<IActionResult> GetInquiries([FromQuery] int page = 1, [FromQuery] int pageSize = 20)
@@ -286,6 +296,8 @@ namespace CRM.Controllers
             var caller = GetTokenUser();
             if (caller?.TenantId is not int tid || tid <= 0)
                 return Unauthorized(new { success = false, message = "Authentication required" });
+            if (!IsPrivilegedUser())
+                return Forbid();
             var query = _db.Inquiries.OrderByDescending(i => i.CreatedOn);
             var total = await query.CountAsync();
             var items = await query.Skip((page - 1) * pageSize).Take(pageSize).ToListAsync();
@@ -298,6 +310,8 @@ namespace CRM.Controllers
             var caller = GetTokenUser();
             if (caller?.TenantId is not int tid || tid <= 0)
                 return Unauthorized(new { success = false, message = "Authentication required" });
+            if (!IsPrivilegedUser())
+                return Forbid();
             var inquiry = await _db.Inquiries.FirstOrDefaultAsync(i => i.InquiryId == id);
             if (inquiry == null) return NotFound(new { success = false, message = "Inquiry not found" });
             inquiry.Status = request.Status ?? inquiry.Status;

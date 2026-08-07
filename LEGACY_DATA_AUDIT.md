@@ -191,3 +191,10 @@ unique. Verified live: tenant-1 create → 615, tenant-2 create → 616.
 - Tenant isolation: tenant-2 user reading tenant-1 lead by ID → 404.
 - Global unique IDs across tenants: 615 / 616.
 - Build: 0 errors. Server running on port 5139.
+
+## Round 4 (2026-08-07): Retry logic, codebase cleanup & GitHub push
+
+- **MongoDbSet retry fix**: Add/AddAsync retry loops now reset the colliding ID (ResetAutoId) between duplicate-key attempts, so concurrent creates genuinely recompute max+1 instead of retrying the same ID 5x.
+- **Mobile inquiries wired end-to-end**: added GET/PUT api/mobile/inquiries (+ client.js functions + app.json with extra.apiBaseUrl). Inquiries are global SaaS data, so they are role-gated: only Admin/SuperAdmin can read/mutate (verified Sales/Agent -> 403).
+- **Cleaned 4 E2E test tenants** (FlowTest x2, FlowVerify, EndToEnd) + their 11 linked records (tenant_subscriptions, settings, audit_logs, email_directory, lead_histories). Backup: scripts/backups/test_tenants_cleanup_*.json. DB now holds 6 real tenants, 30 users, 0 orphans.
+- **GitHub**: committed + pushed to origin/main (ad19b54). scripts/backups/ added to .gitignore.

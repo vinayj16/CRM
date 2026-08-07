@@ -542,7 +542,9 @@ namespace CRM
                 catch (Exception ex) when (IsDuplicateKeyException(ex))
                 {
                     // Two concurrent creates read the same max and assigned the same
-                    // ID - recompute a fresh ID and try again.
+                    // ID. AutoAssignIntId skips documents whose ID is already set, so
+                    // reset the ID to 0 to force a fresh max+1 on the next attempt.
+                    ResetAutoId(document);
                 }
             }
 
@@ -565,11 +567,29 @@ namespace CRM
                 }
                 catch (Exception ex) when (IsDuplicateKeyException(ex))
                 {
-                    // Recompute a fresh ID and retry.
+                    // Reset the ID so the next attempt computes a genuinely fresh one.
+                    ResetAutoId(document);
                 }
             }
 
             await _collection.InsertOneAsync(document);
+        }
+
+        /// <summary>
+        /// Clears the resolved auto-increment ID property back to 0 so that
+        /// AutoAssignIntId recomputes max+1 on the next insert attempt. Used by the
+        /// duplicate-key retry loop in Add/AddAsync (otherwise the colliding ID would
+        /// be reused and every retry would fail identically).
+        /// </summary>
+        private void ResetAutoId(T document)
+        {
+            if (document == null) return;
+            var idProp = ResolveIntIdProperty(out bool mapsToMongoId);
+            if (idProp == null || mapsToMongoId || idProp.Name == "TenantId") return;
+            if (idProp.PropertyType == typeof(int))
+                idProp.SetValue(document, 0);
+            else if (idProp.PropertyType == typeof(int?))
+                idProp.SetValue(document, null);
         }
 
         public void AddRange(IEnumerable<T> documents)
