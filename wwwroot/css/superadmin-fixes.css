@@ -7,6 +7,41 @@
    all text visible and aligned - header, sidebar, footer, body.
    ============================================================ */
 
+/* ── 0. NAVBAR - the whole top bar must always be visible ──
+   These are scoped to .superadmin-layout and load LAST, so they
+   are the final word on header visibility. A previous blanket
+   `.collapse:not(.show)` rule (equal specificity to the layout's
+   `.navbar-collapse.collapse:not(.show) { display: flex }` but
+   loaded later) hid the right-side icons (dark mode, bell, profile,
+   logout) for SuperAdmin. The navbar-collapse is NOT a collapsible
+   sidebar submenu - it is the horizontal header action bar, so it
+   is always forced to flex here. */
+.superadmin-layout .navbar {
+    display: flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+.superadmin-layout .navbar-collapse {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    margin-left: auto !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+.superadmin-layout .navbar-collapse.collapse:not(.show) {
+    display: flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+.superadmin-layout .navbar .nav-item,
+.superadmin-layout .navbar .nav-icon,
+.superadmin-layout .navbar .nav-link,
+.superadmin-layout .navbar .avatar {
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+
 /* ── 1. NAVBAR - text/icons always visible (light mode) ── */
 .superadmin-layout .navbar-bg .text-dark,
 .superadmin-layout .navbar-bg .navbar-profile-name,
@@ -766,18 +801,17 @@ html.dark-mode .superadmin-layout .content .referral-table td { color: #E8EDF2 !
 }
 
 /* Collapse - only show when OPEN (Bootstrap adds .show).
-   A previous blanket `display: block !important` on
-   `.collapse:not(.show)` kept every sidebar submenu expanded
-   permanently, making the sidebar overflow and collide.
-   NOTE: .navbar-collapse is forced flex by _Layout.cshtml
-   (`.navbar-collapse.collapse:not(.show) { display: flex }`),
-   which has higher specificity than this rule, so the top
-   navbar is unaffected. */
-.superadmin-layout .collapse.show {
+   Scoped to .sidebar ONLY: a previous blanket `.collapse:not(.show)`
+   rule here had EQUAL specificity to the layout's
+   `.navbar-collapse.collapse:not(.show) { display: flex }` and loaded
+   later, so it hid the navbar-collapse (dark mode, bell, profile,
+   logout icons) for SuperAdmin. The true intent of this rule is to
+   prevent sidebar submenus from staying expanded. */
+.superadmin-layout .sidebar .collapse.show {
     display: block !important;
     visibility: visible !important;
 }
-.superadmin-layout .collapse:not(.show) {
+.superadmin-layout .sidebar .collapse:not(.show) {
     display: none !important;
     visibility: hidden !important;
 }
