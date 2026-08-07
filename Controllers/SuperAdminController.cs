@@ -146,6 +146,8 @@ namespace CRM.Controllers
         // Dashboard
         // ==========================================
         [HttpGet]
+        
+
         public async Task<IActionResult> Dashboard()
         {
 
