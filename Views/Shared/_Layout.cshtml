@@ -493,8 +493,8 @@
         /* =====================================================
            NAVBAR - CRITICAL MOBILE FIX
            ===================================================== */
-        /* Force navbar-collapse to display as horizontal flex row */
-        .navbar-collapse { display: flex !important; flex-direction: row !important; align-items: center !important; flex-grow: 0 !important; margin-left: auto !important; visibility: visible !important; }
+        /* Force navbar-collapse to display as horizontal flex row (icons stay side-by-side, never wrap/crush) */
+        .navbar-collapse { display: flex !important; flex-direction: row !important; align-items: center !important; flex-grow: 0 !important; flex-shrink: 0 !important; margin-left: auto !important; visibility: visible !important; }
         .navbar-collapse.collapse:not(.show) { display: flex !important; }
         .navbar-nav { display: flex !important; flex-direction: row !important; align-items: center !important; gap: 2px !important; }
         .navbar-nav .nav-item { display: flex !important; align-items: center !important; }
@@ -569,6 +569,7 @@
             box-shadow: 0 2px 12px rgba(0,0,0,0.08) !important;
             display: flex !important;
             align-items: center !important;
+            flex-wrap: nowrap !important;
             padding: 0 10px !important;
         }
 
