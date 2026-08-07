@@ -47,6 +47,21 @@ namespace CRM.Controllers
             var user = _context.Users.FirstOrDefault(u => u.UserId == userId);
             return (userId, role, user?.ChannelPartnerId);
         }
+
+        /// <summary>
+        /// Resolves the tenant (company) the current user belongs to, so any user they
+        /// create is always bound to their own company. Prefers the user's DB record
+        /// (source of truth), falling back to the middleware-provided TenantId.
+        /// </summary>
+        private int GetActingTenantId(int? userId)
+        {
+            if (userId.HasValue)
+            {
+                var tenantId = _context.Users.FirstOrDefault(u => u.UserId == userId.Value)?.TenantId ?? 0;
+                if (tenantId > 0) return tenantId;
+            }
+            return HttpContext.Items["TenantId"] as int? ?? 0;
+        }
         [Route("manageusers")]
         [Route("ManageUsers/Index")]
         public async Task<IActionResult> Index()
@@ -62,8 +77,12 @@ namespace CRM.Controllers
             }
             else if (role?.ToLower() == "admin")
             {
-                // Admin sees all users
-                // No filtering
+                // Admin sees only the users of their own company (tenant)
+                var adminTenantId = GetActingTenantId(userId);
+                if (adminTenantId > 0)
+                {
+                    usersQuery = usersQuery.Where(u => u.TenantId == adminTenantId);
+                }
             }
 
             var users = await usersQuery.ToListAsync();
@@ -373,6 +392,12 @@ namespace CRM.Controllers
                 user.LastActivity = DateTime.UtcNow;
 
                 var (userId, role, channelPartnerId) = GetCurrentUserContext();
+
+                // Always bind the new user to the CURRENT user's own company (tenant).
+                // Never trust a posted TenantId: an admin/partner may only create users
+                // under their own company, otherwise new users land in TenantId=0 and are
+                // invisible to their company (login, filters, dashboards, reports).
+                user.TenantId = GetActingTenantId(userId);
 
                 if (role?.ToLower() == "partner")
                 {
