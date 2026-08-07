@@ -1606,11 +1606,13 @@ i, svg, .feather {
     display: inline-block !important;
 }
 
-/* Ensure lists are visible (but never force-open dropdown menus) */
+/* Ensure lists are visible (but never force-open dropdown menus).
+   NOTE: display must NOT be forced to block here — that blanket rule
+   destroyed flex/grid list layouts (navbar-nav icon row, sidebar-nav,
+   pagination, breadcrumbs). ul/ol/li are block by default anyway. */
 ul:not(.dropdown-menu), ol, li {
     opacity: 1 !important;
     visibility: visible !important;
-    display: block !important;
 }
 
 /* Ensure buttons and interactive elements are visible */
