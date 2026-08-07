@@ -30,6 +30,7 @@ namespace CRM.Controllers
 
             ViewBag.Username = username;
             ViewBag.CompanyName = BrandingResolver.ResolveCompanyName(_db, channelPartnerId, currentUser?.TenantId);
+            ViewBag.CompanyLogo = BrandingResolver.ResolveCompanyLogo(_db, channelPartnerId, currentUser?.TenantId);
 
             return View();
         }
