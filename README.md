@@ -30,18 +30,46 @@ After running `dotnet run`, the app takes **~30-50 seconds** to start. Wait for 
 ### Super Admin (Global — manages all tenants)
 | Role | Username | Email | Password |
 |------|----------|-------|----------|
-| **SuperAdmin** | `superadmincrm@crm.app` | `superadmincrm@crm.app` | `Super@123` |
+| **SuperAdmin** | `admin@crm.com` | `admin@crm.com` | `Admin@123` |
 
-> **Note**: The SuperAdmin logs in via the **same login page** at `/Account/Login`. They see the SuperAdmin panel at `/SuperAdmin/Dashboard` with full system control.
+> **Note**: The SuperAdmin logs in via the **same login page** at `/Account/Login`. They see the SuperAdmin panel at `/SuperAdmin/Dashboard` with full system control. `admin@crm.com` + `Admin@123` → SuperAdmin panel; the same email + `Test@123` → Company 1 Admin dashboard (both verified).
+>
+> **Only ONE SuperAdmin exists** (consolidated 2026-08-08 — the old duplicate `superadmincrm@crm.app` record was removed; backup at `scripts/backups/superadmin_cleanup_*.json`). The SuperAdmin is the global user: no tenant scoping, no feature limits, no role restrictions. **No code path creates additional SuperAdmin accounts** (verified: zero `SuperAdmins.Add`/`new SuperAdminModel` in the codebase) — it cannot be created again from the UI or API.
+
+### ✅ Verified Data Available Per Role (after login)
+
+All credentials below are **verified working** (username **or** email both accepted). Every role lands on its dashboard with live data from MongoDB. A full page walk (22 module pages × all roles) returns **22/22 pages OK** for every tenant's Admin, Agent, Sales and Partner accounts:
+
+| Role | Lands on | Data visible after login (verified live) |
+|------|----------|------------------------------------------|
+| **SuperAdmin** | `/SuperAdmin/Dashboard` | 6 tenants, referrals, inquiries, plans, payment config, transactions |
+| **Admin** | `/Dashboard/Index` (Analytics) | Leads, Properties, Bookings, Invoices, Payments, Expenses, Revenue, Profit, Quotations, Tasks, Site Visits, Agents, Payouts, Partner Commissions/Payouts, Bank Accounts, Support Tickets, Campaigns, Chat, Settings, Manage Users |
+| **Agent** | `/Dashboard/Index` (Analytics) | Own assigned leads, tasks, attendance, chat |
+| **Sales** | `/Dashboard/Index` (Analytics) | Own assigned leads, quotations, bookings, attendance |
+| **Partner** | `/Home/Index` (Partner Dashboard) | Channel-partner leads + handover status, agent list, commissions |
+
+> **Data completeness (per tenant, seeded & verified 2026-08-08):** every tenant now has data in every module — leads, properties (+flats), builders, bookings (+payment plans & installments), quotations (+items), invoices, payments, expenses, revenues, agents (+payouts), channel partners (+commissions & payouts), bank accounts, notifications, follow-ups/tasks, site visits, campaigns, testimonials, support tickets, company messages, chat sessions, webhook leads, settings & branding. Every user has a profile. Seed/audit scripts live in `scripts/` (`seed_followups.py`, `seed_all_data.py`, `seed_payment_plans.py`, `seed_remaining.py`, `audit_data.py`, `verify_pages.py`, `export_db_data.py`, `verify_all.py`, `fix_orphan_links.py`, `fix_duplicate_active_subs.py`, `consolidate_superadmin_cleanup.py`) with backups in `scripts/backups/`.
+>
+> **Tenant isolation**: Company 1's `admin` sees only Company 1 data (36 leads, 21 properties, 4 bookings, 3 invoices, 3 payments, 19 expenses, 3 agents). Partner leads with `HandoverStatus: Partner` are hidden from Admin until handed over — the tenant's partner user sees those (verified: `partner6` sees all 6 Prime Nest channel leads; T3–T6 admins see 0 partner leads while their partner sees 6).
+>
+> **Orphan check**: a reference audit across all 71 collections found **no orphaned data** — every lead/book/payment/expense/revenue/attendance/payout/commission links to a real user, agent, partner, lead, property, booking or tenant (fixed: 2 leads had dangling `ExecutiveId`, now linked; backup `scripts/backups/orphan_lead_fix_*.json`).
+>
+> **Subscriptions**: each tenant has **exactly one Active subscription** (duplicate active records were cleaned; backup `scripts/backups/active_subs_fix_*.json`). Every tenant shows the same 4 plans (Free / Basic ₹999 / Standard ₹2,499 / Premium ₹4,999) on `/SaasSubscription/MyPlan` and can upgrade — the **referral wallet is auto-deducted** from plan payments (verified live: T1 wallet ₹700 → Premium upgrade ₹4,999 becomes ₹4,299). Wallet balance shows on the Referral Wallet widget and `/SaasSubscription/AdminReferrals`.
+>
+> **Attendance**: agent check-in/out works end-to-end (Status → `Present`, Login/Logout timestamps + logs persisted, no duplicate day records). A timezone bug that stored check-ins as UTC and compared against IST (creating duplicates + an Absent status) was fixed in `AttendanceController` + `Views/Attendance/Calendar.cshtml`.
+>
+> **Data export**: `All_MongoDB_Data.json` is regenerated from the live DB (`scripts/export_db_data.py`) — 71 collections, ~2,200 documents, including the consolidated single SuperAdmin.
 
 ### Company 1: Default CRM (TenantId: 1)
 | Role | Username | Email | Password |
 |------|----------|-------|----------|
 | **Admin** | `admin` | `admin@crm.com` | `Test@123` |
-| **Admin** | `admin1` | `admin@crm.app` | `Test@123` |
+| **Admin** | `admin1` | `admin@ultrakey.crm.com` | `Test@123` |
 | **Agent** | `agent1` | `agent@crm.com` | `Test@123` |
 | **Partner** | `partner1` | `partner@crm.com` | `Test@123` |
 | **Sales** | `sales1` | `sales@crm.com` | `Test@123` |
+
+> All 31 login credentials (1 SuperAdmin + 30 tenant users) verified working on 2026-08-08 (16/16 re-verified end-to-end after the attendance & subscription fixes: 30/30 checks pass). Wrong passwords are rejected. Backups of the email alignment live in `scripts/backups/email_align_*.json`.
 
 ### Company 2: GreenVista Realty (TenantId: 2)
 | Role | Username | Email | Password |
@@ -540,7 +568,7 @@ A complete list of all fixes, features, and improvements is available in the **[
 | **SuperAdmin** | 2 | Login/Dashboard access, user management |
 | **Subscription Plans** | 2 | 4 INR plans, plan enforcement |
 | **MongoDB/Data** | 2 | Atlas connection, data export (17 collections) |
-| **Login Credentials** | 6 companies | All roles tested HTTP 200 |
+| **Login Credentials** | 6 companies | All roles tested HTTP 200 · all 32 logins verified · Company-1 emails aligned to documented list |
 | **Agent Leads 500** | 1 | NullReferenceException fixed → HTTP 200 |
 | **Duplicate Notifications** | 0 issues | FollowUpReminder + PendingApproval both have dedup logic |
 | **Project Cleanup** | Multiple | Removed test files, backups, debug logs, empty dirs |

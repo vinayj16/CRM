@@ -22,5 +22,20 @@ namespace CRM.Helpers
         public static DateTime Now => TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, IST);
 
         public static DateTime Today => Now.Date;
+
+        /// <summary>
+        /// Converts a UTC-stored DateTime (as persisted by the MongoDB driver) back
+        /// to Indian Standard Time. DateTimes stored via IndianTime.Now are converted
+        /// to UTC by the Mongo driver, so on read-back they must be converted again
+        /// before comparing with IndianTime.Today / Now.
+        /// </summary>
+        public static DateTime ToIst(DateTime dt)
+        {
+            if (dt.Kind == DateTimeKind.Utc)
+                return TimeZoneInfo.ConvertTimeFromUtc(dt, IST);
+            if (dt.Kind == DateTimeKind.Local)
+                return TimeZoneInfo.ConvertTime(dt, TimeZoneInfo.Local, IST);
+            return dt; // Unspecified — assumed to already be IST
+        }
     }
 }

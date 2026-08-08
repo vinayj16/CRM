@@ -56,10 +56,13 @@ namespace CRM.Controllers
             foreach (var agent in agents)
             {
                 var attendanceRecords = _context.AgentAttendance
-                    .Where(a => a.AgentId == agent.UserId && 
-                               a.Date >= firstDay && 
-                               a.Date <= lastDay &&
-                               a.Date <= IndianTime.Today)
+                    .Where(a => a.AgentId == agent.UserId)
+                    .ToList()
+                    .Where(a =>
+                    {
+                        var ist = IndianTime.ToIst(a.Date).Date;
+                        return ist >= firstDay && ist <= lastDay && ist <= IndianTime.Today;
+                    })
                     .ToList();
 
                 var presentDays = attendanceRecords.Count(a => a.Status == "Present");
@@ -204,13 +207,15 @@ namespace CRM.Controllers
             {
                 var latestRecord = _context.AgentAttendance
                     .Where(a => a.AgentId == actualUserId)
-                    .OrderByDescending(a => a.Date)
+                    .ToList()
+                    .OrderByDescending(a => IndianTime.ToIst(a.Date))
                     .FirstOrDefault();
 
                 if (latestRecord != null)
                 {
-                    y = latestRecord.Date.Year;
-                    m = latestRecord.Date.Month;
+                    var ist = IndianTime.ToIst(latestRecord.Date);
+                    y = ist.Year;
+                    m = ist.Month;
                 }
             }
 
@@ -218,18 +223,22 @@ namespace CRM.Controllers
 
             var attendance = _context.AgentAttendance
                 .Where(a => a.AgentId == actualUserId && a.Date.Year == y && a.Date.Month == m)
+                .ToList()
+                .Where(a => { var ist = IndianTime.ToIst(a.Date); return ist.Year == y && ist.Month == m; })
                 .ToList();
 
             // ✅ FIX: load logs once (avoid N+1)
             var logs = _context.AttendanceLog
                 .Where(l => l.AgentId == actualUserId && l.Timestamp.Year == y && l.Timestamp.Month == m)
                 .OrderBy(l => l.Timestamp)
+                .ToList()
+                .Where(l => { var ist = IndianTime.ToIst(l.Timestamp); return ist.Year == y && ist.Month == m; })
                 .ToList();
 
             foreach (var att in attendance)
             {
                 var dayLogs = logs
-                    .Where(l => l.Timestamp.Date == att.Date.Date)
+                    .Where(l => IndianTime.ToIst(l.Timestamp).Date == IndianTime.ToIst(att.Date).Date)
                     .ToList();
 
                 var intervals = new List<(DateTime login, DateTime? logout)>();
@@ -272,7 +281,7 @@ namespace CRM.Controllers
             _context.SaveChanges();
 
             var attendanceDict = attendance
-                .GroupBy(a => a.Date.Date)
+                .GroupBy(a => IndianTime.ToIst(a.Date).Date)
                 .ToDictionary(g => g.Key, g => g.First());
 
             var completeAttendance = new List<AgentAttendanceModel>();
@@ -303,7 +312,7 @@ namespace CRM.Controllers
             var today = IndianTime.Today;
 
             var todayLogs = logs
-                .Where(l => l.Timestamp.Date == today)
+                .Where(l => IndianTime.ToIst(l.Timestamp).Date == today)
                 .ToList();
 
             var todayIntervals = new List<(DateTime login, DateTime? logout)>();
@@ -376,15 +385,19 @@ namespace CRM.Controllers
             }
             else if (resolvedAgentId > 0)
             {
+                // Compare in IST: stored dates are UTC-serialized, IndianTime.Today is IST.
                 var currentDate = IndianTime.Today;
-                record = _context.AgentAttendance.FirstOrDefault(a => a.AgentId == resolvedAgentId && a.Date.Date == currentDate);
+                record = _context.AgentAttendance
+                    .Where(a => a.AgentId == resolvedAgentId)
+                    .ToList()
+                    .FirstOrDefault(a => IndianTime.ToIst(a.Date).Date == currentDate);
                 if (record == null)
                 {
                     record = new AgentAttendanceModel
                     {
                         AgentId = resolvedAgentId,
                         Date = currentDate,
-                        Status = "Absent"
+                        Status = "Present"
                     };
                     _context.AgentAttendance.Add(record);
                     await _context.SaveChangesAsync(); // Ensure AttendanceId is set
@@ -393,6 +406,8 @@ namespace CRM.Controllers
             if (record != null)
             {
                 record.Status = "Present";
+                record.LoginTime = record.LoginTime ?? IndianTime.Now;
+                _context.AgentAttendance.Update(record); // Persist status immediately (SaveChanges is a no-op)
                 try
                 {
                     // Ensure AttendanceId exists in AgentAttendance
@@ -417,10 +432,12 @@ namespace CRM.Controllers
                     // Login failed silently - user can retry
                 }
             }
+            if (record == null)
+                return RedirectToAction("Index");
             //return RedirectToAction("Calendar", new { agentId = record?.AgentId ?? agentId });
             return RedirectToAction("Calendar", new
             {
-                agentId = IdObfuscator.Encode(record?.AgentId ?? agentId.Value)
+                agentId = IdObfuscator.Encode(record.AgentId)
             });
         }
 
@@ -431,6 +448,7 @@ namespace CRM.Controllers
             if (record != null)
             {
                 record.Status = "Present";
+                record.LogoutTime = IndianTime.Now;
                 _context.AgentAttendance.Update(record);
                 try
                 {
@@ -457,6 +475,8 @@ namespace CRM.Controllers
                 }
             }
             //return RedirectToAction("Calendar", new { agentId = record?.AgentId });
+            if (record == null)
+                return RedirectToAction("Index");
             return RedirectToAction("Calendar", new
             {
                 agentId = IdObfuscator.Encode(record.AgentId)
@@ -509,8 +529,8 @@ namespace CRM.Controllers
                 record.CorrectionStatus = "Approved";
                 record.Status = "Present";
 
-                // Set correction hours using a fixed 09:00 baseline for consistency.
-                var date = record.Date;
+                // Set correction hours using a fixed 09:00 IST baseline for consistency.
+                var date = IndianTime.ToIst(record.Date);
                 record.LoginTime = new DateTime(date.Year, date.Month, date.Day, 9, 0, 0);
                 record.LogoutTime = record.LoginTime.Value.AddHours(hoursToApply);
 
@@ -581,6 +601,8 @@ namespace CRM.Controllers
             var logs = _context.AttendanceLog
                 .Where(l => l.AgentId == agentId && l.Timestamp.Date == date.Date)
                 .OrderBy(l => l.Timestamp)
+                .ToList()
+                .Where(l => IndianTime.ToIst(l.Timestamp).Date == date.Date)
                 .ToList();
 
             var intervals = new List<object>();

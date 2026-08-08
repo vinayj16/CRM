@@ -4,7 +4,7 @@
     var attendance = ViewBag.Attendance as List<CRM.Models.AgentAttendanceModel> ?? new List<CRM.Models.AgentAttendanceModel>();
     var todayIntervals = ViewBag.TodayLogIntervals as List<(DateTime, DateTime?)>;
     var hasActiveSession = todayIntervals != null && todayIntervals.Any(i => !i.Item2.HasValue);
-    var todayAttendance = attendance.FirstOrDefault(a => a.Date.Date == DateTime.Today);
+    var todayAttendance = attendance.FirstOrDefault(a => CRM.Helpers.IndianTime.ToIst(a.Date).Date == CRM.Helpers.IndianTime.Today);
     var isAdmin = User.IsInRole("Admin");
     var isPartner = User.IsInRole("Partner");
     var canManageAttendance = isAdmin || isPartner;
@@ -430,15 +430,15 @@ p {
                 <div class="col-lg-4">
                     <div class="details-container">
                         <div class="section-title"><i class="fas fa-exclamation-triangle" style="color:#F59E0B"></i> Pending Requests</div>
-                        @if (attendance.Any(a => a.CorrectionRequested && a.CorrectionStatus == "Pending" && a.Date.Date != DateTime.Today))
+                        @if (attendance.Any(a => a.CorrectionRequested && a.CorrectionStatus == "Pending" && CRM.Helpers.IndianTime.ToIst(a.Date).Date != CRM.Helpers.IndianTime.Today))
                         {
                             <div class="list-group list-group-flush">
-                                @foreach (var record in attendance.Where(a => a.CorrectionRequested && a.CorrectionStatus == "Pending" && a.Date.Date != DateTime.Today))
+                                @foreach (var record in attendance.Where(a => a.CorrectionRequested && a.CorrectionStatus == "Pending" && CRM.Helpers.IndianTime.ToIst(a.Date).Date != CRM.Helpers.IndianTime.Today))
                                 {
                                     <div class="list-group-item border-0 mb-2 rounded" style="background:#FEE2E2;border:1px solid #E8C27E !important;padding:.55rem .75rem">
                                         <div class="d-flex justify-content-between align-items-start mb-1">
                                             <span style="font-size:.76rem;font-weight:700;color:var(--blue)">
-                                                <i class="fas fa-calendar-day me-1" style="color:var(--gold)"></i>@record.Date.ToString("MMM dd, yyyy")
+                                                <i class="fas fa-calendar-day me-1" style="color:var(--gold)"></i>@CRM.Helpers.IndianTime.ToIst(record.Date).ToString("MMM dd, yyyy")
                                             </span>
                                         </div>
                                         <p class="mb-2 text-muted" style="font-size:.72rem">@(string.IsNullOrEmpty(record.CorrectionReason) ? "No reason provided" : record.CorrectionReason)</p>
@@ -504,7 +504,7 @@ document.addEventListener('DOMContentLoaded', function() {
             var lastActivityIsLogin = @Html.Raw(Json.Serialize(ViewBag.LastActivityIsLogin ?? false));
 
             var attendanceRecord = @Html.Raw(Json.Serialize(
-                attendance.ToDictionary(a => a.Date.ToString("yyyy-MM-dd"), a => new {
+                attendance.ToDictionary(a => CRM.Helpers.IndianTime.ToIst(a.Date).ToString("yyyy-MM-dd"), a => new {
                     status = a.Status ?? "Absent",
                     hours = a.LoginTime != null && a.LogoutTime != null ?
                         (a.LogoutTime.Value - a.LoginTime.Value).TotalHours : 0,
@@ -576,7 +576,7 @@ document.addEventListener('DOMContentLoaded', function() {
             updateIntervalsSection(dateStr);
 
             var attendanceRecord = @Html.Raw(Json.Serialize(
-                attendance.ToDictionary(a => a.Date.ToString("yyyy-MM-dd"), a => new {
+                attendance.ToDictionary(a => CRM.Helpers.IndianTime.ToIst(a.Date).ToString("yyyy-MM-dd"), a => new {
                     status = a.Status ?? "Absent",
                     login = a.LoginTime?.ToString("HH:mm"),
                     logout = a.LogoutTime?.ToString("HH:mm"),
