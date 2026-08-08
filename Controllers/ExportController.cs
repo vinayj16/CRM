@@ -442,15 +442,5 @@ namespace CRM.Controllers
             }
         }
 
-        // POST /api/export/seed - REMOVED: Use /api/seed/merge on SeedController instead
-        // This endpoint created a conflicting set of users with @crm.app emails
-        // alongside the canonical SeedController which uses @crm.com emails.
-        [HttpPost("api/export/seed")]
-        public async Task<IActionResult> SeedDemoData()
-        {
-            return Json(new { success = false, message = "This endpoint is deprecated. Use POST /api/seed/merge instead." });
-        }
-
-
     }
 }

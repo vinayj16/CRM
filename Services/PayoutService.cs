@@ -64,7 +64,6 @@ namespace CRM.Services
             var dailySalary = agent.Salary.Value / totalWorkingDays;
             
             // Debug logging
-            System.IO.File.AppendAllText("PayoutDebug.txt", $"Agent {agentId}: WorkingDays={totalWorkingDays}, PresentEquivalentDays={presentEquivalentDays:0.##}, AbsentDays={absentDays:0.##}, DailySalary={dailySalary:F2}, Deduction={absentDays * dailySalary:F2}\n");
             
             return absentDays * dailySalary;
         }
@@ -140,7 +139,6 @@ namespace CRM.Services
                     .CountAsync();
 
                 // Debug agent type
-                System.IO.File.AppendAllText("PayoutDebug.txt", $"Agent {agent.AgentId}: AgentType='{agent.AgentType}', BaseSalary={baseSalary}, Deduction={attendanceDeduction}\n");
                 
                 // Calculate final payout based on agent type
                 var correctFinalPayout = CalculateFinalPayout(agent.AgentType, baseSalary, attendanceDeduction, totalCommission);
@@ -163,7 +161,6 @@ namespace CRM.Services
                 };
                 
                 // Debug final values
-                System.IO.File.AppendAllText("PayoutDebug.txt", $"Final Payout Object: BaseSalary={payout.BaseSalary}, Deduction={payout.AttendanceDeduction}, FinalPayout={payout.FinalPayout}, Amount={payout.Amount}\n");
 
                 _context.AgentPayouts.Add(payout);
             }
@@ -182,7 +179,6 @@ namespace CRM.Services
                 {
                     zeroPayout.FinalPayout = correctAmount;
                     zeroPayout.Amount = correctAmount;
-                    System.IO.File.AppendAllText("PayoutDebug.txt", $"Fixed zero payout for agent {zeroPayout.AgentId}: {correctAmount}\n");
                 }
             }
             
@@ -218,7 +214,6 @@ namespace CRM.Services
             }
             
             await _context.SaveChangesAsync();
-            System.IO.File.AppendAllText("PayoutDebug.txt", $"Updated existing payouts with commission data\n");
         }
 
         private async Task ProcessChannelPartnerPayouts(string month, int year)
@@ -290,7 +285,6 @@ namespace CRM.Services
                 _ => baseSalary - deduction
             };
             
-            System.IO.File.AppendAllText("PayoutDebug.txt", $"CalculateFinalPayout: Original='{agentType}', Normalized='{normalizedType}', BaseSalary={baseSalary}, Deduction={deduction}, Commission={commission}, Result={result}\n");
             
             return result;
         }

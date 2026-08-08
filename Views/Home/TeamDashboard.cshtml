@@ -142,26 +142,18 @@
                     renderTopPerformers(data.topPerformers);
                 })
                 .catch(error => {
-                    console.error('Error:', error);
-                    // Fallback with sample data
-                    const sampleData = {
-                        totalTeamMembers: 15,
-                        newTeamMembers: 3,
-                        totalChannelPartners: 7,
-                        teamPerformance: [
-                            {username: 'John Doe', bookingsCount: 25, leadsCount: 45},
-                            {username: 'Jane Smith', bookingsCount: 22, leadsCount: 38},
-                            {username: 'Mike Johnson', bookingsCount: 18, leadsCount: 32}
-                        ],
-                        topPerformers: [
-                            {username: 'John Doe', bookingsCount: 25},
-                            {username: 'Jane Smith', bookingsCount: 22},
-                            {username: 'Mike Johnson', bookingsCount: 18}
-                        ]
+                    console.error('Error loading team dashboard data:', error);
+                    // Show empty state (never display fabricated data)
+                    const emptyData = {
+                        totalTeamMembers: 0,
+                        newTeamMembers: 0,
+                        totalChannelPartners: 0,
+                        teamPerformance: [],
+                        topPerformers: []
                     };
-                    updateStats(sampleData);
-                    renderTeamPerformance(sampleData.teamPerformance);
-                    renderTopPerformers(sampleData.topPerformers);
+                    updateStats(emptyData);
+                    renderTeamPerformance(emptyData.teamPerformance);
+                    renderTopPerformers(emptyData.topPerformers);
                 });
         }
 

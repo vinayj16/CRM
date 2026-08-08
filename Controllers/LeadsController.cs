@@ -775,20 +775,16 @@ namespace CRM.Controllers
                         var response = await httpClient.PostAsync(scheduleUrl, content);
                         var responseText = await response.Content.ReadAsStringAsync();
                         
-                        Console.WriteLine($"SCHEDULE-FOLLOWUP: Response={response.StatusCode}, Content={responseText}");
                         
                         if (response.IsSuccessStatusCode)
                         {
-                            Console.WriteLine($"SCHEDULE-FOLLOWUP: Successfully scheduled notification for FollowUpId {model.FollowUpId} at {model.FollowUpTime}");
                         }
                         else
                         {
-                            Console.WriteLine($"SCHEDULE-FOLLOWUP: Failed to schedule - {responseText}");
                         }
                     }
                     catch (Exception scheduleEx)
                     {
-                        Console.WriteLine($"SCHEDULE-FOLLOWUP ERROR: {scheduleEx.Message}");
                     }
                 }
 
@@ -810,13 +806,11 @@ namespace CRM.Controllers
                 {
                     var (currentUserId, _) = GetUserFromToken();
                     var lead2 = _db.Leads.AsNoTracking().FirstOrDefault(l => l.LeadId == model.LeadId);
-                    Console.WriteLine($"FOLLOWUP-NOTIF: LeadId={model.LeadId}, Lead found={lead2 != null}, Lead name={lead2?.Name}");
                     if (lead2 != null)
                     {
                         // Notify the assigned executive
                         if (lead2.ExecutiveId.HasValue)
                         {
-                            Console.WriteLine($"FOLLOWUP-NOTIF: Sending to executive UserId={lead2.ExecutiveId.Value}");
                             await _notificationService.CreateNotificationAsync(
                                 "Follow-up Added",
                                 $"Follow-up added for lead '{lead2.Name}' - Stage: {model.Stage}, Status: {model.Status}",
@@ -830,11 +824,9 @@ namespace CRM.Controllers
                         }
                         // Notify all admins
                         var admins = _db.Users.Where(u => u.Role == "Admin" && u.ChannelPartnerId == null).ToList();
-                        Console.WriteLine($"FOLLOWUP-NOTIF: Found {admins.Count} admins");
                         foreach (var admin in admins)
                         {
                             if (lead2.ExecutiveId.HasValue && admin.UserId == lead2.ExecutiveId.Value) continue;
-                            Console.WriteLine($"FOLLOWUP-NOTIF: Sending to admin UserId={admin.UserId}");
                             await _notificationService.CreateNotificationAsync(
                                 "Follow-up Added",
                                 $"Follow-up added for lead '{lead2.Name}' - Stage: {model.Stage}, Status: {model.Status}",
@@ -1538,7 +1530,6 @@ namespace CRM.Controllers
                 if (!string.IsNullOrEmpty(name)) validLeadCount++;
             }
             
-            Console.WriteLine($"DEBUG: Found {validLeadCount} valid leads in file");
 
             // Check subscription limits upfront for the entire batch
             if (currentUser?.ChannelPartnerId != null && validLeadCount > 0)
@@ -1555,11 +1546,9 @@ namespace CRM.Controllers
                         .CountAsync();
                     
                     var remainingLeads = activeSubscription.Plan.MaxLeadsPerMonth - currentLeadCount;
-                    Console.WriteLine($"DEBUG: Current leads: {currentLeadCount}, Max allowed: {activeSubscription.Plan.MaxLeadsPerMonth}, Remaining: {remainingLeads}");
                     
                     if (remainingLeads <= 0)
                     {
-                        Console.WriteLine($"DEBUG: Monthly lead limit already reached");
                         if (isAjax)
                         {
                             return Json(new { success = false, message = $"Monthly lead limit of {activeSubscription.Plan.MaxLeadsPerMonth} already reached. Please upgrade your plan." });
@@ -1570,7 +1559,6 @@ namespace CRM.Controllers
                     
                     if (validLeadCount > remainingLeads)
                     {
-                        Console.WriteLine($"DEBUG: Bulk upload would exceed limit. Leads to upload: {validLeadCount}, Remaining: {remainingLeads}");
                         if (isAjax)
                         {
                             return Json(new { success = false, message = $"Cannot upload {validLeadCount} leads. Only {remainingLeads} leads remaining in your monthly limit of {activeSubscription.Plan.MaxLeadsPerMonth}. Please upgrade your plan." });
@@ -1642,7 +1630,6 @@ namespace CRM.Controllers
                 var assignedUser = await _db.Users.FindAsync(executiveId);
                 if (assignedUser != null)
                 {
-                    Console.WriteLine($"DEBUG: Bulk upload - Lead {leadId} assigned to ExecutiveId {executiveId} by {uploaderName} (Role: {Role})");
                     
                     await _notificationService.NotifyLeadAssignedAsync(
                         leadId,
@@ -1651,11 +1638,9 @@ namespace CRM.Controllers
                         uploaderName
                     );
                     
-                    Console.WriteLine($"DEBUG: Bulk upload notification sent to UserId {executiveId}");
                 }
             }
 
-            Console.WriteLine($"DEBUG: Bulk upload completed - Processed: {processedCount}");
             
             // Create success message
             var successMessage = $"Bulk upload completed: {processedCount} leads processed successfully";
@@ -1670,7 +1655,6 @@ namespace CRM.Controllers
         }
             catch (Exception ex)
             {
-                Console.WriteLine($"DEBUG: Bulk upload error: {ex.Message}");
                 
                 if (isAjax)
                 {

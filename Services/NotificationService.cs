@@ -201,17 +201,14 @@ namespace CRM.Services
         public async Task NotifyLeadAssignedAsync(int leadId, string leadName, int assignedToUserId, string assignedByUserName)
         {
             // DEBUG: Log the assignment details
-            Console.WriteLine($"DEBUG NotifyLeadAssignedAsync: LeadId={leadId}, AssignedToUserId={assignedToUserId}, AssignedBy={assignedByUserName}");
 
             // Verify the user exists before creating notification
             var assignedUser = await _context.Users.FindAsync(assignedToUserId);
             if (assignedUser == null)
             {
-                Console.WriteLine($"DEBUG ERROR: User not found for UserId={assignedToUserId}");
                 return;
             }
 
-            Console.WriteLine($"DEBUG: Creating notification for user - UserId: {assignedUser.UserId}, Username: {assignedUser.Username}, Role: {assignedUser.Role}");
 
             await CreateNotificationAsync(
                 title: "Lead Assigned to You",
@@ -225,7 +222,6 @@ namespace CRM.Services
                 priority: "High"
             );
 
-            Console.WriteLine($"DEBUG: Notification successfully created for UserId={assignedToUserId}");
         }
 
         public async Task NotifyQuotationCreatedAsync(int quotationId, int leadId, string leadName, int createdForUserId)

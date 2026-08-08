@@ -80,7 +80,6 @@ namespace CRM.Controllers
             if (int.TryParse(uid, out int userId) && userId > 0)
             {
                 await _fcmService.SaveDeviceToken(userId, token);
-                Console.WriteLine($"FCM token saved for UserId: {userId}");
                 return Json(new { success = true });
             }
 
@@ -92,12 +91,10 @@ namespace CRM.Controllers
                 if (user != null)
                 {
                     await _fcmService.SaveDeviceToken(user.UserId, token);
-                    Console.WriteLine($"FCM token saved for Username: {username}");
                     return Json(new { success = true });
                 }
             }
 
-            Console.WriteLine("FCM SaveToken failed: no user found");
             return Json(new { success = false });
         }
 

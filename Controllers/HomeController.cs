@@ -937,9 +937,33 @@ namespace CRM.Controllers
                 totalChannelPartners = await _context.ChannelPartners.CountAsync();
             }
 
-            var teamPerformance = await usersQuery
-                .Select(u => new { u.UserId, u.Username, leadsCount = _context.Leads.Count(l => l.ExecutiveId == u.UserId), bookingsCount = _context.Bookings.Count(b => _context.Leads.Any(l => l.LeadId == b.LeadId && l.ExecutiveId == u.UserId)) })
-                .OrderByDescending(x => x.bookingsCount).Take(10).ToListAsync();
+            // Mongo LINQ cannot translate nested subqueries inside a projection, so we
+            // load the members and compute lead/booking counts with separate queries.
+            var members = await usersQuery
+                .Select(u => new { u.UserId, u.Username })
+                .ToListAsync();
+
+            var memberIds = members.Select(m => m.UserId).ToList();
+            var leads = await _context.Leads
+                .Where(l => l.ExecutiveId.HasValue && memberIds.Contains(l.ExecutiveId.Value))
+                .Select(l => new { l.LeadId, l.ExecutiveId })
+                .ToListAsync();
+            var leadIds = leads.Select(l => l.LeadId).ToList();
+            var bookings = await _context.Bookings
+                .Where(b => leadIds.Contains(b.LeadId))
+                .Select(b => new { b.LeadId })
+                .ToListAsync();
+
+            var teamPerformance = members.Select(m => new
+            {
+                m.UserId,
+                m.Username,
+                leadsCount = leads.Count(l => l.ExecutiveId == m.UserId),
+                bookingsCount = bookings.Count(b => leads.Any(l => l.LeadId == b.LeadId && l.ExecutiveId == m.UserId))
+            })
+            .OrderByDescending(x => x.bookingsCount)
+            .Take(10)
+            .ToList();
 
             var topPerformers = teamPerformance.Take(5).ToList();
 

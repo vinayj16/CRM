@@ -1951,13 +1951,6 @@ namespace CRM.Controllers
                 var appDb = HttpContext.RequestServices.GetRequiredService<AppDbContext>();
                 
                 var auditCollection = mongoDbContext.GetCollection<AuditLogModel>("audit_logs");
-                
-                // Auto-seed audit logs if empty (first visit)
-                var totalExisting = (int)await auditCollection.CountDocumentsAsync(FilterDefinition<AuditLogModel>.Empty);
-                if (totalExisting == 0)
-                {
-                    await AutoSeedAuditLogs(appDb);
-                }
 
                 var filterBuilder = new FilterDefinitionBuilder<AuditLogModel>();
                 var filter = filterBuilder.Empty;
@@ -2043,60 +2036,6 @@ namespace CRM.Controllers
             catch (Exception ex)
             {
                 _logger.LogWarning(ex, "Could not resolve audit log users");
-            }
-        }
-
-        private async Task AutoSeedAuditLogs(AppDbContext appDb)
-        {
-            try
-            {
-                var users = await appDb.Users.ToListAsync();
-                var superAdmins = await _masterDb.SuperAdmins.ToListAsync();
-                var rng = new Random();
-                var auditLogs = new List<AuditLogModel>();
-                var actions = new[] { "Login", "Login", "Login", "Create", "Update", "Delete", "View", "View" };
-                var entityTypes = new[] { "User", "Lead", "Tenant", "Plan", "Payment", "Ticket", "Lead", "Booking" };
-
-                // AuditId is an int [Key] - seed explicit ids so the AddRange batch
-                // does not give every log the same max+1 id.
-                int nextAuditId = 1;
-                if (appDb.AuditLogs.Any())
-                {
-                    // Use MaxAsync (global, not tenant-scoped) so audit IDs stay unique
-                    // across tenants in the shared collection (unique index on AuditId).
-                    nextAuditId = (await appDb.AuditLogs.MaxAsync(a => (int?)a.AuditId) ?? 0) + 1;
-                }
-
-                for (int i = 0; i < 50; i++)
-                {
-                    var userId = rng.Next(0, 2) == 0
-                        ? (users.Count > 0 ? users[rng.Next(users.Count)].UserId : 1)
-                        : (superAdmins.Count > 0 ? superAdmins[rng.Next(superAdmins.Count)].Id : 1);
-                    var action = actions[rng.Next(actions.Length)];
-                    var entityType = entityTypes[rng.Next(entityTypes.Length)];
-                    var timestamp = DateTime.UtcNow.AddDays(-rng.Next(0, 60)).AddHours(-rng.Next(0, 24));
-
-                    auditLogs.Add(new AuditLogModel
-                    {
-                        AuditId = nextAuditId++,
-                        UserId = userId,
-                        Action = action,
-                        EntityType = entityType,
-                        EntityId = rng.Next(1, 100),
-                        IpAddress = $"192.168.{rng.Next(0, 255)}.{rng.Next(1, 255)}",
-                        UserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0",
-                        Timestamp = timestamp,
-                        NewValues = System.Text.Json.JsonSerializer.Serialize(new { description = $"Auto-seeded {action} on {entityType} #{rng.Next(1, 100)}" })
-                    });
-                }
-
-                appDb.AuditLogs.AddRange(auditLogs);
-                await appDb.SaveChangesAsync();
-                _logger.LogInformation("Auto-seeded 50 audit log entries on first visit");
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Failed to auto-seed audit logs");
             }
         }
 
@@ -2515,29 +2454,6 @@ namespace CRM.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error crediting referral earnings");
-            }
-        }
-
-        // ==========================================
-        // Seed Audit Log Data
-        // ==========================================
-        [HttpPost]
-        public async Task<IActionResult> SeedAuditLogs()
-        {
-            try
-            {
-                var appDb = HttpContext.RequestServices.GetRequiredService<AppDbContext>();
-                var existingCount = await appDb.AuditLogs.CountAsync();
-                if (existingCount > 0)
-                    return Json(new { success = true, message = $"Audit logs already seeded ({existingCount} entries exist)" });
-
-                await AutoSeedAuditLogs(appDb);
-                return Json(new { success = true, message = "50 audit log entries seeded successfully" });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error seeding audit logs");
-                return Json(new { success = false, message = ex.Message });
             }
         }
 

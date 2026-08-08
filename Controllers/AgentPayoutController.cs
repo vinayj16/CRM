@@ -34,7 +34,6 @@ namespace CRM.Controllers
                 month ??= IndianTime.Now.ToString("MMM");
                 year ??= IndianTime.Now.Year;
 
-                System.IO.File.AppendAllText("PayoutDebug.txt", $"Loading payouts for {month} {year}\n");
 
                 var agentsQuery = _context.Agents.AsQueryable();
                 if (role?.ToLower() == "partner")
@@ -62,7 +61,6 @@ namespace CRM.Controllers
 
                 var payouts = await query.OrderByDescending(p => p.FinalPayout).ToListAsync();
 
-                System.IO.File.AppendAllText("PayoutDebug.txt", $"Found {payouts.Count} payouts\n");
 
                 // Calculate summary stats
                 ViewBag.TotalPayouts = payouts.Sum(p => p.FinalPayout);
@@ -81,7 +79,6 @@ namespace CRM.Controllers
             }
             catch (Exception ex)
             {
-                System.IO.File.AppendAllText("PayoutDebug.txt", $"Error in Index: {ex.Message}\n{ex.StackTrace}\n");
                 ViewBag.ErrorMessage = ex.Message;
                 return View(new List<AgentPayoutModel>());
             }
@@ -247,7 +244,6 @@ namespace CRM.Controllers
             {
                 var innerMessage = ex.InnerException?.Message ?? "No inner exception";
                 var fullMessage = $"{ex.Message} | Inner: {innerMessage}";
-                System.IO.File.AppendAllText("PayoutError.txt", $"Error: {fullMessage}\nStack: {ex.StackTrace}\n\n");
                 return Json(new { success = false, message = fullMessage });
             }
         }
@@ -468,7 +464,6 @@ namespace CRM.Controllers
                 var startDate = new DateTime(2025, 12, 1);
                 var endDate = new DateTime(2025, 12, 31);
                 
-                System.IO.File.AppendAllText("CommissionDebug.txt", $"\n=== Direct Recalculation Dec 2025 ===\n");
                 
                 // Get completed bookings for December 2025
                 var bookings = await _context.Bookings
@@ -477,28 +472,22 @@ namespace CRM.Controllers
                                (b.Status == "Confirmed" || b.Status == "Completed"))
                     .ToListAsync();
                 
-                System.IO.File.AppendAllText("CommissionDebug.txt", $"Found {bookings.Count} bookings\n");
                 
                 foreach (var booking in bookings)
                 {
-                    System.IO.File.AppendAllText("CommissionDebug.txt", $"Processing {booking.BookingNumber}\n");
                     
                     var lead = await _context.Leads.FindAsync(booking.LeadId);
-                    System.IO.File.AppendAllText("CommissionDebug.txt", $"Lead found: {lead != null}, ExecutiveId: {lead?.ExecutiveId}\n");
                     
                     if (lead?.ExecutiveId != null)
                     {
                         var user = await _context.Users.FindAsync(lead.ExecutiveId.Value);
-                        System.IO.File.AppendAllText("CommissionDebug.txt", $"User found: {user != null}, Username: '{user?.Username}', Email: '{user?.Email}'\n");
                         
                         if (user != null)
                         {
                             var agent = await _context.Agents.FirstOrDefaultAsync(a => a.FullName == user.Username && a.Email == user.Email && a.Status == "Approved");
-                            System.IO.File.AppendAllText("CommissionDebug.txt", $"Agent found: {agent != null}, FullName: '{agent?.FullName}', AgentType: '{agent?.AgentType}'\n");
                             
                             if (agent != null && agent.AgentType != "Salary")
                             {
-                                System.IO.File.AppendAllText("CommissionDebug.txt", $"Creating commission for {agent.FullName}\n");
                                 
                                 // Calculate commission using agent's rules
                                 var commissionPercentage = GetCommissionPercentage(agent.CommissionRules);
@@ -516,21 +505,17 @@ namespace CRM.Controllers
                                     Year = 2025
                                 };
                                 _context.AgentCommissionLogs.Add(commissionLog);
-                                System.IO.File.AppendAllText("CommissionDebug.txt", $"Commission log added to context\n");
                             }
                             else
                             {
-                                System.IO.File.AppendAllText("CommissionDebug.txt", $"Skipped: Agent is null or Salary type\n");
                             }
                         }
                         else
                         {
-                            System.IO.File.AppendAllText("CommissionDebug.txt", $"User not found for ExecutiveId {lead.ExecutiveId}\n");
                         }
                     }
                     else
                     {
-                        System.IO.File.AppendAllText("CommissionDebug.txt", $"Lead not found or ExecutiveId is null\n");
                     }
                 }
                 
@@ -580,8 +565,6 @@ namespace CRM.Controllers
             var startDate = new DateTime(year, monthNumber, 1);
             var endDate = startDate.AddMonths(1).AddDays(-1);
 
-            System.IO.File.AppendAllText("CommissionDebug.txt", $"\n=== Recalculating {month} {year} ===\n");
-            System.IO.File.AppendAllText("CommissionDebug.txt", $"Date range: {startDate:yyyy-MM-dd} to {endDate:yyyy-MM-dd}\n");
 
             // Get all confirmed bookings for the month
             var bookings = await _context.Bookings
@@ -590,38 +573,31 @@ namespace CRM.Controllers
                            b.Status == "Confirmed")
                 .ToListAsync();
 
-            System.IO.File.AppendAllText("CommissionDebug.txt", $"Found {bookings.Count} confirmed bookings\n");
 
             foreach (var booking in bookings)
             {
-                System.IO.File.AppendAllText("CommissionDebug.txt", $"\nProcessing booking {booking.BookingNumber} (LeadId: {booking.LeadId})\n");
                 
                 // Get the lead to find ExecutiveId
                 var lead = await _context.Leads.FindAsync(booking.LeadId);
-                System.IO.File.AppendAllText("CommissionDebug.txt", $"Lead found: {lead != null}, ExecutiveId: {lead?.ExecutiveId}\n");
                 
                 if (lead?.ExecutiveId != null)
                 {
                     // Find user by ExecutiveId, then find matching agent by email
                     var user = await _context.Users.FindAsync(lead.ExecutiveId.Value);
-                    System.IO.File.AppendAllText("CommissionDebug.txt", $"User found: {user != null}, Username: {user?.Username}, Email: {user?.Email}\n");
                     
                     if (user != null)
                     {
                         // First try to find agent with matching username and email
                         var agent = await _context.Agents.FirstOrDefaultAsync(a => a.FullName == user.Username && a.Email == user.Email && a.Status == "Approved");
-                        System.IO.File.AppendAllText("CommissionDebug.txt", $"Agent by name+email: {agent?.FullName} (Type: {agent?.AgentType})\n");
                         
                         // If not found, fall back to email match
                         if (agent == null)
                         {
                             agent = await _context.Agents.FirstOrDefaultAsync(a => a.Email == user.Email && a.Status == "Approved");
-                            System.IO.File.AppendAllText("CommissionDebug.txt", $"Agent by email only: {agent?.FullName} (Type: {agent?.AgentType})\n");
                         }
                         
                         if (agent != null && agent.AgentType != "Salary")
                         {
-                            System.IO.File.AppendAllText("CommissionDebug.txt", $"Creating commission for Agent {agent.FullName} (ID: {agent.AgentId})\n");
                             
                             var commissionLog = new AgentCommissionLogModel
                             {

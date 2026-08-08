@@ -39,14 +39,11 @@ namespace CRM.Services
 
         public static void ClearAllActiveTimers()
         {
-            Console.WriteLine($"TIMER-DEBUG: Clearing {_activeTimers.Count} active timers");
             foreach (var kvp in _activeTimers)
             {
-                Console.WriteLine($"TIMER-DEBUG: Disposing timer for FollowUpId {kvp.Key}");
                 kvp.Value.Dispose();
             }
             _activeTimers.Clear();
-            Console.WriteLine($"TIMER-DEBUG: All timers cleared. Active count: {_activeTimers.Count}");
         }
 
         private async Task ScheduleTodayFollowUps()
@@ -59,8 +56,6 @@ namespace CRM.Services
                 var today = IndianTime.Today;
                 var now = IndianTime.Now;
 
-                Console.WriteLine($"TIMER-DEBUG: Checking follow-ups for {today:yyyy-MM-dd} at {now:HH:mm:ss}");
-                Console.WriteLine($"TIMER-DEBUG: Currently active timers: {_activeTimers.Count}");
 
                 var todayFollowUps = await tenantDb.LeadFollowUps
                     .Where(f => f.FollowUpDate.HasValue &&
@@ -70,11 +65,9 @@ namespace CRM.Services
                     .ToListAsync();
 
                 if (!todayFollowUps.Any()) return;
-                Console.WriteLine($"TIMER-DEBUG: Found {todayFollowUps.Count} unread follow-ups for today");
 
                 foreach (var f in todayFollowUps)
                 {
-                    Console.WriteLine($"TIMER-DEBUG: FollowUpId {f.FollowUpId}, Time: {f.FollowUpTime}, IsNotificationRead: {f.IsNotificationRead}");
                 }
 
                 var scheduledCount = 0;
@@ -128,11 +121,9 @@ namespace CRM.Services
 
                 //if (followUp == null || followUp.IsNotificationRead == true) return; 
 
-                Console.WriteLine($"TIMER-DEBUG: Timer fired for FollowUpId {followUpId}. Current IsNotificationRead: {followUp?.IsNotificationRead}");
 
                 if (followUp == null || followUp.IsNotificationRead == true)
                 {
-                    Console.WriteLine($"SCHEDULED-NOTIF: Skipped FollowUpId {followUpId} - already read or not found");
                     return;
                 }
 
@@ -193,11 +184,9 @@ namespace CRM.Services
                     );
                 }
 
-                Console.WriteLine($"SCHEDULED-NOTIF: Fired for FollowUpId {followUpId}, Lead {leadName} at {IndianTime.Now:HH:mm:ss}");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"SCHEDULED-NOTIF ERROR: {ex.Message}");
             }
         }
 

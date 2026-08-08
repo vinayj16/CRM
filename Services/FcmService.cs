@@ -69,7 +69,6 @@ namespace CRM.Services
 
                 // Validate and fix the link URL for Firebase
                 var validLink = ValidateAndFixUrl(link);
-                Console.WriteLine($"DEBUG: Original link: '{link}', Valid link: '{validLink}'");
 
                 var message = new Message()
                 {
