@@ -85,7 +85,7 @@ namespace CRM.Controllers
         [PermissionAuthorize("Edit")]
         public async Task<IActionResult> UpdateSaasSetting(IFormCollection saassetting, IFormFile? CompanyLogo, IFormFile? CollapsedLogo)
         {
-            System.Diagnostics.Debug.WriteLine("UpdateSaasSetting action HIT");
+
             try
             {
                 var userInfo = GetUserDetailsFromToken();
@@ -409,10 +409,10 @@ namespace CRM.Controllers
         {
             try
             {
-                System.Diagnostics.Debug.WriteLine("UpdateBranding called");
+
                 foreach (var key in form.Keys)
                 {
-                    System.Diagnostics.Debug.WriteLine($"Form Key: {key}, Value: {form[key]}");
+
                 }
 
                 var currentId = _getCurrentId();

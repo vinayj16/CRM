@@ -56,7 +56,6 @@ namespace CRM.Controllers
         [PermissionAuthorize("Edit")]
         public async Task<IActionResult> UpdateSettings(IFormCollection settings, IFormFile? CompanyLogo, IFormFile? CollapsedLogo)
         {
-            System.Diagnostics.Debug.WriteLine("UpdateSettings action HIT");
             try
             {
                 var currentUserId = _getCurrentUserId();
@@ -408,10 +407,10 @@ namespace CRM.Controllers
         {
             try
             {
-                System.Diagnostics.Debug.WriteLine("UpdateBranding called");
+
                 foreach (var key in form.Keys)
                 {
-                    System.Diagnostics.Debug.WriteLine($"Form Key: {key}, Value: {form[key]}");
+
                 }
                 
                 var currentUserId = _getCurrentUserId();

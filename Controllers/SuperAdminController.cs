@@ -77,7 +77,7 @@ namespace CRM.Controllers
                 Response.Cookies.Append("jwtToken", saToken, new CookieOptions
                 {
                     HttpOnly = false,
-                    Secure = true,
+                    Secure = Request.IsHttps,
                     IsEssential = true,
                     SameSite = SameSiteMode.Lax,
                     Expires = DateTimeOffset.UtcNow.AddHours(8)
@@ -1117,7 +1117,7 @@ namespace CRM.Controllers
                 Response.Cookies.Append("jwtToken", tokenString, new CookieOptions
                 {
                     HttpOnly = false,
-                    Secure = true,
+                    Secure = Request.IsHttps,
                     IsEssential = true,
                     SameSite = SameSiteMode.Lax,
                     Expires = DateTimeOffset.UtcNow.AddHours(2)
@@ -1238,7 +1238,7 @@ namespace CRM.Controllers
             Response.Cookies.Append("jwtToken", tokenString, new CookieOptions
             {
                 HttpOnly = false,
-                Secure = true,
+                Secure = Request.IsHttps,
                 IsEssential = true,
                 SameSite = SameSiteMode.Lax,
                 Expires = DateTimeOffset.UtcNow.AddHours(8)

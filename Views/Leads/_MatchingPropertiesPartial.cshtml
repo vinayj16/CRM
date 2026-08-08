@@ -1,0 +1,20 @@
+@model List<dynamic>
+@if (Model != null && Model.Any())
+{
+    <div class="matching-properties-list">
+        @foreach (var p in Model)
+        {
+            <div class="d-flex justify-content-between align-items-center p-2 mb-1 border rounded">
+                <div>
+                    <strong>@p.Name</strong>
+                    <div class="text-muted small">@p.Location</div>
+                </div>
+                <span class="text-nowrap fw-semibold" style="color:var(--blue)">@p.Price</span>
+            </div>
+        }
+    </div>
+}
+else
+{
+    <div class="text-center text-muted small py-2">No matching properties found.</div>
+}

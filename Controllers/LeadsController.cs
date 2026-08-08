@@ -1195,32 +1195,107 @@ namespace CRM.Controllers
             return View(lead); // Single LeadModel
         }
 
-        // Matching properties count (stub)
+        // Matching properties count - real implementation based on lead preferences
         [HttpGet]
         public IActionResult GetMatchingCount(int leadId)
         {
-            // TODO: real implementation. For now, return approximate count
-            // Example: match by PreferredLocation / BHK / PropertyType
             var lead = _db.Leads.FirstOrDefault(l => l.LeadId == leadId);
-            int count = 0;
-            if (lead != null)
-            {
-                // placeholder logic (replace with actual projects tableSearch)
-                count = new Random().Next(0, 10);
-            }
-            return Json(new { count });
+            if (lead == null)
+                return Json(new { count = 0 });
+
+            var matching = FindMatchingProperties(lead);
+            return Json(new { count = matching.Count });
         }
 
-        // Matching properties partial (stub)
+        // Matching properties partial - real implementation based on lead preferences
         [HttpGet]
         public IActionResult GetMatchingProperties(int leadId)
         {
-            var sample = new List<dynamic>
+            var lead = _db.Leads.FirstOrDefault(l => l.LeadId == leadId);
+            if (lead == null)
+                return PartialView("_MatchingPropertiesPartial", new List<dynamic>());
+
+            var matching = FindMatchingProperties(lead);
+            return PartialView("_MatchingPropertiesPartial", matching);
+        }
+
+        /// <summary>
+        /// Finds properties matching a lead's stated preferences (PreferredLocation
+        /// and Budget). Matching is best-effort: any non-empty preference narrows
+        /// the candidate pool, and results are ranked by score.
+        /// </summary>
+        private List<dynamic> FindMatchingProperties(LeadModel lead)
+        {
+            var properties = _db.Properties.ToList();
+            if (!properties.Any())
+                return new List<dynamic>();
+
+            var loc = (lead.PreferredLocation ?? "").Trim().ToLowerInvariant();
+            decimal budget = ParseBudget(lead.Budget);
+
+            var scored = new List<(dynamic prop, int score)>();
+
+            foreach (var p in properties)
             {
-                new { Id = 1, Name = "Green Meadows", Location = "Sector 1", Price="₹50L" },
-                new { Id = 2, Name = "Skyline Apartments", Location="Sector 3", Price="₹75L" }
-            };
-            return PartialView("_MatchingPropertiesPartial", sample);
+                int score = 0;
+
+                var pLoc = (p.Location ?? "").ToLowerInvariant();
+                var pName = (p.PropertyName ?? "").ToLowerInvariant();
+
+                if (!string.IsNullOrEmpty(loc) && (pLoc.Contains(loc) || pName.Contains(loc)))
+                    score += 3;
+
+                if (budget > 0 && p.Price is > 0)
+                {
+                    if (p.Price <= budget) score += 2;
+                    else if (p.Price <= budget * 1.2m) score += 1;
+                }
+
+                // Only surface properties that match at least one preference (or no preferences set)
+                bool anyPref = !string.IsNullOrEmpty(loc) || budget > 0;
+                if (!anyPref || score > 0)
+                {
+                    scored.Add((new
+                    {
+                        Id = p.PropertyId,
+                        Name = p.PropertyName ?? "Untitled Property",
+                        Location = p.Location ?? "",
+                        Price = p.Price is > 0 ? "₹" + p.Price.Value.ToString("N0") : "Price on request"
+                    }, score));
+                }
+            }
+
+            return scored
+                .OrderByDescending(s => s.score)
+                .Take(10)
+                .Select(s => (dynamic)s.prop)
+                .ToList();
+        }
+
+        /// <summary>
+        /// Parses a free-text budget string (e.g. "₹1.5 Cr", "2.5L", "10 Lakh", "75,00,000")
+        /// into a plain numeric value. Supports L/Lakh (1e5) and Cr/Crore (1e7) suffixes.
+        /// Returns 0 when the value cannot be parsed.
+        /// </summary>
+        private static decimal ParseBudget(string? raw)
+        {
+            if (string.IsNullOrWhiteSpace(raw))
+                return 0;
+
+            var s = raw.Replace("₹", "").Replace(",", "").Replace(" ", "").Trim();
+            if (string.IsNullOrEmpty(s))
+                return 0;
+
+            decimal multiplier = 1;
+            var lower = s.ToLowerInvariant();
+            if (lower.Contains("cr")) { multiplier = 10000000m; s = lower.Replace("cr", ""); }
+            else if (lower.Contains("lakh")) { multiplier = 100000m; s = lower.Replace("lakh", ""); }
+            else if (lower.Contains("l")) { multiplier = 100000m; s = lower.Replace("l", ""); }
+
+            if (!decimal.TryParse(s, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var value))
+                return 0;
+
+            return value * multiplier;
         }
 
         // Get uploads for a lead

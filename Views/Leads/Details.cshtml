@@ -479,6 +479,23 @@
                         </div>
                     </div>
 
+                    <!-- Matching Properties Card (auto-matched from lead preferences) -->
+                    <div class="card mb-3">
+                        <div class="card-body p-4">
+                            <div class="d-flex align-items-center justify-content-between mb-3">
+                                <h4 class="mb-0"><i class="fas fa-building me-2" style="color:var(--brand-primary)"></i>Matching Properties</h4>
+                                <button type="button" class="btn btn-sm btn-outline-primary" onclick="loadMatchingProperties()">
+                                    <i class="fas fa-sync-alt me-1"></i>Refresh
+                                </button>
+                            </div>
+                            <div id="matchingPropertiesContainer">
+                                <div class="text-center text-muted small py-2">
+                                    <i class="fas fa-spinner fa-spin me-1"></i>Loading matching properties...
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Additional Details Card -->
                     @if (!string.IsNullOrEmpty(Model.Requirement) || !string.IsNullOrEmpty(Model.Comments))
                     {
@@ -2361,7 +2378,29 @@
                 }
             }, 1000);
         }
+
+        // Auto-load matching properties once the page is ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', loadMatchingProperties);
+        } else {
+            loadMatchingProperties();
+        }
     });
+
+    // Load matching properties (auto-matched from lead preferences) - global scope for inline onclick
+    function loadMatchingProperties() {
+        var container = document.getElementById('matchingPropertiesContainer');
+        if (!container) return;
+        container.innerHTML = '<div class="text-center text-muted small py-2"><i class="fas fa-spinner fa-spin me-1"></i>Loading matching properties...</div>';
+        fetch('/Leads/GetMatchingProperties?leadId=@Model.LeadId')
+            .then(function (res) { return res.text(); })
+            .then(function (html) {
+                container.innerHTML = html;
+            })
+            .catch(function () {
+                container.innerHTML = '<div class="text-center text-muted small py-2">Could not load matching properties.</div>';
+            });
+    }
 </script>
 
 @await Html.PartialAsync("_FollowUpModal", new FollowUpModel())
